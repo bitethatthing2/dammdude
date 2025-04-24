@@ -6,22 +6,23 @@ importScripts('/sw-cache.js');
 // Service worker version
 const SW_VERSION = '1.0.6';
 
-// Firebase configuration
-// These values should match your environment variables
+// Firebase configuration (PUBLIC Client-Side Values)
+// !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
+// These values WILL be publicly visible in the browser's service worker code.
+// DO NOT include sensitive keys like FIREBASE_ADMIN_* or GOOGLE_OAUTH_CLIENT_SECRET here.
 const firebaseConfig = {
-  apiKey: "AIzaSyB0Nxf3pvW32KBc0D1o2-K6qIeKovhGWfg",
-  authDomain: "new1-f04b3.firebaseapp.com",
-  projectId: "new1-f04b3",
-  storageBucket: "new1-f04b3.firebasestorage.app",
-  messagingSenderId: "802463638703",
-  appId: "1:802463638703:web:bd0bbdaf3407d784d5205a",
-  measurementId: "G-3RZEW537LN",
-  clientId: "802463638703-of9ip59hbaqsrg9iu559cfvorrsp1rkh.apps.googleusercontent.com",
-  clientSecret: "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"
+  apiKey: "YOUR_NEXT_PUBLIC_FIREBASE_API_KEY",             // Replace with value from .env.local
+  authDomain: "YOUR_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",       // Replace with value from .env.local
+  projectId: "YOUR_NEXT_PUBLIC_FIREBASE_PROJECT_ID",        // Replace with value from .env.local
+  storageBucket: "YOUR_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",  // Replace with value from .env.local
+  messagingSenderId: "YOUR_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", // Replace with value from .env.local
+  appId: "YOUR_NEXT_PUBLIC_FIREBASE_APP_ID",              // Replace with value from .env.local
+  measurementId: "YOUR_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID" // Optional, replace if you use it
 };
 
-// VAPID key for web push
-const vapidKey ="BPAbU0G8rhAKE7ay5RepQ7N3V_CsdCKvmflQm0FncBbx4CHL0IfmGvdbdYUN90Vjn50JB7T9jzj268KhYJ34ikU";
+// VAPID key for web push (PUBLIC)
+// !! IMPORTANT !!: Replace this placeholder with your ACTUAL value from .env.local
+const vapidKey = "YOUR_NEXT_PUBLIC_FIREBASE_VAPID_KEY";      // Replace with value from .env.local
 
 // Service Worker Lifecycle Events
 self.addEventListener('install', event => {

@@ -28,6 +28,10 @@ yarn-error.log*
 .env*.local
 .env
 
+# Secrets files
+service_key.json
+client_secret.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/settings.json

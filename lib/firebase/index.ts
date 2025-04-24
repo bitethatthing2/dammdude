@@ -9,13 +9,12 @@ const firebaseConfig: FirebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET as string,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID as string,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID as string,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID as string,
-  clientId: "802463638703-of9ip59hbaqsrg9iu559cfvorrsp1rkh.apps.googleusercontent.com",
-  clientSecret: "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"
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID as string
+  // clientId and clientSecret removed - should not be exposed in client config
 };
 
-// Hardcoded VAPID key as fallback - use the same one from the service worker
-const VAPID_KEY = "BPAbU0G8rhAKE7ay5RepQ7N3V_CsdCKvmflQm0FncBbx4CHL0IfmGvdbdYUN90Vjn50JB7T9jzj268KhYJ34ikU";
+// Use VAPID key from environment variable
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY as string;
 
 const getFirebaseApp = () => {
   const apps = getApps();
@@ -84,10 +83,10 @@ export const fetchToken = async (): Promise<string | null> => {
     const messaging = getMessagingInstance();
     if (!messaging) return null;
     
-    // Use the hardcoded VAPID key as fallback
-    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || VAPID_KEY;
+    // Use the VAPID key from environment variable
+    const vapidKey = VAPID_KEY;
     if (!vapidKey) {
-      console.error('VAPID key is missing');
+      console.error('VAPID key is missing in environment variables (NEXT_PUBLIC_FIREBASE_VAPID_KEY)');
       return null;
     }
     

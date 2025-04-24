@@ -6,12 +6,6 @@ import { initFirebase } from '@/lib/firebase';
 import { getMessaging, getToken } from 'firebase/messaging';
 import { supabase } from '@/lib/supabase/client';
 
-// OAuth credentials from client_secret.json
-const oauthCredentials = {
-  clientId: "802463638703-of9ip59hbaqsrg9iu559cfvorrsp1rkh.apps.googleusercontent.com",
-  clientSecret: "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"
-};
-
 export function FcmTokenRegistration() {
   const [isSupported, setIsSupported] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -71,8 +65,8 @@ export function FcmTokenRegistration() {
         throw new Error('VAPID key is missing');
       }
       
-      // Get token with OAuth credentials
-      console.log('Requesting FCM token with VAPID key and OAuth credentials');
+      // Get token with VAPID key
+      console.log('Requesting FCM token with VAPID key');
       const currentToken = await getToken(messaging, {
         vapidKey,
         serviceWorkerRegistration: registration
