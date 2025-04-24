@@ -6,19 +6,16 @@ import { createClient } from '@supabase/supabase-js';
 if (!admin.apps.length) {
   try {
     // Use a more reliable initialization approach with proper error handling
-    const serviceAccount = {
-      projectId: "new1-f04b3",
-      clientEmail: "firebase-adminsdk-fbsvc@new1-f04b3.iam.gserviceaccount.com",
-      privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5IhIspbL79g6E\nIEyH5iyk0kDHDnlBoc/ZHKa849tgJCCQcaxnZXoPsUvlqoqb9vLWaM9F5ds0yj/+\nJ0zwwv0Oz5Nx1ylU0vndhrx4LUHI8NrVCP3ob0QzH5ziLhEE3d8BfUcHC9/ZMXK1\nOj+qwr68J9EyiJH/xVpPaGZuDXGKmWzuryr0RlLaJSRw+GYi9YsdVTiyijyANzdI\nXXtU1fSfOkuAfkJPLBJ2aNtvJnvP4haFTMdf6da1RzoBAR8GZZERTumxlky0BBIB\n76Xq+Kgw3K5nC8ktuNvjH/Is8RDW+hpfO97QTFy0ARlUKNBxhF/xE6rY8xcDf4NX\nO5v09p1JAgMBAAECggEACgC6RKlLS2vXCvKH0Avyu5EUqOyyRoaMqWlv5OLW1pH9\nJHDP5OJJvxFQTX9yb8zfABC3qkoqFucaoAvVj2ipraQvjkYW2JtxnrOJ+WBQnp/M\n4xfSSD3CzJRXsKzWhJHMW9M+BDZzCNQwI3SbPgm5robkObvBT7WFFKdKaYXWbauW\n13zw+RjSR6icgq+VjDixvcPldsnHTZbGRwc7xtZz6wGoObnIH/47WrNwrGOuRgAc\nFV2cEFDZn47Xe3jWBdZv5ckItVaVmT01PSZV2PsM9EQkcz+S7kjsOJkyyYwQmmta\n+x2Bwf6hgc3BA7Fqy6U4ofWN32QtbWjV9RYdIZyV1QKBgQDzoMT/u7WoqbhYvY/N\nTfgekrdCPG9aWWwsQ+sgsg8YY1TpNIRMt8Vo+aYOSzTOqCiycYUnwx5U1KJlL+II\nVAcU3SQqI19/IiBksMz2FnY/OfFHOAMVVq2St9Ajk8GwtTGthL8AN3+DETFK6xOP\n1bJpJ2kHDPHhP5sdotBGUVCd8wKBgQDCiNoDdJXqR+3U7ua8j2x5KPitdxmA0InX\nfA9AGRvTYXLHMbuBpRyImPiif4R2KTb2g7dTav1AWQ4p4vSdeuKESOu+J61fedQr\nzxsYkGn6i7KZVDE/YaViXOBe/eduH1PtbxfPFtszZWnh02YwQ+g2CJ9yNK+HWEv4\niyIVPk9a0wKBgFVGEY4dirEVbsQI3buTreQtoF1bv/IU2KsJvtP73xK/OepCiog7\nzqo2r6vTIRGwhEYpO902C3jP0GOwheI6XxwrZ0wkg3mBXWtBAwyjwhHRWyV9cn7W\njvyKwByjzCjo0xGUJDKUOlqK+wDpFTjEKKVruPRR0Jvx4n5WDaZ/McOHAoGBAKX/\nRyGZs28mD7EaZrPSIvrEVmcW8SE1UdoZl53XjyHxzpJhQqJfNRjuh4OKEosNokP6\no03ARvhIxchCTP+wY2gEHX22t7934u+7G2D7oiNUX4NtD1UJSqnDnQYR3RDgFKrP\nmF5zH3sc95vm2xUmbRjmhMBcasewNauRdfTwpaBXAoGAW7vbVvvaqFPPgF0mfKAC\nzwh/ybzIj2fUShvARIoAM4xKRKF4JkIDaMfiomtYmEGFlAj6h5KTcPaTey7Lu6gi\nylhrJ5AdbW+DWMQ2u8p7mt42CT7UB69PjE6KzSURi2+8AkM0qR/EDFo8FzUX1qOx\nzW7x3wFzhxLjInO6XcMxKSo=\n-----END PRIVATE KEY-----\n",
-    };
-
-    // Check that all required fields are present
-    if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      throw new Error('Missing required Firebase Admin SDK credentials');
-    }
-
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential: admin.credential.cert({
+        projectId: process.env.FCM_PROJECT_ID, // Make sure this is also set in your env
+        // Use environment variables for sensitive credentials
+        clientEmail: process.env.FCM_CLIENT_EMAIL,
+        // IMPORTANT: Never hardcode private keys!
+        // Set FCM_PRIVATE_KEY in your .env.local file
+        // Ensure the key includes newline characters correctly, e.g., by replacing \n with actual newlines
+        privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\n/g, '\n'),
+      }),
     });
     console.log('Firebase Admin initialized successfully in subscribe-to-topic');
   } catch (error) {
