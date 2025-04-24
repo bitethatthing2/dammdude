@@ -1,0 +1,87 @@
+{
+  "name": "Side Hustle",
+  "short_name": "Side Hustle",
+  "description": "Order food and drinks at Side Hustle - A faster, app-like experience with offline access",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/android-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/notification-small-24x24.png",
+      "sizes": "24x24",
+      "type": "image/png",
+      "purpose": "notification"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Menu",
+      "short_name": "Menu",
+      "description": "View our menu",
+      "url": "/menu",
+      "icons": [{ "src": "/icons/menu-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "View your orders",
+      "url": "/orders",
+      "icons": [{ "src": "/icons/orders-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "View your profile",
+      "url": "/profile",
+      "icons": [{ "src": "/icons/profile-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["food", "drinks", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshots/home-1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Home Screen of Side Hustle"
+    },
+    {
+      "src": "/screenshots/menu-1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Menu Screen of Side Hustle"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "scope": "/",
+  "dir": "ltr",
+  "lang": "en-US",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}
