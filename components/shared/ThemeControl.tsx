@@ -15,6 +15,10 @@ const themes = [
   { name: "violet", title: "Violet" }
 ];
 
+// Constants for localstorage keys (matching theme-provider.tsx)
+const THEME_COLOR_KEY = 'sidehustle-color-theme';
+const THEME_MODE_KEY = 'sidehustle-mode';
+
 // Theme control component with mode toggle and theme selector
 export const ThemeControl = () => {
   const { theme, setTheme, resolvedTheme } = useTheme(); 
@@ -27,39 +31,55 @@ export const ThemeControl = () => {
   
   // Initialize component
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     setMounted(true);
     
     // Get saved color theme from localStorage
-    const savedColorTheme = localStorage.getItem('sidehustle-color-theme');
+    const savedColorTheme = localStorage.getItem(THEME_COLOR_KEY);
     if (savedColorTheme) {
       setColorTheme(savedColorTheme);
-      // Apply the saved color theme class
-      document.documentElement.classList.add(savedColorTheme);
+      // Apply the saved color theme class if not already applied
+      if (!document.documentElement.classList.contains(savedColorTheme)) {
+        document.documentElement.classList.add(savedColorTheme);
+      }
     } else {
       // Set initial color theme state from html classes
       const htmlClasses = document.documentElement.classList;
       for (const t of themes) {
         if (htmlClasses.contains(t.name)) {
           setColorTheme(t.name);
+          // Save to localStorage
+          localStorage.setItem(THEME_COLOR_KEY, t.name);
           break;
         }
       }
     }
     
     // Set initial dark mode state
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
+    const isDark = document.documentElement.classList.contains('dark');
+    setIsDarkMode(isDark);
+    
+    // Save the initial mode
+    const initialMode = isDark ? 'dark' : 'light';
+    localStorage.setItem(THEME_MODE_KEY, initialMode);
   }, []);
   
   // Update dark mode state when resolvedTheme changes
   React.useEffect(() => {
+    if (!mounted) return;
+    
     if (resolvedTheme) {
       setIsDarkMode(resolvedTheme === 'dark');
+      localStorage.setItem(THEME_MODE_KEY, resolvedTheme);
     }
-  }, [resolvedTheme]);
+  }, [resolvedTheme, mounted]);
 
   // Close the theme selector when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = () => {
+    if (typeof window === 'undefined') return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
       setShowThemeSelector(false);
     };
 
@@ -74,15 +94,24 @@ export const ThemeControl = () => {
 
   // Toggle between light and dark mode
   const toggleMode = () => {
-    // Toggle dark mode class directly for immediate visual feedback
-    document.documentElement.classList.toggle('dark');
-    
     // Update state
     const newIsDarkMode = !isDarkMode;
     setIsDarkMode(newIsDarkMode);
     
+    // Toggle dark mode class directly for immediate visual feedback
+    const root = document.documentElement;
+    
+    if (newIsDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    
     // Apply the appropriate theme based on current color theme
     setTheme(newIsDarkMode ? 'dark' : 'light');
+    
+    // Save the mode to localStorage
+    localStorage.setItem(THEME_MODE_KEY, newIsDarkMode ? 'dark' : 'light');
   };
 
   // Handle theme change while preserving dark/light mode
@@ -90,16 +119,18 @@ export const ThemeControl = () => {
     // Update color theme state
     setColorTheme(newColorTheme);
     
+    const root = document.documentElement;
+    
     // Remove all existing theme classes
     themes.forEach(t => {
-      document.documentElement.classList.remove(t.name);
+      root.classList.remove(t.name);
     });
     
     // Add the new theme class
-    document.documentElement.classList.add(newColorTheme);
+    root.classList.add(newColorTheme);
     
     // Save the theme to localStorage for persistence
-    localStorage.setItem('sidehustle-color-theme', newColorTheme);
+    localStorage.setItem(THEME_COLOR_KEY, newColorTheme);
     
     // Apply the theme while preserving dark mode
     const themeToApply = isDarkMode ? 'dark' : 'light';
