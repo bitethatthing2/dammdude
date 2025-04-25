@@ -72,11 +72,19 @@ export default function AdminDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: notificationTitle,
-          body: notificationBody,
-          topic: notificationTarget,
-        }),
+        body: JSON.stringify(
+          notificationTarget === 'all_devices' 
+            ? {
+                title: notificationTitle,
+                body: notificationBody,
+                sendToAll: true
+              }
+            : {
+                title: notificationTitle,
+                body: notificationBody,
+                topic: notificationTarget
+              }
+        ),
       });
       
       const data = await response.json();
