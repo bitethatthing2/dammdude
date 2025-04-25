@@ -5,12 +5,20 @@ import { createClient } from '@supabase/supabase-js';
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
   try {
+    const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+    console.log('DEBUG: Raw FIREBASE_PRIVATE_KEY:', rawPrivateKey);
+
+    const processedPrivateKey = rawPrivateKey?.trim().replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+    console.log('DEBUG: Processed Private Key (length):', processedPrivateKey?.length);
+    console.log('DEBUG: Processed Private Key (start):', processedPrivateKey?.substring(0, 30));
+    console.log('DEBUG: Processed Private Key (end):', processedPrivateKey?.substring(processedPrivateKey.length - 30));
+
     // Use a more reliable initialization approach with proper error handling
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID, 
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.trim().replace(/^"|"$/g, '').replace(/\\n/g, '\n'),
+        privateKey: processedPrivateKey,
       }),
     });
     console.log('Firebase Admin initialized successfully in subscribe-to-topic');
