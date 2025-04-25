@@ -482,6 +482,111 @@
     color: hsl(var(--primary));
   }
   
+  /* Theme colors for base elements */
+  .theme-red .theme-color {
+    color: hsl(var(--primary));
+  }
+  
+  .theme-blue .theme-color {
+    color: hsl(var(--primary));
+  }
+  
+  .theme-green .theme-color {
+    color: hsl(var(--primary));
+  }
+  
+  .theme-orange .theme-color {
+    color: hsl(var(--primary));
+  }
+  
+  .theme-violet .theme-color {
+    color: hsl(var(--primary));
+  }
+
+  .theme-rose .theme-color {
+    color: hsl(var(--primary));
+  }
+  
+  .theme-slate .theme-color {
+    color: hsl(var(--primary));
+  }
+
+  /* Toast theme variants */
+  .theme-toast {
+    border-color: hsl(var(--border));
+  }
+  
+  .theme-toast.theme-red {
+    --toast-border: hsl(0 84% 60% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-blue {
+    --toast-border: hsl(221 83% 53% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-green {
+    --toast-border: hsl(142 71% 45% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-orange {
+    --toast-border: hsl(24 95% 58% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-violet {
+    --toast-border: hsl(250 91% 66% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-rose {
+    --toast-border: hsl(350 89% 60% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  .theme-toast.theme-slate {
+    --toast-border: hsl(215 16% 47% / 0.2);
+    border-color: var(--toast-border);
+  }
+  
+  /* Toast action button theme variants */
+  .theme-toast.theme-red [data-radix-toast-action] {
+    background-color: hsl(0 84% 60% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-blue [data-radix-toast-action] {
+    background-color: hsl(221 83% 53% / 0.1); 
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-green [data-radix-toast-action] {
+    background-color: hsl(142 71% 45% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-orange [data-radix-toast-action] {
+    background-color: hsl(24 95% 58% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-violet [data-radix-toast-action] {
+    background-color: hsl(250 91% 66% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-rose [data-radix-toast-action] {
+    background-color: hsl(350 89% 60% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
+  .theme-toast.theme-slate [data-radix-toast-action] {
+    background-color: hsl(215 16% 47% / 0.1);
+    color: hsl(var(--primary));
+  }
+  
   /* For icons inside buttons, use the button's text color */
   button svg, 
   [role="button"] svg {

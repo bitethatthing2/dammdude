@@ -24,22 +24,30 @@ export const ThemeControl = () => {
   // Separate state for color theme
   const [colorTheme, setColorTheme] = React.useState('slate');
   const [isDarkMode, setIsDarkMode] = React.useState(false);
-
+  
   // Initialize component
   React.useEffect(() => {
     setMounted(true);
     
-    // Set initial dark mode state
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
-    
-    // Determine current color theme class
-    const htmlClasses = document.documentElement.classList;
-    for (const t of themes) {
-      if (htmlClasses.contains(t.name)) {
-        setColorTheme(t.name);
-        break;
+    // Get saved color theme from localStorage
+    const savedColorTheme = localStorage.getItem('sidehustle-color-theme');
+    if (savedColorTheme) {
+      setColorTheme(savedColorTheme);
+      // Apply the saved color theme class
+      document.documentElement.classList.add(savedColorTheme);
+    } else {
+      // Set initial color theme state from html classes
+      const htmlClasses = document.documentElement.classList;
+      for (const t of themes) {
+        if (htmlClasses.contains(t.name)) {
+          setColorTheme(t.name);
+          break;
+        }
       }
     }
+    
+    // Set initial dark mode state
+    setIsDarkMode(document.documentElement.classList.contains('dark'));
   }, []);
   
   // Update dark mode state when resolvedTheme changes
@@ -90,71 +98,67 @@ export const ThemeControl = () => {
     // Add the new theme class
     document.documentElement.classList.add(newColorTheme);
     
+    // Save the theme to localStorage for persistence
+    localStorage.setItem('sidehustle-color-theme', newColorTheme);
+    
     // Apply the theme while preserving dark mode
     const themeToApply = isDarkMode ? 'dark' : 'light';
     setTheme(themeToApply);
-    
-    // Make sure dark class is properly set
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
     
     // Close the selector
     setShowThemeSelector(false);
   };
 
   if (!mounted) {
+    // Avoid hydration mismatch
     return null;
   }
 
   return (
-    <div className="relative flex items-center gap-2">
-      {/* Dark/Light mode toggle */}
+    <div className="relative inline-flex items-center gap-1 z-10">
+      {/* Dark/light mode toggle */}
       <button
         onClick={toggleMode}
-        className="h-9 w-9 rounded-md bg-background text-foreground border border-primary inline-flex items-center justify-center"
-        aria-label="Toggle dark mode"
+        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
       >
-        {isDarkMode ? (
-          <Sun className="h-4 w-4" />
-        ) : (
-          <Moon className="h-4 w-4" />
-        )}
+        {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
       </button>
-
+      
       {/* Theme selector button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           setShowThemeSelector(!showThemeSelector);
         }}
-        className="h-9 px-3 rounded-md bg-background text-foreground border border-primary inline-flex items-center justify-center"
+        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Select theme"
       >
-        <Palette className="h-4 w-4 mr-1" />
         <div className={`theme-${colorTheme} w-4 h-4 rounded-full`} /> 
       </button>
-
+      
       {/* Theme selector dropdown */}
       {showThemeSelector && (
         <div 
-          className="absolute right-0 top-full mt-2 p-2 bg-background border border-input rounded-md shadow-md z-50 w-56"
           onClick={(e) => e.stopPropagation()}
+          className="absolute top-full right-0 mt-1 p-1 bg-card border border-border rounded-md shadow-md"
         >
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-1">
             {themes.map((t) => (
               <button
                 key={t.name}
                 onClick={() => handleThemeChange(t.name)}
-                className="flex flex-col items-center justify-center p-2 rounded-md relative"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded hover:bg-muted text-sm ${
+                  colorTheme === t.name ? "bg-primary/10" : ""
+                }`}
                 title={t.title}
               >
-                <div className={`theme-${t.name} w-6 h-6 rounded-full mb-1`} />
-                <span className="text-xs text-foreground">{t.title}</span>
+                <div className={`theme-${t.name} w-3 h-3 rounded-full flex-shrink-0`} />
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+                  {t.title}
+                </span>
                 {colorTheme === t.name && (
-                  <Check className="absolute h-3 w-3 text-white" style={{top: '8px', right: '8px'}} />
+                  <Check size={12} className="ml-auto text-primary" />
                 )}
               </button>
             ))}

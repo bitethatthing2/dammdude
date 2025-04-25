@@ -1,14 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Share, PlusCircle, Bell, ArrowRight } from "lucide-react";
+import { Share, PlusCircle, Bell } from "lucide-react";
 import Image from "next/image";
 
 interface IosInstallGuideProps {
   onInstallComplete?: () => void;
+  variant?: 'full' | 'compact'; // full for modal, compact for toast
 }
 
-export function IosInstallGuide({ onInstallComplete }: IosInstallGuideProps = {}) {
+export function IosInstallGuide({ 
+  onInstallComplete,
+  variant = 'full'
+}: IosInstallGuideProps) {
   // Handle completion action
   const handleInstallClick = () => {
     // Track installation attempt
@@ -29,6 +33,18 @@ export function IosInstallGuide({ onInstallComplete }: IosInstallGuideProps = {}
     }
   };
 
+  // Compact version for toast notifications
+  if (variant === 'compact') {
+    return (
+      <div className="space-y-2 text-sm">
+        <p>1. Tap <Share className="h-3 w-3 inline mr-1" /> share</p>
+        <p>2. Select <PlusCircle className="h-3 w-3 inline mr-1" /> Add to Home Screen</p>
+        <p>3. Tap <span className="font-medium">Add</span></p>
+      </div>
+    );
+  }
+
+  // Full version for modal dialogs
   return (
     <div className="space-y-6">
       <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground mb-4">
@@ -50,119 +66,46 @@ export function IosInstallGuide({ onInstallComplete }: IosInstallGuideProps = {}
           <p className="text-xs text-muted-foreground">
             Open Safari's share menu by tapping the share icon at the bottom of the screen.
           </p>
-          
-          <div className="relative h-36 w-full border border-input rounded-md flex items-center justify-center bg-muted overflow-hidden">
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-[180px] h-24 bg-background border border-input rounded-lg mb-2 relative">
-                <div className="absolute bottom-0 left-0 right-0 h-8 border-t border-input flex items-center justify-center">
-                  <Share className="h-5 w-5 text-primary animate-pulse" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Tap the Share icon</p>
+          <div className="relative h-24 w-full rounded-md bg-muted/50 overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Share className="h-8 w-8 text-primary" />
             </div>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
             <span className="flex items-center justify-center rounded-full bg-primary text-primary-foreground w-5 h-5 text-xs">2</span>
-            Tap "Add to Home Screen"
+            Select "Add to Home Screen"
           </h3>
           <p className="text-xs text-muted-foreground">
-            Scroll down in the share menu and tap "Add to Home Screen".
+            Scroll down and tap on "Add to Home Screen" in the share menu options.
           </p>
-          
-          <div className="relative h-36 w-full border border-input rounded-md flex items-center justify-center bg-muted overflow-hidden">
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-[180px] h-24 bg-background border border-input rounded-lg mb-2 relative">
-                <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col items-center justify-center">
-                  <div className="flex items-center gap-2 py-2 px-4 bg-muted/20 rounded-md mb-2">
-                    <PlusCircle className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium text-foreground">Add to Home Screen</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Select "Add to Home Screen"</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <span className="flex items-center justify-center rounded-full bg-primary text-primary-foreground w-5 h-5 text-xs">3</span>
-            Tap "Add"
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            You can edit the name if you want, then tap "Add" in the top-right corner.
-          </p>
-          
-          <div className="relative h-36 w-full border border-input rounded-md flex items-center justify-center bg-muted overflow-hidden">
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-[180px] h-24 bg-background border border-input rounded-lg mb-2 relative">
-                <div className="absolute top-0 left-0 right-0 h-8 border-b border-input flex items-center justify-between px-4">
-                  <span className="text-xs">Cancel</span>
-                  <span className="text-xs font-medium text-primary">Add</span>
-                </div>
-                <div className="absolute top-8 left-0 right-0 bottom-0 flex flex-col items-center justify-center p-4">
-                  <div className="w-10 h-10 bg-primary rounded-xl mb-2 flex items-center justify-center">
-                    <span className="text-xs text-primary-foreground font-bold">SH</span>
-                  </div>
-                  <span className="text-xs">Side Hustle</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Tap "Add"</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <span className="flex items-center justify-center rounded-full bg-primary text-primary-foreground w-5 h-5 text-xs">4</span>
-            Open from Home Screen
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Find and tap the app icon on your home screen to open it.
-          </p>
-          
-          <div className="relative h-36 w-full border border-input rounded-md flex items-center justify-center bg-muted overflow-hidden">
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-[180px] h-24 bg-background border border-input rounded-lg mb-2 relative">
-                <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col items-center justify-center p-4">
-                  <div className="grid grid-cols-4 gap-2">
-                    <div className="w-10 h-10 bg-muted/30 rounded-xl"></div>
-                    <div className="w-10 h-10 bg-muted/30 rounded-xl"></div>
-                    <div className="w-10 h-10 bg-muted/30 rounded-xl"></div>
-                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-pulse">
-                      <span className="text-xs text-primary-foreground font-bold">SH</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Tap the app icon</p>
+          <div className="relative h-24 w-full rounded-md bg-muted/50 overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <PlusCircle className="h-8 w-8 text-primary" />
             </div>
           </div>
         </div>
       </div>
-      
-      <div className="border-t border-input pt-4">
-        <div className="text-center">
-          <p className="text-sm font-medium mb-2">After installation:</p>
-          <p className="text-xs text-muted-foreground mb-4">
-            When you first open the app, you'll be prompted to enable notifications for important updates.
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2 mx-auto bg-background text-foreground border border-input"
-            onClick={handleInstallClick}
-            aria-label="Add to Home Screen Now"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Add to Home Screen Now</span>
-            <ArrowRight className="h-3 w-3 ml-1" />
-          </Button>
-        </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+          <span className="flex items-center justify-center rounded-full bg-primary text-primary-foreground w-5 h-5 text-xs">3</span>
+          Tap "Add" in the top right
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Review the app details and tap "Add" in the top right corner of the screen.
+        </p>
       </div>
+
+      <Button 
+        className="w-full" 
+        onClick={handleInstallClick}
+        size="sm"
+      >
+        I've Added to Home Screen
+      </Button>
     </div>
   );
 }
