@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,59 +11,61 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = React.useState('gthabarber1@gmail.com');
-  const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [email, setEmail] = useState('gthabarber1@gmail.com');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  
+  // Use the Supabase auth-helpers directly instead of custom client
+  const supabase = createClientComponentClient();
 
-  // This is the simplest possible login handler
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      setError('Email and password are required');
-      return;
-    }
-    
-    setIsLoading(true);
     setError('');
+    setIsLoading(true);
     
+    console.log('Login attempt with email:', email);
+
     try {
-      // Import here to avoid initialization issues
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
-      const supabase = createClientComponentClient();
-      
+      // Simple sign in - no extra validation yet
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       if (error) {
+        console.error('Login error:', error.message);
         setError(error.message);
         toast({
           title: "Login Failed",
           description: error.message,
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
-      
-      // Success! Navigate to dashboard
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to dashboard...",
-      });
-      
-      router.push('/admin/dashboard');
-      
+
+      if (data?.user) {
+        console.log('Login successful, redirecting to dashboard');
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        
+        // Use a small timeout to ensure the toast is shown
+        setTimeout(() => {
+          router.push('/admin/dashboard');
+        }, 100);
+        return;
+      }
     } catch (err) {
-      console.error("Login error:", err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Unexpected login error:', err);
+      setError('An unexpected error occurred');
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Login Error",
+        description: "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -77,18 +80,19 @@ export default function AdminLoginPage() {
           <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
                 id="email"
                 type="email" 
+                placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input 
@@ -97,6 +101,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
             
