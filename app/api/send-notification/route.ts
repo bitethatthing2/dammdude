@@ -176,10 +176,8 @@ export async function POST(request: NextRequest) {
         notification: {
           title: body.title,
           body: body.body,
-          // Always use our app icon for FCM notification
-          icon: '/images/about/icon-for-nav-light-screen.png',
-          // Add image if provided, otherwise use default banner
-          imageUrl: body.image || '/images/about/banner.png',
+          ...(body.icon && { icon: body.icon }), // Add icon if available
+          ...(body.image && { imageUrl: body.image }), // Add image if available
         },
         webpush: {
           notification: {
@@ -187,65 +185,11 @@ export async function POST(request: NextRequest) {
               click_action: body.link,
               deep_link: body.link
             }),
-            // Hardcode icons for web notifications
-            icon: '/images/about/icon-for-nav-light-screen.png',
-            badge: '/images/about/icon-for-nav-light-screen.png',
           },
           fcmOptions: {
             link: body.link || '/'
           }
         },
-        // Add Android-specific configuration with hardcoded icons
-        android: {
-          // Use literal "high" instead of string 'high' to satisfy TypeScript
-          priority: "high" as const,
-          notification: {
-            // Small icon in status bar (must be in drawable resources)
-            icon: 'notification_icon',
-            // Color of the notification
-            color: '#F65B0D', // Salem orange color
-            // Channel ID
-            channelId: body.androidConfig?.channelId || 'default_channel',
-            // Sound
-            sound: 'default',
-            // Large icon in the notification (full URL)
-            imageUrl: body.image || '/images/about/banner.png',
-            // Click action
-            clickAction: body.link || '/',
-            // Visibility on lock screen
-            visibility: "public" as const
-          }
-        },
-        // Add Apple-specific configuration
-        apns: {
-          payload: {
-            aps: {
-              // Content available for background processing
-              'content-available': 1,
-              // Sound
-              sound: body.iosConfig?.sound || 'default',
-              // Badge count if provided
-              ...(body.iosConfig?.badge !== undefined && { badge: body.iosConfig.badge }),
-              // Alert with title and body
-              alert: {
-                title: body.title,
-                body: body.body,
-                // Launch image
-                'launch-image': '/images/about/banner.png',
-              },
-              // Category for action buttons
-              category: 'notification_category',
-              // Thread ID for grouping
-              'thread-id': body.orderId || 'general',
-            }
-          },
-          // FCM options
-          fcmOptions: {
-            // Image URL
-            imageUrl: body.image || '/images/about/banner.png',
-          }
-        },
-
         data: {
           ...(body.orderId && { orderId: body.orderId }),
           ...(body.link && { link: body.link }),
