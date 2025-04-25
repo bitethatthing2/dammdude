@@ -102,6 +102,13 @@ export async function POST(request: NextRequest) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+      // Log the values received from the environment
+      console.log('DEBUG Runtime SUPABASE_URL:', supabaseUrl ? 'Exists' : 'MISSING');
+      console.log('DEBUG Runtime SUPABASE_SERVICE_KEY:', supabaseServiceKey ? 'Exists (checking first few chars)' : 'MISSING');
+      if (supabaseServiceKey) {
+        console.log('DEBUG Runtime SERVICE_KEY Start:', supabaseServiceKey.substring(0, 5));
+      }
+
       if (!supabaseUrl || !supabaseServiceKey) {
         console.error('Supabase URL or Service Key missing in environment variables.');
         throw new Error('Server configuration error: Supabase credentials missing.');
