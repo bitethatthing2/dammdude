@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,49 +10,35 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('gthabarber1@gmail.com');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [email, setEmail] = React.useState('gthabarber1@gmail.com');
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  
-  // Use the Supabase auth-helpers directly
-  const supabase = createClientComponentClient();
 
-  // Check session on mount, but don't block rendering
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (data?.session) {
-          // Already logged in, redirect to dashboard
-          router.push('/admin/dashboard');
-          return;
-        }
-      } catch (err) {
-        console.error('Error checking session:', err);
-      } finally {
-        setIsInitialized(true);
-      }
-    };
-    
-    checkSession();
-  }, [router, supabase.auth]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // This is the simplest possible login handler
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+    
     setIsLoading(true);
-
+    setError('');
+    
     try {
+      // Import here to avoid initialization issues
+      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
+      const supabase = createClientComponentClient();
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
-
+      
       if (error) {
         setError(error.message);
         toast({
@@ -63,36 +48,27 @@ export default function AdminLoginPage() {
         });
         return;
       }
-
-      if (data?.user) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
-        
-        router.push('/admin/dashboard');
-      }
-    } catch (err) {
-      console.error('Unexpected login error:', err);
-      setError('An unexpected error occurred');
+      
+      // Success! Navigate to dashboard
       toast({
-        title: "Login Error",
-        description: "Please try again later",
+        title: "Login Successful",
+        description: "Redirecting to dashboard...",
+      });
+      
+      router.push('/admin/dashboard');
+      
+    } catch (err) {
+      console.error("Login error:", err);
+      setError('An unexpected error occurred. Please try again.');
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Show loading state while checking session
-  if (!isInitialized) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-background">
@@ -101,19 +77,18 @@ export default function AdminLoginPage() {
           <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
                 id="email"
                 type="email" 
-                placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input 
@@ -122,7 +97,6 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
               />
             </div>
             
