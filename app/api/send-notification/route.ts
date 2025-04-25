@@ -37,22 +37,55 @@ function initializeFirebaseAdmin() {
       // Special handling for Vercel - they encode environment variables differently
       // This will handle various ways the private key might be stored
       if (privateKey) {
-        // If the key has literal "\n" strings, replace them with actual newlines
-        if (privateKey.includes('\\n')) {
-          privateKey = privateKey.replace(/\\n/g, '\n');
-          console.log('Replaced \\n with newlines in private key');
-        }
-        
         // If the key is wrapped in quotes (Vercel sometimes adds these), remove them
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
           privateKey = privateKey.slice(1, -1);
           console.log('Removed quotes from private key');
         }
         
-        // Check if the key has proper PEM format
-        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-          console.error('Private key does not have proper PEM format');
+        // If the key has literal "\n" strings, replace them with actual newlines
+        if (privateKey.includes('\\n')) {
+          privateKey = privateKey.replace(/\\n/g, '\n');
+          console.log('Replaced \\n with newlines in private key');
         }
+        
+        // Check if the key is Base64 encoded (another possibility)
+        try {
+          if (!privateKey.includes('-----BEGIN PRIVATE KEY-----') && 
+              /^[A-Za-z0-9+/=]+$/.test(privateKey)) {
+            const decodedKey = Buffer.from(privateKey, 'base64').toString('utf-8');
+            // Only use the decoded key if it looks like a PEM format
+            if (decodedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+              privateKey = decodedKey;
+              console.log('Successfully decoded Base64 private key');
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to decode private key as Base64:', e);
+        }
+        
+        // Ensure the key has the correct PEM format
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          console.warn('Private key does not have proper PEM format, attempting to reformat');
+          // Try to reconstruct PEM format
+          const cleanKey = privateKey.replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '').replace(/\s/g, '');
+          privateKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+          console.log('Reformatted private key to PEM format');
+        }
+        
+        // Ensure proper line breaks in PEM format (required by crypto modules)
+        if (!privateKey.includes('\n-----END PRIVATE KEY-----')) {
+          privateKey = privateKey.replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+          console.log('Added missing line break before END PRIVATE KEY');
+        }
+        
+        // Log a preview of the private key for debugging
+        console.log('Private key preview:', {
+          startsWithCorrectHeader: privateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
+          endsWithCorrectFooter: privateKey.endsWith('-----END PRIVATE KEY-----'),
+          hasNewlines: privateKey.includes('\n'),
+          length: privateKey.length
+        });
       }
 
       // For development or if keys are missing, use application default
@@ -90,11 +123,33 @@ function initializeFirebaseAdmin() {
           serviceAccount.privateKey.substring(0, 25) + '...' : 'undefined'
       });
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      });
-      
-      console.log('Firebase Admin SDK initialized successfully');
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        });
+        console.log('Firebase Admin SDK initialized successfully');
+      } catch (certError) {
+        console.error('Failed to initialize with cert, trying alternative approach', certError);
+        
+        // Fall back to direct initialization if cert fails
+        if (process.env.NODE_ENV === 'production') {
+          console.log('Attempting fallback initialization in production');
+          
+          try {
+            // Try to use service account directly from file if cert creation fails
+            const defaultServiceAccount = require('../../firebase-service-account.json');
+            admin.initializeApp({
+              credential: admin.credential.cert(defaultServiceAccount)
+            });
+            console.log('Firebase Admin SDK initialized successfully via fallback');
+          } catch (fallbackError) {
+            console.error('Fallback initialization also failed:', fallbackError);
+            throw fallbackError;
+          }
+        } else {
+          throw certError;
+        }
+      }
     } catch (error) {
       console.error('Firebase Admin initialization error:', error);
       throw new Error(`Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : String(error)}`);
