@@ -23,32 +23,33 @@ const FcmContext = createContext<FcmContextType>({
   notificationPermissionStatus: null
 });
 
+// Export hook to use the FCM Context
 export const useFcmContext = () => useContext(FcmContext);
 
-// Export this function
+// Export this function to be used by other components that need to get permission and token
 export async function getNotificationPermissionAndToken(): Promise<string | null> {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    console.warn('This browser does not support desktop notification');
+  try {
+    // First request permission
+    const permissionResult = await requestNotificationPermission();
+    if (permissionResult !== 'granted') {
+      console.log('Notification permission was not granted.');
+      return null;
+    }
+
+    // Then get token
+    console.log('Notification permission granted, fetching token...');
+    const token = await fetchToken();
+    if (!token) {
+      console.log('No FCM token received.');
+      return null;
+    }
+
+    console.log(`FCM token received: ${token.substring(0, 10)}...`);
+    return token;
+  } catch (error) {
+    console.error('Error getting notification permission or token:', error);
     return null;
   }
-
-  let currentPermission = Notification.permission;
-  if (currentPermission === 'granted') {
-    return await fetchToken();
-  }
-
-  if (currentPermission !== 'denied') {
-    console.log('Requesting notification permission...');
-    currentPermission = await requestNotificationPermission();
-    if (currentPermission === 'granted') {
-      console.log('Permission granted, fetching token...');
-      return await fetchToken();
-    }
-    console.log('Permission not granted:', currentPermission);
-  }
-
-  console.log('Notification permission not granted or denied.');
-  return null;
 }
 
 interface UseFcmTokenResult {
@@ -57,97 +58,124 @@ interface UseFcmTokenResult {
 }
 
 export function useFcmToken(): UseFcmTokenResult {
-  const router = useRouter();
-  const [notificationPermissionStatus, setNotificationPermissionStatus] =
-    useState<NotificationPermission | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const retryLoadToken = useRef(0);
-  const isLoading = useRef(false);
-  const hasFetched = useRef(false);
+  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<NotificationPermission | null>(null);
   const hasRegisteredLocally = useRef(false);
+  const router = useRouter();
 
-  const loadToken = async (): Promise<void> => {
-    // Skip if we've already registered globally or locally, or if we're already loading
-    if (hasRegisteredGlobally || hasRegisteredLocally.current || isLoading.current || hasFetched.current || typeof window === 'undefined') {
-      return;
-    }
-
-    isLoading.current = true;
-    console.log('Attempting to load FCM token...');
-    const fetchedToken = await getNotificationPermissionAndToken();
-
-    const currentPermission = Notification.permission;
-    setNotificationPermissionStatus(currentPermission);
-
-    if (currentPermission === 'denied') {
-      console.info(
-        '%cPush Notifications - Permission Denied',
-        'color: red; background: #ffe0e0; padding: 4px; font-size: 14px'
-      );
-      isLoading.current = false;
-      hasFetched.current = true;
-      return;
-    }
-
-    if (!fetchedToken) {
-      if (retryLoadToken.current >= 3) {
-        console.error('Unable to load FCM token after 3 retries.');
-        toast.error('Could not enable notifications. Please check browser settings and refresh.');
-        isLoading.current = false;
-        hasFetched.current = true;
-        return;
-      }
-
-      retryLoadToken.current += 1;
-      console.warn(`Token retrieval failed. Retrying (${retryLoadToken.current}/3)...`);
-      isLoading.current = false;
-      setTimeout(loadToken, 1000 * retryLoadToken.current);
-      return;
-    }
-
-    console.log('FCM Token loaded successfully:', fetchedToken.substring(0, 10) + '...');
-    setToken(fetchedToken);
-    isLoading.current = false;
-    hasFetched.current = true;
-    
-    // Mark as registered locally and globally
-    hasRegisteredLocally.current = true;
-    hasRegisteredGlobally = true;
-  };
-
+  // First useEffect: Check permission state and set it
   useEffect(() => {
-    // Only load token if it hasn't been registered globally
-    if (!hasRegisteredGlobally) {
-      loadToken();
-    }
+    if (typeof window === 'undefined') return;
+    
+    const checkPermission = async () => {
+      try {
+        if (!('Notification' in window)) {
+          console.log('This browser does not support notifications.');
+          setNotificationPermissionStatus('denied');
+          return;
+        }
+        
+        // Get current permission state
+        const permissionState = Notification.permission as NotificationPermission;
+        setNotificationPermissionStatus(permissionState);
+        console.log(`Current notification permission status: ${permissionState}`);
+      } catch (err) {
+        console.error('Error checking notification permission:', err);
+      }
+    };
+    
+    checkPermission();
   }, []);
 
+  // Second useEffect: Handle token fetching
   useEffect(() => {
-    // Only subscribe to topic if we have a token and haven't registered globally yet
-    if (token && !hasRegisteredLocally.current) {
-      console.log(`Attempting to subscribe token ${token.substring(0, 10)}... to topic 'all_devices'`);
-      fetch('/api/subscribe-to-topic', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: token, topic: 'all_devices' }),
-      })
-        .then(async (res) => {
-          if (res.ok) {
-            console.log('Successfully subscribed to all_devices topic');
-          } else {
-            const errorData = await res.json();
-            console.error('Failed to subscribe to topic:', res.status, errorData);
-            toast.error(`Failed to subscribe to notifications: ${errorData.error || 'Unknown error'}`);
-          }
-        })
-        .catch((error) => {
-          console.error('Error subscribing to topic:', error);
-          toast.error('Network error while subscribing to notifications.');
-        });
+    // Don't attempt on server
+    if (typeof window === 'undefined') return;
+    
+    // Don't attempt registration multiple times globally
+    if (hasRegisteredGlobally) {
+      console.log('FCM registration has already occurred globally');
+      return;
+    }
+    
+    // Don't attempt registration multiple times in this component instance
+    if (hasRegisteredLocally.current) {
+      console.log('FCM registration has already occurred locally');
+      return;
+    }
+
+    const setupFcm = async () => {
+      // Set flags to prevent duplicate calls
+      hasRegisteredLocally.current = true;
+      hasRegisteredGlobally = true;
+
+      try {
+        console.log('Attempting to load FCM token...');
         
-      // Mark as registered
+        // Only proceed if notification permission was granted
+        if (Notification.permission !== 'granted') {
+          console.log('Notification permission not granted, skipping FCM setup.');
+          return;
+        }
+
+        // Get messaging instance
+        const messagingInstance = getMessagingInstance();
+        if (!messagingInstance) {
+          console.error('Failed to get messaging instance.');
+          return;
+        }
+
+        // Get FCM token
+        const currentToken = await getToken(messagingInstance, {
+          vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+        });
+
+        if (currentToken) {
+          console.log(`FCM token loaded successfully: ${currentToken.substring(0, 10)}...`);
+          setToken(currentToken);
+        } else {
+          console.log('No FCM token received.');
+        }
+      } catch (err) {
+        console.error('Error setting up FCM:', err);
+      }
+    };
+
+    setupFcm();
+
+    // Cleanup function to set local flag to false
+    return () => {
+      hasRegisteredLocally.current = false;
+    };
+  }, [notificationPermissionStatus]);
+
+  // Third useEffect: Store token in Supabase
+  useEffect(() => {
+    // Skip if no token or already registered
+    if (!token || hasRegisteredLocally.current) {
+      return;
+    }
+
+    const storeTokenInSupabase = async () => {
+      try {
+        console.log(`Storing FCM token in database: ${token.substring(0, 10)}...`);
+        const response = await fetch('/api/fcm-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Network response was not ok: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('FCM token stored in database:', data);
+      } catch (error) {
+        console.error('Error storing FCM token:', error);
+      }
       hasRegisteredLocally.current = true;
     }
   }, [token]);
@@ -155,13 +183,13 @@ export function useFcmToken(): UseFcmTokenResult {
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
 
-    // Only set up listener if we have a token and haven't set up a listener yet
+    // Only set up listener if we have a token
     const setupListener = async () => {
-      if (!token || typeof window === 'undefined' || hasRegisteredLocally.current) {
+      if (!token || typeof window === 'undefined') {
         return;
       }
 
-      console.log(`Registering foreground message listener with token ${token.substring(0, 10)}...`);
+      console.log(`Setting up foreground message listener with token ${token.substring(0, 10)}...`);
       const messagingInstance = getMessagingInstance();
       if (!messagingInstance) {
         console.error('Failed to get messaging instance for listener setup.');
@@ -169,69 +197,100 @@ export function useFcmToken(): UseFcmTokenResult {
       }
 
       unsubscribe = onMessage(messagingInstance, (payload: FcmMessagePayload) => {
-        console.log('Foreground push notification received:', payload);
-        if (Notification.permission !== 'granted') {
-          console.log('Permission not granted, ignoring foreground message.');
-          return;
-        }
-
+        console.log('🔔 FOREGROUND PUSH NOTIFICATION RECEIVED:', payload);
+        
+        // Extract all possible data from the message payload
         const notification = payload.notification;
         const title = notification?.title || 'New Message';
         const body = notification?.body || '';
-        const iconUrl = notification?.icon;
-        const link = payload.fcmOptions?.link || payload.data?.link;
+        const iconUrl = notification?.icon || '/icons/android-lil-icon.png'; // Fallback icon
+        
+        // Try to get the link from various possible locations in the payload
+        const link = payload.fcmOptions?.link || 
+                     payload.data?.link || 
+                     (payload.data && typeof payload.data === 'object' && 'url' in payload.data ? payload.data.url as string : undefined);
 
-        // Define icon element separately
+        console.log(`Showing toast notification - Title: "${title}", Body: "${body}"`);
+        
+        // Define icon element with fallback
         let toastIcon: React.ReactElement | undefined = undefined;
-        if (iconUrl) {
-          toastIcon = (
-            <Image src={iconUrl} alt="notification icon" width={20} height={20} />
-          );
+        try {
+          if (iconUrl) {
+            toastIcon = (
+              <Image src={iconUrl} alt="notification icon" width={24} height={24} />
+            );
+          }
+        } catch (err) {
+          console.warn('Failed to create icon element:', err);
         }
 
+        // Create action button if we have a link
         const toastAction = link ? {
-          label: 'Visit',
-          onClick: () => { if (link) router.push(link); },
+          label: 'View',
+          onClick: () => { 
+            console.log(`Notification clicked, navigating to: ${link}`);
+            if (link) router.push(link);
+          },
         } : undefined;
 
-        toast.info(`${title}: ${body}`, {
+        // Show toast notification (primary notification method)
+        toast(title, {
+          description: body,
           icon: toastIcon,
           action: toastAction,
-          duration: 10000,
+          duration: 8000,
+          position: 'top-right',
+          important: true, // Make sure it gets attention
+          className: 'notification-toast',
         });
 
+        // Also try to show a system notification as fallback
         try {
-          const n = new Notification(title, {
-            body: body,
-            icon: iconUrl,
-            data: link ? { url: link } : undefined,
-            tag: `sidehustle-fg-${Date.now()}`
-          });
-  
-          n.onclick = (event) => {
-            event.preventDefault();
-            const targetLink = (event.target as Notification)?.data?.url;
-            if (targetLink) {
-              router.push(targetLink);
-              window.focus();
+          // Only show if we have permission and toast might not be visible
+          if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+            console.log('Creating system notification as fallback...');
+            
+            const options: NotificationOptions = {
+              body: body,
+              icon: iconUrl,
+              tag: `salem-pdx-${Date.now()}`,
+              requireInteraction: true
+            };
+            
+            if (link) {
+              options.data = { url: link };
             }
-            n.close();
-          };
+            
+            const n = new Notification(title, options);
+  
+            n.onclick = (event) => {
+              event.preventDefault();
+              console.log('System notification clicked');
+              
+              if (n.data && 'url' in n.data) {
+                const url = n.data.url as string;
+                console.log(`Navigating to: ${url}`);
+                router.push(url);
+                window.focus();
+              }
+              
+              n.close();
+            };
+          }
         } catch (e) {
-          console.error('Error showing foreground standard notification:', e);
+          console.error('Error showing system notification:', e);
+          // System notification failed, but toast should still work
         }
       });
 
-      console.log('Foreground message listener registered.');
-      // Mark as registered locally
-      hasRegisteredLocally.current = true;
+      console.log('Foreground message listener registered successfully');
     };
 
     setupListener();
 
     return () => {
       if (unsubscribe) {
-        console.log('Unsubscribing from foreground messages.');
+        console.log('Cleaning up foreground message listener');
         unsubscribe();
       }
     };
@@ -242,10 +301,10 @@ export function useFcmToken(): UseFcmTokenResult {
 
 // Provider component to wrap your app
 export function FcmProvider({ children }: { children: React.ReactNode }) {
-  const fcmData = useFcmToken();
+  const { token, notificationPermissionStatus } = useFcmToken();
   
   return (
-    <FcmContext.Provider value={fcmData}>
+    <FcmContext.Provider value={{ token, notificationPermissionStatus }}>
       {children}
     </FcmContext.Provider>
   );
