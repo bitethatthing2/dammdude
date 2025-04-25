@@ -54,16 +54,6 @@ function initializeFirebaseAdmin() {
   }
 }
 
-// Initialize Supabase client using environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Check if Supabase is configured
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables are missing');
-}
-
 /**
  * API route to subscribe a device token to a topic
  */
@@ -108,6 +98,17 @@ export async function POST(request: NextRequest) {
       
       console.log('Subscription successful:', response);
       
+      // Initialize Supabase client
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('Supabase URL or Service Key missing in environment variables.');
+        throw new Error('Server configuration error: Supabase credentials missing.');
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
       // Save the subscription to the database
       try {
         const { error } = await supabase
