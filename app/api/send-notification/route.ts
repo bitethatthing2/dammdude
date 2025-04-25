@@ -21,39 +21,83 @@ interface DatabaseClient {
 function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
-      // Get the Base64 encoded key from environment variables
-      const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+      // Check if we have the required credentials
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+      const privateKeyId = process.env.FIREBASE_PRIVATE_KEY_ID;
 
-      // Decode the Base64 key
-      let decodedPrivateKey: string | undefined;
-      if (encodedPrivateKey) {
+      // Log what we found for debugging
+      console.log('Firebase initialization check:', {
+        hasProjectId: !!projectId,
+        hasClientEmail: !!clientEmail,
+        hasPrivateKey: !!privateKey,
+        hasPrivateKeyId: !!privateKeyId
+      });
+
+      // For local development, always use applicationDefault() credentials
+      // This won't make actual API calls but will let the code run through
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Running in development mode - using application default credentials');
         try {
-          decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+          admin.initializeApp({
+            projectId: projectId || 'new1-f04b3',
+            credential: admin.credential.applicationDefault()
+          });
         } catch (error) {
-          console.error('Failed to decode Base64 private key:', error);
-          throw new Error('Failed to decode Base64 private key');
+          console.log('Could not initialize with applicationDefault, using cert with minimal data');
+          // If applicationDefault fails, create a minimal app config
+          admin.initializeApp({
+            projectId: projectId || 'new1-f04b3'
+          });
+        }
+        return;
+      }
+      
+      // For production, we need the service account
+      if (!privateKey) {
+        console.error('Firebase private key is missing in production environment');
+        throw new Error('Firebase Admin SDK private key is required in production');
+      }
+
+      // Get the Base64 encoded key from environment variables if available
+      let decodedPrivateKey = privateKey;
+      
+      // Try to decode if it might be Base64 encoded
+      if (privateKey && !privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        try {
+          decodedPrivateKey = Buffer.from(privateKey, 'base64').toString('utf8');
+          console.log('Successfully decoded Base64 private key');
+        } catch (error) {
+          console.warn('Failed to decode private key as Base64, using as-is:', error);
+          // Keep the original key, it might not be Base64 encoded
         }
       }
 
-      // Construct the service account object with the decoded key
+      // Construct the service account object
       const serviceAccount = {
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        projectId: projectId,
+        clientEmail: clientEmail,
         privateKey: decodedPrivateKey,
+        privateKeyId: privateKeyId
       };
 
-      // Check that all required fields are present
-      if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-        console.error('Missing required Firebase Admin SDK credentials');
-        throw new Error('Missing required Firebase Admin SDK credentials');
-      }
+      // Log what we're using (with redacted private key)
+      console.log('Initializing Firebase Admin with service account:', {
+        projectId: serviceAccount.projectId,
+        clientEmail: serviceAccount.clientEmail,
+        hasPrivateKey: !!serviceAccount.privateKey,
+        privateKeyId: serviceAccount.privateKeyId
+      });
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
       });
+      
+      console.log('Firebase Admin SDK initialized successfully');
     } catch (error) {
       console.error('Firebase Admin initialization error:', error);
-      throw new Error('Failed to initialize Firebase Admin');
+      throw new Error(`Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }
@@ -148,6 +192,29 @@ export async function POST(request: NextRequest) {
         { error: 'Token or topic must not be empty if provided' },
         { status: 400 }
       );
+    }
+
+    // Check if we're in development mode
+    const isDevelopmentMode = process.env.NODE_ENV === 'development';
+    
+    // In development mode, we'll return a simulated success response
+    if (isDevelopmentMode) {
+      console.log('Running in development mode - simulating notification delivery');
+      console.log('Would have sent notification:', {
+        title: body.title,
+        body: body.body,
+        target: body.token ? 'FCM token' : body.topic ? `Topic: ${body.topic}` : body.sendToAll ? 'All devices' : 'Unknown'
+      });
+      
+      // Return simulated success response
+      return NextResponse.json({
+        success: true,
+        messageIds: ['dev-mode-simulated-message-id'],
+        recipients: 1,
+        tokenCount: 0,
+        invalidTokensRemoved: 0,
+        developmentModeNote: 'Notification simulated in development mode'
+      });
     }
 
     // Log the notification details for debugging
