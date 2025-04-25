@@ -1,17 +1,77 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { LogOut, User } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // In a real app, this would check authentication state
-  // For now, we just provide links to the admin sections
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session?.user) {
+          setUserEmail(data.session.user.email);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkSession();
+  }, []);
+  
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      router.push('/admin/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <p>Loading...</p>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        
+        <div className="flex items-center gap-4">
+          {userEmail && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <User className="h-4 w-4 mr-1" />
+              {userEmail}
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="flex items-center gap-1"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded-lg p-6 bg-card">
