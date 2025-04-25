@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 // Extend Window interface to include Firebase
 declare global {
@@ -191,6 +191,9 @@ export function useFcmToken(options: UseFcmTokenOptions = {}) {
   // Function to save token to database
   const saveTokenToDatabase = async (fcmToken: string) => {
     try {
+      // Get Supabase client instance
+      const supabase = getSupabaseBrowserClient();
+      
       // Get device info
       const deviceInfo = {
         platform: platform || navigator.platform,
@@ -295,6 +298,9 @@ export function useFcmToken(options: UseFcmTokenOptions = {}) {
       
       // Delete from database if enabled
       if (saveToDatabase) {
+        // Get Supabase client instance
+        const supabase = getSupabaseBrowserClient();
+        
         const { error } = await supabase
           .from('fcm_tokens')
           .delete()
