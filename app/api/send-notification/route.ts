@@ -24,14 +24,8 @@ if (!admin.apps.length) {
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      privateKey: process.env.FIREBASE_PRIVATE_KEY,
     };
-
-    // --- TEMPORARY DEBUG LOGGING ---
-    console.log('DEBUG: FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? 'Exists' : 'MISSING');
-    console.log('DEBUG: FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL ? 'Exists' : 'MISSING');
-    console.log('DEBUG: FIREBASE_PRIVATE_KEY:', process.env.FIREBASE_PRIVATE_KEY ? 'Exists' : 'MISSING');
-    // --- END TEMPORARY DEBUG LOGGING ---
 
     // Check that all required fields are present
     if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
