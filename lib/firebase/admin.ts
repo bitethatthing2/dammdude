@@ -7,6 +7,56 @@ interface ServiceAccount {
 }
 
 /**
+ * Helper to format a private key string to ensure it's in proper PEM format
+ */
+function formatPrivateKey(key: string): string {
+  // Already properly formatted
+  if (key.startsWith('-----BEGIN PRIVATE KEY-----') && key.endsWith('-----END PRIVATE KEY-----')) {
+    return key;
+  }
+
+  // Remove quotes if present (common with environment variables)
+  let formattedKey = key;
+  if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+    formattedKey = formattedKey.slice(1, -1);
+  }
+  
+  // Replace literal "\n" with actual line breaks
+  if (formattedKey.includes('\\n')) {
+    formattedKey = formattedKey.replace(/\\n/g, '\n');
+  }
+  
+  // Base64 encoded key without PEM headers
+  if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    try {
+      // Try to decode base64 if it looks like it
+      if (/^[A-Za-z0-9+/=]+$/.test(formattedKey)) {
+        console.log('[FIREBASE ADMIN] Attempting to parse Base64 encoded key');
+        formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+      }
+    } catch (e) {
+      console.error('[FIREBASE ADMIN] Error parsing potential base64 key:', e);
+    }
+  }
+  
+  // Add line breaks every 64 characters if missing
+  if (!formattedKey.includes('\n')) {
+    const keyBody = formattedKey
+      .replace('-----BEGIN PRIVATE KEY-----', '')
+      .replace('-----END PRIVATE KEY-----', '');
+      
+    let formattedBody = '';
+    for (let i = 0; i < keyBody.length; i += 64) {
+      formattedBody += keyBody.slice(i, i + 64) + '\n';
+    }
+    
+    formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedBody}-----END PRIVATE KEY-----\n`;
+  }
+  
+  return formattedKey;
+}
+
+/**
  * Helper to safely initialize the Firebase Admin SDK with extensive error logging
  */
 export function initializeFirebaseAdmin(): admin.app.App | null {
@@ -30,20 +80,10 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
       privateKeyLength: privateKey ? privateKey.length : 0
     });
 
-    // Handle private key formatting
+    // Handle private key formatting with enhanced function
     if (privateKey) {
-      // Step 1: Remove quotes if added by Vercel
-      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-        privateKey = privateKey.slice(1, -1);
-        console.log('[FIREBASE ADMIN] Removed surrounding quotes from private key');
-      }
+      privateKey = formatPrivateKey(privateKey);
       
-      // Step 2: Replace literal \n with actual newlines
-      if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-        console.log('[FIREBASE ADMIN] Replaced \\n with newlines in private key');
-      }
-
       // Log private key formatting status for debugging
       console.log('[FIREBASE ADMIN] Private key format check:', {
         startsWithHeader: privateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
@@ -104,38 +144,35 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
 }
 
 /**
- * Check if Firebase Admin is properly initialized
+ * Check if Firebase Admin SDK is initialized
  */
 export function isFirebaseAdminInitialized(): boolean {
   return admin.apps.length > 0;
 }
 
 /**
- * Get the Firebase Admin Messaging service if initialized
+ * Get the Firebase Admin Messaging instance
  */
 export function getAdminMessaging(): admin.messaging.Messaging | null {
   try {
-    if (!isFirebaseAdminInitialized()) {
-      return null;
-    }
     return admin.messaging();
   } catch (error) {
-    console.error('[FIREBASE ADMIN] Error getting messaging service:', error);
+    console.error('[FIREBASE ADMIN] Error getting messaging instance:', error);
     return null;
   }
 }
 
 /**
- * Simulate a successful notification response for development and error cases
+ * Generate a simulated notification response for development or when Firebase fails to initialize
  */
-export function simulateNotificationResponse(title: string, body: string, target: string): any {
-  console.log('[FIREBASE ADMIN] Simulating notification delivery:', { title, body, target });
+export function simulateNotificationResponse(title: string, body: string, target: string) {
+  console.log(`[FIREBASE ADMIN] Simulating notification delivery to ${target} with title: "${title}"`);
+  
   return {
     success: true,
-    messageIds: ['simulated-message-id-' + Date.now()],
-    recipients: 1,
-    simulation: true,
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    simulated: true,
+    messageIds: ["simulated-message-" + Date.now()],
+    notification: { title, body },
+    target
   };
 }
