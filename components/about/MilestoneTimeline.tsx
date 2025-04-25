@@ -50,6 +50,9 @@ const MILESTONES: Milestone[] = [
   }
 ];
 
+// Define a placeholder image URL
+const PLACEHOLDER_IMAGE_URL = '/images/placeholder.jpg'; // Adjust path if needed
+
 export function MilestoneTimeline() {
   return (
     <div className="py-10">
@@ -100,7 +103,7 @@ export function MilestoneTimeline() {
                 <div className={`${index % 2 !== 0 ? 'md:pr-10' : 'md:pl-10'}`}>
                   <div className="relative h-60 overflow-hidden rounded-xl shadow-md">
                     <Image 
-                      src={milestone.image_url}
+                      src={milestone.image_url || PLACEHOLDER_IMAGE_URL}
                       alt={milestone.title}
                       fill
                       className="object-cover object-center hover:scale-105 transition-transform duration-700"

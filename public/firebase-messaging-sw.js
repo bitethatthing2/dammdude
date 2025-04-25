@@ -11,18 +11,14 @@ const SW_VERSION = '1.0.6';
 // These values WILL be publicly visible in the browser's service worker code.
 // DO NOT include sensitive keys like FIREBASE_ADMIN_* or GOOGLE_OAUTH_CLIENT_SECRET here.
 const firebaseConfig = {
-  apiKey: "YOUR_NEXT_PUBLIC_FIREBASE_API_KEY",             // Replace with value from .env.local
-  authDomain: "YOUR_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",       // Replace with value from .env.local
-  projectId: "YOUR_NEXT_PUBLIC_FIREBASE_PROJECT_ID",        // Replace with value from .env.local
-  storageBucket: "YOUR_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",  // Replace with value from .env.local
-  messagingSenderId: "YOUR_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", // Replace with value from .env.local
-  appId: "YOUR_NEXT_PUBLIC_FIREBASE_APP_ID",              // Replace with value from .env.local
-  measurementId: "YOUR_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID" // Optional, replace if you use it
+  apiKey: "AIzaSyB0Nxf3pvW32KBc0D1o2-K6qIeKovhGWfg",             // Replace with value from .env.local
+  authDomain: "new1-f04b3.firebaseapp.com",       // Replace with value from .env.local
+  projectId: "new1-f04b3",        // Replace with value from .env.local
+  storageBucket: "new1-f04b3.firebasestorage.app",  // Replace with value from .env.local
+  messagingSenderId: "802463638703", // Replace with value from .env.local
+  appId: "1:802463638703:web:bd0bbdaf3407d784d5205a",              // Replace with value from .env.local
+  measurementId: "G-3RZEW537LN" // Optional, replace if you use it
 };
-
-// VAPID key for web push (PUBLIC)
-// !! IMPORTANT !!: Replace this placeholder with your ACTUAL value from .env.local
-const vapidKey = "YOUR_NEXT_PUBLIC_FIREBASE_VAPID_KEY";      // Replace with value from .env.local
 
 // Service Worker Lifecycle Events
 self.addEventListener('install', event => {
@@ -154,12 +150,15 @@ self.addEventListener('sync', event => {
 // Initialize Firebase only if all required config values are present
 if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId) {
   try {
+    // Initialize Firebase
+    // --- MODIFICATION START ---
+    // Use the standard Firebase config defined earlier (firebaseConfig)
     firebase.initializeApp(firebaseConfig);
 
+    // Get a Messaging instance.
     const messaging = firebase.messaging();
-    
-    // Log service worker initialization
-    console.log('[firebase-messaging-sw.js] Firebase initialized with VAPID key');
+
+    console.log('[firebase-messaging-sw.js] Firebase initialized');
 
     /**
      * Handle background messages and show notifications
@@ -233,26 +232,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       };
       
       // Show the notification
-      self.registration.showNotification(notificationTitle, notificationOptions)
-        .then(() => {
-          console.log('[firebase-messaging-sw.js] Notification shown successfully');
-        })
-        .catch(error => {
-          console.error('[firebase-messaging-sw.js] Error showing notification:', error);
-          
-          // Try fallback notification if primary method fails
-          try {
-            if ('Notification' in self) {
-              new self.Notification(notificationTitle, {
-                body: notificationBody,
-                icon: '/icons/android-big-icon.png'
-              });
-              console.log('[firebase-messaging-sw.js] Fallback notification shown');
-            }
-          } catch (fallbackError) {
-            console.error('[firebase-messaging-sw.js] Fallback notification failed:', fallbackError);
-          }
-        });
+      event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
     });
     
     // Handle notification click

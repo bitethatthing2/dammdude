@@ -11,9 +11,10 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart?: (item: MenuItem) => void;
+  isOrderable?: boolean;
 }
 
-export const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, onAddToCart, isOrderable }: MenuItemCardProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -75,7 +76,7 @@ export const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
         </CardContent>
       )}
 
-      {onAddToCart && (
+      {onAddToCart && isOrderable && (
         <CardFooter className="p-4 pt-0 flex justify-end">
           <Button 
             size="sm" 

@@ -1,11 +1,17 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import {
+  persist,
+  createJSONStorage,
+  PersistOptions,
+} from 'zustand/middleware';
 import type { MenuItem } from '@/lib/types/menu';
 
+// Define the shape of the cart item and EXPORT it
 export interface CartItem extends MenuItem {
   quantity: number;
 }
 
+// Define the shape of the cart state and actions
 interface CartState {
   items: CartItem[];
   addItem: (item: MenuItem) => void;
@@ -16,9 +22,16 @@ interface CartState {
   getTotalItems: () => number;
 }
 
-export const useCartState = create<CartState>(
+// Define the persist options separately for clarity
+const persistOptions: PersistOptions<CartState> = {
+  name: 'cart-storage',
+  storage: createJSONStorage(() => localStorage),
+};
+
+// Create the store using create<CartState>(persist(...) as any) structure
+export const useCartState = create<CartState>( // Type create directly
   persist(
-    (set, get) => ({
+    (set, get, api) => ({ // Use full (set, get, api) signature
       items: [],
       addItem: (item) => {
         set((state) => {
@@ -27,7 +40,7 @@ export const useCartState = create<CartState>(
             return {
               items: state.items.map((i) =>
                 i.id === item.id
-                  ? { ...i, quantity: i.quantity + 1 }
+                  ? { ...i, quantity: existingItem.quantity + 1 }
                   : i
               ),
             };
@@ -45,9 +58,11 @@ export const useCartState = create<CartState>(
       },
       updateQuantity: (itemId, quantity) => {
         set((state) => ({
-          items: state.items.map((i) =>
-            i.id === itemId ? { ...i, quantity } : i
-          ),
+          items: state.items
+            .map((i) =>
+              i.id === itemId ? { ...i, quantity: Math.max(0, quantity) } : i
+            )
+            .filter((i) => i.quantity > 0),
         }));
       },
       clearCart: () => set({ items: [] }),
@@ -61,8 +76,6 @@ export const useCartState = create<CartState>(
         return get().items.reduce((total, item) => total + item.quantity, 0);
       },
     }),
-    {
-      name: 'cart-storage',
-    }
-  )
+    persistOptions
+  ) as any // Cast the result of persist to any to bypass internal type check
 );

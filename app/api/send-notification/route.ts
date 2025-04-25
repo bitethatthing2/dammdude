@@ -95,17 +95,26 @@ function isInvalidTokenError(error: any): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as SendNotificationRequest;
-    
-    console.log('Send notification API called with:', {
+    // Assume the request body might have the notification nested or flat
+    const rawBody = await request.json();
+    const notificationData = rawBody.notification || rawBody; // Use nested or top-level
+    const body: SendNotificationRequest = {
+      ...rawBody, // Keep other potential top-level fields like token, topic, sendToAll
+      title: notificationData.title, // Get title from notification object or top-level
+      body: notificationData.body,   // Get body from notification object or top-level
+      icon: notificationData.icon, // Also handle icon and image if nested
+      image: notificationData.image
+    };
+
+    console.log('Send notification API called with parsed data:', {
       title: body.title,
       body: body.body,
       hasToken: !!body.token,
       hasTopic: !!body.topic,
       sendToAll: !!body.sendToAll
     });
-    
-    // Validate required fields
+
+    // Validate required fields using the correctly parsed values
     if (!body.title || !body.body) {
       console.error('Missing required fields: title or body');
       return NextResponse.json(
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Modified validation: if token or topic is provided, they should be valid
     if (body.token === '' || body.topic === '') {
       return NextResponse.json(
@@ -143,13 +152,13 @@ export async function POST(request: NextRequest) {
         { auth: { persistSession: false } }
       ) as DatabaseClient;
       
-      // Prepare notification message
+      // Prepare notification message using correctly parsed values
       const message = {
         notification: {
           title: body.title,
           body: body.body,
-          ...(body.icon && { icon: body.icon }), // Add icon from request body if available
-          ...(body.image && { imageUrl: body.image }),
+          ...(body.icon && { icon: body.icon }), // Add icon if available
+          ...(body.image && { imageUrl: body.image }), // Add image if available
         },
         webpush: {
           notification: {

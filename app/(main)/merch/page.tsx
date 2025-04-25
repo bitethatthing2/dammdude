@@ -93,6 +93,13 @@ export default function MerchPage() {
     }
   };
 
+  // TODO: Implement actual navigation or modal display
+  const handleViewDetails = (product: MerchItem) => {
+    console.log(`View details for: ${product.name} (ID: ${product.id})`);
+    // Example: router.push(`/merch/${product.id}`); 
+    // Or open a modal: setViewingProduct(product);
+  };
+
   return (
     <div className="pb-20">
       {/* Header with Location */}
@@ -144,7 +151,11 @@ export default function MerchPage() {
                     </div>
                   ) : (
                     category.items.map((item) => (
-                      <ProductCard key={item.id} product={item} />
+                      <ProductCard 
+                        key={item.id} 
+                        product={item} 
+                        onViewDetails={handleViewDetails} 
+                      />
                     ))
                   )}
                 </div>

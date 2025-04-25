@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
-import { useFcmToken } from '@/lib/hooks/useFcmToken';
+import { useFcmToken, getNotificationPermissionAndToken } from '@/lib/hooks/useFcmToken';
 
 interface NotificationGuideProps {
   variant?: 'button' | 'icon' | 'minimal';
@@ -15,18 +15,18 @@ export default function NotificationGuide({
   className = ''
 }: NotificationGuideProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { permissionState, requestPermission } = useFcmToken();
+  const { notificationPermissionStatus: permissionState } = useFcmToken();
 
   // Request notification permission and register FCM token
   const handleRequestPermission = async () => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setIsLoading(true);
       try {
-        const success = await requestPermission();
-        if (success) {
-          console.log('FCM token registered successfully');
+        const token = await getNotificationPermissionAndToken();
+        if (token) {
+          console.log('FCM token registered successfully after permission request');
         } else {
-          console.warn('Failed to register FCM token');
+          console.warn('Failed to register FCM token after permission request');
         }
       } catch (error) {
         console.error('Error requesting notification permission:', error);

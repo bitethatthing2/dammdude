@@ -44,7 +44,8 @@ export default function RealtimeOrderList() {
     
     fetchOrders();
 
-    // subscribe to realtime changes
+    // --- MODIFICATION: Re-commenting out useEffect to prevent 'orders' table subscription error ---
+    /*
     const channel = supabase
       .channel('orders-stream')
       .on(
@@ -68,6 +69,9 @@ export default function RealtimeOrderList() {
     return () => {
       supabase.removeChannel(channel);
     };
+    */
+    // --- END MODIFICATION ---
+
   }, []);
 
   return (

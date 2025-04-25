@@ -23,6 +23,15 @@ interface OfflineStatus {
   syncItems: number;
 }
 
+// Explicitly define interfaces for Background Sync API if not found by TS
+interface SyncManager {
+  register(tag: string): Promise<void>;
+}
+
+interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+  readonly sync: SyncManager;
+}
+
 // Generate a unique ID for sync items
 function generateSyncId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
@@ -160,15 +169,24 @@ export async function removeSyncItem(id: string): Promise<void> {
 /**
  * Register for background sync
  */
-async function registerBackgroundSync(): Promise<void> {
-  if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-    console.warn('Background sync not supported');
+export async function registerBackgroundSync(): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('Service Worker not supported');
     return;
   }
-  
+
+  // Check if Background Sync is supported
+  if (!('sync' in ServiceWorkerRegistration.prototype)) {
+    console.warn('Background Sync not supported');
+    return;
+  }
+
   try {
     const registration = await navigator.serviceWorker.ready;
-    await registration.sync.register('sync-data');
+    // Cast registration to the interface that includes 'sync'
+    await (registration as ServiceWorkerRegistrationWithSync).sync.register(
+      'sync-data'
+    );
     console.log('Background sync registered');
   } catch (error) {
     console.error('Failed to register background sync:', error);

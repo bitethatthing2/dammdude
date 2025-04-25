@@ -9,7 +9,8 @@ import { FcmMessagePayload } from '@/lib/types/firebase';
 import Image from 'next/image';
 import React from 'react';
 
-async function getNotificationPermissionAndToken(): Promise<string | null> {
+// Export this function
+export async function getNotificationPermissionAndToken(): Promise<string | null> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     console.warn('This browser does not support desktop notification');
     return null;
@@ -93,12 +94,34 @@ export function useFcmToken(): UseFcmTokenResult {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && !hasFetched.current) {
-      setNotificationPermissionStatus(Notification.permission);
-      loadToken();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadToken();
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      console.log(`Attempting to subscribe token ${token.substring(0, 10)}... to topic 'all_devices'`);
+      fetch('/api/subscribe-to-topic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: token, topic: 'all_devices' }),
+      })
+        .then(async (res) => {
+          if (res.ok) {
+            console.log('Successfully subscribed to all_devices topic');
+          } else {
+            const errorData = await res.json();
+            console.error('Failed to subscribe to topic:', res.status, errorData);
+            toast.error(`Failed to subscribe to notifications: ${errorData.error || 'Unknown error'}`);
+          }
+        })
+        .catch((error) => {
+          console.error('Error subscribing to topic:', error);
+          toast.error('Network error while subscribing to notifications.');
+        });
+    }
+  }, [token]);
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;

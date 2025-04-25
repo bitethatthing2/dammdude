@@ -8,13 +8,9 @@ if (!admin.apps.length) {
     // Use a more reliable initialization approach with proper error handling
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId: process.env.FCM_PROJECT_ID, // Make sure this is also set in your env
-        // Use environment variables for sensitive credentials
-        clientEmail: process.env.FCM_CLIENT_EMAIL,
-        // IMPORTANT: Never hardcode private keys!
-        // Set FCM_PRIVATE_KEY in your .env.local file
-        // Ensure the key includes newline characters correctly, e.g., by replacing \n with actual newlines
-        privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\n/g, '\n'),
+        projectId: process.env.FIREBASE_PROJECT_ID, 
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\n/g, '\n'),
       }),
     });
     console.log('Firebase Admin initialized successfully in subscribe-to-topic');

@@ -88,6 +88,8 @@ export function useFcmToken(options: UseFcmTokenOptions = {}) {
         
         // Get token
         try {
+          await navigator.serviceWorker.ready;
+          console.log('Service worker ready, now fetching token.');
           const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
           const currentToken = await messaging.getToken({
             vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,

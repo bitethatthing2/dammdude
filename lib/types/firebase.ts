@@ -22,10 +22,12 @@ export interface FcmMessagePayload extends MessagePayload {
   fcmOptions?: {
     link?: string;
   };
+  // Use intersection to allow specific optional props AND general string index signature
   data?: {
     link?: string;
     orderId?: string;
-    [key: string]: unknown;
+  } & {
+    [key: string]: string;
   };
 }
 

@@ -6,6 +6,7 @@ export interface MenuItem {
   image_url?: string;     // URL to item image
   category_id: string;    // Reference to category
   available: boolean;     // Availability flag
+  isOrderable?: boolean;  // Add this flag to indicate if item can be ordered
   popular?: boolean;      // Popular item flag
   allergens?: string[];   // List of allergens
   dietary_info?: string[];// Dietary info (vegan, etc)
