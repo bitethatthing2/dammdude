@@ -1,168 +1,63 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { initFirebase } from '@/lib/firebase';
-import { getMessaging, getToken } from 'firebase/messaging';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useFcmContext } from '@/lib/hooks/useFcmToken';
 
 export function FcmTokenRegistration() {
-  const [isSupported, setIsSupported] = useState(true);
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const { token, notificationPermissionStatus } = useFcmContext();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Check if notifications are supported
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-    } else {
-      setIsSupported(false);
-    }
-  }, []);
-
-  const registerToken = async () => {
-    setIsRegistering(true);
-    setError(null);
-    
-    try {
-      // Get client instance
-      const supabase = getSupabaseBrowserClient();
-      
-      // Initialize Firebase if not already initialized
-      initFirebase();
-      
-      // Request permission if not already granted
-      if (permission !== 'granted') {
-        const newPermission = await Notification.requestPermission();
-        setPermission(newPermission);
-        
-        if (newPermission !== 'granted') {
-          setError('Notification permission denied');
-          setIsRegistering(false);
-          return;
-        }
-      }
-      
-      // Unregister existing service workers to ensure clean state
-      const existingRegistrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of existingRegistrations) {
-        await registration.unregister();
-      }
-      console.log('Unregistered existing service workers');
-      
-      // Register service worker manually
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service worker registered:', registration);
-      
-      // Wait for the service worker to be ready
-      await navigator.serviceWorker.ready;
-      
-      // Get messaging instance
-      const messaging = getMessaging();
-      
-      // Get VAPID key from environment variables
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      if (!vapidKey) {
-        throw new Error('VAPID key is missing');
-      }
-      
-      // Get token with VAPID key
-      console.log('Requesting FCM token with VAPID key');
-      const currentToken = await getToken(messaging, {
-        vapidKey,
-        serviceWorkerRegistration: registration
-      });
-      
-      if (!currentToken) {
-        throw new Error('No registration token available');
-      }
-      
-      // Save token to state
-      setToken(currentToken);
-      console.log('FCM token received:', currentToken.substring(0, 10) + '...');
-      
-      // Save token to database using the obtained client instance
-      const { error: saveError } = await supabase.from('fcm_tokens').upsert({
-        token: currentToken,
-        device_info: {
-          platform: navigator?.userAgent || 'unknown',
-          browser: navigator?.userAgent?.match(/chrome|firefox|safari|edge|opera/i)?.[0]?.toLowerCase() || 'unknown',
-          device_model: navigator?.platform || 'unknown',
-          os_version: navigator?.appVersion || 'unknown'
-        },
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'token' });
-      
-      if (saveError) {
-        throw new Error(`Error saving token: ${saveError.message}`);
-      }
-      
-      // Subscribe to all_devices topic using the obtained client instance
-      const { error: subscriptionError } = await supabase.from('topic_subscriptions').upsert({
-        token: currentToken,
-        topic: 'all_devices',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'token,topic' });
-      
-      if (subscriptionError) {
-        console.error('Error subscribing to topic:', subscriptionError);
-      } else {
-        console.log('Successfully subscribed to all_devices topic');
-      }
-    } catch (err) {
-      console.error('Error registering FCM token:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
+  
+  // Check if browser supports notifications
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window;
+  const permission = notificationPermissionStatus || 'default';
+  
+  // Determine the button state and text
+  let buttonText = 'Enable Notifications';
+  let buttonDisabled = false;
+  let statusText = '';
+  
   if (!isSupported) {
-    return (
-      <div className="p-4 border border-input bg-background text-foreground rounded-md">
-        <p>Push notifications are not supported in this browser.</p>
-      </div>
-    );
+    buttonText = 'Notifications Not Supported';
+    buttonDisabled = true;
+    statusText = 'Your browser does not support notifications';
+  } else if (permission === 'granted' && token) {
+    buttonText = 'Notifications Enabled';
+    buttonDisabled = true;
+    statusText = 'You will receive notifications for new updates';
+  } else if (permission === 'denied') {
+    buttonText = 'Notifications Blocked';
+    buttonDisabled = true;
+    statusText = 'Please enable notifications in your browser settings';
   }
-
+  
   return (
-    <div className="p-4 border border-input bg-background text-foreground rounded-md">
-      <h3 className="text-lg font-medium mb-2">Notification Registration</h3>
+    <div className="p-4 bg-card rounded-lg border shadow-sm">
+      <h3 className="text-lg font-semibold mb-2">Push Notifications</h3>
       
-      {permission === 'granted' && token ? (
-        <div>
-          <p className="mb-2">✅ Notifications are enabled</p>
-          <p className="text-xs text-muted-foreground break-all">
-            Token: {token.substring(0, 20)}...
-          </p>
-        </div>
-      ) : (
-        <>
-          <p className="mb-4">
-            {permission === 'default' 
-              ? 'Enable push notifications to receive updates' 
-              : permission === 'denied'
-                ? 'Notifications are blocked. Please update your browser settings.'
-                : 'Click to complete notification registration'}
-          </p>
-          
-          <Button
-            variant="outline"
-            className="bg-background text-foreground border border-input"
-            onClick={registerToken}
-            disabled={isRegistering || permission === 'denied'}
-          >
-            {isRegistering ? 'Registering...' : 'Enable Notifications'}
-          </Button>
-        </>
-      )}
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          {statusText || 'Get notified about new announcements and updates'}
+        </p>
+      </div>
       
-      {error && (
-        <p className="mt-2 text-destructive text-sm">{error}</p>
-      )}
+      <Button 
+        variant={permission === 'granted' ? 'outline' : 'default'} 
+        size="sm"
+        disabled={buttonDisabled || isRegistering}
+        className="w-full"
+        onClick={() => {
+          // Just trigger a permission request, our context system will handle token registration
+          if (isSupported && permission === 'default') {
+            setIsRegistering(true);
+            Notification.requestPermission().finally(() => {
+              setIsRegistering(false);
+            });
+          }
+        }}
+      >
+        {isRegistering ? 'Setting up...' : buttonText}
+      </Button>
     </div>
   );
 }

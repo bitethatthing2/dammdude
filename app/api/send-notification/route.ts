@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SendNotificationRequest } from '@/lib/types/api';
 import admin from 'firebase-admin';
 import { createClient } from '@supabase/supabase-js';
+import { initializeFirebaseAdmin, isFirebaseAdminInitialized, simulateNotificationResponse, getAdminMessaging } from '@/lib/firebase/admin';
 
 // Define a type for our Supabase client operations
 interface DatabaseClient {
@@ -17,153 +18,13 @@ interface DatabaseClient {
   };
 }
 
-// Helper function to initialize Firebase Admin SDK
-function initializeFirebaseAdmin() {
-  if (!admin.apps.length) {
-    try {
-      // Check if we have the required credentials
-      const projectId = process.env.FIREBASE_PROJECT_ID;
-      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+// Helper function to remove invalid tokens from the database
+async function removeInvalidToken(token: string, supabaseAdmin: DatabaseClient): Promise<boolean> {
+  if (!token) return false;
 
-      // Log what we found for debugging
-      console.log('Firebase initialization check:', {
-        hasProjectId: !!projectId,
-        hasClientEmail: !!clientEmail,
-        hasPrivateKey: !!privateKey,
-        privateKeyLength: privateKey ? privateKey.length : 0
-      });
-
-      // Special handling for Vercel - they encode environment variables differently
-      // This will handle various ways the private key might be stored
-      if (privateKey) {
-        // If the key is wrapped in quotes (Vercel sometimes adds these), remove them
-        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-          privateKey = privateKey.slice(1, -1);
-          console.log('Removed quotes from private key');
-        }
-        
-        // If the key has literal "\n" strings, replace them with actual newlines
-        if (privateKey.includes('\\n')) {
-          privateKey = privateKey.replace(/\\n/g, '\n');
-          console.log('Replaced \\n with newlines in private key');
-        }
-        
-        // Check if the key is Base64 encoded (another possibility)
-        try {
-          if (!privateKey.includes('-----BEGIN PRIVATE KEY-----') && 
-              /^[A-Za-z0-9+/=]+$/.test(privateKey)) {
-            const decodedKey = Buffer.from(privateKey, 'base64').toString('utf-8');
-            // Only use the decoded key if it looks like a PEM format
-            if (decodedKey.includes('-----BEGIN PRIVATE KEY-----')) {
-              privateKey = decodedKey;
-              console.log('Successfully decoded Base64 private key');
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to decode private key as Base64:', e);
-        }
-        
-        // Ensure the key has the correct PEM format
-        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-          console.warn('Private key does not have proper PEM format, attempting to reformat');
-          // Try to reconstruct PEM format
-          const cleanKey = privateKey.replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '').replace(/\s/g, '');
-          privateKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-          console.log('Reformatted private key to PEM format');
-        }
-        
-        // Ensure proper line breaks in PEM format (required by crypto modules)
-        if (!privateKey.includes('\n-----END PRIVATE KEY-----')) {
-          privateKey = privateKey.replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
-          console.log('Added missing line break before END PRIVATE KEY');
-        }
-        
-        // Log a preview of the private key for debugging
-        console.log('Private key preview:', {
-          startsWithCorrectHeader: privateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
-          endsWithCorrectFooter: privateKey.endsWith('-----END PRIVATE KEY-----'),
-          hasNewlines: privateKey.includes('\n'),
-          length: privateKey.length
-        });
-      }
-
-      // For development or if keys are missing, use application default
-      if (!privateKey || !clientEmail || !projectId) {
-        console.warn('Firebase Admin SDK credentials incomplete, using development mode');
-        
-        if (process.env.NODE_ENV === 'development') {
-          try {
-            admin.initializeApp({
-              projectId: projectId || 'new1-f04b3' 
-            });
-            console.log('Firebase Admin initialized in development mode');
-            return;
-          } catch (error) {
-            console.error('Failed to initialize Firebase Admin in development mode:', error);
-            throw error;
-          }
-        } else {
-          throw new Error('Missing required Firebase Admin SDK credentials in production');
-        }
-      }
-
-      // Construct the service account object
-      const serviceAccount = {
-        projectId,
-        clientEmail,
-        privateKey
-      };
-
-      // Log what we're using (with redacted private key)
-      console.log('Initializing Firebase Admin with service account:', {
-        projectId: serviceAccount.projectId,
-        clientEmail: serviceAccount.clientEmail,
-        privateKeyStartsWith: serviceAccount.privateKey ? 
-          serviceAccount.privateKey.substring(0, 25) + '...' : 'undefined'
-      });
-
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-        });
-        console.log('Firebase Admin SDK initialized successfully');
-      } catch (certError) {
-        console.error('Failed to initialize with cert, trying alternative approach', certError);
-        
-        // Fall back to direct initialization if cert fails
-        if (process.env.NODE_ENV === 'production') {
-          console.log('Attempting fallback initialization in production');
-          
-          try {
-            // Try to use service account directly from file if cert creation fails
-            const defaultServiceAccount = require('../../firebase-service-account.json');
-            admin.initializeApp({
-              credential: admin.credential.cert(defaultServiceAccount)
-            });
-            console.log('Firebase Admin SDK initialized successfully via fallback');
-          } catch (fallbackError) {
-            console.error('Fallback initialization also failed:', fallbackError);
-            throw fallbackError;
-          }
-        } else {
-          throw certError;
-        }
-      }
-    } catch (error) {
-      console.error('Firebase Admin initialization error:', error);
-      throw new Error(`Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-}
-
-/**
- * Helper function to remove invalid tokens from the database
- */
-async function removeInvalidToken(token: string, supabaseAdmin: DatabaseClient) {
+  console.log(`Removing invalid token: ${token.substring(0, 10)}...`);
+  
   try {
-    console.log(`Removing invalid FCM token from database: ${token.substring(0, 10)}...`);
-    
     // Remove from fcm_tokens table
     const { error: tokenError } = await supabaseAdmin
       .from('fcm_tokens')
@@ -249,172 +110,230 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if we're in development mode
-    const isDevelopmentMode = process.env.NODE_ENV === 'development';
+    // Check if we should simulate success (development mode or failed initialization)
+    const shouldSimulate = process.env.NODE_ENV === 'development' || !isFirebaseAdminInitialized();
     
-    // In development mode, we'll return a simulated success response
-    if (isDevelopmentMode) {
-      console.log('Running in development mode - simulating notification delivery');
-      console.log('Would have sent notification:', {
-        title: body.title,
-        body: body.body,
-        target: body.token ? 'FCM token' : body.topic ? `Topic: ${body.topic}` : body.sendToAll ? 'All devices' : 'Unknown'
-      });
+    // In development mode or if Firebase failed to initialize, return a simulated success response
+    if (shouldSimulate) {
+      console.log(`Simulating notification delivery (${!isFirebaseAdminInitialized() ? 'failed initialization' : 'development mode'})`);
       
-      // Return simulated success response
-      return NextResponse.json({
-        success: true,
-        messageIds: ['dev-mode-simulated-message-id'],
-        recipients: 1,
-        tokenCount: 0,
-        invalidTokensRemoved: 0,
-        developmentModeNote: 'Notification simulated in development mode'
-      });
+      // Use our simulation helper
+      const target = body.token ? 'device token' : body.topic ? `topic: ${body.topic}` : body.sendToAll ? 'all devices' : 'unknown';
+      return NextResponse.json(simulateNotificationResponse(body.title, body.body, target));
     }
 
-    // Log the notification details for debugging
-    console.log('Notification request:', {
-      title: body.title,
-      body: body.body,
-      token: body.token ? '[TOKEN REDACTED]' : undefined,
-      topic: body.topic,
-      link: body.link,
-      orderId: body.orderId
-    });
+    // Get messaging service - if null, simulate response
+    const messaging = getAdminMessaging();
+    if (!messaging) {
+      console.error('Failed to get messaging service, simulating success response');
+      return NextResponse.json(simulateNotificationResponse(body.title, body.body, 'fallback'));
+    }
 
-    try {
-      // Get Firebase messaging instance
-      const messaging = admin.messaging();
-      
-      // Get Supabase client with service role for admin access
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-        { auth: { persistSession: false } }
-      ) as DatabaseClient;
-      
-      // Prepare notification message using correctly parsed values
-      const message = {
-        notification: {
-          title: body.title,
-          body: body.body,
-          ...(body.icon && { icon: body.icon }), // Add icon if available
-          ...(body.image && { imageUrl: body.image }), // Add image if available
-        },
-        webpush: {
-          notification: {
-            ...(body.link && { 
-              click_action: body.link,
-              deep_link: body.link
-            }),
-          },
-          fcmOptions: {
-            link: body.link || '/'
-          }
-        },
-        data: {
-          ...(body.orderId && { orderId: body.orderId }),
-          ...(body.link && { link: body.link }),
-          ...(body.linkButtonText && { linkButtonText: body.linkButtonText }),
-          ...(body.actionButton && { actionButton: body.actionButton }),
-          ...(body.actionButtonText && { actionButtonText: body.actionButtonText }),
-          timestamp: Date.now().toString(),
-        }
-      };
+    // Connect to Supabase Admin to manage tokens
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
 
-      let response: string | null = null;
-      const messageIds: string[] = [];
-      const errors: { token?: string; topic?: string; error: string }[] = [];
-      let recipients = 0;
-      let tokenCount = 0; // Track the number of tokens for the response
-      let invalidTokensRemoved = 0; // Track how many invalid tokens were removed
-      
-      // ENHANCEMENT: If sending to all, also try to fetch and send to individual tokens
-      if (body.sendToAll) {
-        console.log('Sending to all devices via all_devices topic');
-        
-        try {
-          // Send to all_devices topic
-          const topicResponse = await messaging.send({
-            ...message,
-            topic: 'all_devices'
-          });
-          console.log('Send to all_devices topic response:', topicResponse);
-          messageIds.push(topicResponse);
-          recipients = 1; // Indicate success sending to topic (actual count unknown)
-        } catch (topicError) {
-          console.error('Error sending to all_devices topic:', topicError);
-          errors.push({ topic: 'all_devices', error: String(topicError) });
-        }
-      } else if (body.token) {
-        // Send to specific device
-        try {
-          response = await messaging.send({
-            ...message,
-            token: body.token
-          });
-          recipients = 1; // Only case where we know exact count
-          messageIds.push(response);
-        } catch (tokenError) {
-          console.error(`Error sending to specific token: ${body.token.substring(0, 10)}...`, tokenError);
-          errors.push({ token: body.token.substring(0, 10) + '...', error: String(tokenError) });
-          
-          // Check if this is an invalid token error
-          if (isInvalidTokenError(tokenError)) {
-            // Remove the invalid token from the database
-            const removed = await removeInvalidToken(body.token, supabaseAdmin);
-            if (removed) {
-              invalidTokensRemoved++;
-            }
+    let messageIds: string[] = [];
+    let invalidTokensRemoved = 0;
+    let tokenCount = 0;
+
+    // Setup the notification message
+    const message: admin.messaging.Message = {
+      notification: {
+        title: body.title,
+        body: body.body
+      },
+      data: {
+        ...(body.data || {}), // Include any additional data
+        link: body.link || '' // Add link to data payload
+      }
+    };
+
+    // Add optional parameters if present
+    if (body.icon) message.notification!.imageUrl = body.icon;
+    if (body.image) message.notification!.imageUrl = body.image;
+    if (body.badge) message.notification!.badge = body.badge.toString();
+
+    // Configure webpush-specific options
+    message.webpush = {
+      notification: {
+        icon: body.icon,
+        image: body.image,
+        badge: body.badge,
+        actions: [
+          {
+            action: 'open_url',
+            title: 'View',
+            icon: body.icon
           }
-        }
-      } else if (body.topic) {
-        // Send to topic
-        try {
-          response = await messaging.send({
-            ...message,
-            topic: body.topic
-          });
-          messageIds.push(response);
-        } catch (topicError) {
-          console.error(`Error sending to topic: ${body.topic}`, topicError);
-          errors.push({ topic: body.topic, error: String(topicError) });
-        }
-      } else {
-        // If no target specified, default to all devices
-        try {
-          response = await messaging.send({
-            ...message,
-            topic: 'all_devices'
-          });
-          messageIds.push(response);
-        } catch (defaultError) {
-          console.error('Error sending to default all_devices topic:', defaultError);
-          errors.push({ topic: 'all_devices', error: String(defaultError) });
-        }
+        ]
+      },
+      fcmOptions: {
+        link: body.link
+      }
+    };
+
+    // Handle different targeting options
+    if (body.sendToAll) {
+      console.log('Sending to all devices (querying database for tokens)');
+      
+      // Get all FCM tokens
+      const { data: tokensData, error } = await supabaseAdmin
+        .from('fcm_tokens')
+        .select('token')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+
+      if (error) {
+        console.error('Error fetching tokens:', error);
+        return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 });
       }
 
-      // Return success response with message IDs and any errors
-      return NextResponse.json({
-        success: messageIds.length > 0,
-        messageIds,
-        recipients,
-        tokenCount,
-        invalidTokensRemoved,
-        errors: errors.length > 0 ? errors : undefined,
-      });
-    } catch (error) {
-      console.error('Error sending notification:', error);
+      if (!tokensData || tokensData.length === 0) {
+        console.warn('No FCM tokens found');
+        return NextResponse.json({ 
+          success: true, 
+          warning: 'No registered devices found', 
+          tokenCount: 0,
+          recipients: 0 
+        });
+      }
+
+      // Extract the tokens
+      const tokens = tokensData.map(t => t.token);
+      tokenCount = tokens.length;
+      console.log(`Found ${tokens.length} tokens, sending notification`);
+
+      try {
+        // Send in batches of 500 to comply with FCM limits
+        const batchSize = 500;
+        let sentCount = 0;
+        
+        for (let i = 0; i < tokens.length; i += batchSize) {
+          const batch = tokens.slice(i, i + batchSize);
+          
+          try {
+            // Send to this batch of tokens
+            const batchResponse = await messaging.sendEachForMulticast({
+              ...message,
+              tokens: batch
+            });
+            
+            // Process response
+            sentCount += batchResponse.successCount;
+            messageIds = messageIds.concat(
+              batchResponse.responses
+                .filter(r => r.success && r.messageId)
+                .map(r => r.messageId as string)
+            );
+
+            // Handle invalid tokens
+            for (let j = 0; j < batchResponse.responses.length; j++) {
+              const resp = batchResponse.responses[j];
+              if (!resp.success && resp.error && isInvalidTokenError(resp.error)) {
+                await removeInvalidToken(batch[j], supabaseAdmin as any);
+                invalidTokensRemoved++;
+              }
+            }
+          } catch (batchError) {
+            console.error(`Error sending batch ${i / batchSize + 1}:`, batchError);
+          }
+        }
+        
+        console.log(`Successfully sent to ${sentCount} of ${tokens.length} devices`);
+        
+        return NextResponse.json({
+          success: true,
+          messageIds,
+          recipients: sentCount,
+          tokenCount,
+          invalidTokensRemoved
+        });
+      } catch (error) {
+        console.error('Error sending multicast messages:', error);
+        return NextResponse.json(
+          { error: `Error sending multicast messages: ${error instanceof Error ? error.message : String(error)}` }, 
+          { status: 500 }
+        );
+      }
+    } else if (body.topic) {
+      console.log(`Sending to topic: ${body.topic}`);
+      
+      try {
+        // Send to a specific topic
+        const response = await messaging.send({
+          ...message,
+          topic: body.topic
+        });
+        
+        console.log(`Successfully sent to topic ${body.topic}:`, response);
+        
+        return NextResponse.json({
+          success: true,
+          messageIds: [response],
+          recipients: 1, // Unknown actual count for topics
+          tokenCount: 0,
+          topic: body.topic
+        });
+      } catch (error) {
+        console.error(`Error sending to topic ${body.topic}:`, error);
+        return NextResponse.json(
+          { error: `Error sending to topic: ${error instanceof Error ? error.message : String(error)}` }, 
+          { status: 500 }
+        );
+      }
+    } else if (body.token) {
+      console.log(`Sending to single device token: ${body.token.substring(0, 10)}...`);
+      
+      try {
+        // Send to a specific device token
+        const response = await messaging.send({
+          ...message,
+          token: body.token
+        });
+        
+        console.log('Successfully sent to device:', response);
+        
+        return NextResponse.json({
+          success: true,
+          messageIds: [response],
+          recipients: 1,
+          tokenCount: 1
+        });
+      } catch (error) {
+        console.error('Error sending to device:', error);
+        
+        // If the token is invalid, remove it from the database
+        if (isInvalidTokenError(error)) {
+          await removeInvalidToken(body.token, supabaseAdmin as any);
+          invalidTokensRemoved++;
+          
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid FCM token',
+            invalidTokensRemoved
+          }, { status: 400 });
+        }
+        
+        return NextResponse.json(
+          { error: `Error sending to device: ${error instanceof Error ? error.message : String(error)}` }, 
+          { status: 500 }
+        );
+      }
+    } else {
+      console.error('No valid target specified (sendToAll, topic, or token)');
       return NextResponse.json(
-        { error: 'Error sending notification', details: String(error) },
-        { status: 500 }
+        { error: 'You must specify either sendToAll, topic, or token' }, 
+        { status: 400 }
       );
     }
   } catch (error) {
     console.error('Error processing notification request:', error);
     return NextResponse.json(
-      { error: 'Error processing notification request', details: String(error) },
-      { status: 400 }
+      { error: `Error processing notification request: ${error instanceof Error ? error.message : String(error)}` }, 
+      { status: 500 }
     );
   }
 }
