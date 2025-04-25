@@ -172,83 +172,176 @@ export async function POST(request: NextRequest) {
       ) as DatabaseClient;
       
       // Prepare notification message using correctly parsed values
-      const baseMessage = {
+      const message = {
         notification: {
           title: body.title,
           body: body.body,
+          // Always use our app icon for FCM notification
+          icon: '/images/about/icon-for-nav-light-screen.png',
+          // Add image if provided, otherwise use default banner
+          imageUrl: body.image || '/images/about/banner.png',
         },
+        webpush: {
+          notification: {
+            ...(body.link && { 
+              click_action: body.link,
+              deep_link: body.link
+            }),
+            // Hardcode icons for web notifications
+            icon: '/images/about/icon-for-nav-light-screen.png',
+            badge: '/images/about/icon-for-nav-light-screen.png',
+          },
+          fcmOptions: {
+            link: body.link || '/'
+          }
+        },
+        // Add Android-specific configuration with hardcoded icons
         android: {
+          // Use literal "high" instead of string 'high' to satisfy TypeScript
           priority: "high" as const,
+          notification: {
+            // Small icon in status bar (must be in drawable resources)
+            icon: 'notification_icon',
+            // Color of the notification
+            color: '#F65B0D', // Salem orange color
+            // Channel ID
+            channelId: body.androidConfig?.channelId || 'default_channel',
+            // Sound
+            sound: 'default',
+            // Large icon in the notification (full URL)
+            imageUrl: body.image || '/images/about/banner.png',
+            // Click action
+            clickAction: body.link || '/',
+            // Visibility on lock screen
+            visibility: "public" as const
+          }
         },
+        // Add Apple-specific configuration
+        apns: {
+          payload: {
+            aps: {
+              // Content available for background processing
+              'content-available': 1,
+              // Sound
+              sound: body.iosConfig?.sound || 'default',
+              // Badge count if provided
+              ...(body.iosConfig?.badge !== undefined && { badge: body.iosConfig.badge }),
+              // Alert with title and body
+              alert: {
+                title: body.title,
+                body: body.body,
+                // Launch image
+                'launch-image': '/images/about/banner.png',
+              },
+              // Category for action buttons
+              category: 'notification_category',
+              // Thread ID for grouping
+              'thread-id': body.orderId || 'general',
+            }
+          },
+          // FCM options
+          fcmOptions: {
+            // Image URL
+            imageUrl: body.image || '/images/about/banner.png',
+          }
+        },
+
         data: {
           ...(body.orderId && { orderId: body.orderId }),
           ...(body.link && { link: body.link }),
-          // Include a timestamp for uniqueness
+          ...(body.linkButtonText && { linkButtonText: body.linkButtonText }),
+          ...(body.actionButton && { actionButton: body.actionButton }),
+          ...(body.actionButtonText && { actionButtonText: body.actionButtonText }),
           timestamp: Date.now().toString(),
-        },
-      };
-      
-      // Log the exact message we're trying to send
-      console.log('Attempting to send notification with payload:', JSON.stringify(baseMessage, null, 2));
-      
-      let messageResponse;
-      
-      try {
-        // Simplify to just handle sendToAll - this is the most common case
-        console.log('Sending notification to all_devices topic');
-        
-        // Create a minimal message payload that complies with FCM format
-        const minimalMessage = {
-          topic: 'all_devices',
-          notification: {
-            title: body.title,
-            body: body.body,
-          },
-          android: {
-            priority: "high" as const,
-          },
-          data: {
-            timestamp: Date.now().toString(),
-          },
-        };
-        
-        // Send the minimal message
-        messageResponse = await messaging.send(minimalMessage);
-        
-        console.log('Successfully sent message:', messageResponse);
-        
-        // Return success response with message ID
-        return NextResponse.json({
-          success: true,
-          messageId: messageResponse,
-        });
-      } catch (error) {
-        // Log the full error details for debugging
-        console.error('Error sending notification:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        
-        if (error instanceof Error) {
-          console.error('Error name:', error.name);
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
         }
-        
-        return NextResponse.json(
-          { error: 'Error sending notification', details: String(error) },
-          { status: 500 }
-        );
-      }
-    } catch (error) {
-      console.error('Error processing notification request:', error);
-      if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
+      };
+
+      let response: string | null = null;
+      const messageIds: string[] = [];
+      const errors: { token?: string; topic?: string; error: string }[] = [];
+      let recipients = 0;
+      let tokenCount = 0; // Track the number of tokens for the response
+      let invalidTokensRemoved = 0; // Track how many invalid tokens were removed
       
+      // ENHANCEMENT: If sending to all, also try to fetch and send to individual tokens
+      if (body.sendToAll) {
+        console.log('Sending to all devices via all_devices topic');
+        
+        try {
+          // Send to all_devices topic
+          const topicResponse = await messaging.send({
+            ...message,
+            topic: 'all_devices'
+          });
+          console.log('Send to all_devices topic response:', topicResponse);
+          messageIds.push(topicResponse);
+          recipients = 1; // Indicate success sending to topic (actual count unknown)
+        } catch (topicError) {
+          console.error('Error sending to all_devices topic:', topicError);
+          errors.push({ topic: 'all_devices', error: String(topicError) });
+        }
+      } else if (body.token) {
+        // Send to specific device
+        try {
+          response = await messaging.send({
+            ...message,
+            token: body.token
+          });
+          recipients = 1; // Only case where we know exact count
+          messageIds.push(response);
+        } catch (tokenError) {
+          console.error(`Error sending to specific token: ${body.token.substring(0, 10)}...`, tokenError);
+          errors.push({ token: body.token.substring(0, 10) + '...', error: String(tokenError) });
+          
+          // Check if this is an invalid token error
+          if (isInvalidTokenError(tokenError)) {
+            // Remove the invalid token from the database
+            const removed = await removeInvalidToken(body.token, supabaseAdmin);
+            if (removed) {
+              invalidTokensRemoved++;
+            }
+          }
+        }
+      } else if (body.topic) {
+        // Send to topic
+        try {
+          response = await messaging.send({
+            ...message,
+            topic: body.topic
+          });
+          messageIds.push(response);
+        } catch (topicError) {
+          console.error(`Error sending to topic: ${body.topic}`, topicError);
+          errors.push({ topic: body.topic, error: String(topicError) });
+        }
+      } else {
+        // If no target specified, default to all devices
+        try {
+          response = await messaging.send({
+            ...message,
+            topic: 'all_devices'
+          });
+          messageIds.push(response);
+        } catch (defaultError) {
+          console.error('Error sending to default all_devices topic:', defaultError);
+          errors.push({ topic: 'all_devices', error: String(defaultError) });
+        }
+      }
+
+      // Return success response with message IDs and any errors
+      return NextResponse.json({
+        success: messageIds.length > 0,
+        messageIds,
+        recipients,
+        tokenCount,
+        invalidTokensRemoved,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
       return NextResponse.json(
-        { error: 'Error processing notification request', details: String(error) },
-        { status: 400 }
+        { error: 'Error sending notification', details: String(error) },
+        { status: 500 }
       );
     }
   } catch (error) {
