@@ -28,6 +28,8 @@ if (!admin.apps.length) {
     if (encodedPrivateKey) {
       try {
         decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+        console.log('DEBUG Decoded Key Start:', decodedPrivateKey?.substring(0, 30));
+        console.log('DEBUG Decoded Key End:', decodedPrivateKey?.substring(decodedPrivateKey.length - 30));
       } catch (error) {
         console.error('Failed to decode Base64 private key:', error);
         throw new Error('Failed to decode Base64 private key');

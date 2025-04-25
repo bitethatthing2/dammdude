@@ -13,6 +13,9 @@ if (!admin.apps.length) {
     if (encodedPrivateKey) {
       try {
         decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+        // Log the start and end of the decoded key
+        console.log('DEBUG Decoded Key Start (subscribe):', decodedPrivateKey?.substring(0, 30));
+        console.log('DEBUG Decoded Key End (subscribe):', decodedPrivateKey?.substring(decodedPrivateKey.length - 30));
       } catch (error) {
         console.error('Failed to decode Base64 private key in subscribe-to-topic:', error);
         throw new Error('Failed to decode Base64 private key in subscribe-to-topic');
