@@ -8,7 +8,6 @@ import { useLocationState } from '@/lib/hooks/useLocationState';
 import { useCartState } from '@/lib/hooks/useCartState';
 import type { MenuCategory, MenuItem } from '@/lib/types/menu';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase/client';
 
 // --- Side Hustle Bar Menu Data ---
 const placeholderImg = '/images/food-placeholder.webp'; // Placeholder image
