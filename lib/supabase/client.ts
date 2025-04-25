@@ -1,26 +1,20 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase env vars are missing');
+  console.warn('Supabase environment variables (URL or Anon Key) are missing. Check Vercel environment variables and .env.local for client-side usage.');
 }
 
-// Create Supabase client with production settings
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'side-hustle-app',
-    },
-  },
-});
+export function getSupabaseBrowserClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Cannot create Supabase browser client: URL or Anon Key is missing.');
+  }
+  return createBrowserClient(supabaseUrl!, supabaseAnonKey!);
+}
 
-// Helper function for safe Supabase queries
+/*
 export const safeSupabaseQuery = async <T>(
   queryFn: () => Promise<{ data: T | null; error: any }>
 ): Promise<{ data: T | null; error: any }> => {
@@ -31,3 +25,4 @@ export const safeSupabaseQuery = async <T>(
     return { data: null, error: { message: 'Failed to fetch data', details: error } };
   }
 };
+*/
