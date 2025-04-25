@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
@@ -13,52 +13,64 @@ import { Loader2 } from 'lucide-react';
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('gthabarber1@gmail.com');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
-  // Use the Supabase auth-helpers directly instead of custom client
+  // Use the Supabase auth-helpers directly
   const supabase = createClientComponentClient();
+
+  // Check session on mount, but don't block rendering
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (data?.session) {
+          // Already logged in, redirect to dashboard
+          router.push('/admin/dashboard');
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking session:', err);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    
+    checkSession();
+  }, [router, supabase.auth]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setIsLoading(true);
-    
-    console.log('Login attempt with email:', email);
 
     try {
-      // Simple sign in - no extra validation yet
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('Login error:', error.message);
         setError(error.message);
         toast({
           title: "Login Failed",
           description: error.message,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
       if (data?.user) {
-        console.log('Login successful, redirecting to dashboard');
         toast({
           title: "Login Successful",
           description: "Welcome back!",
         });
         
-        // Use a small timeout to ensure the toast is shown
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 100);
-        return;
+        router.push('/admin/dashboard');
       }
     } catch (err) {
       console.error('Unexpected login error:', err);
@@ -72,6 +84,15 @@ export default function AdminLoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking session
+  if (!isInitialized) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-background">

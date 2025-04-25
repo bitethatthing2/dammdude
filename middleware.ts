@@ -3,53 +3,50 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Create a Supabase client configured to use cookies
+  // Create a response first
   const response = NextResponse.next();
-  const supabase = createMiddlewareClient({ req: request, res: response });
   
-  // Check if the request is for an admin route
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
-  const isLoginRoute = request.nextUrl.pathname === '/admin/login';
-  const isDashboardRoute = request.nextUrl.pathname === '/admin/dashboard';
-  
-  console.log(`Middleware: Processing ${request.nextUrl.pathname}`);
-
-  // For login route: if already logged in, redirect to dashboard
-  if (isLoginRoute) {
-    try {
+  try {
+    // Create a Supabase client configured to use cookies
+    const supabase = createMiddlewareClient({ req: request, res: response });
+    
+    // Check if the request is for an admin route
+    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
+    const isLoginRoute = request.nextUrl.pathname === '/admin/login';
+    
+    // For login route: if already logged in, redirect to dashboard
+    if (isLoginRoute) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Skip admin check for now - if they're logged in, let dashboard handle it
-        console.log('Middleware: Session found on login page, redirecting to dashboard');
         const url = new URL('/admin/dashboard', request.url);
         return NextResponse.redirect(url);
       }
-    } catch (error) {
-      console.error('Middleware error checking login session:', error);
+      // Not logged in, continue to login page
+      return response;
     }
-    return response;
-  }
-  
-  // For all other admin routes: if not logged in, redirect to login
-  if (isAdminRoute && !isLoginRoute) {
-    try {
+    
+    // For all other admin routes: if not logged in, redirect to login
+    if (isAdminRoute && !isLoginRoute) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.log('Middleware: No session found, redirecting to login');
         const url = new URL('/admin/login', request.url);
         return NextResponse.redirect(url);
       }
-      
-      // Let the dashboard page handle admin validation
+      // Logged in, continue to requested admin page
       return response;
-    } catch (error) {
-      console.error('Middleware error checking admin route:', error);
+    }
+  } catch (error) {
+    console.error('Middleware error:', error);
+    
+    // On error for admin routes (except login), redirect to login
+    if (request.nextUrl.pathname.startsWith('/admin') && 
+        request.nextUrl.pathname !== '/admin/login') {
       const url = new URL('/admin/login', request.url);
       return NextResponse.redirect(url);
     }
   }
   
-  // For all other routes, just proceed
+  // For all other routes, just continue
   return response;
 }
 
