@@ -7,6 +7,7 @@ if (!admin.apps.length) {
   try {
     // Get the Base64 encoded key from environment variables
     const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+    console.log('DEBUG Raw Base64 Key Read (subscribe):', encodedPrivateKey?.substring(0, 50)); // Log start of raw Base64
 
     // Decode the Base64 key
     let decodedPrivateKey: string | undefined;
