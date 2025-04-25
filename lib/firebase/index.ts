@@ -2,19 +2,25 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { FirebaseConfig, FcmMessagePayload } from '@/lib/types/firebase';
 
+// Add fallback values to ensure Firebase works even if environment variables are missing
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY as string,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN as string,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID as string,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET as string,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID as string,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID as string,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID as string
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyB0Nxf3pvW32KBc0D1o2-K6qIeKovhGWfg',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'new1-f04b3.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'new1-f04b3',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'new1-f04b3.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '802463638703',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:802463638703:web:bd0bbdaf3407d784d5205a',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-3RZEW537LN'
   // clientId and clientSecret removed - should not be exposed in client config
 };
 
-// Use VAPID key from environment variable
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY as string;
+// Log a warning if environment variables are missing
+if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+  console.warn('Firebase environment variables are missing. Using fallback values.');
+}
+
+// Use VAPID key from environment variable with fallback
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BPAbU0G8rhAKE7ay5RepQ7N3V_CsdCKvmflQm0FncBbx4CHL0IfmGvdbdYUN90Vjn50JB7T9jzj268KhYJ34ikU';
 
 const getFirebaseApp = () => {
   const apps = getApps();
