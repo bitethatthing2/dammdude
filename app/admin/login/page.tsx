@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('gthabarber1@gmail.com');
@@ -18,8 +18,8 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // Use the Supabase auth-helpers directly instead of custom client
-  const supabase = createClientComponentClient();
+  // Use the updated Supabase client
+  const supabase = getSupabaseBrowserClient();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
