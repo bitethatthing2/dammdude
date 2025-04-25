@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -19,9 +21,12 @@ const alertVariants = cva(
   }
 )
 
+interface AlertProps extends React.HTMLAttributes<HTMLDivElement>,
+  VariantProps<typeof alertVariants> {}
+
 const Alert = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+  AlertProps
 >(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
@@ -32,9 +37,11 @@ const Alert = React.forwardRef<
 ))
 Alert.displayName = "Alert"
 
+interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+
 const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
+  HTMLHeadingElement,
+  AlertTitleProps
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
@@ -44,9 +51,11 @@ const AlertTitle = React.forwardRef<
 ))
 AlertTitle.displayName = "AlertTitle"
 
+interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
+  AlertDescriptionProps
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}

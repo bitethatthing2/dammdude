@@ -595,13 +595,18 @@
   
   /* Hide scrollbars but allow scrolling */
   .scrollbar-hide {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-    overflow: -moz-scrollbars-none; /* Fallback for other browsers */
+    /* Modern Firefox - even though it shows a warning, keeping it with fallbacks is best practice */
+    scrollbar-width: none; 
+    /* IE and Edge */
+    -ms-overflow-style: none; 
+    /* General overflow behavior */
+    overflow-y: auto;
+    overflow-x: auto;
   }
   
+  /* WebKit browsers (Chrome, Safari, newer Edge) */
   .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    display: none;
     width: 0;
     height: 0;
   }

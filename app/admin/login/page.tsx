@@ -7,9 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
+
+const Alert = ({ className, variant, ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "destructive" }) => (
+  <div
+    role="alert"
+    className={`relative w-full rounded-lg border p-4 ${
+      variant === "destructive" 
+        ? "border-destructive/50 text-destructive dark:border-destructive" 
+        : "bg-background text-foreground"
+    } ${className || ""}`}
+    {...props}
+  />
+);
+
+const AlertDescription = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={`text-sm [&_p]:leading-relaxed ${className || ""}`}
+    {...props}
+  />
+);
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('gthabarber1@gmail.com'); // Pre-fill with admin email
