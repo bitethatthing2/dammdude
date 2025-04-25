@@ -1,4 +1,4 @@
-import { supabase, safeSupabaseQuery } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient, safeSupabaseQuery } from '@/lib/supabase/client';
 
 /**
  * Subscribe a device token to a notification topic
@@ -12,8 +12,9 @@ export async function subscribeToTopic(token: string, topic: string): Promise<{ 
   }
 
   try {
-    const { error } = await safeSupabaseQuery(() =>
-      supabase.from('topic_subscriptions')
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await safeSupabaseQuery(supabase, (client) =>
+      client.from('topic_subscriptions')
         .upsert({
           token,
           topic,
@@ -50,8 +51,9 @@ export async function unsubscribeFromTopic(token: string, topic: string): Promis
   }
 
   try {
-    const { error } = await safeSupabaseQuery(() =>
-      supabase.from('topic_subscriptions')
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await safeSupabaseQuery(supabase, (client) =>
+      client.from('topic_subscriptions')
         .delete()
         .match({ token, topic })
     );
@@ -85,8 +87,9 @@ export async function getSubscribedTopics(token: string): Promise<{ topics: stri
       topic: string;
     }
 
-    const { data, error } = await safeSupabaseQuery(() =>
-      supabase.from('topic_subscriptions')
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await safeSupabaseQuery(supabase, (client) =>
+      client.from('topic_subscriptions')
         .select('topic')
         .eq('token', token)
     );
