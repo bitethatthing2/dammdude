@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase, safeSupabaseQuery } from '@/lib/supabase/client';
+// import { supabase, safeSupabaseQuery } from '@/lib/supabase/client'; // Commented out
 import type { Order } from '@/lib/types/order';
 import type { OrderRealtimePayload, ApiResponse } from '@/lib/types/api';
 
@@ -11,6 +11,8 @@ export default function RealtimeOrderList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Commenting out the useEffect hook that uses Supabase
+  /*
   useEffect(() => {
     // initial fetch
     const fetchOrders = async () => {
@@ -44,7 +46,7 @@ export default function RealtimeOrderList() {
     
     fetchOrders();
 
-    // --- MODIFICATION: Re-commenting out useEffect to prevent 'orders' table subscription error ---
+    // --- Realtime subscription part already commented out ---
     /*
     const channel = supabase
       .channel('orders-stream')
@@ -70,8 +72,13 @@ export default function RealtimeOrderList() {
       supabase.removeChannel(channel);
     };
     */
-    // --- END MODIFICATION ---
 
+  //}, []);
+  // */
+
+  // Set loading to false immediately since we are not fetching data
+  useEffect(() => {
+    setIsLoading(false);
   }, []);
 
   return (
