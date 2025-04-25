@@ -26,10 +26,60 @@ const FcmContext = createContext<FcmContextType>({
 // Export hook to use the FCM Context
 export const useFcmContext = () => useContext(FcmContext);
 
+// Helper to check if service worker is active
+async function isServiceWorkerActive(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  
+  try {
+    // Get all service worker registrations
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    
+    // Check if any of them are active
+    for (const registration of registrations) {
+      if (registration.active) {
+        console.log('Found active service worker:', registration.scope);
+        return true;
+      }
+    }
+    
+    console.warn('No active service worker found');
+    return false;
+  } catch (error) {
+    console.error('Error checking service worker status:', error);
+    return false;
+  }
+}
+
+// Wait for service worker to become active
+async function waitForServiceWorker(maxWaitTime = 5000): Promise<boolean> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < maxWaitTime) {
+    if (await isServiceWorkerActive()) {
+      return true;
+    }
+    
+    // Wait 200ms before checking again
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  console.error('Timed out waiting for service worker to activate');
+  return false;
+}
+
 // Export this function to be used by other components that need to get permission and token
 export async function getNotificationPermissionAndToken(): Promise<string | null> {
   try {
-    // First request permission
+    // First check for service worker
+    const hasActiveServiceWorker = await waitForServiceWorker();
+    if (!hasActiveServiceWorker) {
+      console.warn('No active service worker available for push notifications');
+      // We can still continue, but subscription might fail
+    }
+    
+    // Then request permission
     const permissionResult = await requestNotificationPermission();
     if (permissionResult !== 'granted') {
       console.log('Notification permission was not granted.');
@@ -105,10 +155,6 @@ export function useFcmToken(): UseFcmTokenResult {
     }
 
     const setupFcm = async () => {
-      // Set flags to prevent duplicate calls
-      hasRegisteredLocally.current = true;
-      hasRegisteredGlobally = true;
-
       try {
         console.log('Attempting to load FCM token...');
         
@@ -117,6 +163,17 @@ export function useFcmToken(): UseFcmTokenResult {
           console.log('Notification permission not granted, skipping FCM setup.');
           return;
         }
+        
+        // Wait for service worker to be active
+        const isSwActive = await waitForServiceWorker(8000);
+        if (!isSwActive) {
+          console.warn('Service worker not active, token subscription may fail');
+          // We'll still try, as sometimes the service worker can be active even if our check fails
+        }
+
+        // Set flags to prevent duplicate calls - set these before the async operations
+        hasRegisteredLocally.current = true;
+        hasRegisteredGlobally = true;
 
         // Get messaging instance
         const messagingInstance = getMessagingInstance();
@@ -126,59 +183,97 @@ export function useFcmToken(): UseFcmTokenResult {
         }
 
         // Get FCM token
-        const currentToken = await getToken(messagingInstance, {
-          vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-        });
+        console.log('Requesting FCM token...');
+        
+        try {
+          const currentToken = await getToken(messagingInstance, {
+            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+          });
 
-        if (currentToken) {
-          console.log(`FCM token loaded successfully: ${currentToken.substring(0, 10)}...`);
-          setToken(currentToken);
-        } else {
-          console.log('No FCM token received.');
+          if (currentToken) {
+            console.log(`FCM token loaded successfully: ${currentToken.substring(0, 10)}...`);
+            setToken(currentToken);
+            
+            // Immediately store the token
+            storeTokenInDatabase(currentToken);
+          } else {
+            console.log('No FCM token received.');
+          }
+        } catch (tokenError) {
+          console.error('Error getting FCM token:', tokenError);
+          // Reset flags on failure to allow retry
+          hasRegisteredLocally.current = false;
+          hasRegisteredGlobally = false;
         }
       } catch (err) {
         console.error('Error setting up FCM:', err);
+        // Reset flags on failure to allow retry
+        hasRegisteredLocally.current = false;
+        hasRegisteredGlobally = false;
       }
     };
 
     setupFcm();
 
-    // Cleanup function to set local flag to false
+    // Cleanup function
     return () => {
+      // Do not reset the global flag on component unmount
+      // Only reset the local flag
       hasRegisteredLocally.current = false;
     };
   }, [notificationPermissionStatus]);
 
-  // Third useEffect: Store token in Supabase
-  useEffect(() => {
-    // Skip if no token or already registered
-    if (!token || hasRegisteredLocally.current) {
-      return;
-    }
+  // Helper function to store token in database
+  const storeTokenInDatabase = async (tokenToStore: string) => {
+    if (!tokenToStore) return;
+    
+    try {
+      console.log(`Storing FCM token in database: ${tokenToStore.substring(0, 10)}...`);
+      const response = await fetch('/api/fcm-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: tokenToStore }),
+      });
 
-    const storeTokenInSupabase = async () => {
-      try {
-        console.log(`Storing FCM token in database: ${token.substring(0, 10)}...`);
-        const response = await fetch('/api/fcm-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Network response was not ok: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('FCM token stored in database:', data);
-      } catch (error) {
-        console.error('Error storing FCM token:', error);
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.statusText}`);
       }
-      hasRegisteredLocally.current = true;
+
+      const data = await response.json();
+      console.log('FCM token stored in database:', data);
+      
+      // Now try to subscribe to the all_devices topic
+      await subscribeToTopic(tokenToStore, 'all_devices');
+    } catch (error) {
+      console.error('Error storing FCM token:', error);
     }
-  }, [token]);
+  };
+  
+  // Helper function to subscribe to a topic
+  const subscribeToTopic = async (tokenToSubscribe: string, topic: string) => {
+    try {
+      console.log(`Subscribing token to topic '${topic}'...`);
+      const response = await fetch('/api/subscribe-to-topic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: tokenToSubscribe, topic }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Subscription failed: ${errorData.error || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      console.log(`Successfully subscribed to topic '${topic}':`, data);
+    } catch (error) {
+      console.error(`Error subscribing to topic '${topic}':`, error);
+    }
+  };
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
@@ -212,36 +307,20 @@ export function useFcmToken(): UseFcmTokenResult {
 
         console.log(`Showing toast notification - Title: "${title}", Body: "${body}"`);
         
-        // Define icon element with fallback
-        let toastIcon: React.ReactElement | undefined = undefined;
-        try {
-          if (iconUrl) {
-            toastIcon = (
-              <Image src={iconUrl} alt="notification icon" width={24} height={24} />
-            );
-          }
-        } catch (err) {
-          console.warn('Failed to create icon element:', err);
-        }
-
-        // Create action button if we have a link
-        const toastAction = link ? {
-          label: 'View',
-          onClick: () => { 
-            console.log(`Notification clicked, navigating to: ${link}`);
-            if (link) router.push(link);
-          },
-        } : undefined;
-
-        // Show toast notification (primary notification method)
+        // Safer toast implementation without React elements to avoid the minified errors
         toast(title, {
           description: body,
-          icon: toastIcon,
-          action: toastAction,
           duration: 8000,
           position: 'top-right',
-          important: true, // Make sure it gets attention
+          important: true,
           className: 'notification-toast',
+          action: link ? {
+            label: 'View',
+            onClick: () => {
+              console.log(`Notification clicked, navigating to: ${link}`);
+              if (link) router.push(link);
+            }
+          } : undefined
         });
 
         // Also try to show a system notification as fallback
