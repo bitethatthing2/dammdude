@@ -7,17 +7,18 @@ import { ProductCard } from '@/components/merch/ProductCard';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import type { MerchCategory, MerchItem } from '@/lib/types/merch';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase/client';
+// import { supabase } from '@/lib/supabase/client'; // Commented out
 import type { ApiResponse } from '@/lib/types/api';
 
 export default function MerchPage() {
   const [categories, setCategories] = useState<MerchCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Keep loading state, default to false later?
   const { location } = useLocationState();
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Fetch merchandise data from Supabase
+  // Fetch merchandise data from Supabase - COMMENTED OUT FOR NOW
+  /*
   useEffect(() => {
     const fetchMerchData = async () => {
       setIsLoading(true);
@@ -76,6 +77,13 @@ export default function MerchPage() {
     
     fetchMerchData();
   }, [location, activeCategory]);
+  */
+
+  // Set loading to false immediately since we are not fetching
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
+
 
   // Scroll to category when selected
   const scrollToCategory = (categoryId: string) => {
