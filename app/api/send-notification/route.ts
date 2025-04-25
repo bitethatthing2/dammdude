@@ -22,72 +22,72 @@ function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
       // Check if we have the required credentials
-      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+      const projectId = process.env.FIREBASE_PROJECT_ID;
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-      const privateKeyId = process.env.FIREBASE_PRIVATE_KEY_ID;
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
       // Log what we found for debugging
       console.log('Firebase initialization check:', {
         hasProjectId: !!projectId,
         hasClientEmail: !!clientEmail,
         hasPrivateKey: !!privateKey,
-        hasPrivateKeyId: !!privateKeyId
+        privateKeyLength: privateKey ? privateKey.length : 0
       });
 
-      // For local development, always use applicationDefault() credentials
-      // This won't make actual API calls but will let the code run through
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Running in development mode - using application default credentials');
-        try {
-          admin.initializeApp({
-            projectId: projectId || 'new1-f04b3',
-            credential: admin.credential.applicationDefault()
-          });
-        } catch (error) {
-          console.log('Could not initialize with applicationDefault, using cert with minimal data');
-          // If applicationDefault fails, create a minimal app config
-          admin.initializeApp({
-            projectId: projectId || 'new1-f04b3'
-          });
+      // Special handling for Vercel - they encode environment variables differently
+      // This will handle various ways the private key might be stored
+      if (privateKey) {
+        // If the key has literal "\n" strings, replace them with actual newlines
+        if (privateKey.includes('\\n')) {
+          privateKey = privateKey.replace(/\\n/g, '\n');
+          console.log('Replaced \\n with newlines in private key');
         }
-        return;
-      }
-      
-      // For production, we need the service account
-      if (!privateKey) {
-        console.error('Firebase private key is missing in production environment');
-        throw new Error('Firebase Admin SDK private key is required in production');
+        
+        // If the key is wrapped in quotes (Vercel sometimes adds these), remove them
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.slice(1, -1);
+          console.log('Removed quotes from private key');
+        }
+        
+        // Check if the key has proper PEM format
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          console.error('Private key does not have proper PEM format');
+        }
       }
 
-      // Get the Base64 encoded key from environment variables if available
-      let decodedPrivateKey = privateKey;
-      
-      // Try to decode if it might be Base64 encoded
-      if (privateKey && !privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        try {
-          decodedPrivateKey = Buffer.from(privateKey, 'base64').toString('utf8');
-          console.log('Successfully decoded Base64 private key');
-        } catch (error) {
-          console.warn('Failed to decode private key as Base64, using as-is:', error);
-          // Keep the original key, it might not be Base64 encoded
+      // For development or if keys are missing, use application default
+      if (!privateKey || !clientEmail || !projectId) {
+        console.warn('Firebase Admin SDK credentials incomplete, using development mode');
+        
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            admin.initializeApp({
+              projectId: projectId || 'new1-f04b3' 
+            });
+            console.log('Firebase Admin initialized in development mode');
+            return;
+          } catch (error) {
+            console.error('Failed to initialize Firebase Admin in development mode:', error);
+            throw error;
+          }
+        } else {
+          throw new Error('Missing required Firebase Admin SDK credentials in production');
         }
       }
 
       // Construct the service account object
       const serviceAccount = {
-        projectId: projectId,
-        clientEmail: clientEmail,
-        privateKey: decodedPrivateKey,
-        privateKeyId: privateKeyId
+        projectId,
+        clientEmail,
+        privateKey
       };
 
       // Log what we're using (with redacted private key)
       console.log('Initializing Firebase Admin with service account:', {
         projectId: serviceAccount.projectId,
         clientEmail: serviceAccount.clientEmail,
-        hasPrivateKey: !!serviceAccount.privateKey,
-        privateKeyId: serviceAccount.privateKeyId
+        privateKeyStartsWith: serviceAccount.privateKey ? 
+          serviceAccount.privateKey.substring(0, 25) + '...' : 'undefined'
       });
 
       admin.initializeApp({

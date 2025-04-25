@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getToken, onMessage, Unsubscribe } from 'firebase/messaging';
 import { getMessagingInstance, fetchToken, requestNotificationPermission } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,22 @@ import { toast } from 'sonner';
 import { FcmMessagePayload } from '@/lib/types/firebase';
 import Image from 'next/image';
 import React from 'react';
+
+// Global flag to prevent multiple registrations
+let hasRegisteredGlobally = false;
+
+// Create a Context to share token across components
+interface FcmContextType {
+  token: string | null;
+  notificationPermissionStatus: NotificationPermission | null;
+}
+
+const FcmContext = createContext<FcmContextType>({
+  token: null,
+  notificationPermissionStatus: null
+});
+
+export const useFcmContext = () => useContext(FcmContext);
 
 // Export this function
 export async function getNotificationPermissionAndToken(): Promise<string | null> {
@@ -48,9 +64,11 @@ export function useFcmToken(): UseFcmTokenResult {
   const retryLoadToken = useRef(0);
   const isLoading = useRef(false);
   const hasFetched = useRef(false);
+  const hasRegisteredLocally = useRef(false);
 
   const loadToken = async (): Promise<void> => {
-    if (isLoading.current || hasFetched.current || typeof window === 'undefined') {
+    // Skip if we've already registered globally or locally, or if we're already loading
+    if (hasRegisteredGlobally || hasRegisteredLocally.current || isLoading.current || hasFetched.current || typeof window === 'undefined') {
       return;
     }
 
@@ -91,14 +109,22 @@ export function useFcmToken(): UseFcmTokenResult {
     setToken(fetchedToken);
     isLoading.current = false;
     hasFetched.current = true;
+    
+    // Mark as registered locally and globally
+    hasRegisteredLocally.current = true;
+    hasRegisteredGlobally = true;
   };
 
   useEffect(() => {
-    loadToken();
+    // Only load token if it hasn't been registered globally
+    if (!hasRegisteredGlobally) {
+      loadToken();
+    }
   }, []);
 
   useEffect(() => {
-    if (token) {
+    // Only subscribe to topic if we have a token and haven't registered globally yet
+    if (token && !hasRegisteredLocally.current) {
       console.log(`Attempting to subscribe token ${token.substring(0, 10)}... to topic 'all_devices'`);
       fetch('/api/subscribe-to-topic', {
         method: 'POST',
@@ -120,14 +146,18 @@ export function useFcmToken(): UseFcmTokenResult {
           console.error('Error subscribing to topic:', error);
           toast.error('Network error while subscribing to notifications.');
         });
+        
+      // Mark as registered
+      hasRegisteredLocally.current = true;
     }
   }, [token]);
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
 
+    // Only set up listener if we have a token and haven't set up a listener yet
     const setupListener = async () => {
-      if (!token || typeof window === 'undefined') {
+      if (!token || typeof window === 'undefined' || hasRegisteredLocally.current) {
         return;
       }
 
@@ -193,6 +223,8 @@ export function useFcmToken(): UseFcmTokenResult {
       });
 
       console.log('Foreground message listener registered.');
+      // Mark as registered locally
+      hasRegisteredLocally.current = true;
     };
 
     setupListener();
@@ -206,4 +238,15 @@ export function useFcmToken(): UseFcmTokenResult {
   }, [token, router]);
 
   return { token, notificationPermissionStatus };
+}
+
+// Provider component to wrap your app
+export function FcmProvider({ children }: { children: React.ReactNode }) {
+  const fcmData = useFcmToken();
+  
+  return (
+    <FcmContext.Provider value={fcmData}>
+      {children}
+    </FcmContext.Provider>
+  );
 }

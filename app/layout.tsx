@@ -9,9 +9,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <ThemeProvider>
-          {children}
-          <ServiceWorkerRegister />
-          <FirebaseInitializer />
+          <FirebaseInitializer>
+            {children}
+            <ServiceWorkerRegister />
+          </FirebaseInitializer>
         </ThemeProvider>
       </body>
     </html>
