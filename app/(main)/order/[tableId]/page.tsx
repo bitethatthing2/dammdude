@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCartState, CartItem } from '@/lib/hooks/useCartState';
 import { useLocationState } from '@/lib/hooks/useLocationState';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { OrdersResponse, ApiResponse } from '@/lib/types/api';
 
@@ -30,6 +30,9 @@ export default function OrderPage({ params }: OrderPageProps) {
     
     setIsSubmitting(true);
     try {
+      // Get client instance
+      const supabase = getSupabaseBrowserClient();
+
       // Convert cart items to order items
       const orderItems = items.map(item => ({
         id: item.id,
