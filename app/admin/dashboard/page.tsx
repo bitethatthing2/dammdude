@@ -67,7 +67,7 @@ export default function AdminDashboard() {
     
     try {
       // Send notification to Firebase Cloud Messaging topic
-      const response = await fetch('/api/send-push-notification', {
+      const response = await fetch('/api/send-notification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
