@@ -27,8 +27,18 @@ if (!admin.apps.length) {
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     };
 
+    // --- TEMPORARY DEBUG LOGGING ---
+    console.log('DEBUG: FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? 'Exists' : 'MISSING');
+    console.log('DEBUG: FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL ? 'Exists' : 'MISSING');
+    console.log('DEBUG: FIREBASE_PRIVATE_KEY:', process.env.FIREBASE_PRIVATE_KEY ? 'Exists' : 'MISSING');
+    // --- END TEMPORARY DEBUG LOGGING ---
+
     // Check that all required fields are present
     if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+      // Log which specific field is missing before throwing
+      if (!serviceAccount.projectId) console.error('Firebase Admin Init Error: Missing projectId');
+      if (!serviceAccount.clientEmail) console.error('Firebase Admin Init Error: Missing clientEmail');
+      if (!serviceAccount.privateKey) console.error('Firebase Admin Init Error: Missing privateKey (check formatting in Vercel)');
       throw new Error('Missing required Firebase Admin SDK credentials');
     }
 
