@@ -3,6 +3,22 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+// Constants for localstorage keys
+const THEME_COLOR_KEY = 'sidehustle-color-theme';
+const THEME_MODE_KEY = 'sidehustle-mode';
+const THEME_STORAGE_KEY = 'sidehustle-theme';
+
+// Get saved values from localStorage with fallbacks
+const getSavedThemeValues = () => {
+  if (typeof window === 'undefined') return { mode: 'light', color: 'slate' };
+  
+  // Get saved values
+  const savedColor = localStorage.getItem(THEME_COLOR_KEY) || 'slate';
+  const savedMode = localStorage.getItem(THEME_MODE_KEY) || 'light';
+  
+  return { color: savedColor, mode: savedMode };
+};
+
 export function ThemeProvider({ children, ...props }: { children: React.ReactNode }) {
   // Get stored theme from local storage if available
   const [mounted, setMounted] = React.useState(false)
@@ -17,7 +33,7 @@ export function ThemeProvider({ children, ...props }: { children: React.ReactNod
       defaultTheme="system"
       enableSystem={true}
       forcedTheme={undefined}
-      storageKey="sidehustle-theme"
+      storageKey={THEME_STORAGE_KEY}
       disableTransitionOnChange
       {...props}
     >
@@ -33,10 +49,20 @@ export function ThemeProvider({ children, ...props }: { children: React.ReactNod
 // Component to ensure the theme class is properly set on initialization
 function ThemeInitializer() {
   // Use the useTheme hook directly to avoid TypeScript errors with the context
-  const { theme, resolvedTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   
   React.useEffect(() => {
-    if (!theme) return // Skip execution if theme isn't available yet
+    if (typeof window === 'undefined') return;
+    
+    // On first load, try to restore theme from localStorage
+    if (!theme) {
+      const { color, mode } = getSavedThemeValues();
+      setTheme(mode);
+      
+      // Apply the color theme class
+      document.documentElement.classList.add(color);
+      return;
+    }
     
     const root = document.documentElement
     
@@ -48,35 +74,38 @@ function ThemeInitializer() {
       }
     })
     
-    // If theme contains a specific theme (e.g., slate-dark)
+    // Extract color theme from combined theme if present
+    let colorTheme = 'slate'; // Default
+    
     if (theme && theme.includes('-')) {
-      const [colorTheme] = theme.split('-')
-      root.classList.add(colorTheme)
-      
-      // Save the color theme separately for persistence
-      localStorage.setItem('sidehustle-color-theme', colorTheme)
+      const [extractedColorTheme] = theme.split('-');
+      colorTheme = extractedColorTheme;
     } 
-    // For built-in themes or if no theme
     else if (theme && theme !== 'light' && theme !== 'dark' && theme !== 'system') {
-      root.classList.add(theme)
-      
-      // Save the color theme for persistence
-      localStorage.setItem('sidehustle-color-theme', theme)
+      colorTheme = theme;
     }
-    // Default to slate if no specific theme
     else {
-      // Check localStorage directly for previously saved theme
-      const savedTheme = localStorage.getItem('sidehustle-color-theme') || 'slate'
-      root.classList.add(savedTheme)
+      // Check localStorage for saved color theme
+      colorTheme = localStorage.getItem(THEME_COLOR_KEY) || 'slate';
     }
+    
+    // Apply the color theme
+    root.classList.add(colorTheme);
+    
+    // Save color theme to localStorage
+    localStorage.setItem(THEME_COLOR_KEY, colorTheme);
+    
+    // Save mode to localStorage
+    const currentMode = resolvedTheme || 'light';
+    localStorage.setItem(THEME_MODE_KEY, currentMode);
     
     // Make sure dark/light mode is correctly applied
     if (resolvedTheme === 'dark') {
-      root.classList.add('dark')
+      root.classList.add('dark');
     } else {
-      root.classList.remove('dark')
+      root.classList.remove('dark');
     }
-  }, [theme, resolvedTheme])
+  }, [theme, resolvedTheme, setTheme])
   
   return null
 }
