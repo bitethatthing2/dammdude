@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,9 +18,6 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // Use the Supabase auth-helpers directly instead of custom client
-  const supabase = createClientComponentClient();
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -29,7 +26,8 @@ export default function AdminLoginPage() {
     console.log('Login attempt with email:', email);
 
     try {
-      // Simple sign in - no extra validation yet
+      const supabase = getSupabaseBrowserClient();
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -54,11 +52,10 @@ export default function AdminLoginPage() {
           description: "Welcome back!",
         });
         
-        // Use a small timeout to ensure the toast is shown
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 100);
-        return;
+        router.push('/admin/dashboard');
+      } else {
+        setError('Something went wrong. Please try again.');
+        setIsLoading(false);
       }
     } catch (err) {
       console.error('Unexpected login error:', err);
@@ -68,7 +65,6 @@ export default function AdminLoginPage() {
         description: "Please try again later",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
