@@ -17,49 +17,44 @@ interface DatabaseClient {
   };
 }
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  try {
-    // Get the Base64 encoded key from environment variables
-    const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
-    console.log('DEBUG Raw Base64 Key Read:', encodedPrivateKey?.substring(0, 50)); // Log start of raw Base64
+// Helper function to initialize Firebase Admin SDK
+function initializeFirebaseAdmin() {
+  if (!admin.apps.length) {
+    try {
+      // Get the Base64 encoded key from environment variables
+      const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    // Decode the Base64 key
-    let decodedPrivateKey: string | undefined;
-    if (encodedPrivateKey) {
-      try {
-        decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
-        console.log('DEBUG Decoded Key Start:', decodedPrivateKey?.substring(0, 30));
-        console.log('DEBUG Decoded Key End:', decodedPrivateKey?.substring(decodedPrivateKey.length - 30));
-      } catch (error) {
-        console.error('Failed to decode Base64 private key:', error);
-        throw new Error('Failed to decode Base64 private key');
+      // Decode the Base64 key
+      let decodedPrivateKey: string | undefined;
+      if (encodedPrivateKey) {
+        try {
+          decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+        } catch (error) {
+          console.error('Failed to decode Base64 private key:', error);
+          throw new Error('Failed to decode Base64 private key');
+        }
       }
+
+      // Construct the service account object with the decoded key
+      const serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: decodedPrivateKey,
+      };
+
+      // Check that all required fields are present
+      if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+        console.error('Missing required Firebase Admin SDK credentials');
+        throw new Error('Missing required Firebase Admin SDK credentials');
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      });
+    } catch (error) {
+      console.error('Firebase Admin initialization error:', error);
+      throw new Error('Failed to initialize Firebase Admin');
     }
-
-    // Construct the service account object with the decoded key
-    const serviceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: decodedPrivateKey,
-    };
-
-    // Check that all required fields are present
-    if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      // Log which specific field is missing before throwing
-      if (!serviceAccount.projectId) console.error('Firebase Admin Init Error: Missing projectId');
-      if (!serviceAccount.clientEmail) console.error('Firebase Admin Init Error: Missing clientEmail');
-      if (!serviceAccount.privateKey) console.error('Firebase Admin Init Error: Missing privateKey (check formatting in Vercel)');
-      throw new Error('Missing required Firebase Admin SDK credentials');
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    });
-    console.log('Firebase Admin initialized successfully');
-  } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
-    throw new Error('Failed to initialize Firebase Admin');
   }
 }
 
@@ -116,6 +111,9 @@ function isInvalidTokenError(error: any): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Firebase Admin SDK
+    initializeFirebaseAdmin();
+
     // Assume the request body might have the notification nested or flat
     const rawBody = await request.json();
     const notificationData = rawBody.notification || rawBody; // Use nested or top-level

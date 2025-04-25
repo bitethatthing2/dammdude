@@ -1,41 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
+import { ServiceAccount } from 'firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  try {
-    // Get the Base64 encoded key from environment variables
-    const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
-    console.log('DEBUG Raw Base64 Key Read (subscribe):', encodedPrivateKey?.substring(0, 50)); // Log start of raw Base64
+// Define the structure for the expected request body
+interface SubscribeRequestBody {
+  token: string;
+  topic: string;
+}
 
-    // Decode the Base64 key
-    let decodedPrivateKey: string | undefined;
-    if (encodedPrivateKey) {
-      try {
-        decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
-        // Log the start and end of the decoded key
-        console.log('DEBUG Decoded Key Start (subscribe):', decodedPrivateKey?.substring(0, 30));
-        console.log('DEBUG Decoded Key End (subscribe):', decodedPrivateKey?.substring(decodedPrivateKey.length - 30));
-      } catch (error) {
-        console.error('Failed to decode Base64 private key in subscribe-to-topic:', error);
-        throw new Error('Failed to decode Base64 private key in subscribe-to-topic');
+// Helper function to initialize Firebase Admin SDK
+function initializeFirebaseAdmin() {
+  if (!admin.apps.length) {
+    try {
+      // Get the Base64 encoded key from environment variables
+      const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+      console.log('Attempting Firebase Init in subscribe-to-topic...'); // Add a log here
+
+      // Decode the Base64 key
+      let decodedPrivateKey: string | undefined;
+      if (encodedPrivateKey) {
+        try {
+          decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+        } catch (error) {
+          console.error('Failed to decode Base64 private key in subscribe-to-topic:', error);
+          throw new Error('Failed to decode Base64 private key in subscribe-to-topic');
+        }
+      } else {
+        throw new Error('FIREBASE_PRIVATE_KEY environment variable not found.');
       }
-    }
 
-    // Use a more reliable initialization approach with proper error handling
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID, 
+      const serviceAccount: ServiceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: decodedPrivateKey, // Use the decoded key here
-      }),
-    });
-    console.log('Firebase Admin initialized successfully in subscribe-to-topic');
-  } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
-    // Throw the error or handle it appropriately to prevent the build from succeeding with a faulty config
-    throw new Error('Failed to initialize Firebase Admin');
+        privateKey: decodedPrivateKey,
+      };
+
+      // Check that all required fields are present before initializing
+      if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+        console.error('Missing required Firebase Admin SDK credentials for initialization in subscribe-to-topic.');
+        throw new Error('Missing required Firebase Admin SDK credentials');
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('Firebase Admin initialized successfully in subscribe-to-topic.');
+    } catch (error) {
+      console.error('Firebase Admin initialization error during request (subscribe):', error);
+      // Throw the error to be caught by the request handler
+      throw new Error(`Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 
@@ -54,8 +69,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Firebase Admin SDK
+    initializeFirebaseAdmin();
+
     const body = await request.json();
-    const { token, topic } = body;
+    const { token, topic }: SubscribeRequestBody = body;
     
     console.log('Subscribe to topic API called:', { topic, tokenLength: token?.length });
     
