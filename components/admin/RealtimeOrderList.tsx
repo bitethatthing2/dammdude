@@ -1,84 +1,79 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-// import { supabase, safeSupabaseQuery } from '@/lib/supabase/client'; // Commented out
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { Order } from '@/lib/types/order';
 import type { OrderRealtimePayload, ApiResponse } from '@/lib/types/api';
 
 export default function RealtimeOrderList() {
-  // Initialize with empty array to ensure orders is always an array
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Commenting out the useEffect hook that uses Supabase
-  /*
   useEffect(() => {
-    // initial fetch
+    const supabase = getSupabaseBrowserClient();
+
     const fetchOrders = async () => {
       setIsLoading(true);
       setError(null);
-      
       try {
-        const { data, error } = await safeSupabaseQuery(() => 
-          supabase
-            .from('orders')
-            .select('*')
-            .order('inserted_at', { ascending: false })
-            .limit(20)
-        ) as ApiResponse<Order[]>;
-        
-        if (error) {
-          console.error('Error fetching orders:', error);
-          setError(error.message || 'Failed to fetch orders');
+        const { data, error: fetchError } = await supabase
+          .from('orders')
+          .select('*')
+          .order('inserted_at', { ascending: false })
+          .limit(20);
+
+        if (fetchError) {
+          console.error('Error fetching orders:', fetchError);
+          setError(fetchError.message || 'Failed to fetch orders');
           setOrders([]);
         } else {
           setOrders(data || []);
         }
-      } catch (err) {
-        console.error('Failed to fetch orders:', err);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        console.error('Failed to fetch orders:', errorMessage);
         setError('An unexpected error occurred');
         setOrders([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchOrders();
 
-    // --- Realtime subscription part already commented out ---
-    /*
     const channel = supabase
       .channel('orders-stream')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         (payload: OrderRealtimePayload) => {
+          console.log('Realtime Change received:', payload);
           if (payload.eventType === 'INSERT') {
-            setOrders((prev) => [payload.new, ...prev]);
+            setOrders((prev) => [payload.new as Order, ...prev]);
           }
         }
       )
-      .subscribe((status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR') => {
+      .subscribe((status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR', err?: unknown) => {
         if (status === 'SUBSCRIBED') {
           console.log('Subscribed to orders table changes');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to orders table changes');
-          setError('Could not subscribe to real-time updates');
+          console.error('Error subscribing to orders table changes:', err);
+          setError(`Subscription error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } else if (status === 'TIMED_OUT') {
+          console.warn('Supabase subscription timed out.');
+          setError('Realtime connection timed out. Please refresh.');
         }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      console.log('Removing Supabase channel subscription');
+      supabase.removeChannel(channel).catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during subscription removal';
+        console.error('Error removing Supabase channel:', errorMessage);
+      });
     };
-    */
 
-  //}, []);
-  // */
-
-  // Set loading to false immediately since we are not fetching data
-  useEffect(() => {
-    setIsLoading(false);
   }, []);
 
   return (

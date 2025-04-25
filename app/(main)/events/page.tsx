@@ -5,8 +5,6 @@ import { CalendarDays } from 'lucide-react';
 import { EventCard } from '@/components/events/EventCard';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import type { Event } from '@/lib/types/event';
-// import { supabase } from '@/lib/supabase/client';
-import type { ApiResponse } from '@/lib/types/api';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -14,49 +12,10 @@ export default function EventsPage() {
   const [filter, setFilter] = useState<string>('all');
   const { location } = useLocationState();
 
-  // useEffect hook for fetching events - COMMENTED OUT
-  /*
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setIsLoading(true);
-      try {
-        let query = supabase
-          .from('events')
-          .select('*')
-          .order('event_date', { ascending: true });
-        
-        // Filter by location
-        if (location) {
-          query = query.in('location_id', [location, 'both']);
-        }
-        
-        const { data, error } = await query as ApiResponse<Event[]>;
-        
-        if (error) {
-          console.error('Error fetching events:', error);
-          return;
-        }
-        
-        if (data) {
-          setEvents(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch events:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [location]);
-  */
-
-  // Set loading to false immediately since we are not fetching data
   useEffect(() => {
     setIsLoading(false);
   }, []);
 
-  // Filter events based on category
   const filteredEvents = events.filter(event => {
     if (filter === 'all') return true;
     if (filter === 'upcoming') {
@@ -78,10 +37,12 @@ export default function EventsPage() {
           </p>
         </div>
         <div className="mt-4 md:mt-0">
+          {/* Add aria-label for accessibility */}
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="px-4 py-2 border rounded-md bg-background text-foreground"
+            aria-label="Filter Events"
           >
             <option value="all">All Events</option>
             <option value="upcoming">Upcoming</option>
