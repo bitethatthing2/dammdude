@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { SendNotificationRequest, SendNotificationResponse } from '@/lib/types/api';
 import { Loader2, Send, Bell, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase/client';
 
 interface NotificationResult {
   success: boolean;
