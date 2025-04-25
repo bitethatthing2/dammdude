@@ -5,7 +5,7 @@ import { CalendarDays } from 'lucide-react';
 import { EventCard } from '@/components/events/EventCard';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import type { Event } from '@/lib/types/event';
-import { supabase } from '@/lib/supabase/client';
+// import { supabase } from '@/lib/supabase/client';
 import type { ApiResponse } from '@/lib/types/api';
 
 export default function EventsPage() {
@@ -14,6 +14,8 @@ export default function EventsPage() {
   const [filter, setFilter] = useState<string>('all');
   const { location } = useLocationState();
 
+  // useEffect hook for fetching events - COMMENTED OUT
+  /*
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoading(true);
@@ -47,6 +49,12 @@ export default function EventsPage() {
 
     fetchEvents();
   }, [location]);
+  */
+
+  // Set loading to false immediately since we are not fetching data
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   // Filter events based on category
   const filteredEvents = events.filter(event => {
