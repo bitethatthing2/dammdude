@@ -61,78 +61,90 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
+    
     try {
-      const supabase = getSupabaseBrowserClient();
-      
-      console.log('Attempting login with:', { email });
-      
       // Sign in with email and password
+      const supabase = getSupabaseBrowserClient();
+      console.log('Attempting login with:', { email, password: '****' });
+      
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) {
-        console.error('Authentication error:', authError);
-        
-        // Show more specific error messages
+        // Handle specific auth errors with user-friendly messages
         if (authError.message.includes('Invalid login')) {
-          throw new Error('Invalid email or password. Please try again.');
-        } else if (authError.message.includes('rate limit')) {
-          throw new Error('Too many login attempts. Please wait a moment and try again.');
+          setError('Invalid email or password. Please try again.');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Please confirm your email before logging in.');
         } else {
-          throw authError;
+          setError(authError.message);
         }
-      }
-
-      if (data?.user) {
-        console.log('User authenticated, checking admin status');
-        
-        // Check if user is an admin
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (adminError) {
-          console.error('Admin check error:', adminError);
-          throw new Error('Error verifying admin privileges');
-        }
-        
-        if (!adminData) {
-          console.warn('Non-admin user attempted login:', data.user.email);
-          await supabase.auth.signOut();
-          throw new Error('You do not have admin privileges');
-        }
-
-        // Successfully authenticated as admin
-        console.log('Admin authentication successful');
+        console.error('Auth error:', authError);
         
         toast({
-          title: "Login successful",
-          description: "Welcome to the admin dashboard",
-          duration: 3000,
+          title: "Login Failed",
+          description: "Unable to log in with those credentials.",
+          variant: "destructive",
+          duration: 5000,
         });
         
-        // Add a slight delay to ensure state is updated
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-          router.refresh();
-        }, 300);
+        setIsLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to login');
+
+      console.log('User authenticated, checking admin status');
+      
+      // Check if the user is an admin
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('id', data.user?.id)
+        .single();
+
+      if (adminError || !adminData) {
+        setError('You do not have admin privileges.');
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Access Denied",
+          description: "Your account does not have admin privileges.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        
+        console.error('Admin check error:', adminError);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Admin authentication successful');
+      
+      // Show success message
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the admin dashboard!",
+        duration: 3000,
+      });
+
+      // Force a short delay to ensure toast is shown before redirect
+      setTimeout(() => {
+        // Use router.replace instead of push to prevent back button issues
+        router.replace('/admin/dashboard');
+      }, 500);
+      
+    } catch (err: any) {
+      console.error('Unhandled login error:', err);
+      setError(err?.message || 'An unexpected error occurred.');
       
       toast({
-        title: "Login failed",
-        description: err instanceof Error ? err.message : 'Authentication failed. Please try again.',
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
-    } finally {
+      
       setIsLoading(false);
     }
   };
