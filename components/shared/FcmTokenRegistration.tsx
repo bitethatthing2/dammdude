@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { initFirebase } from '@/lib/firebase';
 import { getMessaging, getToken } from 'firebase/messaging';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function FcmTokenRegistration() {
   const [isSupported, setIsSupported] = useState(true);
@@ -27,6 +27,9 @@ export function FcmTokenRegistration() {
     setError(null);
     
     try {
+      // Get client instance
+      const supabase = getSupabaseBrowserClient();
+      
       // Initialize Firebase if not already initialized
       initFirebase();
       
@@ -80,7 +83,7 @@ export function FcmTokenRegistration() {
       setToken(currentToken);
       console.log('FCM token received:', currentToken.substring(0, 10) + '...');
       
-      // Save token to database
+      // Save token to database using the obtained client instance
       const { error: saveError } = await supabase.from('fcm_tokens').upsert({
         token: currentToken,
         device_info: {
@@ -96,7 +99,7 @@ export function FcmTokenRegistration() {
         throw new Error(`Error saving token: ${saveError.message}`);
       }
       
-      // Subscribe to all_devices topic
+      // Subscribe to all_devices topic using the obtained client instance
       const { error: subscriptionError } = await supabase.from('topic_subscriptions').upsert({
         token: currentToken,
         topic: 'all_devices',
