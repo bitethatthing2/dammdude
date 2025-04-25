@@ -20,11 +20,25 @@ interface DatabaseClient {
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
   try {
-    // Use environment variables for Firebase credentials
+    // Get the Base64 encoded key from environment variables
+    const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    // Decode the Base64 key
+    let decodedPrivateKey: string | undefined;
+    if (encodedPrivateKey) {
+      try {
+        decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+      } catch (error) {
+        console.error('Failed to decode Base64 private key:', error);
+        throw new Error('Failed to decode Base64 private key');
+      }
+    }
+
+    // Construct the service account object with the decoded key
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.trim().replace(/^"|"$/g, '').replace(/\\n/g, '\n'),
+      privateKey: decodedPrivateKey,
     };
 
     // Check that all required fields are present

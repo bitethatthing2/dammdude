@@ -5,25 +5,32 @@ import { createClient } from '@supabase/supabase-js';
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
   try {
-    const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
-    console.log('DEBUG: Raw FIREBASE_PRIVATE_KEY:', rawPrivateKey);
+    // Get the Base64 encoded key from environment variables
+    const encodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    const processedPrivateKey = rawPrivateKey?.trim().replace(/^"|"$/g, '').replace(/\\n/g, '\n');
-    console.log('DEBUG: Processed Private Key (length):', processedPrivateKey?.length);
-    console.log('DEBUG: Processed Private Key (start):', processedPrivateKey?.substring(0, 30));
-    console.log('DEBUG: Processed Private Key (end):', processedPrivateKey?.substring(processedPrivateKey.length - 30));
+    // Decode the Base64 key
+    let decodedPrivateKey: string | undefined;
+    if (encodedPrivateKey) {
+      try {
+        decodedPrivateKey = Buffer.from(encodedPrivateKey, 'base64').toString('utf8');
+      } catch (error) {
+        console.error('Failed to decode Base64 private key in subscribe-to-topic:', error);
+        throw new Error('Failed to decode Base64 private key in subscribe-to-topic');
+      }
+    }
 
     // Use a more reliable initialization approach with proper error handling
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID, 
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: processedPrivateKey,
+        privateKey: decodedPrivateKey, // Use the decoded key here
       }),
     });
     console.log('Firebase Admin initialized successfully in subscribe-to-topic');
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);
+    // Throw the error or handle it appropriately to prevent the build from succeeding with a faulty config
     throw new Error('Failed to initialize Firebase Admin');
   }
 }
