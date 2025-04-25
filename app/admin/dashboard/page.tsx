@@ -90,7 +90,10 @@ export default function AdminDashboard() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send notification');
+        const errorMessage = data.error || data.message || 'Failed to send notification';
+        const errorDetails = data.details ? `: ${data.details}` : '';
+        console.error(`Error sending notification: ${errorMessage}${errorDetails}`);
+        throw new Error(errorMessage);
       }
       
       toast({
@@ -104,8 +107,8 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error sending notification:', error);
       toast({
-        title: "Failed to Send",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        title: "Notification Failed",
+        description: error instanceof Error ? error.message : 'Failed to send notification, please try again',
         variant: "destructive",
       });
     } finally {
