@@ -1,34 +1,45 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { LogOut, Bell, Send } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { LogOut, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useToast } from '@/components/ui/use-toast';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NotificationSender } from '@/components/admin/NotificationSender';
 
 export default function AdminDashboard() {
+  // Use createClientComponentClient directly instead of custom client to avoid any issues
+  const supabase = createClientComponentClient();
   const router = useRouter();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
-  
+  const [userName, setUserName] = React.useState<string | null>(null);
+
+  // Get the user name on mount, but don't block rendering
+  React.useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUserName(data.user?.email || 'Admin User');
+      } catch (error) {
+        console.error('Error getting user:', error);
+      }
+    };
+    
+    getUser();
+  }, [supabase.auth]);
+
   // Simple sign out function
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      const supabase = getSupabaseBrowserClient();
       await supabase.auth.signOut();
       
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of the admin dashboard",
-        duration: 3000,
       });
       
       router.push('/admin/login');
@@ -38,7 +49,6 @@ export default function AdminDashboard() {
         title: "Sign out failed",
         description: "There was an error signing out. Please try again.",
         variant: "destructive",
-        duration: 5000,
       });
     } finally {
       setIsSigningOut(false);
@@ -50,7 +60,9 @@ export default function AdminDashboard() {
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Welcome to your admin portal</p>
+          <p className="text-muted-foreground">
+            {userName ? `Welcome, ${userName}` : 'Welcome to your admin portal'}
+          </p>
         </div>
         
         <Button 
@@ -70,16 +82,15 @@ export default function AdminDashboard() {
         </Button>
       </header>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Use the pre-existing NotificationSender component */}
-        <Card className="col-span-1 md:col-span-2">
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Bell className="h-5 w-5 mr-2 text-primary" />
-              Send Push Notification
+              Push Notifications
             </CardTitle>
             <CardDescription>
-              Send notifications to all users or specific groups
+              Send messages to all users or specific groups
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -89,37 +100,29 @@ export default function AdminDashboard() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Orders</CardTitle>
+            <CardTitle>Admin Controls</CardTitle>
+            <CardDescription>
+              Manage your application
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Manage customer orders</p>
-            <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Orders", description: "This feature is coming soon" })}>
-              View Orders
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>Manage your product catalog</p>
-            <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Products", description: "This feature is coming soon" })}>
-              View Products
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>Manage your account settings</p>
-            <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Settings", description: "This feature is coming soon" })}>
-              View Settings
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button 
+                onClick={() => toast({ title: "Orders", description: "Order management coming soon" })}
+                variant="outline"
+                className="h-16"
+              >
+                View Orders
+              </Button>
+              
+              <Button 
+                onClick={() => toast({ title: "Products", description: "Product management coming soon" })}
+                variant="outline"
+                className="h-16"
+              >
+                Manage Products
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
