@@ -10,30 +10,46 @@ export async function middleware(request: NextRequest) {
   // Check if the request is for an admin route
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
   const isLoginRoute = request.nextUrl.pathname === '/admin/login';
+  const isDashboardRoute = request.nextUrl.pathname === '/admin/dashboard';
   
-  // Login route - allow access
+  console.log(`Middleware: Processing ${request.nextUrl.pathname}`);
+
+  // For login route: if already logged in, redirect to dashboard
   if (isLoginRoute) {
-    // Allow direct access to login page in all cases
-    // The login page itself can handle redirects if user is logged in
-    return response;
-  }
-  
-  // Protected admin routes require authentication
-  if (isAdminRoute) {
-    // Check if user is authenticated
-    const { data } = await supabase.auth.getSession();
-    
-    // No session found, redirect to login
-    if (!data.session) {
-      const redirectUrl = new URL('/admin/login', request.url);
-      return NextResponse.redirect(redirectUrl);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Skip admin check for now - if they're logged in, let dashboard handle it
+        console.log('Middleware: Session found on login page, redirecting to dashboard');
+        const url = new URL('/admin/dashboard', request.url);
+        return NextResponse.redirect(url);
+      }
+    } catch (error) {
+      console.error('Middleware error checking login session:', error);
     }
-    
-    // Has session, allow access to admin routes
     return response;
   }
   
-  // For non-admin routes, just proceed
+  // For all other admin routes: if not logged in, redirect to login
+  if (isAdminRoute && !isLoginRoute) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('Middleware: No session found, redirecting to login');
+        const url = new URL('/admin/login', request.url);
+        return NextResponse.redirect(url);
+      }
+      
+      // Let the dashboard page handle admin validation
+      return response;
+    } catch (error) {
+      console.error('Middleware error checking admin route:', error);
+      const url = new URL('/admin/login', request.url);
+      return NextResponse.redirect(url);
+    }
+  }
+  
+  // For all other routes, just proceed
   return response;
 }
 

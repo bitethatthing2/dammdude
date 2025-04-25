@@ -11,13 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NotificationSender } from '@/components/admin/NotificationSender';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   
+  // Notification state
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationBody, setNotificationBody] = useState('');
+  const [notificationTarget, setNotificationTarget] = useState('all_devices');
+  const [isSending, setIsSending] = useState(false);
+
   // Simple sign out function
   const handleSignOut = async () => {
     try {
@@ -42,6 +47,61 @@ export default function AdminDashboard() {
       });
     } finally {
       setIsSigningOut(false);
+    }
+  };
+  
+  // Function to send notifications
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!notificationTitle || !notificationBody) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide both title and body for the notification",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSending(true);
+    
+    try {
+      // Send notification to Firebase Cloud Messaging topic
+      const response = await fetch('/api/send-push-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: notificationTitle,
+          body: notificationBody,
+          topic: notificationTarget,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send notification');
+      }
+      
+      toast({
+        title: "Notification Sent!",
+        description: `Successfully sent to ${notificationTarget}`,
+      });
+      
+      // Clear form after successful send
+      setNotificationTitle('');
+      setNotificationBody('');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast({
+        title: "Failed to Send",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -71,7 +131,7 @@ export default function AdminDashboard() {
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Use the pre-existing NotificationSender component */}
+        {/* Notification Card */}
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -83,7 +143,63 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <NotificationSender />
+            <form onSubmit={handleSendNotification} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="notification-title">Notification Title</Label>
+                <Input
+                  id="notification-title"
+                  value={notificationTitle}
+                  onChange={(e) => setNotificationTitle(e.target.value)}
+                  placeholder="Enter notification title"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="notification-body">Notification Body</Label>
+                <Textarea
+                  id="notification-body"
+                  value={notificationBody}
+                  onChange={(e) => setNotificationBody(e.target.value)}
+                  placeholder="Enter notification message"
+                  required
+                  rows={3}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="notification-target">Target Audience</Label>
+                <Select
+                  value={notificationTarget}
+                  onValueChange={setNotificationTarget}
+                >
+                  <SelectTrigger id="notification-target">
+                    <SelectValue placeholder="Select audience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_devices">All Devices</SelectItem>
+                    <SelectItem value="admin_devices">Admin Devices</SelectItem>
+                    <SelectItem value="ios_devices">iOS Devices</SelectItem>
+                    <SelectItem value="android_devices">Android Devices</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full flex items-center justify-center"
+                disabled={isSending}
+              >
+                {isSending ? (
+                  <>Sending notification...</>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Notification
+                  </>
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
         
