@@ -63,6 +63,8 @@ export interface SendNotificationRequest {
   token?: string;
   topic?: string;
   sendToAll?: boolean;
+  
+  // Optional fields
   orderId?: string;
   link?: string;
   linkButtonText?: string;
@@ -70,16 +72,26 @@ export interface SendNotificationRequest {
   icon?: string;
   actionButton?: string;
   actionButtonText?: string;
+  
+  // Notification-specific config
+  badge?: number | string;
+  
+  // Custom data payload
+  data?: Record<string, any>;
+  
+  // Platform-specific configurations
   androidConfig?: {
     channelId?: string;
     priority?: string;
     [key: string]: unknown;
   };
+  
   iosConfig?: {
     sound?: string;
     badge?: number;
     [key: string]: unknown;
   };
+  
   webConfig?: {
     [key: string]: unknown;
   };
@@ -88,7 +100,13 @@ export interface SendNotificationRequest {
 export interface SendNotificationResponse {
   success: boolean;
   messageId?: string;
+  messageIds?: string[];
   recipients?: number;
+  tokenCount?: number;
+  invalidTokensRemoved?: number;
+  topic?: string;
+  simulatedResponse?: boolean;
+  warning?: string;
   errors?: {
     code: string;
     message: string;

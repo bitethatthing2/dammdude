@@ -139,29 +139,24 @@ export async function POST(request: NextRequest) {
     let invalidTokensRemoved = 0;
     let tokenCount = 0;
 
-    // Setup the notification message
-    const message: admin.messaging.Message = {
-      notification: {
-        title: body.title,
-        body: body.body
-      },
-      data: {
-        ...(body.data || {}), // Include any additional data
-        link: body.link || '' // Add link to data payload
-      }
+    // Create the notification payload separately to avoid type issues
+    const notificationPayload = {
+      title: body.title,
+      body: body.body,
+      imageUrl: body.icon || body.image
     };
 
-    // Add optional parameters if present
-    if (body.icon) message.notification!.imageUrl = body.icon;
-    if (body.image) message.notification!.imageUrl = body.image;
-    if (body.badge) message.notification!.badge = body.badge.toString();
+    // Create the data payload separately
+    const dataPayload = {
+      ...(body.data || {}),
+      link: body.link || '' 
+    };
 
-    // Configure webpush-specific options
-    message.webpush = {
+    // Create the webpush configuration separately
+    const webPushConfig = {
       notification: {
         icon: body.icon,
         image: body.image,
-        badge: body.badge,
         actions: [
           {
             action: 'open_url',
@@ -202,7 +197,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Extract the tokens
-      const tokens = tokensData.map(t => t.token);
+      const tokens = tokensData.map((t: { token: string }) => t.token);
       tokenCount = tokens.length;
       console.log(`Found ${tokens.length} tokens, sending notification`);
 
@@ -215,19 +210,23 @@ export async function POST(request: NextRequest) {
           const batch = tokens.slice(i, i + batchSize);
           
           try {
-            // Send to this batch of tokens
+            // Use sendEachForMulticast method
             const batchResponse = await messaging.sendEachForMulticast({
-              ...message,
-              tokens: batch
+              tokens: batch,
+              notification: notificationPayload,
+              data: dataPayload,
+              webpush: webPushConfig
             });
             
-            // Process response
+            // Process response - using proper type assertion
             sentCount += batchResponse.successCount;
-            messageIds = messageIds.concat(
-              batchResponse.responses
-                .filter(r => r.success && r.messageId)
-                .map(r => r.messageId as string)
-            );
+            
+            // Collect successful message IDs with a simpler approach
+            batchResponse.responses.forEach((resp) => {
+              if (resp.success && resp.messageId) {
+                messageIds.push(resp.messageId);
+              }
+            });
 
             // Handle invalid tokens
             for (let j = 0; j < batchResponse.responses.length; j++) {
@@ -264,8 +263,10 @@ export async function POST(request: NextRequest) {
       try {
         // Send to a specific topic
         const response = await messaging.send({
-          ...message,
-          topic: body.topic
+          topic: body.topic,
+          notification: notificationPayload,
+          data: dataPayload,
+          webpush: webPushConfig
         });
         
         console.log(`Successfully sent to topic ${body.topic}:`, response);
@@ -290,8 +291,10 @@ export async function POST(request: NextRequest) {
       try {
         // Send to a specific device token
         const response = await messaging.send({
-          ...message,
-          token: body.token
+          token: body.token,
+          notification: notificationPayload,
+          data: dataPayload,
+          webpush: webPushConfig
         });
         
         console.log('Successfully sent to device:', response);
