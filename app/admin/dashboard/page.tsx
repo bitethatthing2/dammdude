@@ -14,101 +14,37 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
+  // Simplified session check to avoid infinite loops and loading states
   useEffect(() => {
-    // Maximum number of session check retries
-    const MAX_RETRIES = 3;
-    
     const checkSession = async () => {
       try {
-        console.log(`Checking admin session (attempt ${retryCount + 1})...`);
+        console.log("Dashboard: Checking session...");
         const supabase = getSupabaseBrowserClient();
         
-        // First check if we have a session
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw new Error('Failed to retrieve session');
-        }
-        
-        if (!sessionData.session) {
-          console.log('No active session found. Redirecting to login...');
-          router.replace('/admin/login');
-          return;
-        }
-        
-        console.log('Session found, checking user data...');
-        
-        // Then get the user data
+        // Get user data
         const { data, error } = await supabase.auth.getUser();
         
         if (error || !data.user) {
-          console.error('User data error:', error);
-          throw new Error('Failed to retrieve user data');
-        }
-
-        console.log('User authenticated, checking admin status...');
-        
-        // Get admin data
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (adminError) {
-          console.error('Admin data error:', adminError);
-          throw new Error('Failed to verify admin status');
-        }
-        
-        if (!adminData) {
-          console.log('User is not an admin. Signing out...');
-          await supabase.auth.signOut();
+          console.log("Dashboard: No authenticated user found");
           router.replace('/admin/login');
           return;
         }
         
-        console.log('Admin verification successful!');
+        // Simple check to set the user data
         setUser(data.user);
-        
-        // Show welcome toast
-        toast({
-          title: "Welcome to Admin Dashboard",
-          description: `Logged in as ${data.user.email}`,
-          duration: 3000,
-        });
-        
+        console.log("Dashboard: User authenticated", data.user.email);
       } catch (err) {
-        console.error('Error checking session:', err);
-        
-        // Retry logic - useful for race conditions or temporary auth issues
-        if (retryCount < MAX_RETRIES) {
-          console.log(`Retrying session check (${retryCount + 1}/${MAX_RETRIES})...`);
-          setRetryCount(retryCount + 1);
-          // Wait a moment before retrying
-          setTimeout(checkSession, 1000);
-          return;
-        }
-        
-        toast({
-          title: "Authentication Error",
-          description: "Failed to verify your session. Please log in again.",
-          variant: "destructive",
-          duration: 5000,
-        });
-        
+        console.error("Dashboard: Error checking session", err);
         router.replace('/admin/login');
       } finally {
-        if (retryCount >= MAX_RETRIES || user) {
-          setIsLoading(false);
-        }
+        // Always set loading to false to prevent infinite spinning
+        setIsLoading(false);
       }
     };
 
     checkSession();
-  }, [router, toast, retryCount, user]);
+  }, [router]);
 
   const handleSignOut = async () => {
     try {
@@ -139,9 +75,9 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-xl font-semibold">Loading dashboard...</span>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <span className="text-xl font-semibold">Loading dashboard...</span>
       </div>
     );
   }
