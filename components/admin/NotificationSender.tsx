@@ -61,29 +61,14 @@ export const NotificationSender = () => {
     setErrorMessage('');
     
     try {
-      // Build request based on target type
-      const request: SendNotificationRequest = { 
+      // Simplest possible notification payload for debugging
+      const simpleRequest = { 
         title, 
         body,
-        sendToAll: true,
-        ...(orderId && { orderId }),
-        ...(link && { link }),
-        ...(showLinkButton && link && { linkButtonText }),
-        ...(image && { image }),
-        ...(showActionButton && actionButton && { actionButton }),
-        ...(showActionButton && actionButtonText && { actionButtonText }),
-        // Platform specific options - these might need to be added to the type definition
-        ...(showPlatformConfig && {
-          androidConfig: {
-            channelId: androidChannelId,
-            priority: androidPriority
-          },
-          iosConfig: {
-            sound: iosSound,
-            ...(iosBadge !== undefined && { badge: iosBadge })
-          }
-        })
+        sendToAll: true 
       };
+      
+      console.log('Sending simple notification request:', simpleRequest);
       
       try {
         // Send notification via our API route
@@ -92,48 +77,75 @@ export const NotificationSender = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(request),
+          body: JSON.stringify(simpleRequest),
         });
         
-        const data = await response.json();
+        // Get the raw response text first for debugging
+        const rawText = await response.text();
+        console.log('Raw API response:', rawText);
         
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to send notification');
+        // Parse the response as JSON if possible
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          console.error('Failed to parse response as JSON:', e);
+          throw new Error(`Invalid JSON response: ${rawText}`);
         }
         
+        if (!response.ok) {
+          throw new Error(data.error || data.details || 'Failed to send notification');
+        }
+        
+        // Success handling
         setResult({
-          success: data.success,
-          message: data.message || 'Notification sent successfully',
+          success: true,
+          message: 'Notification sent successfully!',
           messageId: data.messageId,
-          recipients: data.recipients
+          recipients: data.recipients || 'all devices'
         });
         
-        // Show toast notification
         toast({
-          title: 'Notification Sent',
-          description: data.message || 'Notification sent successfully',
+          title: 'Notification Sent!',
+          description: 'Your notification has been sent to all devices.',
           variant: 'default',
-          className: 'bg-background text-foreground border border-input'
         });
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
+        
+        // Clear form on success
+        setTitle('Your order is ready!');
+        setBody('Come to the bar to pick up your order.');
+      } catch (error) {
+        console.error('API Error:', error);
         setHasError(true);
-        setErrorMessage(fetchError instanceof Error ? fetchError.message : 'Network error occurred');
-        throw fetchError;
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+        
+        setResult({
+          success: false,
+          message: 'Failed to send notification',
+        });
+        
+        toast({
+          title: 'Failed to Send',
+          description: error instanceof Error ? error.message : String(error),
+          variant: 'destructive',
+          duration: 5000,
+        });
       }
     } catch (err) {
-      console.error('Failed to send notification:', err);
-      setResult({ 
-        success: false, 
-        message: err instanceof Error ? err.message : 'Failed to send notification'
+      console.error('Unexpected error:', err);
+      setHasError(true);
+      setErrorMessage(err instanceof Error ? err.message : String(err));
+      
+      setResult({
+        success: false,
+        message: 'An unexpected error occurred',
       });
       
-      // Show error toast
       toast({
-        title: 'Notification Failed',
-        description: err instanceof Error ? err.message : 'Failed to send notification',
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
-        className: 'bg-destructive text-destructive-foreground border border-destructive'
+        duration: 5000,
       });
     } finally {
       setIsSending(false);

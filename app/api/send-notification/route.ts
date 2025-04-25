@@ -176,71 +176,63 @@ export async function POST(request: NextRequest) {
         notification: {
           title: body.title,
           body: body.body,
-          // Icon is a relative path within your app
-          icon: '/images/about/icon-for-nav-light-screen.png',
-          // Image URL if provided
-          ...(body.image && { imageUrl: body.image }),
         },
-        // Add Android-specific configuration
         android: {
           priority: "high" as const,
-          notification: {
-            // Small icon (drawable resource name only)
-            icon: 'notification_icon',
-            color: '#F65B0D',
-            // Only include necessary fields
-            channelId: 'default_channel',
-          }
         },
-        // Include data payload for additional parameters
         data: {
           ...(body.orderId && { orderId: body.orderId }),
           ...(body.link && { link: body.link }),
-          ...(body.linkButtonText && { linkButtonText: body.linkButtonText }),
-          ...(body.actionButton && { actionButton: body.actionButton }),
-          ...(body.actionButtonText && { actionButtonText: body.actionButtonText }),
-          // Add a timestamp
+          // Include a timestamp for uniqueness
           timestamp: Date.now().toString(),
         },
       };
       
+      // Log the exact message we're trying to send
+      console.log('Attempting to send notification with payload:', JSON.stringify(baseMessage, null, 2));
+      
       let messageResponse;
       
       try {
-        // Check what targets are provided
-        if (body.token) {
-          // Send to specific device (token)
-          console.log(`Sending notification to token: [TOKEN REDACTED]`);
-          messageResponse = await messaging.send({
-            token: body.token,
-            ...baseMessage,
-          });
-        } else if (body.topic) {
-          // Send to topic
-          console.log(`Sending notification to topic: ${body.topic}`);
-          messageResponse = await messaging.send({
-            topic: body.topic,
-            ...baseMessage,
-          });
-        } else if (body.sendToAll) {
-          // Send to the 'all_devices' topic
-          console.log('Sending notification to all devices');
-          messageResponse = await messaging.send({
-            topic: 'all_devices',
-            ...baseMessage,
-          });
-        } else {
-          // No valid target
-          throw new Error('No valid target specified. Please provide a token, topic, or set sendToAll.');
-        }
-
+        // Simplify to just handle sendToAll - this is the most common case
+        console.log('Sending notification to all_devices topic');
+        
+        // Create a minimal message payload that complies with FCM format
+        const minimalMessage = {
+          topic: 'all_devices',
+          notification: {
+            title: body.title,
+            body: body.body,
+          },
+          android: {
+            priority: "high" as const,
+          },
+          data: {
+            timestamp: Date.now().toString(),
+          },
+        };
+        
+        // Send the minimal message
+        messageResponse = await messaging.send(minimalMessage);
+        
+        console.log('Successfully sent message:', messageResponse);
+        
         // Return success response with message ID
         return NextResponse.json({
           success: true,
           messageId: messageResponse,
         });
       } catch (error) {
+        // Log the full error details for debugging
         console.error('Error sending notification:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        if (error instanceof Error) {
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
+        
         return NextResponse.json(
           { error: 'Error sending notification', details: String(error) },
           { status: 500 }
@@ -248,6 +240,12 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       console.error('Error processing notification request:', error);
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
       return NextResponse.json(
         { error: 'Error processing notification request', details: String(error) },
         { status: 400 }
