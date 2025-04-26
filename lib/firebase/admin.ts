@@ -8,52 +8,82 @@ interface ServiceAccount {
 
 /**
  * Helper to format a private key string to ensure it's in proper PEM format
+ * This handles various ways Vercel might mangle the private key
  */
 function formatPrivateKey(key: string): string {
-  // Already properly formatted
-  if (key.startsWith('-----BEGIN PRIVATE KEY-----') && key.endsWith('-----END PRIVATE KEY-----')) {
-    return key;
-  }
+  if (!key) return '';
+  
+  // Log the raw key format for debugging (safely)
+  console.log('[FIREBASE ADMIN] Raw private key format:', {
+    length: key.length,
+    startsWithQuote: key.startsWith('"'),
+    endsWithQuote: key.endsWith('"'),
+    hasSlashN: key.includes('\\n'),
+    hasNewline: key.includes('\n'),
+    startsWithBegin: key.includes('BEGIN PRIVATE KEY'),
+    endsWithEnd: key.includes('END PRIVATE KEY')
+  });
 
-  // Remove quotes if present (common with environment variables)
-  let formattedKey = key;
-  if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
-    formattedKey = formattedKey.slice(1, -1);
-  }
-  
-  // Replace literal "\n" with actual line breaks
-  if (formattedKey.includes('\\n')) {
-    formattedKey = formattedKey.replace(/\\n/g, '\n');
-  }
-  
-  // Base64 encoded key without PEM headers
-  if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
-    try {
-      // Try to decode base64 if it looks like it
-      if (/^[A-Za-z0-9+/=]+$/.test(formattedKey)) {
-        console.log('[FIREBASE ADMIN] Attempting to parse Base64 encoded key');
-        formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
-      }
-    } catch (e) {
-      console.error('[FIREBASE ADMIN] Error parsing potential base64 key:', e);
-    }
-  }
-  
-  // Add line breaks every 64 characters if missing
-  if (!formattedKey.includes('\n')) {
-    const keyBody = formattedKey
-      .replace('-----BEGIN PRIVATE KEY-----', '')
-      .replace('-----END PRIVATE KEY-----', '');
-      
-    let formattedBody = '';
-    for (let i = 0; i < keyBody.length; i += 64) {
-      formattedBody += keyBody.slice(i, i + 64) + '\n';
+  try {
+    // First, remove quotes if present (common with Vercel)
+    let cleanKey = key;
+    if (cleanKey.startsWith('"') && cleanKey.endsWith('"')) {
+      cleanKey = cleanKey.slice(1, -1);
     }
     
-    formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedBody}-----END PRIVATE KEY-----\n`;
+    // Check if Vercel double-escaped the newlines (\\\\n instead of \\n)
+    if (cleanKey.includes('\\\\n')) {
+      cleanKey = cleanKey.replace(/\\\\n/g, '\n');
+    }
+    
+    // Handle standard escaped newlines
+    if (cleanKey.includes('\\n')) {
+      cleanKey = cleanKey.replace(/\\n/g, '\n');
+    }
+    
+    // Special handling for Vercel - sometimes it adds extra escapes or mangles the format
+    if (!cleanKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // Try to handle a key without proper PEM headers
+      const keyBody = cleanKey.replace(/[\r\n-]/g, '').trim();
+      
+      if (keyBody) {
+        // Reconstruct with proper PEM format - this is critical for Firebase Admin SDK
+        cleanKey = `-----BEGIN PRIVATE KEY-----\n${keyBody}\n-----END PRIVATE KEY-----\n`;
+      }
+    }
+    
+    // Verify proper structure (should start and end with the right markers)
+    const hasProperHeader = cleanKey.includes('-----BEGIN PRIVATE KEY-----');
+    const hasProperFooter = cleanKey.includes('-----END PRIVATE KEY-----');
+    
+    if (!hasProperHeader || !hasProperFooter) {
+      console.error('[FIREBASE ADMIN] Key is missing proper PEM header/footer after formatting');
+      
+      // Last resort: use the service key directly from the raw file if in development
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const fs = require('fs');
+          const path = require('path');
+          const serviceKeyPath = path.join(process.cwd(), 'service_key.json');
+          
+          if (fs.existsSync(serviceKeyPath)) {
+            const serviceKey = JSON.parse(fs.readFileSync(serviceKeyPath, 'utf8'));
+            if (serviceKey.private_key) {
+              cleanKey = serviceKey.private_key;
+              console.log('[FIREBASE ADMIN] Loaded private key directly from service_key.json');
+            }
+          }
+        } catch (fsError) {
+          console.error('[FIREBASE ADMIN] Failed to load service_key.json:', fsError);
+        }
+      }
+    }
+    
+    return cleanKey;
+  } catch (error) {
+    console.error('[FIREBASE ADMIN] Error formatting private key:', error);
+    return key; // Return original if formatting fails
   }
-  
-  return formattedKey;
 }
 
 /**
@@ -77,7 +107,8 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
       hasProjectId: !!projectId,
       hasClientEmail: !!clientEmail,
       hasPrivateKey: !!privateKey,
-      privateKeyLength: privateKey ? privateKey.length : 0
+      privateKeyLength: privateKey ? privateKey.length : 0,
+      nodeEnv: process.env.NODE_ENV
     });
 
     // Handle private key formatting with enhanced function
@@ -115,21 +146,56 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
       }
     }
 
-    // Create service account from env vars
-    const serviceAccount: ServiceAccount = {
-      projectId,
-      clientEmail,
-      privateKey
-    };
+    // Try different initialization approaches to handle various Vercel environment quirks
+    try {
+      // Create service account from env vars
+      const serviceAccount: ServiceAccount = {
+        projectId,
+        clientEmail,
+        privateKey
+      };
 
-    // Initialize with the service account
-    console.log('[FIREBASE ADMIN] Initializing with service account for project:', projectId);
-    const app = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
-    });
+      // Initialize with the service account
+      console.log('[FIREBASE ADMIN] Initializing with service account for project:', projectId);
+      const app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
+      });
 
-    console.log('[FIREBASE ADMIN] Successfully initialized Firebase Admin SDK');
-    return app;
+      console.log('[FIREBASE ADMIN] Successfully initialized Firebase Admin SDK');
+      return app;
+    } catch (certError) {
+      console.error('[FIREBASE ADMIN] Certificate initialization failed, trying alternative method:', certError);
+      
+      // Fall back to a more direct approach for Vercel
+      if (process.env.NODE_ENV === 'production') {
+        try {
+          // Try direct JSON initialization
+          const serviceAccountJson = {
+            type: 'service_account',
+            project_id: projectId,
+            private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || undefined,
+            private_key: privateKey,
+            client_email: clientEmail,
+            client_id: process.env.FIREBASE_CLIENT_ID || undefined,
+            auth_uri: process.env.FIREBASE_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
+            token_uri: process.env.FIREBASE_TOKEN_URI || 'https://oauth2.googleapis.com/token',
+            auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL || 'https://www.googleapis.com/oauth2/v1/certs',
+            client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+          };
+          
+          const app = admin.initializeApp({
+            credential: admin.credential.cert(serviceAccountJson as any)
+          });
+          
+          console.log('[FIREBASE ADMIN] Successfully initialized with alternative method');
+          return app;
+        } catch (alternativeError) {
+          throw new Error(`Alternative initialization failed: ${alternativeError.message}`);
+        }
+      } else {
+        throw certError; // Re-throw in development
+      }
+    }
   } catch (error) {
     // Detailed error logging
     console.error('[FIREBASE ADMIN] Initialization failed:', {
