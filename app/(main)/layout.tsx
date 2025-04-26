@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import { NotificationIndicator } from '@/components/shared/NotificationIndicator';
 import { ThemeControl } from '@/components/shared/ThemeControl';
 import dynamic from 'next/dynamic';
+import { BottomNav } from '@/components/shared/BottomNav';
 
 // Import the client components with no SSR to avoid hydration issues
 const HeaderLogo = dynamic(() => import('@/components/shared/HeaderLogo'), { ssr: false });
-const ClientBottomNav = dynamic(() => import('@/components/shared/ClientBottomNav'), { ssr: false });
+const ClientSideWrapper = dynamic(() => import('@/components/shared/ClientSideWrapper'), { ssr: false });
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
@@ -20,7 +21,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1 pt-14 pb-16">{children}</main>
 
-      <ClientBottomNav />
+      <ClientSideWrapper>
+        <BottomNav />
+      </ClientSideWrapper>
     </div>
   );
 }

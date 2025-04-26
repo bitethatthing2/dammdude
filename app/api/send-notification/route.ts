@@ -74,6 +74,12 @@ function isInvalidTokenError(error: any): boolean {
  * Clean up invalid tokens in the database
  */
 async function cleanupInvalidTokens(supabaseAdmin: any): Promise<{ removed: number, total: number }> {
+  // Skip token validation in development mode to avoid Firebase Admin errors
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Skipping token validation in development mode');
+    return { removed: 0, total: 0 };
+  }
+  
   try {
     // Get all tokens
     const { data: tokensData, error } = await supabaseAdmin
@@ -89,56 +95,16 @@ async function cleanupInvalidTokens(supabaseAdmin: any): Promise<{ removed: numb
     const tokens = tokensData.map((t: { token: string }) => t.token);
     console.log(`Found ${tokens.length} tokens to validate`);
     
-    // Limit to 50 tokens for validation to avoid excessive API calls
-    const tokensToValidate = tokens.slice(0, 50);
+    // In production, we'll just check for obviously invalid tokens
+    // This avoids issues with Firebase Admin SDK validation
+    const invalidTokens: string[] = tokens.filter((token: string) => 
+      !token || 
+      token.length < 100 || 
+      token === 'undefined' || 
+      token === 'null'
+    );
     
-    // Validate tokens in batches
-    const invalidTokens: string[] = [];
-    const messaging = getAdminMessaging();
-    
-    if (!messaging) {
-      console.error('Failed to get messaging instance for token validation');
-      return { removed: 0, total: tokens.length };
-    }
-    
-    // Process tokens in batches of 10
-    const batchSize = 10;
-    for (let i = 0; i < tokensToValidate.length; i += batchSize) {
-      const batch = tokensToValidate.slice(i, i + batchSize);
-      console.log(`Validating batch ${i/batchSize + 1} of ${Math.ceil(tokensToValidate.length/batchSize)}`);
-      
-      // Process batch in parallel
-      const results = await Promise.all(
-        batch.map(async (token: string) => {
-          try {
-            // Send a multicast message with validateOnly flag
-            await messaging.send({
-              token,
-              notification: {
-                title: 'Token Validation',
-                body: 'This is a validation message'
-              },
-              // Use a type assertion to allow validateOnly property
-              ...(({ validateOnly: true } as unknown) as Record<string, unknown>)
-            });
-            
-            return { token, valid: true };
-          } catch (error) {
-            const isInvalid = isInvalidTokenError(error);
-            return { token, valid: !isInvalid };
-          }
-        })
-      );
-      
-      // Collect invalid tokens
-      results.forEach(result => {
-        if (!result.valid) {
-          invalidTokens.push(result.token);
-        }
-      });
-    }
-    
-    console.log(`Found ${invalidTokens.length} invalid tokens out of ${tokensToValidate.length} validated`);
+    console.log(`Found ${invalidTokens.length} obviously invalid tokens`);
     
     // Remove invalid tokens
     let removedCount = 0;
@@ -448,25 +414,29 @@ export async function POST(request: NextRequest) {
       console.log(`Sending to individual token: ${body.token.substring(0, 10)}...`);
 
       try {
-        // Validate token first
-        let isValid = true;
-        try {
-          // Use type assertion to allow validateOnly property
-          await messaging.send({
-            token: body.token,
-            notification: { title: 'Validation', body: 'Validating token' },
-            ...(({ validateOnly: true } as unknown) as Record<string, unknown>)
-          });
-        } catch (validationError) {
-          if (isInvalidTokenError(validationError)) {
-            isValid = false;
-            console.error('Token validation failed:', validationError);
-            await removeInvalidToken(body.token, supabaseAdmin);
-            return NextResponse.json({
-              success: false,
-              error: 'Invalid token',
-              tokenRemoved: true
-            });
+        // Validate token (skip in development mode)
+        if (process.env.NODE_ENV !== 'development') {
+          try {
+            // Simple validation - if token is obviously invalid, don't try to send
+            if (!body.token || body.token.length < 100 || body.token === 'undefined' || body.token === 'null') {
+              console.error('Token validation failed: Token appears invalid');
+              await removeInvalidToken(body.token, supabaseAdmin);
+              return NextResponse.json({
+                success: false,
+                error: 'Invalid token',
+                tokenRemoved: true
+              });
+            }
+          } catch (validationError) {
+            if (isInvalidTokenError(validationError)) {
+              console.error('Token validation failed:', validationError);
+              await removeInvalidToken(body.token, supabaseAdmin);
+              return NextResponse.json({
+                success: false,
+                error: 'Invalid token',
+                tokenRemoved: true
+              });
+            }
           }
         }
         

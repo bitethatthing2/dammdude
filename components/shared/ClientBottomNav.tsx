@@ -9,7 +9,7 @@ import { NotificationProvider } from '@/lib/contexts/notification-context';
  * Ensures the component is only rendered on the client side
  * and provides the NotificationProvider context
  */
-export function ClientBottomNav() {
+const ClientBottomNav = () => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,6 @@ export function ClientBottomNav() {
       <BottomNav />
     </NotificationProvider>
   );
-}
+};
 
-// Add default export for compatibility with dynamic imports
 export default ClientBottomNav;
