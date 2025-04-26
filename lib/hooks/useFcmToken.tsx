@@ -10,6 +10,7 @@ import React from 'react';
 
 // Global flag to prevent multiple registrations
 let hasRegisteredGlobally = false;
+let hasSetupMessageListener = false;
 
 // Create a Context to share token across components
 interface FcmContextType {
@@ -277,9 +278,15 @@ export function useFcmToken(): UseFcmTokenResult {
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
 
-    // Only set up listener if we have a token
+    // Only set up listener if we have a token and it hasn't been set up already
     const setupListener = async () => {
       if (!token || typeof window === 'undefined') {
+        return;
+      }
+      
+      // Skip if we've already set up a listener
+      if (hasSetupMessageListener) {
+        console.log('Foreground message listener already registered, skipping');
         return;
       }
 
@@ -289,6 +296,9 @@ export function useFcmToken(): UseFcmTokenResult {
         console.error('Failed to get messaging instance for listener setup.');
         return;
       }
+      
+      // Set the global flag to prevent multiple listeners
+      hasSetupMessageListener = true;
 
       unsubscribe = onMessage(messagingInstance, (payload: FcmMessagePayload) => {
         console.log('🔔 FOREGROUND PUSH NOTIFICATION RECEIVED:', payload);
@@ -347,6 +357,7 @@ export function useFcmToken(): UseFcmTokenResult {
       if (unsubscribe) {
         console.log('Cleaning up foreground message listener');
         unsubscribe();
+        // Intentionally don't reset hasSetupMessageListener to prevent multiple listeners
       }
     };
   }, [token, router]);
