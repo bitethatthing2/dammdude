@@ -189,8 +189,13 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
           
           console.log('[FIREBASE ADMIN] Successfully initialized with alternative method');
           return app;
-        } catch (alternativeError) {
-          throw new Error(`Alternative initialization failed: ${alternativeError.message}`);
+        } catch (alternativeError: unknown) {
+          // Type guard to handle unknown error type
+          const errorMessage = alternativeError instanceof Error 
+            ? alternativeError.message 
+            : 'Unknown error during alternative initialization';
+            
+          throw new Error(`Alternative initialization failed: ${errorMessage}`);
         }
       } else {
         throw certError; // Re-throw in development
