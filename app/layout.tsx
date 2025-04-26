@@ -4,19 +4,23 @@ import { ThemeProvider } from '@/components/ui/theme-provider';
 import dynamic from 'next/dynamic';
 
 // Dynamically import client-side components with SSR disabled
-const ClientSideComponents = dynamic(
-  () => import('@/components/shared/ClientSideComponents'),
+const ClientSideWrapper = dynamic(
+  () => import('@/components/shared/ClientSideWrapper'),
   { ssr: false }
 );
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+interface RootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <ThemeProvider>
-          <ClientSideComponents>
+          <ClientSideWrapper>
             {children}
-          </ClientSideComponents>
+          </ClientSideWrapper>
         </ThemeProvider>
       </body>
     </html>

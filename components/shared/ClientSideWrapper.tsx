@@ -5,11 +5,16 @@ import { NotificationProvider } from '@/lib/contexts/notification-context';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 
-interface ClientSideComponentsProps {
+interface ClientSideWrapperProps {
   children: React.ReactNode;
 }
 
-export default function ClientSideComponents({ children }: ClientSideComponentsProps) {
+/**
+ * ClientSideWrapper component
+ * Handles client-side only components and prevents "window is not defined" errors
+ * during server-side rendering
+ */
+export function ClientSideWrapper({ children }: ClientSideWrapperProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -31,3 +36,5 @@ export default function ClientSideComponents({ children }: ClientSideComponentsP
     </NotificationProvider>
   );
 }
+
+export default ClientSideWrapper;
