@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -32,7 +32,7 @@ export async function createNotification(
     const validated = createNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = createServerActionClient({ cookies });
+    const supabase = createClient();
     
     // Check if user exists
     const { data: userData, error: userError } = await supabase
@@ -86,7 +86,7 @@ export async function createBulkNotifications(
     }
     
     // Get Supabase client
-    const supabase = createServerActionClient({ cookies });
+    const supabase = createClient();
     
     // Prepare notification records
     const notifications = userIds.map(userId => ({
@@ -128,7 +128,7 @@ export async function dismissNotification(
     const validated = dismissNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = createServerActionClient({ cookies });
+    const supabase = createClient();
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -167,7 +167,7 @@ export async function dismissNotification(
 export async function dismissAllNotifications() {
   try {
     // Get Supabase client
-    const supabase = createServerActionClient({ cookies });
+    const supabase = createClient();
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -207,7 +207,7 @@ export async function dismissAllNotifications() {
 export async function cleanupExpiredNotifications() {
   try {
     // Get Supabase client with service role
-    const supabase = createServerActionClient({ cookies });
+    const supabase = createClient();
     
     // Delete expired notifications
     const { data, error } = await supabase
