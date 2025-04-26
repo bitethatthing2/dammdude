@@ -59,11 +59,99 @@ async function removeInvalidToken(token: string, supabaseAdmin: DatabaseClient):
  * Check if the error is due to an invalid token
  */
 function isInvalidTokenError(error: any): boolean {
+  if (!error) return false;
+  
   const errorMessage = String(error);
   return (
     errorMessage.includes('messaging/registration-token-not-registered') ||
+    errorMessage.includes('messaging/invalid-registration-token') ||
+    errorMessage.includes('messaging/invalid-argument') ||
     errorMessage.includes('Requested entity was not found')
   );
+}
+
+/**
+ * Clean up invalid tokens in the database
+ */
+async function cleanupInvalidTokens(supabaseAdmin: any): Promise<{ removed: number, total: number }> {
+  try {
+    // Get all tokens
+    const { data: tokensData, error } = await supabaseAdmin
+      .from('fcm_tokens')
+      .select('token')
+      .order('created_at', { ascending: false });
+    
+    if (error || !tokensData) {
+      console.error('Error fetching tokens for cleanup:', error);
+      return { removed: 0, total: 0 };
+    }
+    
+    const tokens = tokensData.map((t: { token: string }) => t.token);
+    console.log(`Found ${tokens.length} tokens to validate`);
+    
+    // Limit to 50 tokens for validation to avoid excessive API calls
+    const tokensToValidate = tokens.slice(0, 50);
+    
+    // Validate tokens in batches
+    const invalidTokens: string[] = [];
+    const messaging = getAdminMessaging();
+    
+    if (!messaging) {
+      console.error('Failed to get messaging instance for token validation');
+      return { removed: 0, total: tokens.length };
+    }
+    
+    // Process tokens in batches of 10
+    const batchSize = 10;
+    for (let i = 0; i < tokensToValidate.length; i += batchSize) {
+      const batch = tokensToValidate.slice(i, i + batchSize);
+      console.log(`Validating batch ${i/batchSize + 1} of ${Math.ceil(tokensToValidate.length/batchSize)}`);
+      
+      // Process batch in parallel
+      const results = await Promise.all(
+        batch.map(async (token: string) => {
+          try {
+            // Send a multicast message with validateOnly flag
+            await messaging.send({
+              token,
+              notification: {
+                title: 'Token Validation',
+                body: 'This is a validation message'
+              },
+              // Use a type assertion to allow validateOnly property
+              ...(({ validateOnly: true } as unknown) as Record<string, unknown>)
+            });
+            
+            return { token, valid: true };
+          } catch (error) {
+            const isInvalid = isInvalidTokenError(error);
+            return { token, valid: !isInvalid };
+          }
+        })
+      );
+      
+      // Collect invalid tokens
+      results.forEach(result => {
+        if (!result.valid) {
+          invalidTokens.push(result.token);
+        }
+      });
+    }
+    
+    console.log(`Found ${invalidTokens.length} invalid tokens out of ${tokensToValidate.length} validated`);
+    
+    // Remove invalid tokens
+    let removedCount = 0;
+    for (const token of invalidTokens) {
+      const removed = await removeInvalidToken(token, supabaseAdmin);
+      if (removed) removedCount++;
+    }
+    
+    return { removed: removedCount, total: tokens.length };
+  } catch (error) {
+    console.error('Error cleaning up invalid tokens:', error);
+    return { removed: 0, total: 0 };
+  }
 }
 
 /**
@@ -220,6 +308,20 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    // Special case: if this is a cleanup request, run token cleanup
+    if (body.action === 'cleanup_tokens') {
+      console.log('Running token cleanup operation');
+      
+      const cleanupResult = await cleanupInvalidTokens(supabaseAdmin);
+      
+      return NextResponse.json({
+        success: true,
+        action: 'cleanup_tokens',
+        removed: cleanupResult.removed,
+        total: cleanupResult.total
+      });
+    }
+
     // Handle different targeting options
     if (body.sendToAll) {
       console.log('Sending to all devices (querying database for tokens)');
@@ -346,6 +448,28 @@ export async function POST(request: NextRequest) {
       console.log(`Sending to individual token: ${body.token.substring(0, 10)}...`);
 
       try {
+        // Validate token first
+        let isValid = true;
+        try {
+          // Use type assertion to allow validateOnly property
+          await messaging.send({
+            token: body.token,
+            notification: { title: 'Validation', body: 'Validating token' },
+            ...(({ validateOnly: true } as unknown) as Record<string, unknown>)
+          });
+        } catch (validationError) {
+          if (isInvalidTokenError(validationError)) {
+            isValid = false;
+            console.error('Token validation failed:', validationError);
+            await removeInvalidToken(body.token, supabaseAdmin);
+            return NextResponse.json({
+              success: false,
+              error: 'Invalid token',
+              tokenRemoved: true
+            });
+          }
+        }
+        
         // Send to a specific device
         const response = await messaging.send({
           token: body.token,

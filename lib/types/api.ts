@@ -95,6 +95,8 @@ export interface SendNotificationRequest {
   webConfig?: {
     [key: string]: unknown;
   };
+  
+  action?: 'cleanup_tokens' | 'send';
 }
 
 export interface SendNotificationResponse {
