@@ -1,3 +1,9 @@
+/**
+ * @deprecated This component is deprecated and will be removed in a future release.
+ * Please use NotificationGuide from '@/components/shared/NotificationGuide' instead.
+ * This component exists only for backward compatibility.
+ */
+
 "use client";
 
 import { useState } from 'react';
@@ -11,6 +17,9 @@ interface SimpleNotificationGuideProps {
   className?: string;
 }
 
+/**
+ * @deprecated Use NotificationGuide from '@/components/shared/NotificationGuide' instead
+ */
 export function SimpleNotificationGuide({ 
   variant = 'button',
   className = ''

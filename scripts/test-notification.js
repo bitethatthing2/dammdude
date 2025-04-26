@@ -1,8 +1,15 @@
+/**
+ * @deprecated This script is deprecated and will be removed in a future release.
+ * Please use notification-cleanup.js instead, which provides more comprehensive
+ * notification testing and management functionality.
+ */
+
 // Test script to send a notification
 const fetch = require('node-fetch');
 
 async function sendTestNotification() {
   try {
+    console.log('⚠️ DEPRECATED: This script is deprecated. Please use notification-cleanup.js instead.');
     console.log('Sending test notification...');
     
     // Use the production URL instead of localhost

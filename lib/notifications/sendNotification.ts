@@ -1,3 +1,9 @@
+/**
+ * @deprecated This utility is deprecated and will be removed in a future release.
+ * Please use the /api/send-notification API route directly instead.
+ * This file exists only for backward compatibility.
+ */
+
 import { SendNotificationRequest, SendNotificationResponse } from '@/lib/types/api';
 
 export interface SendNotificationParams {
@@ -8,7 +14,9 @@ export interface SendNotificationParams {
   link?: string;
 }
 
-// Simple util to call our Supabase Edge Function
+/**
+ * @deprecated Use the /api/send-notification API route directly instead
+ */
 export async function sendNotification({ 
   title, 
   message, 
@@ -16,8 +24,10 @@ export async function sendNotification({
   topic, 
   link 
 }: SendNotificationParams): Promise<SendNotificationResponse> {
-  const endpoint = token ? 'token' : 'topic';
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-notification/${endpoint}`;
+  console.warn('DEPRECATED: sendNotification utility is deprecated. Use /api/send-notification API route directly.');
+  
+  // For backward compatibility, we'll call our API route instead of the Supabase Edge Function
+  const url = '/api/send-notification';
 
   const request: SendNotificationRequest = {
     title,
@@ -31,14 +41,13 @@ export async function sendNotification({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(request),
   });
 
   if (!res.ok) {
-    throw new Error('Failed to send notification');
+    throw new Error(`Failed to send notification: ${res.statusText}`);
   }
 
-  return res.json() as Promise<SendNotificationResponse>;
-} 
+  return res.json();
+}
