@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { ClientNotificationPopover } from '@/components/shared/ClientNotificationPopover';
+import { Bell, Info, Phone } from 'lucide-react';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -15,6 +15,8 @@ export const BottomNav = () => {
     { href: '/book', iconName: 'BookOpen', label: 'Book' },
     { href: '/merch', iconName: 'ShoppingBag', label: 'Merch' },
     { href: '/order', iconName: 'GlassWater', label: 'Order' },
+    { href: '/about', iconName: 'Info', label: 'About Us' },
+    { href: '/contact', iconName: 'Phone', label: 'Contact' },
   ];
 
   return (
@@ -33,9 +35,14 @@ export const BottomNav = () => {
           </Link>
         );
       })}
-      <div className="flex items-center justify-center">
-        <ClientNotificationPopover />
-      </div>
+      
+      <Link 
+        href="/notifications" 
+        className={`flex flex-col items-center justify-center p-2 border border-primary rounded-md ${pathname === '/notifications' ? 'text-foreground' : 'text-muted-foreground'}`}
+      >
+        <Bell className="h-5 w-5" />
+        <span className="text-[10px] mt-1">Notifications</span>
+      </Link>
     </nav>
   );
 };
