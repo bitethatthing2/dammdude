@@ -61,7 +61,6 @@ export function TestNotificationButton({ className }: TestNotificationButtonProp
   return (
     <Button 
       onClick={sendTestNotification}
-      variant="outline"
       className={className}
       disabled={isSending}
     >

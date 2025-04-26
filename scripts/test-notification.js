@@ -31,8 +31,22 @@ async function sendTestNotification() {
     
     if (data.success) {
       console.log('✅ Test notification sent successfully!');
-      if (data.recipients) {
+      
+      if (data.recipients > 0) {
         console.log(`Delivered to ${data.recipients} devices`);
+      } else {
+        console.warn('⚠️ Warning: No devices received the notification');
+        console.log('Details:');
+        console.log(`- Total tokens: ${data.totalTokens || 0}`);
+        console.log(`- Failures: ${data.failures || 0}`);
+        console.log(`- Invalid tokens removed: ${data.invalidTokensRemoved || 0}`);
+        
+        console.log('\nPossible issues:');
+        console.log('1. FCM tokens are expired or invalid');
+        console.log('2. Devices are not connected to FCM');
+        console.log('3. Firebase project configuration issues');
+        console.log('\nTry testing with the browser test page at:');
+        console.log(`${baseUrl}/test-notifications`);
       }
     } else {
       console.error('❌ Failed to send test notification:', data.error);
