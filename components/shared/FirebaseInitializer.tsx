@@ -36,7 +36,14 @@ export default function FirebaseInitializer({ children }: { children?: React.Rea
   return (
     <FcmProvider>
       {children}
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster 
+        theme="light"
+        position="top-right"
+        expand={false}
+        richColors
+        duration={5000}
+        visibleToasts={3}
+      />
     </FcmProvider>
   );
 }
