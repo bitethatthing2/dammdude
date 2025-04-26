@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { NotificationPopover } from '@/components/shared/NotificationPopover';
+import { ClientNotificationPopover } from '@/components/shared/ClientNotificationPopover';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -34,8 +34,7 @@ export const BottomNav = () => {
         );
       })}
       <div className="flex items-center justify-center">
-        {/* Only render NotificationPopover on client-side */}
-        {typeof window !== 'undefined' && <NotificationPopover />}
+        <ClientNotificationPopover />
       </div>
     </nav>
   );
