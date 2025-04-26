@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-messaging-comp
 importScripts('/sw-cache.js');
 
 // Service worker version
-const SW_VERSION = '1.0.8';
+const SW_VERSION = '1.0.7';
 
 // Firebase configuration (PUBLIC Client-Side Values)
 // !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
