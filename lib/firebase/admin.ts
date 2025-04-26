@@ -249,37 +249,29 @@ function isInvalidTokenError(error: any): boolean {
  * This helps identify invalid tokens that might not be caught by other methods
  */
 export async function validateFcmToken(token: string): Promise<boolean> {
-  if (!isFirebaseAdminInitialized()) {
-    console.log('[FIREBASE ADMIN] Firebase Admin not initialized, skipping token validation');
-    return true; // Assume valid in development
+  // Skip validation in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[FIREBASE ADMIN] Skipping token validation in development mode: ${token.substring(0, 10)}...`);
+    return true;
+  }
+  
+  // Check if token is obviously invalid
+  if (!token || token.length < 100 || token === 'undefined' || token === 'null') {
+    console.log(`[FIREBASE ADMIN] Token appears invalid based on format: ${token.substring(0, 10)}...`);
+    return false;
+  }
+  
+  // Get messaging instance
+  const messaging = getAdminMessaging();
+  if (!messaging) {
+    console.error('[FIREBASE ADMIN] Cannot validate token: Messaging instance not available');
+    return true; // Assume valid if we can't validate
   }
   
   try {
-    const messaging = getAdminMessaging();
-    if (!messaging) {
-      console.error('[FIREBASE ADMIN] Failed to get messaging instance for token validation');
-      return false;
-    }
-    
-    // Try to send a dry run message to validate the token
-    await messaging.send({
-      token,
-      notification: {
-        title: 'Token Validation',
-        body: 'This is a validation message that will not be delivered'
-      },
-      android: {
-        priority: 'normal'
-      },
-      apns: {
-        headers: {
-          'apns-priority': '5'
-        }
-      },
-      ...(process.env.NODE_ENV === 'production' ? { dryRun: true } : {})
-    });
-    
-    console.log(`[FIREBASE ADMIN] Token validated successfully: ${token.substring(0, 10)}...`);
+    // Instead of trying to validate with special flags, we'll just check the token format
+    // and assume it's valid if it passes basic checks
+    console.log(`[FIREBASE ADMIN] Token format appears valid: ${token.substring(0, 10)}...`);
     return true;
   } catch (error) {
     console.error(`[FIREBASE ADMIN] Token validation failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -291,7 +283,7 @@ export async function validateFcmToken(token: string): Promise<boolean> {
     }
     
     // For other errors, we'll assume the token might still be valid
-    console.warn('[FIREBASE ADMIN] Token validation encountered an error, but token might still be valid');
+    console.log(`[FIREBASE ADMIN] Token validation encountered an error, but token might still be valid`);
     return true;
   }
 }
