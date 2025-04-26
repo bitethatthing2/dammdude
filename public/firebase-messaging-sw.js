@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-messaging-comp
 importScripts('/sw-cache.js');
 
 // Service worker version
-const SW_VERSION = '1.0.6';
+const SW_VERSION = '1.0.7';
 
 // Firebase configuration (PUBLIC Client-Side Values)
 // !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
@@ -37,7 +37,9 @@ self.addEventListener('install', event => {
         const filesToCache = [
           '/',
           '/icons/android-big-icon.png',
-          '/icons/android-lil-icon-white.png'
+          '/icons/android-lil-icon-white.png',
+          '/icons/logo.png',
+          '/icons/badge-icon.png'
         ];
         
         // Cache each file individually to prevent one failure from stopping all caching
@@ -50,19 +52,16 @@ self.addEventListener('install', event => {
               return cache.put(url, response);
             })
             .catch(error => {
-              console.warn(`[Service Worker] Could not cache ${url}:`, error.message);
-              // Continue despite this file failing
+              console.warn(`[Service Worker] Failed to cache ${url}: ${error.message}`);
+              // Continue despite the failure
               return Promise.resolve();
             });
         });
         
         return Promise.all(cachePromises);
       })
-      .then(() => {
-        console.log('[Service Worker] Pre-caching completed successfully');
-      })
       .catch(error => {
-        console.error('[Service Worker] Pre-caching failed:', error);
+        console.error('[Service Worker] Error during pre-caching:', error);
       })
   );
 });
@@ -70,169 +69,161 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   console.log(`[Service Worker] Activating version ${SW_VERSION}`);
   
-  // Take control of all clients immediately
+  // Claim control immediately
   event.waitUntil(self.clients.claim());
   
   // Clean up old caches
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            // Delete any cache that doesn't match our current cache names
-            const isCurrentCache = 
-              cacheName === self.sideHustleCache.STATIC_CACHE_NAME ||
-              cacheName === self.sideHustleCache.DYNAMIC_CACHE_NAME ||
-              cacheName === self.sideHustleCache.IMAGE_CACHE_NAME ||
-              cacheName === self.sideHustleCache.API_CACHE_NAME;
-            
-            if (!isCurrentCache) {
-              console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        // Try to load any pending sync queue from IndexedDB
-        try {
-          return self.sideHustleCache.loadQueueFromIndexedDB();
-        } catch (error) {
-          console.warn('[Service Worker] Error loading queue from IndexedDB:', error);
-          return Promise.resolve();
-        }
-      })
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(cacheName => {
+          return cacheName.startsWith('side-hustle-') && 
+                 cacheName !== self.sideHustleCache.STATIC_CACHE_NAME;
+        }).map(cacheName => {
+          console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
+          return caches.delete(cacheName);
+        })
+      );
+    })
   );
 });
 
-// Fetch event - handle network requests with appropriate caching strategies
 self.addEventListener('fetch', event => {
   // Skip Next.js development server requests (HMR, static files, etc.)
   if (event.request.url.includes('/_next/')) {
     return; // Let Next.js handle these directly
   }
-
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin) && 
-      !event.request.url.includes('googleapis.com') && 
-      !event.request.url.includes('gstatic.com') &&
-      !event.request.url.startsWith('http://') &&
-      !event.request.url.startsWith('https://')) {
+  
+  // Check if the request is for an icon
+  if (event.request.url.includes('/icons/')) {
+    event.respondWith(
+      caches.match(event.request).then(cachedResponse => {
+        if (cachedResponse) {
+          // Return cached icon
+          return cachedResponse;
+        }
+        
+        // Fetch and cache icon on the fly
+        return fetch(event.request).then(response => {
+          // Check if we received a valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+          
+          // Clone the response as it can only be consumed once
+          const responseToCache = response.clone();
+          
+          caches.open(self.sideHustleCache.STATIC_CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+          
+          return response;
+        }).catch(() => {
+          // If fetch fails, try to return a default icon
+          return caches.match('/icons/logo.png');
+        });
+      })
+    );
     return;
   }
   
-  // Skip Firebase messaging requests
-  if (event.request.url.includes('firebase-messaging')) {
-    return;
-  }
-  
-  // Skip POST requests - they can't be cached
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // Get the appropriate caching strategy for this request
-  const { strategy, options } = self.sideHustleCache.getStrategy(event.request);
-  
-  // Apply the strategy
-  event.respondWith(strategy(options));
+  // For other requests, use our network-first strategy
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // Only cache successful responses from our origin
+        if (response.ok && response.url.startsWith(self.location.origin)) {
+          const responseToCache = response.clone();
+          caches.open(self.sideHustleCache.DYNAMIC_CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            })
+            .catch(error => {
+              console.warn(`[Service Worker] Failed to cache ${event.request.url}: ${error.message}`);
+            });
+        }
+        return response;
+      })
+      .catch(() => {
+        // If network request fails, try to serve from cache
+        return caches.match(event.request);
+      })
+  );
 });
 
-// Background Sync
-self.addEventListener('sync', event => {
-  console.log(`[Service Worker] Background sync: ${event.tag}`);
-  
-  if (event.tag === 'sync-data') {
-    event.waitUntil(self.sideHustleCache.processSyncQueue());
-  }
-});
-
-// Initialize Firebase only if all required config values are present
+// Initialize Firebase and handle background notifications
 if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId) {
   try {
     // Initialize Firebase
     // --- MODIFICATION START ---
     // Use the standard Firebase config defined earlier (firebaseConfig)
     firebase.initializeApp(firebaseConfig);
-
-    // Get a Messaging instance.
+    
+    // Get messaging and register a callback for background messages
     const messaging = firebase.messaging();
 
-    console.log('[firebase-messaging-sw.js] Firebase initialized');
-
-    /**
-     * Handle background messages and show notifications
-     * @param {object} payload - Push notification payload
-     */
-    messaging.onBackgroundMessage((payload) => {
-      console.log('[firebase-messaging-sw.js] onBackgroundMessage HANDLER TRIGGERED');
-      console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
+    // Define icon paths for notifications
+    const DEFAULT_ICON = '/icons/android-big-icon.png';
+    const SMALL_ICON = '/icons/android-lil-icon-white.png';
+    
+    // Override the default notification handler
+    messaging.onBackgroundMessage(async (payload) => {
+      console.log('[firebase-messaging-sw.js] Received background message', payload);
+      
       // Extract notification data
-      const notificationTitle = payload.notification?.title || 'Side Hustle';
-      const notificationBody = payload.notification?.body || '';
+      const notificationData = payload.notification || {};
+      const dataPayload = payload.data || {};
       
-      // Extract any custom data
-      const link = payload.fcmOptions?.link || payload.data?.link || '/';
-      const orderId = payload.data?.orderId || null;
-      const image = payload.notification?.image || payload.data?.image || null;
-      const linkButtonText = payload.data?.linkButtonText || null;
-      const actionButton = payload.data?.actionButton || null;
-      const actionButtonText = payload.data?.actionButtonText || null;
+      // Extract data from payload with fallbacks
+      const title = notificationData.title || dataPayload.title || 'New Notification';
+      const body = notificationData.body || dataPayload.body || '';
+      const icon = notificationData.icon || dataPayload.icon || DEFAULT_ICON;
+      const image = notificationData.image || dataPayload.image;
+      const tag = dataPayload.tag || 'default';
+      const clickAction = dataPayload.click_action || dataPayload.link || '/';
       
-      console.log('[firebase-messaging-sw.js] Preparing to show notification:', {
-        title: notificationTitle,
-        body: notificationBody,
-        link,
-        orderId,
-        hasImage: !!image
-      });
+      // Prepare vibration pattern - important for Android notifications
+      const vibrate = [200, 100, 200];
       
-      // Configure notification options
-      const notificationOptions = {
-        body: notificationBody,
-        // Large icon for notification drawer (full color)
-        icon: payload.notification?.icon || '/icons/android-big-icon.png',
-        // Badge icon for Android (monochrome)
-        badge: '/icons/android-lil-icon-white.png',
-        // Add image if provided
-        ...(image && { image }),
-        // Add actions based on context
-        ...((orderId || (link && linkButtonText) || (actionButton && actionButtonText)) && {
+      try {
+        // Show notification with proper icons
+        const notificationOptions = {
+          body,
+          icon, // This is the large icon 
+          badge: SMALL_ICON, // This is the small icon in the status bar
+          vibrate,
+          tag,
+          data: {
+            click_action: clickAction,
+            ...dataPayload
+          },
           actions: [
-            ...(orderId ? [{
-              action: 'view-order',
-              title: 'View Order',
-              icon: '/icons/android-big-icon.png'
-            }] : []),
-            ...(link && linkButtonText ? [{
-              action: 'open-link',
-              title: linkButtonText,
-              icon: '/icons/android-lil-icon-white.png'
-            }] : []),
-            ...(actionButton && actionButtonText ? [{
-              action: actionButton,
-              title: actionButtonText,
-              icon: '/icons/android-lil-icon-white.png'
-            }] : [])
+            {
+              action: 'open',
+              title: 'View',
+              icon: SMALL_ICON
+            }
           ]
-        }),
-        // Store data for when notification is clicked
-        data: {
-          url: link,
-          orderId,
-          ...payload.data
-        },
-        // Ensure notification is shown even if app is in foreground
-        requireInteraction: true,
-        // Add vibration pattern
-        vibrate: [200, 100, 200],
-        // Add a tag to group similar notifications
-        tag: `sidehustle-${Date.now()}`
-      };
-      
-      // Show the notification
-      event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
+        };
+        
+        if (image) {
+          notificationOptions.image = image;
+        }
+        
+        // Check if we have a valid registration and permission
+        // This is needed for a service worker to show notifications on Android
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          console.log('[firebase-messaging-sw.js] Showing notification');
+          
+          // Actually show the notification
+          await registration.showNotification(title, notificationOptions);
+        } else {
+          console.error('[firebase-messaging-sw.js] No service worker registration found');
+        }
+      } catch (error) {
+        console.error('[firebase-messaging-sw.js] Error showing notification:', error);
+      }
     });
     
     // Handle notification click
@@ -242,106 +233,52 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       // Close the notification
       event.notification.close();
       
-      // Get stored data from the notification
-      const data = event.notification.data || {};
+      // Get action or default to 'open'
+      const action = event.action || 'open';
       
-      // Handle specific actions
-      if (event.action === 'view-order' && data.orderId) {
-        // Navigate to order details
-        const orderUrl = `/orders/${data.orderId}`;
-        console.log(`[firebase-messaging-sw.js] Navigating to order: ${orderUrl}`);
-        
-        // Focus or open a window and navigate to the order
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(orderUrl);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(orderUrl);
-              }
-            })
-        );
-      } else if (event.action === 'open-link' && data.link) {
-        // Navigate to the specified link
-        console.log(`[firebase-messaging-sw.js] Navigating to link: ${data.link}`);
-        
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(data.link);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(data.link);
-              }
-            })
-        );
-      } else if (event.action && event.action === data.actionButton) {
-        // Handle custom action button
-        console.log(`[firebase-messaging-sw.js] Custom action: ${event.action}`);
-        
-        // For now, just navigate to the link if provided
-        if (data.link) {
-          event.waitUntil(
-            self.clients.matchAll({ type: 'window' })
-              .then(clientList => {
-                // Try to focus an existing window
-                for (const client of clientList) {
-                  if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    return client.focus().then(focusedClient => {
-                      return focusedClient.navigate(data.link);
-                    });
-                  }
-                }
-                
-                // If no existing window, open a new one
-                if (self.clients.openWindow) {
-                  return self.clients.openWindow(data.link);
-                }
-              })
-          );
-        }
-      } else {
-        // Default action - navigate to the URL stored in the notification
-        const url = data.url || '/';
-        console.log(`[firebase-messaging-sw.js] Default navigation to: ${url}`);
-        
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(url);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(url);
-              }
-            })
-        );
+      // Get data from the notification
+      const notificationData = event.notification.data || {};
+      
+      // Determine URL to open
+      let url = '/';
+      
+      if (action === 'open') {
+        // Use click_action or link from data
+        url = notificationData.click_action || notificationData.link || '/';
       }
+      
+      // If URL is relative, prepend origin
+      if (url.startsWith('/')) {
+        url = `${self.location.origin}${url}`;
+      }
+      
+      console.log(`[firebase-messaging-sw.js] Opening URL: ${url}`);
+      
+      // Open the URL in an existing window/tab if possible
+      event.waitUntil(
+        self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true
+        })
+        .then((clientList) => {
+          // Check if there's already a window/tab open with the target URL
+          for (const client of clientList) {
+            if (client.url === url && 'focus' in client) {
+              return client.focus();
+            }
+          }
+          // If no window/tab is open with the URL, open a new one
+          if (self.clients.openWindow) {
+            return self.clients.openWindow(url);
+          }
+        })
+        .catch((error) => {
+          console.error('[firebase-messaging-sw.js] Error handling click:', error);
+        })
+      );
     });
+
+    console.log('[firebase-messaging-sw.js] Firebase Messaging initialized successfully');
   } catch (error) {
     console.error("[firebase-messaging-sw.js] Error initializing Firebase:", error);
   }

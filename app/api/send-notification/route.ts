@@ -139,34 +139,57 @@ export async function POST(request: NextRequest) {
     let invalidTokensRemoved = 0;
     let tokenCount = 0;
 
+    // Default icons for different platforms
+    const webIcon = body.icon || '/icons/logo.png';
+    const androidIcon = '/icons/android-lil-icon-white.png';
+    const androidBigIcon = '/icons/android-big-icon.png';
+    
     // Create the notification payload separately to avoid type issues
     const notificationPayload = {
       title: body.title,
       body: body.body,
-      imageUrl: body.icon || body.image
+      imageUrl: body.image || androidBigIcon // Use image or fall back to big icon
     };
 
     // Create the data payload separately
     const dataPayload = {
       ...(body.data || {}),
-      link: body.link || '' 
+      link: body.link || '',
+      title: body.title,
+      body: body.body,
+      image: body.image || androidBigIcon,
+      click_action: "FLUTTER_NOTIFICATION_CLICK"
     };
 
     // Create the webpush configuration separately
     const webPushConfig = {
       notification: {
-        icon: body.icon,
+        icon: webIcon,
         image: body.image,
+        badge: '/icons/badge-icon.png',
+        vibrate: [200, 100, 200],
         actions: [
           {
             action: 'open_url',
             title: 'View',
-            icon: body.icon
+            icon: webIcon
           }
         ]
       },
       fcmOptions: {
         link: body.link
+      }
+    };
+    
+    // Create Android specific configuration with proper Firebase typing
+    const androidConfig: admin.messaging.AndroidConfig = {
+      priority: 'high', // Using literal string with allowed values
+      notification: {
+        icon: androidIcon,
+        color: '#FF3E2F', // Brand color
+        sound: 'default',
+        clickAction: "FLUTTER_NOTIFICATION_CLICK",
+        channelId: "high_importance_channel"
       }
     };
 
@@ -199,143 +222,150 @@ export async function POST(request: NextRequest) {
       // Extract the tokens
       const tokens = tokensData.map((t: { token: string }) => t.token);
       tokenCount = tokens.length;
-      console.log(`Found ${tokens.length} tokens, sending notification`);
+
+      console.log(`Sending to ${tokens.length} devices`);
 
       try {
-        // Send in batches of 500 to comply with FCM limits
-        const batchSize = 500;
-        let sentCount = 0;
-        
-        for (let i = 0; i < tokens.length; i += batchSize) {
-          const batch = tokens.slice(i, i + batchSize);
-          
-          try {
-            // Use sendEachForMulticast method
-            const batchResponse = await messaging.sendEachForMulticast({
-              tokens: batch,
-              notification: notificationPayload,
-              data: dataPayload,
-              webpush: webPushConfig
-            });
-            
-            // Process response - using proper type assertion
-            sentCount += batchResponse.successCount;
-            
-            // Collect successful message IDs with a simpler approach
-            batchResponse.responses.forEach((resp) => {
-              if (resp.success && resp.messageId) {
-                messageIds.push(resp.messageId);
-              }
-            });
+        // Send to multiple devices
+        const response = await messaging.sendEachForMulticast({
+          tokens,
+          notification: notificationPayload,
+          data: dataPayload,
+          webpush: webPushConfig,
+          android: androidConfig
+        });
 
-            // Handle invalid tokens
-            for (let j = 0; j < batchResponse.responses.length; j++) {
-              const resp = batchResponse.responses[j];
-              if (!resp.success && resp.error && isInvalidTokenError(resp.error)) {
-                await removeInvalidToken(batch[j], supabaseAdmin as any);
-                invalidTokensRemoved++;
-              }
+        // Handle response
+        console.log('Multicast send results:', {
+          successCount: response.successCount,
+          failureCount: response.failureCount,
+          responses: response.responses.length
+        });
+
+        // Handle token cleanup for failures
+        if (response.failureCount > 0) {
+          // Create an array of promises for removing tokens
+          const failedTokenPromises = [] as Promise<boolean | null>[];
+          
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success && isInvalidTokenError(resp.error)) {
+              // Remove invalid token and track for reporting
+              failedTokenPromises.push(
+                removeInvalidToken(tokens[idx], supabaseAdmin).then(success => {
+                  if (success) invalidTokensRemoved++;
+                  return null;
+                })
+              );
             }
-          } catch (batchError) {
-            console.error(`Error sending batch ${i / batchSize + 1}:`, batchError);
-          }
+          });
+
+          await Promise.all(failedTokenPromises);
         }
-        
-        console.log(`Successfully sent to ${sentCount} of ${tokens.length} devices`);
-        
+
+        // Set message IDs for response - this ensures we only include defined strings
+        messageIds = response.responses
+          .filter(resp => resp.success && resp.messageId)
+          .map(resp => resp.messageId!)
+          .filter(id => typeof id === 'string') as string[];
+
         return NextResponse.json({
           success: true,
           messageIds,
-          recipients: sentCount,
-          tokenCount,
-          invalidTokensRemoved
+          recipients: response.successCount,
+          failures: response.failureCount,
+          invalidTokensRemoved,
+          totalTokens: tokenCount
         });
       } catch (error) {
-        console.error('Error sending multicast messages:', error);
+        console.error('Error sending multicast notification:', error);
         return NextResponse.json(
-          { error: `Error sending multicast messages: ${error instanceof Error ? error.message : String(error)}` }, 
+          { 
+            error: 'Failed to send notification to devices',
+            errorDetails: error instanceof Error ? error.message : String(error)
+          }, 
           { status: 500 }
         );
       }
     } else if (body.topic) {
       console.log(`Sending to topic: ${body.topic}`);
-      
+
       try {
-        // Send to a specific topic
+        // Send to topic
         const response = await messaging.send({
           topic: body.topic,
           notification: notificationPayload,
           data: dataPayload,
-          webpush: webPushConfig
+          webpush: webPushConfig,
+          android: androidConfig
         });
-        
-        console.log(`Successfully sent to topic ${body.topic}:`, response);
-        
+
+        console.log(`Successfully sent message to topic: ${response}`);
         return NextResponse.json({
           success: true,
           messageIds: [response],
-          recipients: 1, // Unknown actual count for topics
-          tokenCount: 0,
           topic: body.topic
         });
       } catch (error) {
         console.error(`Error sending to topic ${body.topic}:`, error);
         return NextResponse.json(
-          { error: `Error sending to topic: ${error instanceof Error ? error.message : String(error)}` }, 
+          { 
+            error: `Failed to send to topic: ${body.topic}`,
+            errorDetails: error instanceof Error ? error.message : String(error)
+          }, 
           { status: 500 }
         );
       }
     } else if (body.token) {
-      console.log(`Sending to single device token: ${body.token.substring(0, 10)}...`);
-      
+      console.log(`Sending to individual token: ${body.token.substring(0, 10)}...`);
+
       try {
-        // Send to a specific device token
+        // Send to a specific device
         const response = await messaging.send({
           token: body.token,
           notification: notificationPayload,
           data: dataPayload,
-          webpush: webPushConfig
+          webpush: webPushConfig,
+          android: androidConfig
         });
         
-        console.log('Successfully sent to device:', response);
+        console.log(`Successfully sent message to token: ${response}`);
         
         return NextResponse.json({
           success: true,
           messageIds: [response],
-          recipients: 1,
-          tokenCount: 1
+          recipients: 1
         });
       } catch (error) {
-        console.error('Error sending to device:', error);
+        console.error('Error sending to individual token:', error);
         
-        // If the token is invalid, remove it from the database
+        // Check if token is invalid and should be removed
+        let tokenRemoved = false;
         if (isInvalidTokenError(error)) {
-          await removeInvalidToken(body.token, supabaseAdmin as any);
-          invalidTokensRemoved++;
-          
-          return NextResponse.json({
-            success: false,
-            error: 'Invalid FCM token',
-            invalidTokensRemoved
-          }, { status: 400 });
+          tokenRemoved = await removeInvalidToken(body.token, supabaseAdmin);
         }
         
         return NextResponse.json(
-          { error: `Error sending to device: ${error instanceof Error ? error.message : String(error)}` }, 
+          { 
+            error: 'Failed to send notification',
+            errorDetails: error instanceof Error ? error.message : String(error),
+            tokenRemoved
+          }, 
           { status: 500 }
         );
       }
     } else {
-      console.error('No valid target specified (sendToAll, topic, or token)');
       return NextResponse.json(
-        { error: 'You must specify either sendToAll, topic, or token' }, 
+        { error: 'Invalid request: Must specify token, topic, or sendToAll' },
         { status: 400 }
       );
     }
   } catch (error) {
-    console.error('Error processing notification request:', error);
+    console.error('Unexpected error in send notification API:', error);
     return NextResponse.json(
-      { error: `Error processing notification request: ${error instanceof Error ? error.message : String(error)}` }, 
+      { 
+        error: 'Internal server error',
+        errorDetails: error instanceof Error ? error.message : String(error)
+      }, 
       { status: 500 }
     );
   }
