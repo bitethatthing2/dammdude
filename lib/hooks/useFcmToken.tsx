@@ -298,67 +298,16 @@ export function useFcmToken(): UseFcmTokenResult {
         const notification = payload.notification;
         const title = notification?.title || 'New Message';
         const body = notification?.body || '';
-        const iconUrl = notification?.icon || '/icons/android-lil-icon.png'; // Fallback icon
-        
-        // Try to get the link from various possible locations in the payload
-        const link = payload.fcmOptions?.link || 
-                     payload.data?.link || 
-                     (payload.data && typeof payload.data === 'object' && 'url' in payload.data ? payload.data.url as string : undefined);
 
-        console.log(`Showing toast notification - Title: "${title}", Body: "${body}"`);
-        
-        // Safer toast implementation without React elements to avoid the minified errors
-        toast(title, {
-          description: body,
-          duration: 8000,
-          position: 'top-right',
-          important: true,
-          className: 'notification-toast',
-          action: link ? {
-            label: 'View',
-            onClick: () => {
-              console.log(`Notification clicked, navigating to: ${link}`);
-              if (link) router.push(link);
-            }
-          } : undefined
-        });
-
-        // Also try to show a system notification as fallback
+        // Show toast notification (primary notification method)
         try {
-          // Only show if we have permission and toast might not be visible
-          if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
-            console.log('Creating system notification as fallback...');
-            
-            const options: NotificationOptions = {
-              body: body,
-              icon: iconUrl,
-              tag: `salem-pdx-${Date.now()}`,
-              requireInteraction: true
-            };
-            
-            if (link) {
-              options.data = { url: link };
-            }
-            
-            const n = new Notification(title, options);
-  
-            n.onclick = (event) => {
-              event.preventDefault();
-              console.log('System notification clicked');
-              
-              if (n.data && 'url' in n.data) {
-                const url = n.data.url as string;
-                console.log(`Navigating to: ${url}`);
-                router.push(url);
-                window.focus();
-              }
-              
-              n.close();
-            };
-          }
-        } catch (e) {
-          console.error('Error showing system notification:', e);
-          // System notification failed, but toast should still work
+          toast(title, {
+            description: body,
+            duration: 8000,
+            important: true
+          });
+        } catch (toastError) {
+          console.error('Error showing toast notification:', toastError);
         }
       });
 
