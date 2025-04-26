@@ -276,9 +276,7 @@ export async function validateFcmToken(token: string): Promise<boolean> {
           'apns-priority': '5'
         }
       },
-      // Set dry run flag using the correct property name
-      // @ts-ignore - The Firebase Admin SDK types don't include dryRun but it's a valid option
-      validateOnly: true
+      ...(process.env.NODE_ENV === 'production' ? { dryRun: true } : {})
     });
     
     console.log(`[FIREBASE ADMIN] Token validated successfully: ${token.substring(0, 10)}...`);
