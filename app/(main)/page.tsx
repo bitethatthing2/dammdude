@@ -9,7 +9,7 @@ import { Utensils, CalendarDays, BookOpen, ShoppingBag } from "lucide-react";
 import { Lock } from "lucide-react"; 
 import NotificationGuide from '@/components/shared/NotificationGuide';
 import PwaInstallGuide from '@/components/shared/PwaInstallGuide';
-import { FcmTokenRegistration } from '@/components/shared/FcmTokenRegistration';
+import { NotificationStatus } from '@/components/shared/NotificationStatus';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 
@@ -95,7 +95,7 @@ export default function HomePage() {
               <PwaInstallGuide variant="button" className="bg-primary text-primary-foreground border-0" />
               <NotificationGuide variant="button" />
             </div>
-            <FcmTokenRegistration />
+            <NotificationStatus />
           </div>
         </CardContent>
       </Card>
