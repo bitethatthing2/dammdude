@@ -179,8 +179,16 @@ export function useFcmToken() {
     
     // Only proceed if notification permission was granted
     if (notificationPermissionStatus !== 'granted') {
-      console.log('Notification permission not granted, skipping FCM setup.');
-      return;
+      // This check is causing issues - the permission state might be correct but not updating properly
+      // Let's check the permission directly from the Notification API
+      if (window.Notification && Notification.permission === 'granted') {
+        console.log('Permission is actually granted according to Notification API, proceeding with FCM setup');
+        // Update our state to match reality
+        setNotificationPermissionStatus('granted');
+      } else {
+        console.log('Notification permission not granted, skipping FCM setup.');
+        return;
+      }
     }
     
     // Don't attempt registration multiple times globally or locally
