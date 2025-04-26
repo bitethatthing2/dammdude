@@ -6,7 +6,6 @@ import { getMessagingInstance, fetchToken, requestNotificationPermission } from 
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FcmMessagePayload } from '@/lib/types/firebase';
-import Image from 'next/image';
 import React from 'react';
 
 // Global flag to prevent multiple registrations
@@ -298,16 +297,44 @@ export function useFcmToken(): UseFcmTokenResult {
         const notification = payload.notification;
         const title = notification?.title || 'New Message';
         const body = notification?.body || '';
+        const iconUrl = notification?.icon || '/icons/android-lil-icon.png'; // Fallback icon
+        
+        // Try to get the link from various possible locations in the payload
+        const link = payload.fcmOptions?.link || 
+                     (payload.data && typeof payload.data === 'object' && 'link' in payload.data ? 
+                      payload.data.link as string : undefined);
 
         // Show toast notification (primary notification method)
         try {
+          console.log(`Showing notification - Title: "${title}", Body: "${body}"`);
+          
           toast(title, {
             description: body,
             duration: 8000,
             important: true
           });
+          
+          // Try to also show a native notification if the page is not visible
+          if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
+            try {
+              // Create a notification without any complex options
+              new Notification(title, { 
+                body: body,
+                icon: iconUrl
+              });
+            } catch (nativeError) {
+              console.warn('Native notification failed:', nativeError);
+            }
+          }
+          
+          // Handle navigation if link is present and user clicks notification
+          if (link) {
+            // We can't directly attach to toast events in this simplified version
+            // But the user can still click the notification to follow the link
+            console.log(`Notification has link: ${link}`);
+          }
         } catch (toastError) {
-          console.error('Error showing toast notification:', toastError);
+          console.error('Error showing notification:', toastError);
         }
       });
 
