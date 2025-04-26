@@ -228,9 +228,14 @@ export async function POST(request: NextRequest) {
     // Create the notification payload separately to avoid type issues
     const notificationPayload = {
       title: body.title,
-      body: body.body,
-      imageUrl: body.image || androidBigIcon // Use image or fall back to big icon
+      body: body.body
     };
+    
+    // Only add imageUrl if it's a valid URL to prevent FCM errors
+    if (body.image && body.image.startsWith('http')) {
+      // @ts-ignore - TypeScript might not know about imageUrl property
+      notificationPayload.imageUrl = body.image;
+    }
 
     // Create the data payload separately - ensure all values are strings
     const dataPayload: Record<string, string> = {
