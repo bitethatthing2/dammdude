@@ -37,7 +37,10 @@ self.addEventListener('install', event => {
         const filesToCache = [
           '/',
           '/icons/android-big-icon.png',
-          '/icons/android-lil-icon-white.png'
+          '/icons/android-lil-icon-white.png',
+          '/icons/view-order-icon.png',
+          '/icons/link-icon.png',
+          '/icons/action-icon.png'
         ];
         
         // Cache each file individually to prevent one failure from stopping all caching
@@ -192,7 +195,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       const notificationOptions = {
         body: notificationBody,
         // Large icon for notification drawer (full color)
-        icon: payload.notification?.icon || '/icons/android-big-icon.png',
+        icon: '/icons/android-big-icon.png',
         // Badge icon for Android (monochrome)
         badge: '/icons/android-lil-icon-white.png',
         // Add image if provided
@@ -203,17 +206,17 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
             ...(orderId ? [{
               action: 'view-order',
               title: 'View Order',
-              icon: '/icons/android-big-icon.png'
+              icon: '/icons/view-order-icon.png'
             }] : []),
             ...(link && linkButtonText ? [{
               action: 'open-link',
               title: linkButtonText,
-              icon: '/icons/android-lil-icon-white.png'
+              icon: '/icons/link-icon.png'
             }] : []),
             ...(actionButton && actionButtonText ? [{
               action: actionButton,
               title: actionButtonText,
-              icon: '/icons/android-lil-icon-white.png'
+              icon: '/icons/action-icon.png'
             }] : [])
           ]
         }),
