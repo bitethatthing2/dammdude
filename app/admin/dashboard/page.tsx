@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NotificationCreator } from '@/components/admin/NotificationCreator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -147,70 +149,83 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Bell className="h-5 w-5 mr-2 text-primary" />
-              Send Push Notification
+              Notification Management
             </CardTitle>
             <CardDescription>
-              Send notifications to all users or specific groups
+              Send notifications to users through different channels
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSendNotification} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="notification-title">Notification Title</Label>
-                <Input
-                  id="notification-title"
-                  value={notificationTitle}
-                  onChange={(e) => setNotificationTitle(e.target.value)}
-                  placeholder="Enter notification title"
-                  required
-                />
-              </div>
+            <Tabs defaultValue="push">
+              <TabsList className="mb-4">
+                <TabsTrigger value="push">Push Notifications</TabsTrigger>
+                <TabsTrigger value="in-app">In-App Notifications</TabsTrigger>
+              </TabsList>
               
-              <div className="space-y-2">
-                <Label htmlFor="notification-body">Notification Body</Label>
-                <Textarea
-                  id="notification-body"
-                  value={notificationBody}
-                  onChange={(e) => setNotificationBody(e.target.value)}
-                  placeholder="Enter notification message"
-                  required
-                  rows={3}
-                />
-              </div>
+              <TabsContent value="push">
+                <form onSubmit={handleSendNotification} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="notification-title">Notification Title</Label>
+                    <Input
+                      id="notification-title"
+                      value={notificationTitle}
+                      onChange={(e) => setNotificationTitle(e.target.value)}
+                      placeholder="Enter notification title"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notification-body">Notification Body</Label>
+                    <Textarea
+                      id="notification-body"
+                      value={notificationBody}
+                      onChange={(e) => setNotificationBody(e.target.value)}
+                      placeholder="Enter notification message"
+                      required
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notification-target">Target Audience</Label>
+                    <Select
+                      value={notificationTarget}
+                      onValueChange={setNotificationTarget}
+                    >
+                      <SelectTrigger id="notification-target">
+                        <SelectValue placeholder="Select audience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_devices">All Devices</SelectItem>
+                        <SelectItem value="admin_devices">Admin Devices</SelectItem>
+                        <SelectItem value="ios_devices">iOS Devices</SelectItem>
+                        <SelectItem value="android_devices">Android Devices</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full flex items-center justify-center"
+                    disabled={isSending}
+                  >
+                    {isSending ? (
+                      <>Sending notification...</>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Push Notification
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
               
-              <div className="space-y-2">
-                <Label htmlFor="notification-target">Target Audience</Label>
-                <Select
-                  value={notificationTarget}
-                  onValueChange={setNotificationTarget}
-                >
-                  <SelectTrigger id="notification-target">
-                    <SelectValue placeholder="Select audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all_devices">All Devices</SelectItem>
-                    <SelectItem value="admin_devices">Admin Devices</SelectItem>
-                    <SelectItem value="ios_devices">iOS Devices</SelectItem>
-                    <SelectItem value="android_devices">Android Devices</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full flex items-center justify-center"
-                disabled={isSending}
-              >
-                {isSending ? (
-                  <>Sending notification...</>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Notification
-                  </>
-                )}
-              </Button>
-            </form>
+              <TabsContent value="in-app">
+                <NotificationCreator />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
         

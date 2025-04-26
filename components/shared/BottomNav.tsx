@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
+import { NotificationPopover } from '@/components/shared/NotificationPopover';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -32,6 +33,9 @@ export const BottomNav = () => {
           </Link>
         );
       })}
+      <div className="flex items-center justify-center">
+        <NotificationPopover />
+      </div>
     </nav>
   );
 };

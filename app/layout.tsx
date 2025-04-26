@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
+import { NotificationProvider } from '@/lib/contexts/notification-context';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,8 +11,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning>
         <ThemeProvider>
           <FirebaseInitializer>
-            {children}
-            <ServiceWorkerRegister />
+            <NotificationProvider>
+              {children}
+              <ServiceWorkerRegister />
+            </NotificationProvider>
           </FirebaseInitializer>
         </ThemeProvider>
       </body>
