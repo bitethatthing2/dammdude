@@ -34,7 +34,8 @@ export const BottomNav = () => {
         );
       })}
       <div className="flex items-center justify-center">
-        <NotificationPopover />
+        {/* Only render NotificationPopover on client-side */}
+        {typeof window !== 'undefined' && <NotificationPopover />}
       </div>
     </nav>
   );
