@@ -67,13 +67,13 @@ export function NotificationPopover() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative h-9 w-9"
+          className="relative h-5 w-5 p-0"
           aria-label="Notifications"
         >
-          <Bell className="h-[1.2rem] w-[1.2rem]" />
+          <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span 
-              className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-destructive-foreground"
+              className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-destructive-foreground"
             >
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>

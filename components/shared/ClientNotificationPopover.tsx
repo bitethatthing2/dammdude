@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { NotificationPopover } from '@/components/shared/NotificationPopover';
+import { Bell } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 /**
  * Client-side wrapper for the NotificationPopover component
@@ -16,8 +19,18 @@ export function ClientNotificationPopover() {
   }, []);
 
   if (!isMounted) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center p-2 border border-primary rounded-md text-muted-foreground">
+        <Bell className="h-5 w-5" />
+        <span className="text-[10px] mt-1">Alerts</span>
+      </div>
+    );
   }
 
-  return <NotificationPopover />;
+  return (
+    <div className="flex flex-col items-center justify-center p-2 border border-primary rounded-md text-muted-foreground">
+      <NotificationPopover />
+      <span className="text-[10px] mt-1">Alerts</span>
+    </div>
+  );
 }
