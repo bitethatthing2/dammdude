@@ -181,7 +181,6 @@ function FormSubmit({
       type="submit"
       className={cn(className)}
       disabled={isPending}
-      aria-disabled={isPending ? true : undefined}
       {...props}
     >
       {children}
