@@ -12,9 +12,8 @@ import Image from 'next/image';
 import { useTheme } from 'next-themes';
 
 // Dynamically import components that use browser APIs
-const NotificationGuide = dynamic(() => import('@/components/shared/NotificationGuide'), { ssr: false });
+const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { ssr: false });
 const PwaInstallGuide = dynamic(() => import('@/components/shared/PwaInstallGuide'), { ssr: false });
-const NotificationStatus = dynamic(() => import('@/components/shared/NotificationStatus').then(mod => mod.NotificationStatus), { ssr: false });
 
 // Safe component without direct icon references
 const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {
@@ -79,7 +78,6 @@ export default function HomePage() {
             <p>
               Order from your table or book a reservation for your next visit.
             </p>
-            <NotificationGuide />
           </div>
         </CardContent>
       </Card>
@@ -96,9 +94,8 @@ export default function HomePage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
               <PwaInstallGuide variant="button" className="bg-primary text-primary-foreground border-0" />
-              <NotificationGuide variant="button" />
+              <NotificationIndicator variant="button" />
             </div>
-            <NotificationStatus />
           </div>
         </CardContent>
       </Card>

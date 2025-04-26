@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import { BottomNav } from '@/components/shared/BottomNav';
-import { NotificationStatus } from '@/components/shared/NotificationStatus';
+import { NotificationIndicator } from '@/components/shared/NotificationIndicator';
 import { ThemeControl } from '@/components/shared/ThemeControl';
 import dynamic from 'next/dynamic';
 
-// Import the client component with no SSR to avoid hydration issues
+// Import the client components with no SSR to avoid hydration issues
 const HeaderLogo = dynamic(() => import('@/components/shared/HeaderLogo'), { ssr: false });
+const ClientBottomNav = dynamic(() => import('@/components/shared/ClientBottomNav').then(mod => mod.ClientBottomNav), { ssr: false });
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
@@ -14,13 +14,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         <HeaderLogo />
         <div className="flex items-center gap-2">
           <ThemeControl />
-          <NotificationStatus />
+          <NotificationIndicator />
         </div>
       </header>
 
       <main className="flex-1 pt-14 pb-16">{children}</main>
 
-      <BottomNav />
+      <ClientBottomNav />
     </div>
   );
 }

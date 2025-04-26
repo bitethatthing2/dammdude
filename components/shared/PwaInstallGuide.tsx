@@ -37,21 +37,103 @@ export default function PwaInstallGuide({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Detect platform
+    // Detect platform with more robust checks
     const userAgent = window.navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(userAgent)) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                         (window.navigator as any).standalone === true;
+    
+    // More comprehensive device detection
+    if (/iphone|ipad|ipod/.test(userAgent) || /mac/.test(userAgent) && navigator.maxTouchPoints > 1) {
       setPlatform('ios');
+      // Check if running as PWA on iOS
+      if ((window.navigator as any).standalone === true) {
+        setIsInstalled(true);
+      }
     } else if (/android/.test(userAgent)) {
       setPlatform('android');
+      if (isStandalone) {
+        setIsInstalled(true);
+      }
     } else {
       setPlatform('desktop');
+      if (isStandalone) {
+        setIsInstalled(true);
+      }
     }
     
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || 
-        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-        (window.navigator as any).standalone === true) {
-      setIsInstalled(true);
+    // Check if we should show installation reminder
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const shouldRemind = !isInstalled && 
+                         !isToastShown && 
+                         (now - lastDismissed > oneDayMs) && 
+                         dismissCount < 3;
+    
+    if (shouldRemind && !isInstalled) {
+      // Reset the daily toast flag at midnight
+      const resetToastFlag = () => {
+        const tomorrow = new Date();
+        tomorrow.setHours(24, 0, 0, 0);
+        const timeUntilMidnight = tomorrow.getTime() - now;
+        
+        setTimeout(() => {
+          setIsToastShown(false);
+        }, timeUntilMidnight);
+      };
+      
+      resetToastFlag();
+      
+      // Show installation reminder based on platform
+      setTimeout(() => {
+        if (platform === 'ios') {
+          toast((t: string) => (
+            <div className="flex flex-col gap-2">
+              <p className="font-medium">Install this app on your iPhone</p>
+              <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  toast.dismiss(t);
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(now);
+                }}>
+                  Later
+                </Button>
+                <Button size="sm" onClick={() => {
+                  toast.dismiss(t);
+                  setIsToastShown(true);
+                  handleInstallClick();
+                }}>
+                  Show Me How
+                </Button>
+              </div>
+            </div>
+          ), { duration: 10000 });
+        } else if (deferredPrompt) {
+          toast((t: string) => (
+            <div className="flex flex-col gap-2">
+              <p className="font-medium">Install this app for a better experience</p>
+              <p className="text-sm text-muted-foreground">Add to your home screen for quick access</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  toast.dismiss(t);
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(now);
+                }}>
+                  Later
+                </Button>
+                <Button size="sm" onClick={() => {
+                  toast.dismiss(t);
+                  setIsToastShown(true);
+                  handleInstallClick();
+                }}>
+                  Install
+                </Button>
+              </div>
+            </div>
+          ), { duration: 10000 });
+        }
+      }, 3000);
     }
     
     // Listen for beforeinstallprompt event (Android)
@@ -93,96 +175,8 @@ export default function PwaInstallGuide({
     };
   }, [platform]);
   
-  // Show installation toast based on platform
-  const showInstallToast = useCallback(() => {
-    if (isInstalled || !platform) return;
-    
-    if (platform === 'ios') {
-      toast(
-        <div className="flex flex-col gap-2">
-          <div className="font-medium">Install this app on your iPhone</div>
-          <IosInstallGuide variant="compact" />
-        </div>,
-        {
-          duration: 10000,
-          icon: <PlusCircle className="h-5 w-5" />,
-          action: {
-            label: "Got it",
-            onClick: () => {
-              setDismissCount(dismissCount + 1);
-              setLastDismissed(Date.now());
-            }
-          }
-        }
-      );
-    } else if (platform === 'android' && !deferredPrompt) {
-      toast(
-        <div className="flex flex-col gap-2">
-          <div className="font-medium">Install this app on your Android device</div>
-          <div className="space-y-2 text-sm">
-            <p>1. Tap the menu button in your browser</p>
-            <p>2. Select "Install app" or "Add to Home Screen"</p>
-            <p>3. Follow the on-screen instructions</p>
-          </div>
-        </div>,
-        {
-          duration: 10000,
-          icon: <PlusCircle className="h-5 w-5" />,
-          action: {
-            label: "Got it",
-            onClick: () => {
-              setDismissCount(dismissCount + 1);
-              setLastDismissed(Date.now());
-            }
-          }
-        }
-      );
-    }
-    
-    setIsToastShown(true);
-  }, [platform, isInstalled, deferredPrompt, dismissCount, setDismissCount, setLastDismissed, setIsToastShown]);
-  
-  // Show installation toast when appropriate
-  useEffect(() => {
-    // Don't show toast if already installed or no platform detected
-    if (isInstalled || !platform) return;
-    
-    // Check if we should show the toast based on dismiss count and time
-    const shouldShowToast = () => {
-      // Reset toast shown flag at the start of a new day
-      const now = new Date();
-      const lastShownDate = new Date(lastDismissed);
-      if (lastShownDate.getDate() !== now.getDate() || 
-          lastShownDate.getMonth() !== now.getMonth() || 
-          lastShownDate.getFullYear() !== now.getFullYear()) {
-        setIsToastShown(false);
-      }
-      
-      // Don't show if already shown today
-      if (isToastShown) return false;
-      
-      // Show immediately for first-time visitors
-      if (dismissCount === 0) return true;
-      
-      // For repeat dismissals, gradually increase delay
-      const hoursSinceLastDismiss = (Date.now() - lastDismissed) / (1000 * 60 * 60);
-      const requiredHours = Math.min(dismissCount * 24, 168); // Cap at 7 days
-      
-      return hoursSinceLastDismiss >= requiredHours;
-    };
-    
-    // Show toast after a short delay if conditions are met
-    if (shouldShowToast()) {
-      const timer = setTimeout(() => {
-        showInstallToast();
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [platform, isInstalled, dismissCount, lastDismissed, isToastShown, showInstallToast, setIsToastShown]);
-  
   // Handle install button click
-  const handleInstall = async () => {
+  const handleInstallClick = async () => {
     if (isInstalled) return;
     
     try {
@@ -200,7 +194,47 @@ export default function PwaInstallGuide({
         }
       } else {
         // Show toast instructions for iOS or Android without native prompt
-        showInstallToast();
+        if (platform === 'ios') {
+          toast(
+            <div className="flex flex-col gap-2">
+              <div className="font-medium">Install this app on your iPhone</div>
+              <IosInstallGuide variant="compact" />
+            </div>,
+            {
+              duration: 10000,
+              icon: <PlusCircle className="h-5 w-5" />,
+              action: {
+                label: "Got it",
+                onClick: () => {
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(Date.now());
+                }
+              }
+            }
+          );
+        } else if (platform === 'android' && !deferredPrompt) {
+          toast(
+            <div className="flex flex-col gap-2">
+              <div className="font-medium">Install this app on your Android device</div>
+              <div className="space-y-2 text-sm">
+                <p>1. Tap the menu button in your browser</p>
+                <p>2. Select "Install app" or "Add to Home Screen"</p>
+                <p>3. Follow the on-screen instructions</p>
+              </div>
+            </div>,
+            {
+              duration: 10000,
+              icon: <PlusCircle className="h-5 w-5" />,
+              action: {
+                label: "Got it",
+                onClick: () => {
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(Date.now());
+                }
+              }
+            }
+          );
+        }
       }
       
       // Track installation attempt
@@ -233,7 +267,7 @@ export default function PwaInstallGuide({
     return (
       <Button 
         className={cn("p-0 h-9 w-9 rounded-full", className)}
-        onClick={handleInstall}
+        onClick={handleInstallClick}
         aria-label="Install app"
       >
         <Download className="h-4 w-4" />
@@ -244,7 +278,7 @@ export default function PwaInstallGuide({
   if (variant === 'minimal') {
     return (
       <button
-        onClick={handleInstall}
+        onClick={handleInstallClick}
         className={cn(
           "inline-flex items-center gap-1.5 text-sm font-medium",
           className
@@ -260,7 +294,7 @@ export default function PwaInstallGuide({
   return (
     <Button
       className={cn("gap-1.5", className)}
-      onClick={handleInstall}
+      onClick={handleInstallClick}
     >
       <Download className="h-4 w-4" />
       Install App
