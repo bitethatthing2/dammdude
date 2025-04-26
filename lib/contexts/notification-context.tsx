@@ -55,11 +55,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
   
   // Calculate unread count
   const unreadCount = notifications.filter(n => !n.dismissed).length;
+  
+  // Get current user
+  useEffect(() => {
+    async function getCurrentUser() {
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUserId(data.user?.id || null);
+      } catch (err) {
+        console.error('Error getting user:', err);
+        setUserId(null);
+      }
+    }
+    
+    getCurrentUser();
+  }, [supabase]);
   
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -67,10 +83,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setIsLoading(true);
       setError(null);
       
-      // Get current user
-      const { data } = await supabase.auth.getUser();
-      
-      if (!data.user) {
+      if (!userId) {
         setNotifications([]);
         return;
       }
@@ -78,13 +91,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const { data: notificationsData, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', data.user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
       
       if (error) throw new Error(error.message);
       
       setNotifications(notificationsData || []);
+      
+      // Dispatch custom event for other components to use
+      const event = new CustomEvent('notification-update', { 
+        detail: { unreadCount: notificationsData?.filter((n: Notification) => !n.dismissed).length || 0 } 
+      });
+      window.dispatchEvent(event);
+      
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch notifications'));
@@ -107,6 +127,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, dismissed: true } : n)
       );
+      
+      // Dispatch custom event for other components to use
+      const updatedUnreadCount = notifications
+        .filter((n: Notification) => n.id !== id && !n.dismissed)
+        .length;
+        
+      const event = new CustomEvent('notification-update', { 
+        detail: { unreadCount: updatedUnreadCount } 
+      });
+      window.dispatchEvent(event);
+      
     } catch (err) {
       console.error('Error dismissing notification:', err);
       throw err;
@@ -116,15 +147,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Dismiss all notifications
   const dismissAllNotifications = async () => {
     try {
-      // Get current user
-      const { data } = await supabase.auth.getUser();
-      
-      if (!data.user || notifications.length === 0) return;
+      if (!userId || notifications.length === 0) return;
       
       const { error } = await supabase
         .from('notifications')
         .update({ dismissed: true })
-        .eq('user_id', data.user.id)
+        .eq('user_id', userId)
         .eq('dismissed', false);
       
       if (error) throw new Error(error.message);
@@ -133,16 +161,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications(prev => 
         prev.map(n => ({ ...n, dismissed: true }))
       );
+      
+      // Dispatch custom event for other components to use
+      const event = new CustomEvent('notification-update', { 
+        detail: { unreadCount: 0 } 
+      });
+      window.dispatchEvent(event);
+      
     } catch (err) {
       console.error('Error dismissing all notifications:', err);
       throw err;
     }
   };
   
+  // Fetch notifications when userId changes
+  useEffect(() => {
+    if (userId) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
+      setIsLoading(false);
+    }
+  }, [userId]);
+  
   // Set up real-time subscription
   useEffect(() => {
-    // Initial fetch
-    fetchNotifications();
+    if (!userId) return;
     
     // Set up real-time subscription
     const channel = supabase
@@ -153,31 +197,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           event: '*',
           schema: 'public',
           table: 'notifications',
+          filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
           console.log('Notification change received:', payload);
           
-          // Get current user
-          supabase.auth.getUser().then((response: AuthUserResponse) => {
-            const user = response.data.user;
-            if (!user) return;
+          // Handle different change types
+          if (payload.eventType === 'INSERT') {
+            setNotifications(prev => [payload.new as Notification, ...prev]);
             
-            // Only process changes for the current user
-            if (payload.new && payload.new.user_id === user.id) {
-              // Handle different change types
-              if (payload.eventType === 'INSERT') {
-                setNotifications(prev => [payload.new as Notification, ...prev]);
-              } else if (payload.eventType === 'UPDATE') {
-                setNotifications(prev => 
-                  prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
-                );
-              } else if (payload.eventType === 'DELETE') {
-                setNotifications(prev => 
-                  prev.filter(n => n.id !== payload.old.id)
-                );
-              }
+            // Dispatch custom event for other components to use
+            const updatedUnreadCount = unreadCount + 1;
+            const event = new CustomEvent('notification-update', { 
+              detail: { unreadCount: updatedUnreadCount } 
+            });
+            window.dispatchEvent(event);
+            
+          } else if (payload.eventType === 'UPDATE') {
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+            );
+            
+            // Update unread count if dismissed status changed
+            if (payload.old.dismissed !== payload.new.dismissed) {
+              const updatedUnreadCount = payload.new.dismissed ? unreadCount - 1 : unreadCount + 1;
+              const event = new CustomEvent('notification-update', { 
+                detail: { unreadCount: updatedUnreadCount } 
+              });
+              window.dispatchEvent(event);
             }
-          });
+            
+          } else if (payload.eventType === 'DELETE') {
+            setNotifications(prev => 
+              prev.filter(n => n.id !== payload.old.id)
+            );
+            
+            // Update unread count if deleted notification was not dismissed
+            if (!payload.old.dismissed) {
+              const updatedUnreadCount = unreadCount - 1;
+              const event = new CustomEvent('notification-update', { 
+                detail: { unreadCount: updatedUnreadCount } 
+              });
+              window.dispatchEvent(event);
+            }
+          }
         }
       )
       .subscribe();
@@ -186,7 +249,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [userId, supabase, unreadCount]);
   
   // Context value
   const value: NotificationContextType = {
@@ -206,10 +269,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   );
 }
 
-/**
- * Custom hook to access notification context
- * Must be used within a NotificationProvider
- */
+// Custom hook to use the notification context
 export function useNotifications() {
   const context = useContext(NotificationContext);
   

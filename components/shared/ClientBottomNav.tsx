@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { BottomNav } from './BottomNav';
+import { NotificationProvider } from '@/lib/contexts/notification-context';
 
 /**
  * Client-side wrapper for the BottomNav component
  * Ensures the component is only rendered on the client side
- * to prevent "useNotifications must be used within a NotificationProvider" errors
+ * and provides the NotificationProvider context
  */
 export function ClientBottomNav() {
   const [isMounted, setIsMounted] = useState(false);
@@ -24,5 +25,10 @@ export function ClientBottomNav() {
     );
   }
 
-  return <BottomNav />;
+  // Wrap BottomNav with NotificationProvider to ensure notifications work
+  return (
+    <NotificationProvider>
+      <BottomNav />
+    </NotificationProvider>
+  );
 }

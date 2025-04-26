@@ -8,35 +8,48 @@ import { NotificationIndicator } from './NotificationIndicator';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { useState, useEffect } from 'react';
+import { useNotifications } from '@/lib/contexts/notification-context';
 
 export const BottomNav = () => {
   const pathname = usePathname();
   const { notificationPermissionStatus } = useFcmContext();
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
+  
+  // Try to use the notification context if available
+  let notificationContext;
+  try {
+    notificationContext = useNotifications();
+  } catch (error) {
+    // Context not available, will use fallback
+    notificationContext = null;
+  }
 
-  // Safely get unread count from notification context if available
+  // Get unread count from context or fallback
+  const unreadCount = notificationContext?.unreadCount ?? fallbackUnreadCount;
+
+  // Set up mounted state and listen for notification updates
   useEffect(() => {
     setIsMounted(true);
     
     // Try to get unread count from localStorage as fallback
     const storedCount = localStorage.getItem('unread-notification-count');
     if (storedCount) {
-      setUnreadCount(parseInt(storedCount, 10));
+      setFallbackUnreadCount(parseInt(storedCount, 10));
     }
     
     // Listen for custom events from notification context
-    const handleNotificationUpdate = (e: CustomEvent) => {
+    const handleNotificationUpdate = (e: CustomEvent<{ unreadCount: number }>) => {
       if (e.detail && typeof e.detail.unreadCount === 'number') {
-        setUnreadCount(e.detail.unreadCount);
+        setFallbackUnreadCount(e.detail.unreadCount);
         localStorage.setItem('unread-notification-count', e.detail.unreadCount.toString());
       }
     };
     
-    window.addEventListener('notification-update' as any, handleNotificationUpdate as any);
+    window.addEventListener('notification-update', handleNotificationUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('notification-update' as any, handleNotificationUpdate as any);
+      window.removeEventListener('notification-update', handleNotificationUpdate as EventListener);
     };
   }, []);
   
@@ -67,6 +80,26 @@ export const BottomNav = () => {
   // Combine for medium screens
   const mediumScreenItems = [...coreNavItems, ...secondaryNavItems.slice(0, 2)];
   
+  // Render a navigation item
+  const renderNavItem = (item: NavItem) => {
+    const isActive = pathname === item.href;
+    const Icon = item.iconName ? (LucideIcons as Record<string, React.ComponentType<any>>)[item.iconName] : null;
+    
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={cn(
+          "flex flex-col items-center justify-center p-2",
+          isActive ? "text-foreground" : "text-muted-foreground"
+        )}
+      >
+        {Icon ? <Icon className="h-5 w-5" /> : item.icon}
+        <span className="text-[10px] mt-1">{item.label}</span>
+      </Link>
+    );
+  };
+  
   // Render notification item with badge
   const renderNotificationItem = () => (
     <Link
@@ -89,7 +122,7 @@ export const BottomNav = () => {
         )}
       </div>
       <span className="text-[10px] mt-1">
-        {notificationPermissionStatus === 'granted' ? 'Enabled' : 'Enable Notifications'}
+        {notificationPermissionStatus === 'granted' ? 'Alerts' : 'Notifications'}
       </span>
     </Link>
   );
@@ -99,104 +132,21 @@ export const BottomNav = () => {
       {/* Mobile view (4 core items + more) */}
       <div className="flex justify-between w-full md:hidden">
         {coreNavItems.map(renderNavItem)}
-        
-        {/* More dropdown for mobile */}
-        <div className="relative group">
-          <button 
-            className="flex flex-col items-center justify-center p-2 text-muted-foreground"
-            aria-label="More options"
-          >
-            <LucideIcons.MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] mt-1">More</span>
-          </button>
-          
-          <div className="absolute bottom-full mb-2 right-0 hidden group-hover:flex flex-col bg-background border border-primary rounded-md p-1 min-w-40">
-            {secondaryNavItems.map((item) => {
-              const Icon = item.icon || (item.iconName ? LucideIcons[item.iconName as keyof typeof LucideIcons] : null);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-muted",
-                    pathname === item.href ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {item.icon || (Icon && <Icon className="h-4 w-4" />)}
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Notification indicator for mobile */}
         {renderNotificationItem()}
       </div>
       
       {/* Medium screen view (6 items) */}
       <div className="hidden md:flex lg:hidden justify-between w-full">
         {mediumScreenItems.map(renderNavItem)}
-        
-        {/* More dropdown for medium screens */}
-        <div className="relative group">
-          <button 
-            className="flex flex-col items-center justify-center p-2 text-muted-foreground"
-            aria-label="More options"
-          >
-            <LucideIcons.MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] mt-1">More</span>
-          </button>
-          
-          <div className="absolute bottom-full mb-2 right-0 hidden group-hover:flex flex-col bg-background border border-primary rounded-md p-1 min-w-40">
-            {secondaryNavItems.slice(2).map((item) => {
-              const Icon = item.icon || (item.iconName ? LucideIcons[item.iconName as keyof typeof LucideIcons] : null);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-muted",
-                    pathname === item.href ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {item.icon || (Icon && <Icon className="h-4 w-4" />)}
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Notification indicator for medium screens */}
         {renderNotificationItem()}
+        {/* More dropdown for remaining items */}
       </div>
       
       {/* Large screen view (all items) */}
       <div className="hidden lg:flex justify-between w-full">
         {[...coreNavItems, ...secondaryNavItems].map(renderNavItem)}
-        
-        {/* Notification indicator for large screens */}
         {renderNotificationItem()}
       </div>
     </nav>
   );
-  
-  function renderNavItem(item: NavItem) {
-    const Icon = item.icon || (item.iconName ? LucideIcons[item.iconName as keyof typeof LucideIcons] : null);
-    
-    return (
-      <Link 
-        key={item.href}
-        href={item.href} 
-        className={cn(
-          "flex flex-col items-center justify-center p-2",
-          pathname === item.href ? "text-foreground" : "text-muted-foreground"
-        )}
-      >
-        {item.icon || (Icon && <Icon className="h-5 w-5" />)}
-        <span className="text-[10px] mt-1">{item.label}</span>
-      </Link>
-    );
-  }
 };
