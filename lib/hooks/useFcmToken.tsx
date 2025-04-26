@@ -10,7 +10,6 @@ import React from 'react';
 
 // Global flag to prevent multiple registrations
 let hasRegisteredGlobally = false;
-let hasSetupMessageListener = false;
 
 // Create a Context to share token across components
 interface FcmContextType {
@@ -110,7 +109,6 @@ interface UseFcmTokenResult {
 export function useFcmToken(): UseFcmTokenResult {
   const [token, setToken] = useState<string | null>(null);
   const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<NotificationPermission | null>(null);
-  const hasRegisteredLocally = useRef(false);
   const router = useRouter();
 
   // First useEffect: Check permission state and set it
@@ -147,19 +145,13 @@ export function useFcmToken(): UseFcmTokenResult {
       console.log('FCM registration has already occurred globally');
       return;
     }
-    
-    // Don't attempt registration multiple times in this component instance
-    if (hasRegisteredLocally.current) {
-      console.log('FCM registration has already occurred locally');
-      return;
-    }
 
     const setupFcm = async () => {
       try {
         console.log('Attempting to load FCM token...');
         
         // Only proceed if notification permission was granted
-        if (Notification.permission !== 'granted') {
+        if (notificationPermissionStatus !== 'granted') {
           console.log('Notification permission not granted, skipping FCM setup.');
           return;
         }
@@ -171,8 +163,7 @@ export function useFcmToken(): UseFcmTokenResult {
           // We'll still try, as sometimes the service worker can be active even if our check fails
         }
 
-        // Set flags to prevent duplicate calls - set these before the async operations
-        hasRegisteredLocally.current = true;
+        // Set flag to prevent duplicate calls
         hasRegisteredGlobally = true;
 
         // Get messaging instance
@@ -201,26 +192,17 @@ export function useFcmToken(): UseFcmTokenResult {
           }
         } catch (tokenError) {
           console.error('Error getting FCM token:', tokenError);
-          // Reset flags on failure to allow retry
-          hasRegisteredLocally.current = false;
+          // Reset flag on failure to allow retry
           hasRegisteredGlobally = false;
         }
       } catch (err) {
         console.error('Error setting up FCM:', err);
-        // Reset flags on failure to allow retry
-        hasRegisteredLocally.current = false;
+        // Reset flag on failure to allow retry
         hasRegisteredGlobally = false;
       }
     };
 
     setupFcm();
-
-    // Cleanup function
-    return () => {
-      // Do not reset the global flag on component unmount
-      // Only reset the local flag
-      hasRegisteredLocally.current = false;
-    };
   }, [notificationPermissionStatus]);
 
   // Helper function to store token in database
@@ -278,15 +260,9 @@ export function useFcmToken(): UseFcmTokenResult {
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
 
-    // Only set up listener if we have a token and it hasn't been set up already
+    // Only set up listener if we have a token
     const setupListener = async () => {
       if (!token || typeof window === 'undefined') {
-        return;
-      }
-      
-      // Skip if we've already set up a listener
-      if (hasSetupMessageListener) {
-        console.log('Foreground message listener already registered, skipping');
         return;
       }
 
@@ -296,9 +272,6 @@ export function useFcmToken(): UseFcmTokenResult {
         console.error('Failed to get messaging instance for listener setup.');
         return;
       }
-      
-      // Set the global flag to prevent multiple listeners
-      hasSetupMessageListener = true;
 
       unsubscribe = onMessage(messagingInstance, (payload: FcmMessagePayload) => {
         console.log('🔔 FOREGROUND PUSH NOTIFICATION RECEIVED:', payload);
@@ -357,7 +330,6 @@ export function useFcmToken(): UseFcmTokenResult {
       if (unsubscribe) {
         console.log('Cleaning up foreground message listener');
         unsubscribe();
-        // Intentionally don't reset hasSetupMessageListener to prevent multiple listeners
       }
     };
   }, [token, router]);
