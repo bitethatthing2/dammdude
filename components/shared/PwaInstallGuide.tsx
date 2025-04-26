@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Download, X, Info, Smartphone, Share, PlusCircle } from 'lucide-react';
+import { Download, Share, PlusCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useToast } from "@/components/ui/use-toast";
-import { ToastAction } from "@/components/ui/toast";
-import NotificationGuide from './NotificationGuide';
-import { AndroidInstallGuide } from './installation/AndroidInstallGuide';
+import { toast } from "sonner";
+import { cn } from '@/lib/utils';
 import { IosInstallGuide } from './installation/IosInstallGuide';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -28,7 +26,6 @@ export default function PwaInstallGuide({
   variant = 'button',
   className = ''
 }: PwaInstallGuideProps) {
-  const { toast } = useToast();
   const [platform, setPlatform] = useState<'android' | 'ios' | 'desktop' | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -50,179 +47,223 @@ export default function PwaInstallGuide({
       setPlatform('desktop');
     }
     
-    // Check if app is already installed (PWA mode)
-    const isInStandaloneMode = 
-      window.matchMedia('(display-mode: standalone)').matches || 
-      (window.navigator as any).standalone || 
-      document.referrer.includes('android-app://');
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+        (window.navigator as any).standalone === true) {
+      setIsInstalled(true);
+    }
     
-    setIsInstalled(isInStandaloneMode);
-    
-    // Listen for install prompt event (Android/Desktop)
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the default mini-infobar from appearing on mobile
+    // Listen for beforeinstallprompt event (Android)
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      // Stash the event so it can be triggered later
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-    });
+    };
     
-    // Check if we should show toast notification for iOS
-    const checkToastDisplay = () => {
-      // Only show once per day for iOS
-      const today = new Date().toDateString();
-      const lastShown = localStorage.getItem('pwa-toast-shown-date');
+    // Listen for appinstalled event
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
       
-      if (platform === 'ios' && !isInstalled && (!lastShown || lastShown !== today)) {
-        // If not shown today and not too many dismissals
-        if (!isToastShown && dismissCount < 3) {
-          const timeSinceLastDismiss = Date.now() - lastDismissed;
-          // Only show if last dismissed more than 1 day ago
-          if (lastDismissed === 0 || timeSinceLastDismiss > 24 * 60 * 60 * 1000) {
-            setTimeout(() => {
-              showIosInstallToast();
-              localStorage.setItem('pwa-toast-shown-date', today);
-              setIsToastShown(true);
-            }, 5000); // Show after 5 seconds
-          }
+      // Show success toast
+      toast.success("App installed successfully", {
+        description: "You can now access PDX Sports Bar directly from your home screen",
+        duration: 5000,
+      });
+      
+      // Track installation
+      try {
+        if (typeof (window as any).gtag === 'function') {
+          (window as any).gtag('event', 'pwa_installed', {
+            event_category: 'engagement',
+            event_label: platform
+          });
         }
+      } catch (error) {
+        console.error('Error tracking installation:', error);
       }
     };
     
-    // Only check after a slight delay to not interfere with initial page load
-    const timer = setTimeout(checkToastDisplay, 3000);
-    return () => clearTimeout(timer);
-  }, [dismissCount, isToastShown, lastDismissed, platform, isInstalled, setIsToastShown]);
-
-  // Show iOS install instructions via toast
-  const showIosInstallToast = () => {
-    toast({
-      title: "Install Side Hustle App",
-      description: "Add to Home Screen for a better experience. Tap the share button and select 'Add to Home Screen'.",
-      duration: 10000, // 10 seconds
-      action: (
-        <ToastAction altText="Show installation instructions" onClick={showIosGuide}>
-          Show Me How
-        </ToastAction>
-      )
-    });
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
     
-    // Track dismissal manually since we can't use onDismiss
-    setTimeout(() => {
-      setDismissCount(dismissCount + 1);
-      setLastDismissed(Date.now());
-    }, 10000);
-  };
-
-  // Show iOS install guide as sheet
-  const showIosGuide = () => {
-    toast({
-      title: "Install on iOS",
-      description: (
-        <IosInstallGuide variant="compact" onInstallComplete={() => {
-          // Track successful installation attempt
-          try {
-            if (typeof (window as any).gtag === 'function') {
-              (window as any).gtag('event', 'ios_install_complete', {
-                event_category: 'engagement',
-                event_label: 'ios_toast'
-              });
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, [platform]);
+  
+  // Show installation toast based on platform
+  const showInstallToast = useCallback(() => {
+    if (isInstalled || !platform) return;
+    
+    if (platform === 'ios') {
+      toast(
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Install this app on your iPhone</div>
+          <IosInstallGuide variant="compact" />
+        </div>,
+        {
+          duration: 10000,
+          icon: <PlusCircle className="h-5 w-5" />,
+          action: {
+            label: "Got it",
+            onClick: () => {
+              setDismissCount(dismissCount + 1);
+              setLastDismissed(Date.now());
             }
-          } catch (error) {
-            console.error('Error tracking iOS installation completion:', error);
           }
-        }} />
-      ),
-      duration: 30000, // 30 seconds
-    });
-  };
-
-  // Handle Android/Desktop install
-  const handleInstall = async () => {
-    if (!deferredPrompt) {
-      // If no install prompt is available but on iOS, show the iOS guide
-      if (platform === 'ios') {
-        showIosGuide();
-      }
-      return;
+        }
+      );
+    } else if (platform === 'android' && !deferredPrompt) {
+      toast(
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Install this app on your Android device</div>
+          <div className="space-y-2 text-sm">
+            <p>1. Tap the menu button in your browser</p>
+            <p>2. Select "Install app" or "Add to Home Screen"</p>
+            <p>3. Follow the on-screen instructions</p>
+          </div>
+        </div>,
+        {
+          duration: 10000,
+          icon: <PlusCircle className="h-5 w-5" />,
+          action: {
+            label: "Got it",
+            onClick: () => {
+              setDismissCount(dismissCount + 1);
+              setLastDismissed(Date.now());
+            }
+          }
+        }
+      );
     }
-
-    // Show the install prompt
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+    
+    setIsToastShown(true);
+  }, [platform, isInstalled, deferredPrompt, dismissCount, setDismissCount, setLastDismissed, setIsToastShown]);
+  
+  // Show installation toast when appropriate
+  useEffect(() => {
+    // Don't show toast if already installed or no platform detected
+    if (isInstalled || !platform) return;
+    
+    // Check if we should show the toast based on dismiss count and time
+    const shouldShowToast = () => {
+      // Reset toast shown flag at the start of a new day
+      const now = new Date();
+      const lastShownDate = new Date(lastDismissed);
+      if (lastShownDate.getDate() !== now.getDate() || 
+          lastShownDate.getMonth() !== now.getMonth() || 
+          lastShownDate.getFullYear() !== now.getFullYear()) {
+        setIsToastShown(false);
+      }
       
-      // Track outcome
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-        try {
-          if (typeof (window as any).gtag === 'function') {
-            (window as any).gtag('event', 'app_install_success', {
-              event_category: 'engagement',
-              event_label: platform
-            });
-          }
-        } catch (error) {
-          console.error('Error tracking installation:', error);
+      // Don't show if already shown today
+      if (isToastShown) return false;
+      
+      // Show immediately for first-time visitors
+      if (dismissCount === 0) return true;
+      
+      // For repeat dismissals, gradually increase delay
+      const hoursSinceLastDismiss = (Date.now() - lastDismissed) / (1000 * 60 * 60);
+      const requiredHours = Math.min(dismissCount * 24, 168); // Cap at 7 days
+      
+      return hoursSinceLastDismiss >= requiredHours;
+    };
+    
+    // Show toast after a short delay if conditions are met
+    if (shouldShowToast()) {
+      const timer = setTimeout(() => {
+        showInstallToast();
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [platform, isInstalled, dismissCount, lastDismissed, isToastShown, showInstallToast, setIsToastShown]);
+  
+  // Handle install button click
+  const handleInstall = async () => {
+    if (isInstalled) return;
+    
+    try {
+      if (platform === 'android' && deferredPrompt) {
+        // Show native install prompt for Android
+        await deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        
+        if (choiceResult.outcome === 'accepted') {
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+        } else {
+          setDismissCount(dismissCount + 1);
+          setLastDismissed(Date.now());
         }
       } else {
-        setDismissCount(dismissCount + 1);
-        setLastDismissed(Date.now());
-        try {
-          if (typeof (window as any).gtag === 'function') {
-            (window as any).gtag('event', 'app_install_dismissed', {
-              event_category: 'engagement',
-              event_label: platform
-            });
-          }
-        } catch (error) {
-          console.error('Error tracking dismissal:', error);
+        // Show toast instructions for iOS or Android without native prompt
+        showInstallToast();
+      }
+      
+      // Track installation attempt
+      try {
+        if (typeof (window as any).gtag === 'function') {
+          (window as any).gtag('event', 'pwa_install_click', {
+            event_category: 'engagement',
+            event_label: platform
+          });
         }
+      } catch (error) {
+        console.error('Error tracking installation click:', error);
       }
     } catch (error) {
-      console.error('Error showing install prompt:', error);
+      console.error('Error installing app:', error);
+      
+      // Show error toast
+      toast.error("Couldn't install app", {
+        description: "Please try again or install manually from your browser menu",
+        duration: 5000,
+      });
     }
   };
-
-  // Don't render if already installed
+  
+  // Don't render anything if already installed
   if (isInstalled) return null;
-
-  // Render the appropriate button/trigger based on variant
-  switch(variant) {
-    case 'icon':
-      return (
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={platform === 'ios' ? showIosGuide : handleInstall}
-          className={`rounded-full ${className}`}
-          aria-label="Install app"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-      );
-    
-    case 'minimal':
-      return (
-        <button 
-          onClick={platform === 'ios' ? showIosGuide : handleInstall}
-          className={`text-sm text-muted-foreground flex items-center gap-1 ${className}`}
-        >
-          <Download className="h-4 w-4" />
-          Install App
-        </button>
-      );
-    
-    default:
-      return (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={platform === 'ios' ? showIosGuide : handleInstall}
-          className={`flex items-center gap-1 ${className}`}
-        >
-          <Download className="h-4 w-4" />
-          Install App
-        </Button>
-      );
+  
+  // Render based on variant
+  if (variant === 'icon') {
+    return (
+      <Button 
+        className={cn("p-0 h-9 w-9 rounded-full", className)}
+        onClick={handleInstall}
+        aria-label="Install app"
+      >
+        <Download className="h-4 w-4" />
+      </Button>
+    );
   }
+  
+  if (variant === 'minimal') {
+    return (
+      <button
+        onClick={handleInstall}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-sm font-medium",
+          className
+        )}
+      >
+        <Download className="h-4 w-4" />
+        Install App
+      </button>
+    );
+  }
+  
+  // Default button variant
+  return (
+    <Button
+      className={cn("gap-1.5", className)}
+      onClick={handleInstall}
+    >
+      <Download className="h-4 w-4" />
+      Install App
+    </Button>
+  );
 }

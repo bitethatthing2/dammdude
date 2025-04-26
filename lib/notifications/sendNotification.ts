@@ -12,21 +12,28 @@ export interface SendNotificationParams {
   token?: string;
   topic?: string;
   link?: string;
+  image?: string;
+  data?: Record<string, any>;
 }
 
 /**
  * @deprecated Use the /api/send-notification API route directly instead
+ * 
+ * This function is maintained for backward compatibility only.
+ * It forwards all requests to the /api/send-notification API route.
  */
 export async function sendNotification({ 
   title, 
   message, 
   token, 
   topic, 
-  link 
+  link,
+  image,
+  data
 }: SendNotificationParams): Promise<SendNotificationResponse> {
   console.warn('DEPRECATED: sendNotification utility is deprecated. Use /api/send-notification API route directly.');
   
-  // For backward compatibility, we'll call our API route instead of the Supabase Edge Function
+  // For backward compatibility, we'll call our API route
   const url = '/api/send-notification';
 
   const request: SendNotificationRequest = {
@@ -34,8 +41,15 @@ export async function sendNotification({
     body: message,
     token,
     topic,
-    link
+    link,
+    image,
+    data
   };
+
+  // If neither token nor topic is provided, send to all devices
+  if (!token && !topic) {
+    request.sendToAll = true;
+  }
 
   const res = await fetch(url, {
     method: 'POST',
