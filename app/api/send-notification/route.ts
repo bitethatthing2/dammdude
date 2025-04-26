@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SendNotificationRequest } from '@/lib/types/api';
-import admin from 'firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 import { initializeFirebaseAdmin, isFirebaseAdminInitialized, simulateNotificationResponse, getAdminMessaging } from '@/lib/firebase/admin';
 
@@ -129,6 +128,15 @@ export async function POST(request: NextRequest) {
     
     // Initialize Firebase Admin SDK
     const adminApp = initializeFirebaseAdmin();
+    
+    // Ensure Firebase Admin is properly initialized
+    if (!adminApp) {
+      console.error('Firebase Admin failed to initialize');
+      return NextResponse.json(
+        { error: 'Firebase Admin failed to initialize' },
+        { status: 500 }
+      );
+    }
     
     // Log initialization status for debugging
     console.log('Firebase Admin initialization status:', {
@@ -263,7 +271,16 @@ export async function POST(request: NextRequest) {
     };
     
     // Create Android specific configuration with proper Firebase typing
-    const androidConfig: admin.messaging.AndroidConfig = {
+    const androidConfig: {
+      priority: 'high' | 'normal';
+      notification?: {
+        icon?: string;
+        color?: string;
+        sound?: string;
+        clickAction?: string;
+        channelId?: string;
+      };
+    } = {
       priority: 'high', // Using literal string with allowed values
       notification: {
         icon: androidIcon,

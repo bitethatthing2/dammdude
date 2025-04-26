@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { validateFcmToken } from '@/lib/firebase/admin';
+import { validateFcmToken, initializeFirebaseAdmin, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
 
 // Interface for the request body containing the FCM token
 interface FcmTokenRequestBody {
@@ -13,6 +13,12 @@ interface FcmTokenRequestBody {
 export async function POST(request: NextRequest) {
   try {
     console.log('FCM token storage API called');
+    
+    // Ensure Firebase Admin is initialized
+    if (!isFirebaseAdminInitialized()) {
+      console.log('Initializing Firebase Admin in FCM token API');
+      initializeFirebaseAdmin();
+    }
     
     // Parse the request body
     const body: FcmTokenRequestBody = await request.json();
