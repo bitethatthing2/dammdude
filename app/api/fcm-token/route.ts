@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateFcmToken } from '@/lib/firebase/admin';
 
 // Interface for the request body containing the FCM token
 interface FcmTokenRequestBody {
@@ -32,6 +33,26 @@ export async function POST(request: NextRequest) {
       tokenLength: token.length,
     });
     
+    // Validate the token with Firebase before storing
+    try {
+      const isValid = await validateFcmToken(token);
+      
+      if (!isValid) {
+        console.warn('Token validation failed, not storing invalid token');
+        return NextResponse.json({
+          success: false,
+          warning: 'Token validation failed, please request a new token',
+        });
+      }
+      
+      console.log('Token validation successful, proceeding with storage');
+    } catch (validationError) {
+      console.error('Error validating token:', validationError);
+      // Continue with storage even if validation fails
+      // This allows tokens to be stored in development mode
+      console.log('Proceeding with token storage despite validation error');
+    }
+    
     // Initialize Supabase client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -46,39 +67,82 @@ export async function POST(request: NextRequest) {
     
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Simply attempt a direct insert - using UPSERT to handle duplicates
-    // Match the actual structure of the table: token, device_info, created_at, updated_at
-    const { error: upsertError } = await supabaseAdmin
+    // Check if token already exists
+    const { data: existingToken, error: checkError } = await supabaseAdmin
       .from('fcm_tokens')
-      .upsert(
-        { 
-          token,
-          device_info: { 
-            userAgent: request.headers.get('user-agent') || 'unknown',
-            lastActive: new Date().toISOString()
-          },
-          // updated_at will be set automatically by the database's default value
-        },
-        { 
-          onConflict: 'token',
-          // Update only the updated_at field on conflict
-          update: ['updated_at', 'device_info']
-        }
-      );
+      .select('token, created_at')
+      .eq('token', token)
+      .single();
     
-    if (upsertError) {
-      console.error('Error storing FCM token:', upsertError);
-      
-      // Gracefully handle the error - still return 200 to allow notifications to work
-      return NextResponse.json({ 
-        success: true, 
-        warning: 'Token storage issue, but notifications will still work',
-        details: upsertError.message 
-      });
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is the "not found" error
+      console.error('Error checking for existing token:', checkError);
     }
     
-    console.log('FCM token stored or updated successfully');
-    return NextResponse.json({ success: true });
+    // Get device information
+    const deviceInfo = {
+      userAgent: request.headers.get('user-agent') || 'unknown',
+      lastActive: new Date().toISOString(),
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      platform: getPlatformFromUserAgent(request.headers.get('user-agent') || ''),
+    };
+    
+    if (existingToken) {
+      // Token exists, update the last active time and device info
+      console.log('Token already exists, updating last active time');
+      
+      const { error: updateError } = await supabaseAdmin
+        .from('fcm_tokens')
+        .update({
+          device_info: deviceInfo,
+          updated_at: new Date().toISOString()
+        })
+        .eq('token', token);
+      
+      if (updateError) {
+        console.error('Error updating token:', updateError);
+        return NextResponse.json({
+          success: true,
+          warning: 'Token update issue, but notifications will still work',
+          details: updateError.message
+        });
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Token updated successfully'
+      });
+    } else {
+      // New token, insert it
+      console.log('Inserting new token');
+      
+      const { error: insertError } = await supabaseAdmin
+        .from('fcm_tokens')
+        .insert([
+          {
+            token,
+            device_info: deviceInfo,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]);
+      
+      if (insertError) {
+        console.error('Error storing FCM token:', insertError);
+        
+        // Gracefully handle the error - still return 200 to allow notifications to work
+        return NextResponse.json({
+          success: true,
+          warning: 'Token storage issue, but notifications will still work',
+          details: insertError.message
+        });
+      }
+      
+      console.log('FCM token stored successfully');
+      return NextResponse.json({
+        success: true,
+        message: 'Token stored successfully'
+      });
+    }
   } catch (error) {
     console.error('Error processing FCM token request:', error);
     
@@ -88,5 +152,26 @@ export async function POST(request: NextRequest) {
       warning: 'Token storage failed, but notifications will still work',
       details: error instanceof Error ? error.message : String(error)
     });
+  }
+}
+
+/**
+ * Helper function to determine platform from user agent
+ */
+function getPlatformFromUserAgent(userAgent: string): string {
+  const ua = userAgent.toLowerCase();
+  
+  if (ua.includes('android')) {
+    return 'android';
+  } else if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+    return 'ios';
+  } else if (ua.includes('windows')) {
+    return 'windows';
+  } else if (ua.includes('mac')) {
+    return 'mac';
+  } else if (ua.includes('linux')) {
+    return 'linux';
+  } else {
+    return 'unknown';
   }
 }

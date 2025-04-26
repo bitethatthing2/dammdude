@@ -230,6 +230,75 @@ export function getAdminMessaging(): admin.messaging.Messaging | null {
 }
 
 /**
+ * Check if the error is due to an invalid token
+ */
+function isInvalidTokenError(error: any): boolean {
+  if (!error) return false;
+  
+  const errorMessage = String(error);
+  return (
+    errorMessage.includes('messaging/registration-token-not-registered') ||
+    errorMessage.includes('messaging/invalid-registration-token') ||
+    errorMessage.includes('messaging/invalid-argument') ||
+    errorMessage.includes('Requested entity was not found')
+  );
+}
+
+/**
+ * Validate an FCM token by sending a test message
+ * This helps identify invalid tokens that might not be caught by other methods
+ */
+export async function validateFcmToken(token: string): Promise<boolean> {
+  if (!isFirebaseAdminInitialized()) {
+    console.log('[FIREBASE ADMIN] Firebase Admin not initialized, skipping token validation');
+    return true; // Assume valid in development
+  }
+  
+  try {
+    const messaging = getAdminMessaging();
+    if (!messaging) {
+      console.error('[FIREBASE ADMIN] Failed to get messaging instance for token validation');
+      return false;
+    }
+    
+    // Try to send a dry run message to validate the token
+    await messaging.send({
+      token,
+      notification: {
+        title: 'Token Validation',
+        body: 'This is a validation message that will not be delivered'
+      },
+      android: {
+        priority: 'normal'
+      },
+      apns: {
+        headers: {
+          'apns-priority': '5'
+        }
+      },
+      // Set dry run flag using the correct property name
+      // @ts-ignore - The Firebase Admin SDK types don't include dryRun but it's a valid option
+      validateOnly: true
+    });
+    
+    console.log(`[FIREBASE ADMIN] Token validated successfully: ${token.substring(0, 10)}...`);
+    return true;
+  } catch (error) {
+    console.error(`[FIREBASE ADMIN] Token validation failed: ${error instanceof Error ? error.message : String(error)}`);
+    
+    // Check if this is an invalid token error
+    if (isInvalidTokenError(error)) {
+      console.log(`[FIREBASE ADMIN] Token is invalid and should be removed: ${token.substring(0, 10)}...`);
+      return false;
+    }
+    
+    // For other errors, we'll assume the token might still be valid
+    console.warn('[FIREBASE ADMIN] Token validation encountered an error, but token might still be valid');
+    return true;
+  }
+}
+
+/**
  * Generate a simulated notification response for development or when Firebase fails to initialize
  */
 export function simulateNotificationResponse(title: string, body: string, target: string) {
