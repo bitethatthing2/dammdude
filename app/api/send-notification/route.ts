@@ -71,11 +71,22 @@ function isInvalidTokenError(error: any): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('Send notification API called');
+    
     // Initialize Firebase Admin SDK
-    initializeFirebaseAdmin();
+    const adminApp = initializeFirebaseAdmin();
+    
+    // Log initialization status for debugging
+    console.log('Firebase Admin initialization status:', {
+      initialized: isFirebaseAdminInitialized(),
+      hasApp: !!adminApp,
+      environment: process.env.NODE_ENV
+    });
 
     // Assume the request body might have the notification nested or flat
     const rawBody = await request.json();
+    console.log('Raw notification request body:', JSON.stringify(rawBody, null, 2));
+    
     const notificationData = rawBody.notification || rawBody; // Use nested or top-level
     const body: SendNotificationRequest = {
       ...rawBody, // Keep other potential top-level fields like token, topic, sendToAll
@@ -130,9 +141,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to Supabase Admin to manage tokens
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase credentials for token management');
+      // Continue without token management capabilities
+    }
+    
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      supabaseUrl,
+      supabaseServiceKey
     );
 
     let messageIds: string[] = [];
@@ -151,15 +170,23 @@ export async function POST(request: NextRequest) {
       imageUrl: body.image || androidBigIcon // Use image or fall back to big icon
     };
 
-    // Create the data payload separately
-    const dataPayload = {
-      ...(body.data || {}),
-      link: body.link || '',
+    // Create the data payload separately - ensure all values are strings
+    const dataPayload: Record<string, string> = {
       title: body.title,
       body: body.body,
-      image: body.image || androidBigIcon,
       click_action: "FLUTTER_NOTIFICATION_CLICK"
     };
+    
+    // Add optional fields to data payload if they exist
+    if (body.link) dataPayload.link = body.link;
+    if (body.image) dataPayload.image = body.image;
+    
+    // Add any custom data fields
+    if (body.data) {
+      Object.entries(body.data).forEach(([key, value]) => {
+        dataPayload[key] = String(value); // Ensure all values are strings
+      });
+    }
 
     // Create the webpush configuration separately
     const webPushConfig = {
@@ -197,35 +224,35 @@ export async function POST(request: NextRequest) {
     if (body.sendToAll) {
       console.log('Sending to all devices (querying database for tokens)');
       
-      // Get all FCM tokens
-      const { data: tokensData, error } = await supabaseAdmin
-        .from('fcm_tokens')
-        .select('token')
-        .order('created_at', { ascending: false })
-        .limit(1000);
-
-      if (error) {
-        console.error('Error fetching tokens:', error);
-        return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 });
-      }
-
-      if (!tokensData || tokensData.length === 0) {
-        console.warn('No FCM tokens found');
-        return NextResponse.json({ 
-          success: true, 
-          warning: 'No registered devices found', 
-          tokenCount: 0,
-          recipients: 0 
-        });
-      }
-
-      // Extract the tokens
-      const tokens = tokensData.map((t: { token: string }) => t.token);
-      tokenCount = tokens.length;
-
-      console.log(`Sending to ${tokens.length} devices`);
-
       try {
+        // Get all FCM tokens
+        const { data: tokensData, error } = await supabaseAdmin
+          .from('fcm_tokens')
+          .select('token')
+          .order('created_at', { ascending: false })
+          .limit(1000);
+  
+        if (error) {
+          console.error('Error fetching tokens:', error);
+          return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 });
+        }
+  
+        if (!tokensData || tokensData.length === 0) {
+          console.warn('No FCM tokens found');
+          return NextResponse.json({ 
+            success: true, 
+            warning: 'No registered devices found', 
+            tokenCount: 0,
+            recipients: 0 
+          });
+        }
+  
+        // Extract the tokens
+        const tokens = tokensData.map((t: { token: string }) => t.token);
+        tokenCount = tokens.length;
+  
+        console.log(`Sending to ${tokens.length} devices`);
+  
         // Send to multiple devices
         const response = await messaging.sendEachForMulticast({
           tokens,
@@ -234,14 +261,14 @@ export async function POST(request: NextRequest) {
           webpush: webPushConfig,
           android: androidConfig
         });
-
+  
         // Handle response
         console.log('Multicast send results:', {
           successCount: response.successCount,
           failureCount: response.failureCount,
           responses: response.responses.length
         });
-
+  
         // Handle token cleanup for failures
         if (response.failureCount > 0) {
           // Create an array of promises for removing tokens
@@ -258,16 +285,16 @@ export async function POST(request: NextRequest) {
               );
             }
           });
-
+  
           await Promise.all(failedTokenPromises);
         }
-
+  
         // Set message IDs for response - this ensures we only include defined strings
         messageIds = response.responses
           .filter(resp => resp.success && resp.messageId)
           .map(resp => resp.messageId!)
           .filter(id => typeof id === 'string') as string[];
-
+  
         return NextResponse.json({
           success: true,
           messageIds,
