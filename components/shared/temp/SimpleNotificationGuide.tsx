@@ -1,36 +1,43 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useFcmContext, getNotificationPermissionAndToken } from '@/lib/hooks/useFcmToken';
 
-interface NotificationGuideProps {
+interface SimpleNotificationGuideProps {
   variant?: 'button' | 'icon' | 'minimal';
   className?: string;
 }
 
-export default function NotificationGuide({ 
+export function SimpleNotificationGuide({ 
   variant = 'button',
   className = ''
-}: NotificationGuideProps) {
-  const [permissionState, setPermissionState] = useState<'default' | 'denied' | 'granted'>('default');
+}: SimpleNotificationGuideProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const { notificationPermissionStatus } = useFcmContext();
+  
+  // Check if browser supports notifications
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window;
+  const permissionState = notificationPermissionStatus || 'default';
 
-  // Check current notification permission on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermissionState(Notification.permission as 'default' | 'denied' | 'granted');
-    }
-  }, []);
-
-  // Request notification permission
-  const requestPermission = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      try {
-        const permission = await Notification.requestPermission();
-        setPermissionState(permission as 'default' | 'denied' | 'granted');
-      } catch (error) {
-        console.error('Error requesting notification permission:', error);
+  // Request notification permission and register FCM token
+  const handleRequestPermission = async () => {
+    if (!isSupported) return;
+    
+    setIsLoading(true);
+    try {
+      const token = await getNotificationPermissionAndToken();
+      if (token) {
+        console.log('FCM token registered successfully');
+      } else {
+        console.warn('Failed to register FCM token');
       }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,39 +45,54 @@ export default function NotificationGuide({
   if (variant === 'button') {
     return (
       <Button 
-        onClick={requestPermission}
-        className={`gap-2 bg-background text-foreground border border-input ${className}`}
-        disabled={permissionState === 'granted'}
+        onClick={handleRequestPermission}
+        className={cn("gap-2 bg-background text-foreground border border-input", className)}
+        disabled={permissionState === 'granted' || isLoading}
       >
-        <Bell className="h-4 w-4" />
-        {permissionState === 'granted' ? 'Notifications Enabled' : 'Enable Notifications'}
+        <Bell className={cn("h-4 w-4", isLoading && "animate-pulse")} />
+        {isLoading 
+          ? 'Enabling...' 
+          : permissionState === 'granted' 
+            ? 'Notifications Enabled' 
+            : 'Enable Notifications'}
       </Button>
     );
   } 
   
   if (variant === 'icon') {
+    // Use a custom button element to avoid TypeScript issues with the Button component
     return (
-      <Button 
-        onClick={requestPermission}
-        variant="ghost" 
-        size="icon"
-        className={`bg-background text-foreground ${className}`}
-        disabled={permissionState === 'granted'}
+      <button
+        onClick={handleRequestPermission}
+        className={cn(
+          "inline-flex items-center justify-center rounded-md text-sm font-medium",
+          "h-9 w-9 bg-transparent hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          className
+        )}
+        disabled={permissionState === 'granted' || isLoading}
+        type="button"
+        aria-label={isLoading ? 'Enabling...' : permissionState === 'granted' ? 'Notifications Enabled' : 'Enable Notifications'}
       >
-        <Bell className="h-5 w-5" />
-        <span className="sr-only">Enable Notifications</span>
-      </Button>
+        <Bell className={cn("h-5 w-5", isLoading && "animate-pulse")} />
+      </button>
     );
   }
   
   // Default minimal variant
   return (
     <span 
-      onClick={requestPermission}
-      className={`cursor-pointer flex items-center gap-1 text-foreground ${className}`}
+      onClick={handleRequestPermission}
+      className={cn("cursor-pointer flex items-center gap-1 text-foreground", className)}
     >
-      <Bell className="h-4 w-4" />
-      <span>{permissionState === 'granted' ? 'Notifications Enabled' : 'Enable Notifications'}</span>
+      <Bell className={cn("h-4 w-4", isLoading && "animate-pulse")} />
+      <span>
+        {isLoading 
+          ? 'Enabling...' 
+          : permissionState === 'granted' 
+            ? 'Notifications Enabled' 
+            : 'Enable Notifications'}
+      </span>
     </span>
   );
 }
