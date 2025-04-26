@@ -292,92 +292,100 @@ export async function POST(request: NextRequest) {
     if (body.sendToAll) {
       console.log('Sending to all devices (querying database for tokens)');
       
+      // Get all tokens from the database
+      const { data: tokensData, error: tokensError } = await supabaseAdmin
+        .from('fcm_tokens')
+        .select('token')
+        .order('created_at', { ascending: false });
+      
+      if (tokensError) {
+        console.error('Error fetching tokens:', tokensError);
+        return NextResponse.json(
+          { error: 'Failed to fetch tokens', details: tokensError.message },
+          { status: 500 }
+        );
+      }
+      
+      if (!tokensData || tokensData.length === 0) {
+        console.log('No tokens found in database');
+        return NextResponse.json(
+          { success: true, recipients: 0, message: 'No devices registered for notifications' }
+        );
+      }
+      
+      // Extract tokens and filter out obviously invalid ones
+      const tokens = tokensData
+        .map((t: { token: string }) => t.token)
+        .filter((token: string) => 
+          token && 
+          token.length > 100 && 
+          token !== 'undefined' && 
+          token !== 'null'
+        );
+      
+      console.log(`Sending to ${tokens.length} devices`);
+      
+      // If no valid tokens, return early
+      if (tokens.length === 0) {
+        console.log('No valid tokens found after filtering');
+        return NextResponse.json(
+          { success: true, recipients: 0, message: 'No valid devices registered for notifications' }
+        );
+      }
+      
+      // Send multicast message
       try {
-        // Get all FCM tokens
-        const { data: tokensData, error } = await supabaseAdmin
-          .from('fcm_tokens')
-          .select('token')
-          .order('created_at', { ascending: false })
-          .limit(1000);
-  
-        if (error) {
-          console.error('Error fetching tokens:', error);
-          return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 });
-        }
-  
-        if (!tokensData || tokensData.length === 0) {
-          console.warn('No FCM tokens found');
-          return NextResponse.json({ 
-            success: true, 
-            warning: 'No registered devices found', 
-            tokenCount: 0,
-            recipients: 0 
-          });
-        }
-  
-        // Extract the tokens
-        const tokens = tokensData.map((t: { token: string }) => t.token);
-        tokenCount = tokens.length;
-  
-        console.log(`Sending to ${tokens.length} devices`);
-  
-        // Send to multiple devices
-        const response = await messaging.sendEachForMulticast({
-          tokens,
+        // Use sendEachForMulticast instead of sendMulticast (which might not be available in this version)
+        const batchResponse = await messaging.sendEachForMulticast({
+          tokens: tokens,
           notification: notificationPayload,
           data: dataPayload,
           webpush: webPushConfig,
           android: androidConfig
         });
-  
-        // Handle response
-        console.log('Multicast send results:', {
-          successCount: response.successCount,
-          failureCount: response.failureCount,
-          responses: response.responses.length
-        });
-  
-        // Handle token cleanup for failures
-        if (response.failureCount > 0) {
-          // Create an array of promises for removing tokens
-          const failedTokenPromises = [] as Promise<boolean | null>[];
-          
-          response.responses.forEach((resp, idx) => {
-            if (!resp.success && isInvalidTokenError(resp.error)) {
-              // Remove invalid token and track for reporting
-              failedTokenPromises.push(
-                removeInvalidToken(tokens[idx], supabaseAdmin).then(success => {
-                  if (success) invalidTokensRemoved++;
-                  return null;
-                })
-              );
+        
+        console.log(`Multicast send results: { successCount: ${batchResponse.successCount}, failureCount: ${batchResponse.failureCount}, responses: ${batchResponse.responses.length} }`);
+        
+        // Handle failed tokens
+        const failedTokens: string[] = [];
+        batchResponse.responses.forEach((resp: any, idx: number) => {
+          if (!resp.success) {
+            const failedToken = tokens[idx];
+            console.log(`Failed to send to token: ${failedToken.substring(0, 10)}... Error: ${resp.error?.message || 'Unknown error'}`);
+            
+            // Check if token is invalid and should be removed
+            if (resp.error && isInvalidTokenError(resp.error)) {
+              failedTokens.push(failedToken);
             }
-          });
-  
-          await Promise.all(failedTokenPromises);
+          }
+        });
+        
+        // Remove invalid tokens
+        let removedCount = 0;
+        if (failedTokens.length > 0) {
+          console.log(`Removing ${failedTokens.length} invalid tokens`);
+          
+          for (const token of failedTokens) {
+            const removed = await removeInvalidToken(token, supabaseAdmin);
+            if (removed) removedCount++;
+          }
+          
+          console.log(`Removed ${removedCount} invalid tokens`);
         }
-  
-        // Set message IDs for response - this ensures we only include defined strings
-        messageIds = response.responses
-          .filter(resp => resp.success && resp.messageId)
-          .map(resp => resp.messageId!)
-          .filter(id => typeof id === 'string') as string[];
-  
+        
         return NextResponse.json({
           success: true,
-          messageIds,
-          recipients: response.successCount,
-          failures: response.failureCount,
-          invalidTokensRemoved,
-          totalTokens: tokenCount
+          successCount: batchResponse.successCount,
+          failureCount: batchResponse.failureCount,
+          invalidTokensRemoved: removedCount
         });
       } catch (error) {
-        console.error('Error sending multicast notification:', error);
+        console.error('Error sending multicast message:', error);
         return NextResponse.json(
           { 
-            error: 'Failed to send notification to devices',
+            error: 'Failed to send multicast message',
             errorDetails: error instanceof Error ? error.message : String(error)
-          }, 
+          },
           { status: 500 }
         );
       }
@@ -406,7 +414,7 @@ export async function POST(request: NextRequest) {
           { 
             error: `Failed to send to topic: ${body.topic}`,
             errorDetails: error instanceof Error ? error.message : String(error)
-          }, 
+          },
           { status: 500 }
         );
       }
