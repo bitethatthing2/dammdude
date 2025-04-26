@@ -5,7 +5,10 @@ async function sendTestNotification() {
   try {
     console.log('Sending test notification...');
     
-    const response = await fetch('http://localhost:3000/api/send-notification', {
+    // Use the production URL instead of localhost
+    const baseUrl = 'https://dammdude.vercel.app';
+    
+    const response = await fetch(`${baseUrl}/api/send-notification`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,6 +36,7 @@ async function sendTestNotification() {
       }
     } else {
       console.error('❌ Failed to send test notification:', data.error);
+      console.error('Error details:', data.errorDetails || 'No additional details');
     }
   } catch (error) {
     console.error('Error sending test notification:', error);
