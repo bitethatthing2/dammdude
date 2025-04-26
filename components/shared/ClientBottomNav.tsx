@@ -32,3 +32,6 @@ export function ClientBottomNav() {
     </NotificationProvider>
   );
 }
+
+// Add default export for compatibility with dynamic imports
+export default ClientBottomNav;

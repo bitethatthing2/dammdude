@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 
 // Import the client components with no SSR to avoid hydration issues
 const HeaderLogo = dynamic(() => import('@/components/shared/HeaderLogo'), { ssr: false });
-const ClientBottomNav = dynamic(() => import('@/components/shared/ClientBottomNav').then(mod => mod.ClientBottomNav), { ssr: false });
+const ClientBottomNav = dynamic(() => import('@/components/shared/ClientBottomNav'), { ssr: false });
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
