@@ -13,32 +13,36 @@ interface EventCardProps {
 }
 
 export const EventCard = ({ event }: EventCardProps) => {
-  // Format date for display (YYYY-MM-DD to readable format)
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+  // Format date for display
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    });
   };
-  
+
+  // Format time for display
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   // Determine if event is in the past
   const isPastEvent = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const eventDate = new Date(event.event_date);
+    const eventDate = new Date(event.date);
     return eventDate < today;
   };
 
   // Handle price display if available
   const formatPrice = (price?: number) => {
-    if (!price) return null;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    if (!price) return 'Free';
+    return `$${price.toFixed(2)}`;
   };
 
   // Placeholder for image loading or error
@@ -54,7 +58,7 @@ export const EventCard = ({ event }: EventCardProps) => {
       <div className="relative">
         <AspectRatio ratio={16/9}>
           <Image 
-            src={event.image_url} 
+            src={event.image} 
             alt={event.title}
             fill
             className="object-cover transition-transform group-hover:scale-105"
@@ -90,11 +94,11 @@ export const EventCard = ({ event }: EventCardProps) => {
         <div className="flex flex-wrap gap-3 mt-2 text-muted-foreground text-sm">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            <span>{formatDate(event.event_date)}</span>
+            <span>{formatDate(event.date)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            <span>{event.event_time}</span>
+            <span>{formatTime(event.date)}</span>
           </div>
         </div>
         

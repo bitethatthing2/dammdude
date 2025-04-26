@@ -7,11 +7,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Utensils, CalendarDays, BookOpen, ShoppingBag } from "lucide-react";
 import { Lock } from "lucide-react"; 
-import NotificationGuide from '@/components/shared/NotificationGuide';
-import PwaInstallGuide from '@/components/shared/PwaInstallGuide';
-import { NotificationStatus } from '@/components/shared/NotificationStatus';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+
+// Dynamically import components that use browser APIs
+const NotificationGuide = dynamic(() => import('@/components/shared/NotificationGuide'), { ssr: false });
+const PwaInstallGuide = dynamic(() => import('@/components/shared/PwaInstallGuide'), { ssr: false });
+const NotificationStatus = dynamic(() => import('@/components/shared/NotificationStatus').then(mod => mod.NotificationStatus), { ssr: false });
 
 // Safe component without direct icon references
 const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {

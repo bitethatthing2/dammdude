@@ -14,12 +14,14 @@ export interface CartItem extends MenuItem {
 // Define the shape of the cart state and actions
 interface CartState {
   items: CartItem[];
+  showCart: boolean;
   addItem: (item: MenuItem) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
+  toggleCart: () => void;
 }
 
 // Define the persist options separately for clarity
@@ -33,6 +35,7 @@ export const useCartState = create<CartState>( // Type create directly
   persist(
     (set, get, api) => ({ // Use full (set, get, api) signature
       items: [],
+      showCart: false,
       addItem: (item) => {
         set((state) => {
           const existingItem = state.items.find((i) => i.id === item.id);
@@ -74,6 +77,9 @@ export const useCartState = create<CartState>( // Type create directly
       },
       getTotalItems: () => {
         return get().items.reduce((total, item) => total + item.quantity, 0);
+      },
+      toggleCart: () => {
+        set((state) => ({ showCart: !state.showCart }));
       },
     }),
     persistOptions

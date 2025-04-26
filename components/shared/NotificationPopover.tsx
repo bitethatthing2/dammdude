@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCircle, Info, TriangleAlert, XCircle, X } from "lucide-react";
+import { Bell, CheckCircle, Info, AlertTriangle, XCircle, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,7 +35,7 @@ export function NotificationPopover() {
       case "info":
         return <Info className="h-4 w-4 text-blue-500" />;
       case "warning":
-        return <TriangleAlert className="h-4 w-4 text-amber-500" />;
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       case "error":
         return <XCircle className="h-4 w-4 text-destructive" />;
       default:

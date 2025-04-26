@@ -3,9 +3,10 @@ export interface MerchItem {
   name: string;
   description?: string;
   price: number;
-  imageUrl: string;  // Image URL is mandatory for merchandise
+  image: string;  // Changed from imageUrl to match mock data
   category_id: string;
-  available: boolean;
+  in_stock: boolean;  // Changed from available to match mock data
+  location?: 'salem' | 'portland' | 'both';  // Added location field
   popular?: boolean;
   variants?: MerchVariant[];
   metadata?: Record<string, unknown>;
@@ -22,9 +23,6 @@ export interface MerchVariant {
 export interface MerchCategory {
   id: string;
   name: string;
+  display_order?: number;
   description?: string;
-  items: MerchItem[];
-  display_order: number;
-  icon?: string;  // Icon identifier for the category
-  location?: 'salem' | 'portland' | 'both';
 }

@@ -47,12 +47,13 @@ const BOOKING_TYPES: { value: BookingType; label: string }[] = [
   { value: 'Catering', label: 'Catering' },
 ];
 
-interface BookingFormProps {
-  onSuccess: () => void;
+export interface BookingFormProps {
+  onSuccessAction: () => void;
+  location?: 'portland' | 'salem';
 }
 
-export function BookingForm({ onSuccess }: BookingFormProps) {
-  const { location } = useLocationState();
+export function BookingForm({ onSuccessAction, location }: BookingFormProps) {
+  const { location: locationState } = useLocationState();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -87,6 +88,9 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     
     if (!validateForm()) return;
     
+    setIsSubmitting(true);
+    
+    // Construct the booking request
     const bookingRequest: BookingRequest = {
       name,
       contact_info: contactInfo,
@@ -95,46 +99,23 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
       party_size: partySize,
       booking_type: bookingType,
       notes: notes.trim() || undefined,
-      location_id: location,
+      location_id: location || locationState,
       status: 'pending'
     };
     
-    setIsSubmitting(true);
-    
     try {
-      // Submit the booking request
-      const result = await submitBookingRequest(bookingRequest);
-      
-      if (result.success) {
-        toast({
-          title: "Booking Request Submitted",
-          description: "We'll contact you shortly to confirm your reservation.",
-          variant: "default",
-        });
-        
-        // Reset form on success
-        setName('');
-        setContactInfo('');
-        setPartySize(2);
-        setDate(undefined);
-        setTime(undefined);
-        setBookingType('Table');
-        setNotes('');
-        
-        onSuccess();
-      } else {
-        toast({
-          title: "Submission Failed",
-          description: result.message || "There was an error submitting your request. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error submitting booking request:', error);
+      await submitBookingRequest(bookingRequest);
       toast({
-        title: "Submission Failed",
-        description: "There was an error submitting your request. Please try again.",
-        variant: "destructive",
+        title: "Booking request submitted",
+        description: "We'll contact you shortly to confirm your reservation.",
+      });
+      onSuccessAction();
+    } catch (error) {
+      console.error("Error submitting booking request:", error);
+      toast({
+        title: "Something went wrong",
+        description: "Unable to submit your booking request. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);

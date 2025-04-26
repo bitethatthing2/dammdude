@@ -8,6 +8,7 @@ import { useLocationState } from '@/lib/hooks/useLocationState';
 import { useCartState } from '@/lib/hooks/useCartState';
 import type { MenuCategory, MenuItem } from '@/lib/types/menu';
 import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
 
 // --- Side Hustle Bar Menu Data ---
 const placeholderImg = '/images/food-placeholder.webp'; // Placeholder image
@@ -332,119 +333,106 @@ const SIDE_HUSTLE_MENU_DATA: MenuCategory[] = [
   }
 ];
 
-// Mock function for Supabase data fetching (replace with actual fetch)
-async function fetchMenuData(): Promise<MenuCategory[]> {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 50));
-  // In a real app, fetch from Supabase
-  // const { data, error } = await supabase.from('categories').select('*, items(*)');
-  // if (error) console.error('Error fetching menu:', error);
-  // return data || [];
-  return SIDE_HUSTLE_MENU_DATA; // Return the hardcoded data for now
-}
+// Client-side only component for the cart button
+const CartButton = dynamic(() => Promise.resolve(({ itemCount, onClick }: { itemCount: number; onClick: () => void }) => (
+  <Button 
+    onClick={onClick}
+    size="lg" 
+    className="fixed bottom-20 right-4 z-40 shadow-lg rounded-full h-14 w-14 p-0 flex items-center justify-center"
+  >
+    <ShoppingCart className="h-6 w-6" />
+    {itemCount > 0 && (
+      <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full h-6 w-6 flex items-center justify-center">
+        {itemCount}
+      </span>
+    )}
+  </Button>
+)), { ssr: false });
 
 export default function MenuPage() {
-  const { location } = useLocationState(); // Fix: Use 'location'
-  const { items: cart, addItem, getTotalPrice } = useCartState(); // Fix: Use 'items' as 'cart', 'addItem', 'getTotalPrice'
-  const [menuData, setMenuData] = useState<MenuCategory[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null); // Fix: Rename state
-  const [isLoading, setIsLoading] = useState(true);
-  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  useEffect(() => {
-    setIsLoading(true);
-    fetchMenuData()
-      .then(data => {
-        // Filter by location if needed (example)
-        const filteredData = data; // Add location filtering logic here if necessary
-        setMenuData(filteredData);
-        if (filteredData.length > 0 && !activeCategory) { // Fix: Use activeCategory
-          setActiveCategory(filteredData[0].id); // Fix: Use setActiveCategory
-        }
-      })
-      .catch(error => console.error('Failed to load menu data:', error))
-      .finally(() => setIsLoading(false));
-  }, [location, activeCategory]); // Fix: Use location, activeCategory
-
-  const handleCategoryChange = (categoryId: string) => { // Fix: Rename handler
-    setActiveCategory(categoryId); // Fix: Use setActiveCategory
-    const element = categoryRefs.current[categoryId];
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // Add offset for sticky header if necessary
-      // window.scrollBy(0, -80); // Example offset
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [menuData, setMenuData] = useState<MenuCategory[]>(SIDE_HUSTLE_MENU_DATA);
+  const [isLoading, setIsLoading] = useState(false);
+  const { location } = useLocationState();
+  const { items, addItem, toggleCart } = useCartState();
+  const categoryRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+  
+  // Calculate total items in cart
+  const cartItemCount = items.reduce((total: number, item: any) => total + item.quantity, 0);
+  
+  // Scroll to category when clicked in the navigation
+  const handleCategoryChange = (categoryId: string) => {
+    if (categoryRefs.current[categoryId]) {
+      categoryRefs.current[categoryId]?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+      setActiveCategory(categoryId);
     }
   };
-
-  const handleAddToCart = (item: MenuItem) => { // Use the correct hook function name
-    console.log('Adding to cart:', item);
-    addItem(item); // Fix: Use 'addItem'
-    // Optionally show a toast notification
-  };
-
-  // Filter categories/items based on location - placeholder
-  const displayedCategories = menuData.filter(category => {
-    // Add logic here if menu differs by location (Portland/Salem)
-    // return !category.location || category.location === location; // Fix: Use location
-    return true; // Show all for now
-  }).sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99));
-
-  if (isLoading) {
-    return <div className="container mx-auto px-4 py-8 text-center">Loading menu...</div>;
-  }
-
-  if (!menuData || menuData.length === 0) {
-    return <div className="container mx-auto px-4 py-8 text-center">Menu not available.</div>;
-  }
-
+  
+  // Set active category based on scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 100; // Offset for header
+      
+      // Find the current active category based on scroll position
+      let currentCategory = '';
+      Object.entries(categoryRefs.current).forEach(([id, ref]) => {
+        if (ref && ref.offsetTop <= scrollPosition) {
+          currentCategory = id;
+        }
+      });
+      
+      if (currentCategory !== activeCategory) {
+        setActiveCategory(currentCategory);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeCategory]);
+  
   return (
-    <div className="container mx-auto px-0 sm:px-4 py-4">
-      <div className="sticky top-[56px] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b mb-6">
-        <CategoryNav
-          categories={displayedCategories}
-          activeCategory={activeCategory || ''} // Fix: Pass activeCategory, provide default
-          onCategoryChangeAction={handleCategoryChange} // Fix: Pass correct handler name
+    <div className="container pb-20">
+      <div className="sticky top-0 z-30 bg-background pt-4 pb-2">
+        <h1 className="text-3xl font-bold mb-4">Menu</h1>
+        <CategoryNav 
+          categories={menuData} 
+          activeCategory={activeCategory}
+          onCategoryChangeAction={handleCategoryChange}
         />
       </div>
-
-      <div className="px-2 sm:px-0">
-        {displayedCategories.map((category) => (
-          <div
+      
+      <div className="mt-6">
+        {menuData.map((category) => (
+          <div 
             key={category.id}
-            ref={(el) => { categoryRefs.current[category.id] = el; }} // Fix: Correct ref callback signature
-            className="mb-12 scroll-mt-24" // Added scroll-mt for sticky nav offset
+            id={category.id}
+            ref={(el) => {
+              categoryRefs.current[category.id] = el;
+            }}
+            className="mb-10"
           >
-            <h2 className="text-2xl font-bold mb-4 border-b pb-2">{category.name}</h2>
-            {category.description && <p className="text-muted-foreground mb-4 italic">{category.description}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <h2 className="text-2xl font-semibold mb-4">{category.name}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {category.items
-                // Optional: Filter items based on location
-                // .filter(item => !item.location || item.location === location) // Fix: Use location
+                .filter(item => !item.location || item.location === 'both' || item.location === location)
                 .map((item) => (
-                  <MenuItemCard
-                    key={item.id}
-                    item={item}
-                    onAddToCart={handleAddToCart}
-                    isOrderable={item.isOrderable} // Pass the flag here
+                  <MenuItemCard 
+                    key={item.id} 
+                    item={item} 
+                    onAddToCart={() => addItem(item)}
                   />
-                ))}
+                ))
+              }
             </div>
           </div>
         ))}
       </div>
-
-      {/* Optional: Cart Summary/Checkout Button */}
-      {cart.length > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t shadow-lg z-40">
-          <div className="container mx-auto flex justify-between items-center">
-            <span className="font-semibold">{cart.length} items</span>
-            <Button>
-              View Order (${getTotalPrice().toFixed(2)}) {/* Fix: Use getTotalPrice */}
-              <ShoppingCart className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      
+      {/* Cart button - dynamically loaded to avoid SSR issues */}
+      <CartButton itemCount={cartItemCount} onClick={toggleCart} />
     </div>
   );
 }

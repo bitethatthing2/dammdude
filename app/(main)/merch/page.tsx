@@ -11,46 +11,89 @@ import { Button } from '@/components/ui/button';
 // Define the expected shape for placeholder/future data
 type CategoryWithItems = MerchCategory & { items: MerchItem[] };
 
+// Mock data for merch items
+const MOCK_MERCH_DATA: CategoryWithItems[] = [
+  {
+    id: 'apparel',
+    name: 'Apparel',
+    display_order: 1,
+    items: [
+      {
+        id: 'tshirt-1',
+        name: 'Salem PDX Logo T-Shirt',
+        description: 'Comfortable cotton t-shirt with our iconic logo',
+        price: 24.99,
+        image: '/images/merch/tshirt.jpg',
+        category_id: 'apparel',
+        in_stock: true,
+        location: 'both'
+      },
+      {
+        id: 'hoodie-1',
+        name: 'Wolf Hoodie',
+        description: 'Stay warm with our premium hoodie',
+        price: 49.99,
+        image: '/images/merch/hoodie.jpg',
+        category_id: 'apparel',
+        in_stock: true,
+        location: 'portland'
+      }
+    ]
+  },
+  {
+    id: 'accessories',
+    name: 'Accessories',
+    display_order: 2,
+    items: [
+      {
+        id: 'mug-1',
+        name: 'Coffee Mug',
+        description: 'Start your day with our branded coffee mug',
+        price: 14.99,
+        image: '/images/merch/mug.jpg',
+        category_id: 'accessories',
+        in_stock: true,
+        location: 'both'
+      },
+      {
+        id: 'cap-1',
+        name: 'Baseball Cap',
+        description: 'Classic baseball cap with embroidered logo',
+        price: 22.99,
+        image: '/images/merch/cap.jpg',
+        category_id: 'accessories',
+        in_stock: true,
+        location: 'salem'
+      }
+    ]
+  }
+];
+
 export default function MerchPage() {
-  // Keep state, maybe initialize with placeholder data later
-  const [categories, setCategories] = useState<CategoryWithItems[]>([]); 
-  const [activeCategory, setActiveCategory] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true); // Start loading
+  // Initialize with mock data instead of empty array
+  const [categories, setCategories] = useState<CategoryWithItems[]>(MOCK_MERCH_DATA); 
+  const [activeCategory, setActiveCategory] = useState<string>(MOCK_MERCH_DATA[0]?.id || '');
+  const [isLoading, setIsLoading] = useState(false); // Start with false since we have mock data
   const { location } = useLocationState();
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Add a simple useEffect to set loading to false after initial render
-  useEffect(() => {
-    // In a real scenario, this would likely be triggered after fetching
-    // data from the third-party service.
-    setIsLoading(false);
-  }, []);
-
-  // Scroll to category when selected
-  const scrollToCategory = (categoryId: string) => {
-    if (categoryRefs.current[categoryId]) {
-      const yOffset = -100; 
-      const element = categoryRefs.current[categoryId];
-      if (!element) return;
-      
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      
-      window.scrollTo({
-        top: y,
-        behavior: 'smooth'
-      });
+  // Handle category change
+  const handleCategoryChange = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    const element = categoryRefs.current[categoryId];
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // TODO: Implement actual navigation or modal display
-  const handleViewDetails = (product: MerchItem) => {
-    console.log(`View details for: ${product.name} (ID: ${product.id})`);
-    // Example: router.push(`/merch/${product.id}`); 
-    // Or open a modal: setViewingProduct(product);
-  };
-  
-  // The rest of the return statement remains the same, 
-  // rendering based on the (currently empty) `categories` state.
+  // Filter items based on location
+  const filteredCategories = categories.map(category => ({
+    ...category,
+    items: category.items.filter(item => 
+      !item.location || item.location === 'both' || item.location === location
+    )
+  })).filter(category => category.items.length > 0);
+
   return (
     <div className="pb-20">
       <div className="flex justify-between items-center p-4 bg-background sticky top-0 z-50 border-b">
@@ -59,10 +102,9 @@ export default function MerchPage() {
       </div>
       
       <MerchCategoryNav 
-        categories={categories}
+        categories={filteredCategories}
         activeCategory={activeCategory}
-        onCategoryChangeAction={setActiveCategory}
-        scrollToCategory={scrollToCategory}
+        onCategoryChangeAction={handleCategoryChange}
       />
       
       <div className="max-w-7xl mx-auto px-4 mt-6">
@@ -70,7 +112,7 @@ export default function MerchPage() {
           <div className="py-20 text-center">
             <p className="text-muted-foreground">Loading merchandise...</p>
           </div>
-        ) : categories.length === 0 ? (
+        ) : filteredCategories.length === 0 ? (
           <div className="py-20 text-center">
             <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">No merchandise available</h3>
@@ -80,7 +122,7 @@ export default function MerchPage() {
           </div>
         ) : (
           <div className="space-y-12">
-            {categories.map((category) => (
+            {filteredCategories.map((category) => (
               <div 
                 key={category.id}
                 id={`category-${category.id}`}
@@ -102,7 +144,7 @@ export default function MerchPage() {
                       <ProductCard 
                         key={item.id} 
                         product={item} 
-                        onViewDetails={handleViewDetails} 
+                        onViewDetails={() => console.log(`View details for: ${item.name} (ID: ${item.id})`)} 
                       />
                     ))
                   )}
