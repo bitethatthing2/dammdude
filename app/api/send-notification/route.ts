@@ -225,28 +225,21 @@ export async function POST(request: NextRequest) {
     const androidIcon = '/icons/android-lil-icon-white.png';
     const androidBigIcon = '/icons/android-big-icon.png';
     
-    // Create the notification payload separately to avoid type issues
-    const notificationPayload = {
-      title: body.title,
-      body: body.body
-    };
-    
-    // Only add imageUrl if it's a valid URL to prevent FCM errors
-    if (body.image && body.image.startsWith('http')) {
-      // @ts-ignore - TypeScript might not know about imageUrl property
-      notificationPayload.imageUrl = body.image;
-    }
-
-    // Create the data payload separately - ensure all values are strings
+    // Create the data payload with all notification information
+    // This allows the app's message handler to create the notification
     const dataPayload: Record<string, string> = {
       title: body.title,
       body: body.body,
       click_action: "FLUTTER_NOTIFICATION_CLICK"
     };
     
-    // Add optional fields to data payload if they exist
+    // Add optional fields to data payload
     if (body.link) dataPayload.link = body.link;
-    if (body.image) dataPayload.image = body.image;
+    if (body.image && body.image.startsWith('http')) dataPayload.image = body.image;
+    
+    // Add icon information for the client to use
+    dataPayload.icon = webIcon;
+    dataPayload.androidIcon = androidIcon;
     
     // Add any custom data fields
     if (body.data) {
@@ -257,43 +250,24 @@ export async function POST(request: NextRequest) {
 
     // Create the webpush configuration separately
     const webPushConfig = {
-      notification: {
-        icon: webIcon,
-        image: body.image,
-        badge: '/icons/badge-icon.png',
-        vibrate: [200, 100, 200],
-        actions: [
-          {
-            action: 'open_url',
-            title: 'View',
-            icon: webIcon
-          }
-        ]
-      },
       fcmOptions: {
         link: body.link
+      },
+      // Don't include notification property to avoid duplicates
+      headers: {
+        TTL: '86400' // 24 hours in seconds
       }
     };
     
     // Create Android specific configuration with proper Firebase typing
     const androidConfig: {
       priority: 'high' | 'normal';
-      notification?: {
-        icon?: string;
-        color?: string;
-        sound?: string;
-        clickAction?: string;
-        channelId?: string;
-      };
+      // Don't include notification property to avoid duplicates
+      ttl?: number;
+      restrictedPackageName?: string;
     } = {
       priority: 'high', // Using literal string with allowed values
-      notification: {
-        icon: androidIcon,
-        color: '#FF3E2F', // Brand color
-        sound: 'default',
-        clickAction: "FLUTTER_NOTIFICATION_CLICK",
-        channelId: "high_importance_channel"
-      }
+      ttl: 86400000 // 24 hours in milliseconds
     };
 
     // Special case: if this is a cleanup request, run token cleanup
@@ -360,7 +334,6 @@ export async function POST(request: NextRequest) {
         // Use sendEachForMulticast instead of sendMulticast (which might not be available in this version)
         const batchResponse = await messaging.sendEachForMulticast({
           tokens: tokens,
-          notification: notificationPayload,
           data: dataPayload,
           webpush: webPushConfig,
           android: androidConfig
@@ -418,7 +391,6 @@ export async function POST(request: NextRequest) {
         // Send to topic
         const response = await messaging.send({
           topic: body.topic,
-          notification: notificationPayload,
           data: dataPayload,
           webpush: webPushConfig,
           android: androidConfig
@@ -473,7 +445,6 @@ export async function POST(request: NextRequest) {
         // Send to a specific device
         const response = await messaging.send({
           token: body.token,
-          notification: notificationPayload,
           data: dataPayload,
           webpush: webPushConfig,
           android: androidConfig
