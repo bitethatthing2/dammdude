@@ -172,13 +172,13 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
       // Extract notification data
-      const notificationTitle = payload.notification?.title || 'Side Hustle';
-      const notificationBody = payload.notification?.body || '';
+      const notificationTitle = payload.data?.title || 'New Notification';
+      const notificationBody = payload.data?.body || '';
       
       // Extract any custom data
-      const link = payload.fcmOptions?.link || payload.data?.link || '/';
+      const link = payload.data?.link || '/';
       const orderId = payload.data?.orderId || null;
-      const image = payload.notification?.image || payload.data?.image || null;
+      const image = payload.data?.image || null;
       const linkButtonText = payload.data?.linkButtonText || null;
       const actionButton = payload.data?.actionButton || null;
       const actionButtonText = payload.data?.actionButtonText || null;
