@@ -7,13 +7,7 @@ import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 
 // Dynamically import client-side components with SSR disabled
 const ClientSideWrapper = dynamic(
-  () => import('@/components/shared/ClientSideWrapper'),
-  { ssr: false }
-);
-
-// Dynamically import PWA diagnostic component
-const PwaInstallDiagnostic = dynamic(
-  () => import('@/components/shared/PwaInstallDiagnostic').then(mod => ({ default: mod.PwaInstallDiagnostic })),
+  () => import('@/components/shared/ClientSideWrapper').then(mod => mod.default),
   { ssr: false }
 );
 
@@ -30,15 +24,6 @@ export const metadata: Metadata = {
   applicationName: "Side Hustle",
   formatDetection: {
     telephone: false,
-  },
-  icons: {
-    icon: [
-      { url: '/icons/android-big-icon.png', sizes: '512x512', type: 'image/png' },
-      { url: '/icons/android-lil-icon-white.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
@@ -73,7 +58,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
               {/* Fixed position elements */}
               <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
                 <PwaInstallGuide />
-                <PwaInstallDiagnostic />
               </div>
             </div>
           </ClientSideWrapper>

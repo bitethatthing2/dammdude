@@ -87,7 +87,6 @@ export default function HomePage() {
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-              <PwaInstallGuide />
               <NotificationIndicator variant="button" />
             </div>
           </div>

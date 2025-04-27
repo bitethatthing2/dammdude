@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { DownloadIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToastAction } from '@/components/ui/toast';
+import { usePwaInstall } from '@/components/shared/ClientSideWrapper';
 
 // BeforeInstallPromptEvent type definition
 interface BeforeInstallPromptEvent extends Event {
@@ -23,7 +24,7 @@ interface PwaInstallGuideProps {
 }
 
 export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGuideProps) {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { deferredPrompt } = usePwaInstall();
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -41,7 +42,6 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
         
         if (choiceResult.outcome === 'accepted') {
           console.log('User accepted the installation prompt');
-          setDeferredPrompt(null);
         } else {
           console.log('User dismissed the installation prompt');
         }
@@ -77,41 +77,17 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
       setIsInstalled(true);
       return;
     }
-
-    // CRITICAL: Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the browser from showing the default prompt
-      e.preventDefault();
-      
-      // Store the event for later use
-      const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
-      
-      console.log('beforeinstallprompt event captured in component', promptEvent);
-    };
-    
-    // Attach the event listener directly
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    // Listen for appinstalled event
-    const handleAppInstalled = () => {
-      console.log('App installed');
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    };
-    
-    window.addEventListener('appinstalled', handleAppInstalled);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
   }, []);
 
   // Don't show the button if the app is already installed
   if (isInstalled) {
     return null;
+  }
+
+  // Only show the button if we can prompt for installation (Android/Desktop) 
+  // or if it's iOS (to show instructions via toast)
+  if (!deferredPrompt && !isIOS) {
+    return null; // Not installable via prompt and not iOS
   }
 
   return (
