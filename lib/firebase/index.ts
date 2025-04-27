@@ -101,6 +101,32 @@ export const getMessagingInstance = (): Messaging | null => {
 };
 
 /**
+ * Check if the current browser can support push notifications
+ * More specific than just Notification API check
+ */
+export const canSupportPushNotifications = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(userAgent) || 
+                (/mac/.test(userAgent) && navigator.maxTouchPoints > 1);
+  
+  // Check for Safari - pushManager is now supported in iOS Safari 16.4+
+  if (isIOS) {
+    // Safari 16.4+ supports push notifications through Push API
+    // Check for existence of navigator.serviceWorker and pushManager
+    return !!(navigator.serviceWorker && 'PushManager' in window);
+  }
+  
+  // Other browsers - check if service workers, Push API and notifications are supported
+  return !!(
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  );
+};
+
+/**
  * Request notification permission with improved error handling
  */
 export const requestNotificationPermission = async (): Promise<NotificationPermission> => {
@@ -175,6 +201,12 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
  */
 export const fetchToken = async (maxRetries = 2): Promise<string | null> => {
   if (typeof window === 'undefined') return null;
+  
+  // Check if this browser supports push notifications
+  if (!canSupportPushNotifications()) {
+    console.log('This browser does not support push notifications');
+    return null;
+  }
   
   let retryCount = 0;
   
@@ -287,6 +319,7 @@ export const fetchToken = async (maxRetries = 2): Promise<string | null> => {
 
 /**
  * Handle foreground messages with improved error handling
+ * and consistent data payload format
  */
 export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (payload: FcmMessagePayload) => void) => {
   if (!messaging) {
@@ -299,14 +332,28 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
       console.log('Foreground message received:', payload);
       
       try {
-        // Extract data from both notification object and data field
-        // This ensures we handle both notification+data messages and data-only messages
-        const notificationObject = payload.notification || {};
+        // Extract data from the data field (prioritize data over notification)
+        // This ensures consistent format with background messages
         const dataObject = payload.data || {};
         
         // Call the callback if provided - this will handle the custom UI notification
         if (callback) {
-          callback(payload);
+          // Ensure the data object has the necessary fields, falling back to notification object if needed
+          if (!dataObject.title && payload.notification?.title) {
+            dataObject.title = payload.notification.title;
+          }
+          
+          if (!dataObject.body && payload.notification?.body) {
+            dataObject.body = payload.notification.body;
+          }
+          
+          // Update the payload with the enhanced data object
+          const enhancedPayload = {
+            ...payload,
+            data: dataObject
+          };
+          
+          callback(enhancedPayload);
         }
         
         // For browsers that don't support the callback method (like Safari on iOS),
@@ -314,17 +361,17 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
         if ('Notification' in window && Notification.permission === 'granted') {
           // Only show native notification if the page is not visible
           if (document.visibilityState !== 'visible') {
-            // Prioritize data fields over notification fields for consistency
-            const title = dataObject.title || notificationObject.title || 'New Message';
-            const body = dataObject.body || notificationObject.body || '';
-            const icon = dataObject.icon || notificationObject.icon || '/icons/android-big-icon.png';
-            const image = dataObject.image || notificationObject.image;
+            // Use consistent data format
+            const title = dataObject.title || payload.notification?.title || 'New Message';
+            const body = dataObject.body || payload.notification?.body || '';
+            const icon = dataObject.icon || payload.notification?.icon || '/icons/android-big-icon.png';
+            const image = dataObject.image || payload.notification?.image;
             
             // Extract link from various possible locations
             const link = 
               dataObject.link || 
               payload.fcmOptions?.link || 
-              (notificationObject as any).clickAction || 
+              (payload.notification as any)?.clickAction || 
               '/';
             
             // Create notification options
@@ -349,11 +396,10 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
               // Focus the window if it's already open
               window.focus();
               
-              // Navigate to the link
+              // Navigate to the URL
               if (link.startsWith('http')) {
                 window.open(link, '_blank');
               } else {
-                // For internal links, we can use history API
                 window.location.href = link;
               }
               
@@ -362,12 +408,12 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             };
           }
         }
-      } catch (callbackError) {
-        console.error('Error processing foreground message:', callbackError);
+      } catch (error) {
+        console.error('Error handling foreground message:', error);
       }
     });
   } catch (error) {
-    console.error('Error setting up message handler:', error);
+    console.error('Error setting up foreground message handler:', error);
     return () => {}; // Return no-op unsubscribe function
   }
 };

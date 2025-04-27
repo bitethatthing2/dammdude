@@ -3,34 +3,38 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
-import { useFcmContext, getNotificationPermissionAndToken } from '@/lib/hooks/useFcmToken';
+import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { toast } from "sonner";
 
 export function FcmTokenRegistration() {
-  const { token, notificationPermissionStatus, registerToken } = useFcmContext();
+  const { token, notificationPermissionStatus, registerToken, isLoading } = useFcmContext();
   const [isRegistering, setIsRegistering] = useState(false);
   
   // Check if browser supports notifications
   const isSupported = typeof window !== 'undefined' && 'Notification' in window;
   const permission = notificationPermissionStatus || 'default';
   
-  // Handle permission request and token registration
+  // Handle permission request and token registration using the centralized context
   const handleEnableNotifications = async () => {
     if (!isSupported || permission !== 'default') return;
     
     setIsRegistering(true);
     
     try {
-      // This will trigger the native permission dialog
-      const result = await Notification.requestPermission();
+      // Use the centralized token registration from context
+      const fcmToken = await registerToken();
       
-      if (result === 'granted') {
-        // Register the token
-        const fcmToken = await registerToken();
-        
-        if (fcmToken) {
-          toast.success("Notifications enabled successfully", {
-            description: "You'll receive important updates and announcements",
+      if (fcmToken) {
+        toast.success("Notifications enabled successfully", {
+          description: "You'll receive important updates and announcements",
+          duration: 5000,
+        });
+      } else {
+        // Check current permission after registration attempt
+        const currentPermission = Notification.permission;
+        if (currentPermission === 'denied') {
+          toast.error("Notifications blocked", {
+            description: "Please enable notifications in your browser settings to receive updates",
             duration: 5000,
           });
         } else {
@@ -39,14 +43,9 @@ export function FcmTokenRegistration() {
             duration: 5000,
           });
         }
-      } else if (result === 'denied') {
-        toast.error("Notifications blocked", {
-          description: "Please enable notifications in your browser settings to receive updates",
-          duration: 5000,
-        });
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
+      console.error('Error enabling notifications:', error);
       toast.error("Something went wrong", {
         description: "Couldn't enable notifications. Please try again later.",
         duration: 5000,
@@ -87,11 +86,11 @@ export function FcmTokenRegistration() {
       
       <Button 
         className={`w-full py-2 ${permission === 'granted' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}`}
-        disabled={buttonDisabled || isRegistering}
+        disabled={buttonDisabled || isRegistering || isLoading}
         onClick={handleEnableNotifications}
       >
-        <Bell className="mr-2 h-4 w-4" />
-        {isRegistering ? 'Enabling...' : buttonText}
+        <Bell className={`mr-2 h-4 w-4 ${(isRegistering || isLoading) ? 'animate-pulse' : ''}`} />
+        {isRegistering || isLoading ? 'Enabling...' : buttonText}
       </Button>
     </div>
   );

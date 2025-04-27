@@ -172,285 +172,134 @@ export function useFcmToken() {
     checkPermission();
   }, []);
 
-  // Handle token fetching when permission is granted
+  // Setup message handlers if permission is granted
   useEffect(() => {
-    // Don't attempt on server
-    if (typeof window === 'undefined') return;
+    // Skip setup if not in browser or already registered
+    if (typeof window === 'undefined' || hasRegisteredLocallyRef.current) return;
     
-    // Only proceed if notification permission was granted
-    if (notificationPermissionStatus !== 'granted') {
-      // This check is causing issues - the permission state might be correct but not updating properly
-      // Let's check the permission directly from the Notification API
-      if (window.Notification && Notification.permission === 'granted') {
-        console.log('Permission is actually granted according to Notification API, proceeding with FCM setup');
-        // Update our state to match reality
-        setNotificationPermissionStatus('granted');
-      } else {
-        console.log('Notification permission not granted, skipping FCM setup.');
-        return;
-      }
-    }
-    
-    // Don't attempt registration multiple times globally or locally
-    if (hasRegisteredGlobally || hasRegisteredLocallyRef.current) {
-      console.log('FCM registration has already occurred, skipping');
+    // Only proceed if notification permission is granted or if Notification API directly reports granted
+    if (notificationPermissionStatus !== 'granted' && 
+        !(window.Notification && Notification.permission === 'granted')) {
       return;
     }
     
-    // Set local registration flag
-    hasRegisteredLocallyRef.current = true;
-    
-    const setupFcm = async () => {
-      setIsLoading(true);
-      setError(null);
-      
+    // Set up foreground message handler
+    const setupMessageHandler = async () => {
       try {
-        console.log('Attempting to load FCM token...');
+        console.log('Setting up foreground message handler');
+        const messaging = getMessagingInstance();
+        if (!messaging) return;
         
-        // Get FCM token
-        const fcmToken = await getNotificationPermissionAndToken();
-        
-        if (fcmToken) {
-          setToken(fcmToken);
-          console.log('FCM token loaded and stored successfully');
-          
-          // Set up message handler
-          setupMessageHandler(fcmToken);
-        } else {
-          console.warn('Failed to get FCM token');
-          setError('Failed to get notification token');
+        // Clear previous handler if it exists
+        if (messageHandlerRef.current) {
+          messageHandlerRef.current();
+          messageHandlerRef.current = null;
         }
-      } catch (err) {
-        console.error('Error setting up FCM:', err);
-        setError(err instanceof Error ? err.message : String(err));
         
-        // Reset local registration flag on failure to allow retry
-        hasRegisteredLocallyRef.current = false;
-      } finally {
-        setIsLoading(false);
+        // Create new handler
+        messageHandlerRef.current = setupForegroundMessageHandler(messaging, (payload) => {
+          console.log('Foreground message received:', payload);
+          
+          // Extract data from payload
+          const data = payload.data || {};
+          const title = data.title || 'New Notification';
+          const body = data.body || '';
+          const link = data.link || '/';
+          
+          // Show toast notification for foreground messages
+          toast(
+            <div className="flex flex-col gap-1">
+              <div className="font-medium">{title}</div>
+              <div className="text-sm text-muted-foreground">{body}</div>
+            </div>,
+            {
+              duration: 8000,
+              action: {
+                label: "View",
+                onClick: () => {
+                  if (link) {
+                    if (link.startsWith('http')) {
+                      window.open(link, '_blank');
+                    } else {
+                      router.push(link);
+                    }
+                  }
+                }
+              }
+            }
+          );
+        });
+        
+        console.log('Foreground message handler set up successfully');
+      } catch (error) {
+        console.error('Error setting up foreground message handler:', error);
       }
     };
     
-    setupFcm();
-  }, [notificationPermissionStatus]);
-
-  // Set up message handler
-  const setupMessageHandler = (currentToken: string) => {
-    // Clean up existing handler if any
-    if (messageHandlerRef.current) {
-      messageHandlerRef.current();
-      messageHandlerRef.current = null;
-    }
+    // Mark as registered to prevent duplicate registrations
+    hasRegisteredLocallyRef.current = true;
     
-    // Set up new handler
-    try {
-      const messaging = getMessagingInstance();
-      if (!messaging) {
-        console.error('Failed to get messaging instance for listener setup.');
-        return;
-      }
-      
-      console.log(`Setting up foreground message listener with token ${currentToken.substring(0, 10)}...`);
-      
-      messageHandlerRef.current = setupForegroundMessageHandler(messaging, (payload: FcmMessagePayload) => {
-        console.log('🔔 FOREGROUND PUSH NOTIFICATION RECEIVED:', payload);
-        
-        // Extract data from both notification object and data field
-        // This ensures we handle both notification+data messages and data-only messages
-        const notificationObject = payload.notification || {};
-        const dataObject = payload.data || {};
-        
-        // Prioritize data fields over notification fields for consistency with service worker
-        const title = dataObject.title || notificationObject.title || 'New Message';
-        const body = dataObject.body || notificationObject.body || '';
-        const iconUrl = dataObject.icon || notificationObject.icon || '/icons/android-lil-icon.png';
-        
-        // Extract link from various possible locations
-        const link = 
-          dataObject.link || 
-          payload.fcmOptions?.link || 
-          // @ts-ignore - clickAction may exist in some notification payloads
-          notificationObject.clickAction || 
-          '/';
-        
-        // Extract image if available
-        const image = dataObject.image || notificationObject.image;
-        
-        // Extract action buttons if available
-        const actionButton = dataObject.actionButton;
-        const actionButtonText = dataObject.actionButtonText;
-        
-        // Extract any additional custom data
-        const customData: Record<string, any> = {};
-        Object.keys(dataObject).forEach(key => {
-          if (!['title', 'body', 'link', 'icon', 'image', 'actionButton', 'actionButtonText'].includes(key)) {
-            try {
-              // Try to parse JSON strings
-              customData[key] = JSON.parse(dataObject[key]);
-            } catch (e) {
-              // If not JSON, use the raw value
-              customData[key] = dataObject[key];
-            }
-          }
-        });
-        
-        console.log(`Showing notification - Title: "${title}", Body: "${body}", Link: "${link}"`, customData);
-        
-        // Show toast notification (primary notification method)
-        try {
-          toast(title, {
-            description: body,
-            duration: 8000,
-            important: true,
-            icon: image ? undefined : <img src={iconUrl} alt="" className="w-6 h-6" />,
-            // Show image if available
-            ...(image && {
-              style: {
-                backgroundImage: `url(${image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                paddingTop: '56px', // Make room for the image
-              }
-            }),
-            action: {
-              label: actionButtonText || 'View',
-              onClick: () => {
-                const targetUrl = actionButton || link;
-                // Handle internal vs external links
-                if (targetUrl.startsWith('http')) {
-                  window.open(targetUrl, '_blank');
-                } else {
-                  router.push(targetUrl);
-                }
-              }
-            }
-          });
-          
-          // Try to also show a native notification if the page is not visible
-          if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
-            try {
-              const notificationOptions: NotificationOptions = { 
-                body: body,
-                icon: iconUrl,
-                requireInteraction: true,
-                // @ts-ignore - vibrate is valid in modern browsers
-                vibrate: [100, 50, 100],
-                // @ts-ignore - badge is valid in modern browsers
-                badge: '/icons/badge-icon.png',
-                data: {
-                  url: link,
-                  actionButton,
-                  ...customData
-                }
-              };
-              
-              // Add image if available
-              if (image) {
-                // @ts-ignore - image is valid in modern browsers
-                notificationOptions.image = image;
-              }
-              
-              // Add actions if available
-              if (actionButton && actionButtonText) {
-                // @ts-ignore - actions is valid in modern browsers
-                notificationOptions.actions = [
-                  {
-                    action: 'action-button',
-                    title: actionButtonText,
-                    icon: '/icons/action-icon.png'
-                  }
-                ];
-              }
-              
-              const notification = new Notification(title, notificationOptions);
-              
-              // Add click handler for native notification
-              notification.onclick = (event) => {
-                event.preventDefault(); // Prevent default action
-                
-                // Handle action button clicks
-                if (event instanceof NotificationEvent && event.action === 'action-button' && actionButton) {
-                  if (actionButton.startsWith('http')) {
-                    window.open(actionButton, '_blank');
-                  } else {
-                    router.push(actionButton);
-                    window.focus();
-                  }
-                } else {
-                  // Default click behavior
-                  if (link.startsWith('http')) {
-                    window.open(link, '_blank');
-                  } else {
-                    router.push(link);
-                    window.focus();
-                  }
-                }
-                
-                notification.close();
-              };
-            } catch (nativeError) {
-              console.warn('Native notification failed:', nativeError);
-            }
-          }
-        } catch (toastError) {
-          console.error('Error showing notification:', toastError);
-        }
-      });
-      
-      console.log('Foreground message listener registered successfully');
-    } catch (error) {
-      console.error('Error setting up message handler:', error);
-    }
-  };
-
-  // Clean up message handler on unmount
-  useEffect(() => {
+    // Set up the handler
+    setupMessageHandler();
+    
+    // Cleanup on unmount
     return () => {
       if (messageHandlerRef.current) {
-        console.log('Cleaning up foreground message listener');
+        console.log('Cleaning up foreground message handler');
         messageHandlerRef.current();
         messageHandlerRef.current = null;
       }
     };
-  }, []);
+  }, [notificationPermissionStatus, router]);
 
-  // Function to manually register token
+  // Handle token registration
   const registerToken = async (): Promise<string | null> => {
+    // Prevent multiple registrations
     if (isLoading) return null;
+    if (token) return token;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // Reset local registration flag to allow registration
-      hasRegisteredLocallyRef.current = false;
+      // Check if browser supports notifications
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        throw new Error('This browser does not support notifications');
+      }
       
-      // Request permission and get token
-      const newToken = await getNotificationPermissionAndToken();
+      // Request permission if not already granted
+      let permissionStatus = Notification.permission;
+      if (permissionStatus !== 'granted') {
+        permissionStatus = await Notification.requestPermission();
+        setNotificationPermissionStatus(permissionStatus);
+      }
       
-      if (newToken) {
-        setToken(newToken);
-        
-        // Set up message handler
-        setupMessageHandler(newToken);
-        
-        return newToken;
-      } else {
-        setError('Failed to get notification token');
+      if (permissionStatus !== 'granted') {
+        // Permission denied
+        console.log('Notification permission denied');
         return null;
       }
+      
+      // Get FCM token using the centralized implementation
+      const newToken = await getNotificationPermissionAndToken();
+      if (!newToken) {
+        throw new Error('Failed to get FCM token');
+      }
+      
+      // Update state with new token
+      setToken(newToken);
+      return newToken;
     } catch (err) {
-      console.error('Error registering token:', err);
-      setError(err instanceof Error ? err.message : String(err));
+      console.error('Error registering FCM token:', err);
+      setError(err instanceof Error ? err.message : 'Failed to register for notifications');
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { 
-    token, 
+  return {
+    token,
     notificationPermissionStatus,
     isLoading,
     error,

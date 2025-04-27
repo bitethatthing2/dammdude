@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-messaging-comp
 importScripts('/sw-cache.js');
 
 // Service worker version
-const SW_VERSION = '1.0.7';
+const SW_VERSION = '1.0.8';
 
 // Firebase configuration (PUBLIC Client-Side Values)
 // !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
@@ -169,28 +169,30 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       console.log('[firebase-messaging-sw.js] onBackgroundMessage HANDLER TRIGGERED');
       console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-      // Extract notification data from either data or notification object
-      // This handles both data-only messages and notification+data messages
+      // Extract notification data from data object first (preferred approach)
+      // Fall back to notification object only if data is missing
       const notificationData = payload.data || {};
-      const notificationObject = payload.notification || {};
       
-      // Use data fields first, fall back to notification object fields
-      // This ensures we prioritize custom data fields over FCM-generated notification fields
-      const notificationTitle = notificationData.title || notificationObject.title || 'New Notification';
-      const notificationBody = notificationData.body || notificationObject.body || '';
+      // All notification content should come from payload.data
+      // This ensures iOS and other platforms receive the same notification content
+      const notificationTitle = notificationData.title || 'New Notification';
+      const notificationBody = notificationData.body || '';
       
-      // Extract any custom data
-      const link = notificationData.link || notificationObject.link || '/';
+      // Extract any custom data for actions and UI
+      const link = notificationData.link || '/';
       const orderId = notificationData.orderId || null;
-      const image = notificationData.image || notificationObject.image || null;
-      const linkButtonText = notificationData.linkButtonText || null;
-      const actionButton = notificationData.actionButton || null;
-      const actionButtonText = notificationData.actionButtonText || null;
+      const image = notificationData.image || null;
+      const linkButtonText = notificationData.linkButtonText || 'View';
+      const actionButtonUrl = notificationData.actionButtonUrl || null;
+      const actionButtonText = notificationData.actionButtonText || 'Action';
+      const icon = notificationData.icon || '/icons/android-big-icon.png';
+      const badge = notificationData.badge || '/icons/android-lil-icon-white.png';
       
       // Extract any additional custom data fields
       const customData = {};
       Object.keys(notificationData).forEach(key => {
-        if (!['title', 'body', 'link', 'orderId', 'image', 'linkButtonText', 'actionButton', 'actionButtonText'].includes(key)) {
+        if (!['title', 'body', 'link', 'orderId', 'image', 'linkButtonText', 
+              'actionButtonUrl', 'actionButtonText', 'icon', 'badge'].includes(key)) {
           try {
             // Try to parse JSON strings in case they contain objects
             customData[key] = JSON.parse(notificationData[key]);
@@ -213,10 +215,10 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       // Configure notification options
       const notificationOptions = {
         body: notificationBody,
-        // Large icon for notification drawer (full color)
-        icon: '/icons/android-big-icon.png',
-        // Badge icon for Android (monochrome)
-        badge: '/icons/android-lil-icon-white.png',
+        // Get icon from payload or use default
+        icon: icon,
+        // Get badge from payload or use default
+        badge: badge,
         // Add image if provided
         ...(image && { image }),
         // Enable vibration
@@ -227,6 +229,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
         data: {
           url: link,
           orderId,
+          actionButtonUrl,
           ...customData
         },
         // Configure actions based on provided buttons
@@ -234,7 +237,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       };
 
       // Add action buttons if provided
-      if (actionButton && actionButtonText) {
+      if (actionButtonUrl && actionButtonText) {
         notificationOptions.actions.push({
           action: 'action-button',
           title: actionButtonText,
@@ -246,7 +249,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       if (link && linkButtonText) {
         notificationOptions.actions.push({
           action: 'link-button',
-          title: linkButtonText || 'View',
+          title: linkButtonText,
           icon: '/icons/link-icon.png'
         });
       }
@@ -276,8 +279,8 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       let targetUrl = notificationData.url || '/';
       
       // Handle different action clicks
-      if (event.action === 'action-button' && notificationData.actionButton) {
-        targetUrl = notificationData.actionButton;
+      if (event.action === 'action-button' && notificationData.actionButtonUrl) {
+        targetUrl = notificationData.actionButtonUrl;
       } else if (event.action === 'link-button' && notificationData.url) {
         targetUrl = notificationData.url;
       } else if (event.action === 'view-order' && notificationData.orderId) {
@@ -293,10 +296,18 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       event.waitUntil(
         self.clients.matchAll({ type: 'window' })
           .then(clientList => {
-            // Check if there's already a window/tab open with the target URL
+            // Try to find an existing client
             for (const client of clientList) {
-              if (client.url.includes(targetUrl) && 'focus' in client) {
-                return client.focus();
+              if (client.url.includes(self.location.origin) && 'focus' in client) {
+                // First focus the client
+                client.focus();
+                
+                // Then navigate if it's a different URL
+                if (client.url !== self.location.origin + targetUrl) {
+                  return client.navigate(targetUrl);
+                }
+                
+                return client;
               }
             }
             

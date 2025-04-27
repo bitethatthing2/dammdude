@@ -32,6 +32,7 @@ export default function PwaInstallGuide({
   const [dismissCount, setDismissCount] = useLocalStorage('pwa-install-dismiss-count', 0);
   const [lastDismissed, setLastDismissed] = useLocalStorage('pwa-install-last-dismissed', 0);
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
+  const [promptAvailable, setPromptAvailable] = useState(false);
 
   // Detect platform and installation status
   useEffect(() => {
@@ -119,6 +120,7 @@ export default function PwaInstallGuide({
       e.preventDefault();
       // Store the event for later use
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setPromptAvailable(true);
       console.log('beforeinstallprompt event captured and stored');
     };
     
@@ -126,6 +128,7 @@ export default function PwaInstallGuide({
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setPromptAvailable(false);
       
       // Show success toast
       toast.success("App installed successfully", {
@@ -196,21 +199,15 @@ export default function PwaInstallGuide({
           
           // Clear the prompt reference
           setDeferredPrompt(null);
+          setPromptAvailable(false);
         } catch (error) {
           console.error('Error showing install prompt:', error);
-          // If native prompt fails, we don't show manual instructions
-          // This avoids confusing the user with redundant instructions
+          // No toast message here - we don't want to show a message if the native prompt fails
         }
       } else if (platform === 'android' || platform === 'desktop') {
-        // For Android/Desktop without deferred prompt, show a simple message
-        // This happens when the PWA criteria aren't met or the prompt was already shown
-        toast.info(
-          "Installation not available", 
-          { 
-            description: "Please ensure you're using a supported browser or the app is already installed",
-            duration: 5000
-          }
-        );
+        // For Android/Desktop without prompt stored, just silently return
+        // No toast message as per requirements - native prompts will handle this
+        console.log('Native installation prompt not available at this time');
       }
       
       // Track installation attempt
@@ -226,17 +223,18 @@ export default function PwaInstallGuide({
       }
     } catch (error) {
       console.error('Error installing app:', error);
-      
-      // Show error toast
-      toast.error("Couldn't install app", {
-        description: "Please try again later",
-        duration: 5000,
-      });
+      // No toast error message - we want silent failures as per requirements
     }
   };
   
   // Don't render anything if already installed
   if (isInstalled) return null;
+  
+  // Get button text based on platform
+  const getButtonText = () => {
+    if (platform === 'ios') return "Install App";
+    return "Install App";
+  };
   
   // Render based on variant
   if (variant === 'icon') {
@@ -261,7 +259,7 @@ export default function PwaInstallGuide({
         )}
       >
         <Download className="h-4 w-4" />
-        Install App
+        {getButtonText()}
       </button>
     );
   }
@@ -273,7 +271,7 @@ export default function PwaInstallGuide({
       onClick={handleInstallClick}
     >
       <Download className="h-4 w-4" />
-      Install App
+      {getButtonText()}
     </Button>
   );
 }

@@ -57,10 +57,18 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     // Request permission and register token
     if (typeof window !== 'undefined' && 'Notification' in window) {
       try {
+        console.log('Requesting notification permission...');
+        toast.loading('Requesting notification permission...');
+        
         const permission = await Notification.requestPermission();
         
+        toast.dismiss();
+        
         if (permission === 'granted') {
+          toast.loading('Setting up notifications...');
           const token = await registerToken();
+          
+          toast.dismiss();
           
           if (token) {
             toast.success('Notifications enabled', {
@@ -89,9 +97,15 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     }
   };
 
-  // Handle click on notification icon
-  const handleNotificationClick = () => {
-    router.push('/notifications');
+  // Handle click on notification icon or button
+  const handleClick = () => {
+    if (variant === 'icon' && permissionState === 'granted') {
+      // If icon variant and already enabled, navigate to notifications page
+      router.push('/notifications');
+    } else {
+      // Otherwise, toggle notifications
+      handleToggleNotifications();
+    }
   };
 
   // Determine the status and tooltip content
@@ -166,7 +180,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
           {variant === 'icon' ? (
             <button
               type="button"
-              onClick={handleNotificationClick}
+              onClick={handleClick}
               className={cn(
                 "inline-flex items-center justify-center p-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                 className
@@ -178,7 +192,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
           ) : (
             <button
               type="button"
-              onClick={handleToggleNotifications}
+              onClick={handleClick}
               disabled={isLoading || permissionState === 'granted'}
               className={cn(
                 "inline-flex items-center gap-2 justify-center rounded-md px-4 py-2 text-sm font-medium",
