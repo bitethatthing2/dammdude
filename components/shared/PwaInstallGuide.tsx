@@ -259,11 +259,10 @@ export default function PwaInstallGuide({
   
   // IMPROVED VISIBILITY LOGIC: Show button for iOS always, and for Android/desktop
   // when promptAvailable is true
-  const shouldShowButton = platform === 'ios' || promptAvailable;
+  // const shouldShowButton = platform === 'ios' || promptAvailable;
   
   // FORCE BUTTON TO APPEAR FOR DEBUGGING
-  // Remove this line in production
-  // const shouldShowButton = true;
+  const shouldShowButton = true;
   
   if (!shouldShowButton) {
     console.log('[PwaInstallGuide] Button should not be shown - platform:', platform, 'promptAvailable:', promptAvailable);

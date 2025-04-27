@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Bell, CheckCircle2 } from "lucide-react";
+import { onAppInstalled, isInstalled } from '@/lib/pwa/pwaEventHandler';
 
 export function PwaStatusToast() {
   const { toast } = useToast();
@@ -65,8 +66,16 @@ export function PwaStatusToast() {
       setHasShownNotificationToast(true);
     }
 
-    // Add event listeners
-    window.addEventListener('appinstalled', handleAppInstalled);
+    // Check if the app is already installed
+    if (isInstalled()) {
+      handleAppInstalled();
+    }
+
+    // Use the centralized event handler instead of direct event listener
+    const unsubscribeAppInstalled = onAppInstalled(() => {
+      console.log('[PwaStatusToast] Received appinstalled event from centralized handler');
+      handleAppInstalled();
+    });
     
     // Check notification permission on visibility change (when user returns to the app)
     document.addEventListener('visibilitychange', () => {
@@ -79,7 +88,8 @@ export function PwaStatusToast() {
     checkNotificationPermission();
 
     return () => {
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      unsubscribeAppInstalled();
+      // No need to remove the direct event listener anymore
     };
   }, [toast, hasShownInstallToast, hasShownNotificationToast]);
 

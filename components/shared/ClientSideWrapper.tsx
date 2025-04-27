@@ -5,6 +5,7 @@ import { NotificationProvider } from '@/lib/contexts/notification-context';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 import { initPwaEventListeners } from '@/lib/pwa/pwaEventHandler';
+import { PwaStatusToast } from '@/components/shared/PwaStatusToast';
 
 // Initialize PWA event listeners as early as possible
 if (typeof window !== 'undefined') {
@@ -42,6 +43,7 @@ export function ClientSideWrapper({ children }: ClientSideWrapperProps) {
       <FirebaseInitializer>
         {children}
         <ServiceWorkerRegister />
+        <PwaStatusToast />
       </FirebaseInitializer>
     </NotificationProvider>
   );
