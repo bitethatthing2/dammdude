@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Download, Share, PlusCircle } from 'lucide-react';
+import { Download, Share, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from "sonner";
@@ -14,7 +14,8 @@ import {
   onAppInstalled,
   isInstalled as isPwaInstalled,
   isPromptAvailable,
-  showInstallPrompt
+  showInstallPrompt,
+  getPrompt
 } from '@/lib/pwa/pwaEventHandler';
 
 interface PwaInstallGuideProps {
@@ -185,19 +186,29 @@ export default function PwaInstallGuide({
   
   // Handle install button click
   const handleInstallClick = async () => {
-    if (isInstalled) return;
-    
-    console.log('[PwaInstallGuide] Install button clicked for platform:', platform);
-    console.log('[PwaInstallGuide] Prompt available:', promptAvailable);
-    
     try {
+      console.log('[PwaInstallGuide] Install button clicked');
+      
+      if (isInstalled) return;
+      
+      console.log('[PwaInstallGuide] Install button clicked for platform:', platform);
+      console.log('[PwaInstallGuide] Prompt available:', promptAvailable);
+      
       if (platform === 'ios') {
         // Show toast instructions for iOS only
         toast(
-          <div className="flex flex-col gap-2">
-            <div className="font-medium">Install this app on your iPhone</div>
-            <IosInstallGuide variant="compact" />
-          </div>,
+          (t: string) => (
+            <div className="flex flex-col gap-2">
+              <div className="text-base font-semibold">Install on iOS</div>
+              <div className="text-sm">
+                <p>1. Tap <Share className="inline h-4 w-4" /> in Safari</p>
+                <p>2. Scroll down and tap "Add to Home Screen"</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => toast.dismiss(t)}>
+                Got it
+              </Button>
+            </div>
+          ),
           {
             duration: 10000,
             icon: <PlusCircle className="h-5 w-5" />,
@@ -227,11 +238,14 @@ export default function PwaInstallGuide({
         // For Android/Desktop without prompt stored, just silently return
         console.log('[PwaInstallGuide] Installation prompt not available');
         
-        // Show a more helpful message when the button is clicked but no prompt is available
-        toast.info("Installation not available", {
-          description: "Please use this app for a while before installing",
-          duration: 5000
-        });
+        // Only show this message if the prompt is truly not available
+        // This happens when the beforeinstallprompt event hasn't fired yet
+        if (!getPrompt()) {
+          toast.info("Installation will be available soon", {
+            description: "Please continue using the app for a moment. The install button will activate automatically.",
+            duration: 5000
+          });
+        }
       }
       
       // Track installation attempt
@@ -257,24 +271,17 @@ export default function PwaInstallGuide({
     return null;
   }
   
-  // IMPROVED VISIBILITY LOGIC: Show button for iOS always, and for Android/desktop
-  // when promptAvailable is true
-  // const shouldShowButton = platform === 'ios' || promptAvailable;
-  
-  // FORCE BUTTON TO APPEAR FOR DEBUGGING
+  // ALWAYS show the button in production for all platforms
+  // This ensures users can attempt installation at any time
   const shouldShowButton = true;
-  
-  if (!shouldShowButton) {
-    console.log('[PwaInstallGuide] Button should not be shown - platform:', platform, 'promptAvailable:', promptAvailable);
-    return null;
-  }
   
   console.log('[PwaInstallGuide] Rendering installation button for platform:', platform);
   
-  // Get button text based on platform
+  // Get button text based on platform and prompt availability
   const getButtonText = () => {
     if (platform === 'ios') return "Install App";
-    return "Install App";
+    if (promptAvailable) return "Install App";
+    return "Install App"; // Always show "Install App" for consistency
   };
   
   // Render based on variant

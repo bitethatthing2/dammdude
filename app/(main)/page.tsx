@@ -8,11 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Utensils, CalendarDays, BookOpen, ShoppingBag, Download } from "lucide-react";
 import { Lock } from "lucide-react"; 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
 
-// Dynamically import components that use browser APIs
-const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { ssr: false });
-const PwaInstallGuide = dynamic(() => import('@/components/shared/PwaInstallGuide'), { ssr: false });
+// Dynamically import components that use browser APIs with priority loading
+const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { 
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" className="gap-1.5">
+      <span className="h-4 w-4 animate-pulse bg-muted rounded-full"></span>
+      <span>Loading...</span>
+    </Button>
+  )
+});
+
+const PwaInstallGuide = dynamic(() => import('@/components/shared/PwaInstallGuide'), { 
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" className="gap-1.5 bg-primary text-primary-foreground border-0">
+      <span className="h-4 w-4 animate-pulse bg-primary-foreground/50 rounded-full"></span>
+      <span>Loading...</span>
+    </Button>
+  )
+});
 
 // Safe component without direct icon references
 const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {
@@ -30,32 +46,8 @@ const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode;
   );
 };
 
-// Fallback install button in case the dynamic import fails
-const FallbackInstallButton = () => {
-  return (
-    <Button 
-      className="gap-1.5 bg-primary text-primary-foreground border-0"
-      onClick={() => console.log('Fallback install button clicked')}
-      data-testid="fallback-pwa-install-button"
-    >
-      <Download className="h-4 w-4" />
-      Install App
-    </Button>
-  );
-};
-
 export default function HomePage() {
   const { location } = useLocationState();
-  const [showFallback, setShowFallback] = useState(false);
-  
-  // If PwaInstallGuide doesn't load within 3 seconds, show the fallback button
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowFallback(true);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 animate-in">
@@ -101,12 +93,7 @@ export default function HomePage() {
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-              {/* Use the dynamic component with a fallback */}
-              {!showFallback ? (
-                <PwaInstallGuide variant="button" className="bg-primary text-primary-foreground border-0" />
-              ) : (
-                <FallbackInstallButton />
-              )}
+              <PwaInstallGuide variant="button" className="bg-primary text-primary-foreground border-0" />
               <NotificationIndicator variant="button" />
             </div>
           </div>
