@@ -201,7 +201,7 @@ export default function PwaInstallGuide({
           // If native prompt fails, we don't show manual instructions
           // This avoids confusing the user with redundant instructions
         }
-      } else if (platform !== 'ios') {
+      } else if (platform === 'android' || platform === 'desktop') {
         // For Android/Desktop without deferred prompt, show a simple message
         // This happens when the PWA criteria aren't met or the prompt was already shown
         toast.info(
