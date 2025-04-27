@@ -59,17 +59,21 @@ export default function ContactPage() {
               <CardContent className="space-y-2">
                 <div className="flex items-start">
                   <MapPin className="h-5 w-5 mr-2 text-primary shrink-0" />
-                  <p>123 Main Street, Salem, OR 97301</p>
+                  <p>145 Liberty St NE Suite #101, Salem, OR 97301</p>
                 </div>
                 <div className="flex items-start">
                   <Phone className="h-5 w-5 mr-2 text-primary shrink-0" />
-                  <p>(503) 555-1234</p>
+                  <p>(503) 391-9977</p>
+                </div>
+                <div className="flex items-start">
+                  <Mail className="h-5 w-5 mr-2 text-primary shrink-0" />
+                  <p>contact@thesidehustlesalem.com</p>
                 </div>
                 <div className="mt-2">
                   <p className="font-medium">Hours:</p>
-                  <p className="text-sm">Monday - Thursday: 11am - 10pm</p>
-                  <p className="text-sm">Friday - Saturday: 11am - 12am</p>
-                  <p className="text-sm">Sunday: 12pm - 9pm</p>
+                  <p className="text-sm">Sunday - Wednesday: 10 AM - 11 PM</p>
+                  <p className="text-sm">Thursday: 10 AM - 12 AM</p>
+                  <p className="text-sm">Friday - Saturday: 10 AM - 2 AM</p>
                 </div>
               </CardContent>
             </Card>
@@ -82,17 +86,22 @@ export default function ContactPage() {
               <CardContent className="space-y-2">
                 <div className="flex items-start">
                   <MapPin className="h-5 w-5 mr-2 text-primary shrink-0" />
-                  <p>456 Pearl Street, Portland, OR 97205</p>
+                  <p>327 SW Morrison St, Portland, OR 97204</p>
                 </div>
                 <div className="flex items-start">
                   <Phone className="h-5 w-5 mr-2 text-primary shrink-0" />
-                  <p>(971) 555-5678</p>
+                  <p>(503) 391-9977</p>
+                </div>
+                <div className="flex items-start">
+                  <Mail className="h-5 w-5 mr-2 text-primary shrink-0" />
+                  <p>contact@thesidehustleportland.com</p>
                 </div>
                 <div className="mt-2">
                   <p className="font-medium">Hours:</p>
-                  <p className="text-sm">Monday - Thursday: 11am - 11pm</p>
-                  <p className="text-sm">Friday - Saturday: 11am - 1am</p>
-                  <p className="text-sm">Sunday: 12pm - 10pm</p>
+                  <p className="text-sm">Sunday: 10 AM - 12 AM</p>
+                  <p className="text-sm">Monday - Wednesday: 10 AM - 11 PM</p>
+                  <p className="text-sm">Thursday: 10 AM - 1 AM</p>
+                  <p className="text-sm">Friday - Saturday: 10 AM - 2:30 AM</p>
                 </div>
               </CardContent>
             </Card>
