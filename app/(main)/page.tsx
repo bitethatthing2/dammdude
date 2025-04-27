@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Utensils, CalendarDays, BookOpen, ShoppingBag } from "lucide-react";
 import { Lock } from "lucide-react"; 
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
-import { useTheme } from 'next-themes';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { ssr: false });
@@ -33,27 +31,12 @@ const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode;
 
 export default function HomePage() {
   const { location } = useLocationState();
-  const { resolvedTheme } = useTheme();
-  
-  // Determine which logo to use based on the theme
-  const logoSrc = resolvedTheme === 'dark' 
-    ? '/images/about/icon-for-nav-light-screen.png'
-    : '/images/about/light-screen-wolf-vector-logo.png';
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 animate-in">
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center">
-          <Image 
-            src={logoSrc}
-            alt="Side Hustle Wolf Logo"
-            width={60}
-            height={60}
-            className="mr-3"
-            priority
-            data-component-name="HomePage"
-          />
-          <span className="sr-only">Side Hustle</span>
+          <h1 className="text-xl font-bold">SIDE HUSTLE</h1>
         </div>
         <div className="flex items-center gap-3">
           <LocationToggle />
