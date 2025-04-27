@@ -329,10 +329,14 @@ export async function POST(request: NextRequest) {
         icon: androidIcon,
         color: '#4CAF50',
         sound: 'default',
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-        imageUrl: body.image
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK'
       }
     };
+
+    // Only add imageUrl to Android config if it's a valid URL
+    if (body.image && typeof body.image === 'string' && body.image.startsWith('http')) {
+      androidConfig.notification!.imageUrl = body.image;
+    }
 
     // Special case: if this is a cleanup request, run token cleanup
     if (body.action === 'cleanup_tokens') {

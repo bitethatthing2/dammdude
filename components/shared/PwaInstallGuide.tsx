@@ -62,14 +62,13 @@ export default function PwaInstallGuide({
       }
     }
     
-    // Check if we should show installation reminder for iOS only
+    // Check if we should show installation reminder
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const shouldRemind = !isInstalled && 
                          !isToastShown && 
                          (now - lastDismissed > oneDayMs) && 
-                         dismissCount < 3 &&
-                         platform === 'ios'; // Only show reminders for iOS
+                         dismissCount < 3;
     
     if (shouldRemind) {
       // Reset the daily toast flag at midnight
@@ -85,37 +84,67 @@ export default function PwaInstallGuide({
       
       resetToastFlag();
       
-      // Show installation reminder for iOS
+      // Show platform-specific installation reminder
       setTimeout(() => {
-        toast((t: string) => (
-          <div className="flex flex-col gap-2">
-            <p className="font-medium">Install this app on your iPhone</p>
-            <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
-            <div className="flex justify-end gap-2 mt-2">
-              <Button size="sm" variant="outline" onClick={() => {
-                toast.dismiss(t);
-                setDismissCount(dismissCount + 1);
-                setLastDismissed(now);
-              }}>
-                Later
-              </Button>
-              <Button size="sm" onClick={() => {
-                toast.dismiss(t);
-                setIsToastShown(true);
-                handleInstallClick();
-              }}>
-                Show Me How
-              </Button>
+        if (platform === 'ios') {
+          // For iOS, use toast notifications with specific iOS instructions
+          toast((t: string) => (
+            <div className="flex flex-col gap-2">
+              <p className="font-medium">Install this app on your iPhone</p>
+              <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  toast.dismiss(t);
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(now);
+                }}>
+                  Later
+                </Button>
+                <Button size="sm" onClick={() => {
+                  toast.dismiss(t);
+                  setIsToastShown(true);
+                  handleInstallClick();
+                }}>
+                  Show Me How
+                </Button>
+              </div>
             </div>
-          </div>
-        ), { duration: 10000 });
+          ), { duration: 10000 });
+        } else {
+          // For Android and desktop, show a simple toast with install button
+          toast((t: string) => (
+            <div className="flex flex-col gap-2">
+              <p className="font-medium">Install this app for offline access</p>
+              <p className="text-sm text-muted-foreground">Install our app to use it even without internet</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  toast.dismiss(t);
+                  setDismissCount(dismissCount + 1);
+                  setLastDismissed(now);
+                }}>
+                  Later
+                </Button>
+                <Button size="sm" onClick={() => {
+                  toast.dismiss(t);
+                  setIsToastShown(true);
+                  handleInstallClick();
+                }}>
+                  Install Now
+                </Button>
+              </div>
+            </div>
+          ), { duration: 10000 });
+        }
       }, 3000);
     }
     
     // Listen for beforeinstallprompt event (for browsers that support it)
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
       // Store the event for later use
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      console.log('beforeinstallprompt event captured and stored');
     };
     
     // Listen for appinstalled event
@@ -177,20 +206,28 @@ export default function PwaInstallGuide({
         );
       } else if (deferredPrompt) {
         // For browsers with native install prompt, trigger it
+        console.log('Triggering native installation prompt');
         try {
           await deferredPrompt.prompt();
           const choiceResult = await deferredPrompt.userChoice;
           
           if (choiceResult.outcome === 'dismissed') {
+            console.log('User dismissed the installation prompt');
             setDismissCount(dismissCount + 1);
             setLastDismissed(Date.now());
+          } else {
+            console.log('User accepted the installation prompt');
           }
           
           // Clear the prompt reference
           setDeferredPrompt(null);
         } catch (error) {
           console.error('Error showing install prompt:', error);
+          showManualInstallInstructions();
         }
+      } else {
+        // If no deferred prompt is available, show manual installation instructions
+        showManualInstallInstructions();
       }
       
       // Track installation attempt
@@ -215,16 +252,59 @@ export default function PwaInstallGuide({
     }
   };
   
+  // Show manual installation instructions based on platform
+  const showManualInstallInstructions = () => {
+    if (platform === 'android') {
+      toast(
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Install this app on your Android device</div>
+          <div className="space-y-2 text-sm">
+            <p>1. Tap the menu button (three dots) in your browser</p>
+            <p>2. Select "Install app" or "Add to Home screen"</p>
+            <p>3. Follow the on-screen instructions</p>
+          </div>
+        </div>,
+        {
+          duration: 10000,
+          icon: <PlusCircle className="h-5 w-5" />,
+          action: {
+            label: "Got it",
+            onClick: () => {
+              setDismissCount(dismissCount + 1);
+              setLastDismissed(Date.now());
+            }
+          }
+        }
+      );
+    } else if (platform === 'desktop') {
+      toast(
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Install this app on your computer</div>
+          <div className="space-y-2 text-sm">
+            <p>1. Look for the install icon in your browser's address bar</p>
+            <p>2. Or select "Install" from the browser's menu</p>
+            <p>3. Follow the on-screen instructions</p>
+          </div>
+        </div>,
+        {
+          duration: 10000,
+          icon: <PlusCircle className="h-5 w-5" />,
+          action: {
+            label: "Got it",
+            onClick: () => {
+              setDismissCount(dismissCount + 1);
+              setLastDismissed(Date.now());
+            }
+          }
+        }
+      );
+    }
+  };
+  
   // Don't render anything if already installed
   if (isInstalled) return null;
   
-  // Don't show install button for Android or Desktop - they'll get native prompts
-  if (platform === 'android' || platform === 'desktop') {
-    // Only render if we have a deferred prompt (browser hasn't shown native prompt yet)
-    if (!deferredPrompt) return null;
-  }
-  
-  // Render based on variant (only for iOS or when we have a deferred prompt)
+  // Render based on variant
   if (variant === 'icon') {
     return (
       <Button 
