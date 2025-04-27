@@ -183,7 +183,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
               className={cn(
                 "inline-flex items-center gap-2 justify-center rounded-md px-4 py-2 text-sm font-medium",
                 permissionState === 'granted' 
-                  ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
+                  ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-100 dark:hover:bg-green-800" 
                   : "bg-primary text-primary-foreground hover:bg-primary/90 dark:text-white",
                 isLoading && "opacity-50 cursor-not-allowed",
                 className
