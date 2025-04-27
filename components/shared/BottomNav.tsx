@@ -3,18 +3,24 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell } from 'lucide-react';
+import { QrCode, Bell, MoreHorizontal } from 'lucide-react';
 import { NotificationIndicator } from './NotificationIndicator';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/lib/contexts/notification-context';
+import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
 
 export const BottomNav = () => {
   const pathname = usePathname();
   const { notificationPermissionStatus } = useFcmContext();
   const [isMounted, setIsMounted] = useState(false);
   const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Close more menu when clicking outside
+  useOnClickOutside(moreMenuRef, () => setMoreMenuOpen(false));
   
   // Try to use the notification context if available
   let notificationContext;
@@ -65,23 +71,23 @@ export const BottomNav = () => {
   const coreNavItems: NavItem[] = [
     { href: '/', iconName: 'Home', label: 'Home' },
     { href: '/menu', iconName: 'UtensilsCrossed', label: 'Menu' },
-    { href: '/events', iconName: 'CalendarDays', label: 'Events' },
     { href: '/order', icon: <QrCode className="h-5 w-5" />, label: 'BarTap' },
   ];
   
   // Secondary navigation items - shown on larger screens or in a "more" menu
   const secondaryNavItems: NavItem[] = [
-    { href: '/book', iconName: 'BookOpen', label: 'Book' },
+    { href: '/events', iconName: 'CalendarDays', label: 'Events' },
     { href: '/merch', iconName: 'ShoppingBag', label: 'Merch' },
     { href: '/about', iconName: 'Info', label: 'About' },
     { href: '/contact', iconName: 'Phone', label: 'Contact' },
+    { href: '/book', iconName: 'BookOpen', label: 'Book' },
   ];
 
   // Combine for medium screens
-  const mediumScreenItems = [...coreNavItems, ...secondaryNavItems.slice(0, 2)];
+  const mediumScreenItems = [...coreNavItems, secondaryNavItems[0], secondaryNavItems[1]];
   
   // Render a navigation item
-  const renderNavItem = (item: NavItem) => {
+  const renderNavItem = (item: NavItem, onClick?: () => void) => {
     const isActive = pathname === item.href;
     const Icon = item.iconName ? (LucideIcons as Record<string, React.ComponentType<any>>)[item.iconName] : null;
     
@@ -93,6 +99,7 @@ export const BottomNav = () => {
           "flex flex-col items-center justify-center p-2",
           isActive ? "text-foreground" : "text-muted-foreground"
         )}
+        onClick={onClick}
       >
         {Icon ? <Icon className="h-5 w-5" /> : item.icon}
         <span className="text-[10px] mt-1">{item.label}</span>
@@ -127,24 +134,54 @@ export const BottomNav = () => {
     </Link>
   );
   
+  // Render the "More" button and dropdown
+  const renderMoreMenu = () => (
+    <div className="relative" ref={moreMenuRef}>
+      <button
+        onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+        className={cn(
+          "flex flex-col items-center justify-center p-2",
+          moreMenuOpen ? "text-foreground" : "text-muted-foreground"
+        )}
+        aria-label="More options"
+      >
+        <MoreHorizontal className="h-5 w-5" />
+        <span className="text-[10px] mt-1">More</span>
+      </button>
+      
+      {moreMenuOpen && (
+        <div className="absolute bottom-16 right-0 bg-background border rounded-md shadow-lg p-2 min-w-[180px] z-50">
+          <div className="grid grid-cols-1 gap-1">
+            {secondaryNavItems.map((item) => (
+              <div key={item.href} className="w-full">
+                {renderNavItem(item, () => setMoreMenuOpen(false))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-transparent backdrop-blur-md z-50 flex justify-around items-center px-2">
-      {/* Mobile view (4 core items + more) */}
+      {/* Mobile view (3 core items + notifications + more) */}
       <div className="flex justify-between w-full md:hidden">
-        {coreNavItems.map(renderNavItem)}
+        {coreNavItems.map((item) => renderNavItem(item))}
         {renderNotificationItem()}
+        {renderMoreMenu()}
       </div>
       
       {/* Medium screen view (6 items) */}
       <div className="hidden md:flex lg:hidden justify-between w-full">
-        {mediumScreenItems.map(renderNavItem)}
+        {mediumScreenItems.map((item) => renderNavItem(item))}
         {renderNotificationItem()}
-        {/* More dropdown for remaining items */}
+        {renderMoreMenu()}
       </div>
       
       {/* Large screen view (all items) */}
       <div className="hidden lg:flex justify-between w-full">
-        {[...coreNavItems, ...secondaryNavItems].map(renderNavItem)}
+        {[...coreNavItems, ...secondaryNavItems].map((item) => renderNavItem(item))}
         {renderNotificationItem()}
       </div>
     </nav>
