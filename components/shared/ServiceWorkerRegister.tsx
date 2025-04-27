@@ -1,11 +1,23 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+// Global flag to prevent multiple registrations across page reloads
+let hasRegisteredServiceWorker = false;
 
 export default function ServiceWorkerRegister() {
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const registrationAttempted = useRef(false);
 
   useEffect(() => {
+    // Skip if already registered or attempted
+    if (hasRegisteredServiceWorker || registrationAttempted.current) {
+      return;
+    }
+    
+    // Mark as attempted immediately to prevent race conditions
+    registrationAttempted.current = true;
+    
     // Feature detection for service workers
     if (!('serviceWorker' in navigator)) {
       console.warn('Service workers are not supported in this browser.');
@@ -14,6 +26,17 @@ export default function ServiceWorkerRegister() {
 
     const registerServiceWorker = async () => {
       try {
+        // Check if service worker is already controlling the page
+        if (navigator.serviceWorker.controller) {
+          console.log('Service Worker is already controlling this page');
+          
+          // Get the existing registration
+          const existingReg = await navigator.serviceWorker.ready;
+          setSwRegistration(existingReg);
+          hasRegisteredServiceWorker = true;
+          return;
+        }
+        
         // Wait for DOM to be fully loaded
         if (document.readyState !== 'complete') {
           await new Promise<void>((resolve) => {
@@ -22,12 +45,15 @@ export default function ServiceWorkerRegister() {
         }
 
         // Register the service worker with a more reliable approach
+        console.log('Registering service worker...');
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
           scope: '/',
+          updateViaCache: 'none' // Ensure we always check for updates
         });
         
         console.log('Service Worker registered with scope:', registration.scope);
         setSwRegistration(registration);
+        hasRegisteredServiceWorker = true;
         
         // Ensure the service worker is activated
         if (registration.installing) {
@@ -35,6 +61,7 @@ export default function ServiceWorkerRegister() {
           
           const installingWorker = registration.installing;
           installingWorker.addEventListener('statechange', () => {
+            console.log('Service Worker state changed to:', installingWorker.state);
             if (installingWorker.state === 'activated') {
               console.log('Service Worker activated');
               setSwRegistration(registration);
@@ -48,12 +75,8 @@ export default function ServiceWorkerRegister() {
         } else if (registration.active) {
           console.log('Service Worker is active');
           
-          // Ensure the service worker is controlling this page
-          if (!navigator.serviceWorker.controller) {
-            // Reload once to ensure the service worker controls this page
-            window.location.reload();
-            return;
-          }
+          // Don't force reload if the service worker is already active
+          // This prevents disrupting the installation flow
         }
         
         // Check for updates periodically

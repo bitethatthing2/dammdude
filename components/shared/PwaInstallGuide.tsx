@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { IosInstallGuide } from './installation/IosInstallGuide';
 
+// Global flag to track if the beforeinstallprompt event has been captured
+// This persists across component mounts but not page reloads
+let globalDeferredPrompt: Event | null = null;
+
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{
@@ -34,8 +38,105 @@ export default function PwaInstallGuide({
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
   const [promptAvailable, setPromptAvailable] = useState(false);
   const installEventRegistered = useRef(false);
-
-  // Detect platform and installation status
+  
+  // CRITICAL: Register the beforeinstallprompt event listener as early as possible
+  // This must happen before platform detection to ensure we don't miss the event
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Avoid duplicate event listeners
+    if (installEventRegistered.current) return;
+    installEventRegistered.current = true;
+    
+    // Check if we already have a captured prompt from the global variable
+    if (globalDeferredPrompt) {
+      console.log('Using previously captured beforeinstallprompt event');
+      setDeferredPrompt(globalDeferredPrompt as BeforeInstallPromptEvent);
+      setPromptAvailable(true);
+    }
+    
+    // Check if we have a stored flag indicating a prompt was available
+    try {
+      const storedPromptAvailable = localStorage.getItem('pwa-prompt-available');
+      if (storedPromptAvailable === 'true') {
+        console.log('Prompt was previously available according to localStorage');
+        setPromptAvailable(true);
+      }
+    } catch (err) {
+      console.error('Error accessing localStorage:', err);
+    }
+    
+    // Listen for beforeinstallprompt event (for browsers that support it)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      
+      console.log('beforeinstallprompt event captured', e);
+      
+      // Store the event both in state and in the global variable
+      const promptEvent = e as BeforeInstallPromptEvent;
+      globalDeferredPrompt = promptEvent;
+      setDeferredPrompt(promptEvent);
+      setPromptAvailable(true);
+      
+      // Store in localStorage that a prompt is available
+      try {
+        localStorage.setItem('pwa-prompt-available', 'true');
+      } catch (err) {
+        console.error('Error writing to localStorage:', err);
+      }
+      
+      console.log('Installation prompt is available for platforms:', 
+        (promptEvent as BeforeInstallPromptEvent).platforms);
+    };
+    
+    // Listen for appinstalled event
+    const handleAppInstalled = () => {
+      console.log('App was installed successfully');
+      
+      // Clear all installation-related state
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      setPromptAvailable(false);
+      globalDeferredPrompt = null;
+      
+      // Clear localStorage flag
+      try {
+        localStorage.removeItem('pwa-prompt-available');
+      } catch (err) {
+        console.error('Error removing from localStorage:', err);
+      }
+      
+      // Show success toast
+      toast.success("App installed successfully", {
+        description: "You can now access Side Hustle directly from your home screen",
+        duration: 5000,
+      });
+      
+      // Track installation
+      try {
+        if (typeof (window as any).gtag === 'function') {
+          (window as any).gtag('event', 'pwa_installed', {
+            event_category: 'engagement',
+            event_label: platform
+          });
+        }
+      } catch (error) {
+        console.error('Error tracking installation:', error);
+      }
+    };
+    
+    // Add event listeners
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []); // Empty dependency array to ensure this runs once and early
+  
+  // Detect platform and installation status - this runs AFTER event listeners are set up
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -61,6 +162,16 @@ export default function PwaInstallGuide({
       setPlatform('desktop');
       if (isStandalone) {
         setIsInstalled(true);
+      }
+    }
+    
+    // If we're already installed, clear the prompt availability flag
+    if (isStandalone) {
+      setPromptAvailable(false);
+      try {
+        localStorage.removeItem('pwa-prompt-available');
+      } catch (err) {
+        console.error('Error removing from localStorage:', err);
       }
     }
     
@@ -115,84 +226,6 @@ export default function PwaInstallGuide({
       }, 3000);
     }
   }, [platform, dismissCount, lastDismissed, isToastShown, isInstalled]);
-
-  // Set up event listeners for installation events
-  useEffect(() => {
-    if (typeof window === 'undefined' || installEventRegistered.current) return;
-    
-    installEventRegistered.current = true;
-    
-    // Listen for beforeinstallprompt event (for browsers that support it)
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      
-      // Store the event for later use
-      const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
-      setPromptAvailable(true);
-      
-      console.log('beforeinstallprompt event captured and stored', promptEvent.platforms);
-    };
-    
-    // Listen for appinstalled event
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-      setPromptAvailable(false);
-      
-      // Show success toast
-      toast.success("App installed successfully", {
-        description: "You can now access Side Hustle directly from your home screen",
-        duration: 5000,
-      });
-      
-      // Track installation
-      try {
-        if (typeof (window as any).gtag === 'function') {
-          (window as any).gtag('event', 'pwa_installed', {
-            event_category: 'engagement',
-            event_label: platform
-          });
-        }
-      } catch (error) {
-        console.error('Error tracking installation:', error);
-      }
-    };
-    
-    // Check if there's a stored prompt in sessionStorage (for page reloads)
-    try {
-      const storedPromptAvailable = sessionStorage.getItem('promptAvailable');
-      if (storedPromptAvailable === 'true') {
-        setPromptAvailable(true);
-      }
-    } catch (err) {
-      console.error('Error accessing sessionStorage:', err);
-    }
-    
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, [platform]);
-  
-  // Store promptAvailable in sessionStorage when it changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      if (promptAvailable) {
-        sessionStorage.setItem('promptAvailable', 'true');
-      } else {
-        sessionStorage.removeItem('promptAvailable');
-      }
-    } catch (err) {
-      console.error('Error accessing sessionStorage:', err);
-    }
-  }, [promptAvailable]);
   
   // Handle install button click
   const handleInstallClick = async () => {
@@ -235,7 +268,15 @@ export default function PwaInstallGuide({
           
           // Clear the prompt reference
           setDeferredPrompt(null);
+          globalDeferredPrompt = null;
           setPromptAvailable(false);
+          
+          // Clear localStorage flag
+          try {
+            localStorage.removeItem('pwa-prompt-available');
+          } catch (err) {
+            console.error('Error removing from localStorage:', err);
+          }
         } catch (error) {
           console.error('Error showing install prompt:', error);
           // No toast message here - we don't want to show a message if the native prompt fails
@@ -251,6 +292,12 @@ export default function PwaInstallGuide({
       } else if (platform === 'android' || platform === 'desktop') {
         // For Android/Desktop without prompt stored, just silently return
         console.log('Native installation prompt not available at this time');
+        
+        // Show a more helpful message when the button is clicked but no prompt is available
+        toast.info("Installation not available", {
+          description: "Please use this app for a while before installing",
+          duration: 5000
+        });
       }
       
       // Track installation attempt
@@ -273,11 +320,10 @@ export default function PwaInstallGuide({
   // Don't render anything if already installed
   if (isInstalled) return null;
   
-  // Don't render for platforms that don't support installation
-  // or when installation is not available
-  if ((platform === 'android' || platform === 'desktop') && !promptAvailable) {
-    return null;
-  }
+  // IMPROVED VISIBILITY LOGIC: Show button for iOS always, and for Android/desktop
+  // when promptAvailable is true OR we're on a platform that supports installation
+  const shouldShowButton = platform === 'ios' || promptAvailable;
+  if (!shouldShowButton) return null;
   
   // Get button text based on platform
   const getButtonText = () => {

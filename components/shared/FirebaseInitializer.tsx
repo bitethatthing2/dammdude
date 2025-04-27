@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { initFirebase } from '@/lib/firebase';
 import { FcmProvider } from '@/lib/hooks/useFcmToken';
 import { Toaster } from 'sonner'; 
@@ -12,40 +12,43 @@ let hasInitializedFirebase = false;
 export default function FirebaseInitializer({ children }: { children?: React.ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const initAttempted = useRef(false);
 
   useEffect(() => {
-    // Skip if already initialized to prevent duplicate initialization
-    if (hasInitializedFirebase) {
-      console.log('Firebase already initialized in a previous instance');
+    // Skip if already initialized or attempted to prevent duplicate initialization
+    if (hasInitializedFirebase || initAttempted.current) {
+      console.log('Firebase already initialized or initialization attempted');
       return;
     }
     
-    // Set the flag immediately to prevent race conditions
-    hasInitializedFirebase = true;
+    // Mark as attempted immediately to prevent race conditions
+    initAttempted.current = true;
     
     // Initialize Firebase as early as possible
     const initializeFirebase = async () => {
       setIsInitializing(true);
       
       try {
-        // Make sure service worker is ready before initializing Firebase
-        if ('serviceWorker' in navigator) {
-          // Wait for the page to fully load
-          if (document.readyState !== 'complete') {
-            await new Promise<void>((resolve) => {
-              window.addEventListener('load', () => resolve(), { once: true });
-            });
-          }
+        // Check if service worker is already registered and active
+        const isServiceWorkerActive = 'serviceWorker' in navigator && 
+                                     navigator.serviceWorker.controller !== null;
+        
+        // If service worker is not yet active, wait a moment to give it time to initialize
+        // But don't wait too long as this could block Firebase initialization
+        if (!isServiceWorkerActive && 'serviceWorker' in navigator) {
+          console.log('Waiting briefly for service worker to activate...');
           
-          // Initialize Firebase with a small delay to ensure service worker has time to start
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await initFirebase();
-          console.log('Firebase initialized successfully');
-        } else {
-          // No service worker support, still initialize Firebase
-          await initFirebase();
-          console.log('Firebase initialized successfully (no service worker support)');
+          // Wait for service worker to be ready, but with a timeout
+          await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+          ]);
         }
+        
+        // Initialize Firebase
+        await initFirebase();
+        console.log('Firebase initialized successfully');
+        hasInitializedFirebase = true;
       } catch (error) {
         console.error('Error initializing Firebase:', error);
         setInitError(error instanceof Error ? error.message : String(error));
