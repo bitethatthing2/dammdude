@@ -262,26 +262,8 @@ export async function POST(request: NextRequest) {
 
     // Create the webpush configuration for desktop browsers
     const webPushConfig = {
-      notification: {
-        title: body.title,
-        body: body.body,
-        icon: webIcon,
-        image: body.image,
-        badge: '/icons/badge-icon.png',
-        data: {
-          ...dataPayload,
-          url: body.link || '/'
-        },
-        actions: body.actionButton && body.actionButtonText ? [
-          {
-            action: 'action1',
-            title: body.actionButtonText,
-            icon: '/icons/action-icon.png'
-          }
-        ] : undefined
-      },
       fcmOptions: {
-        link: body.link
+        link: body.link || '/'
       },
       headers: {
         TTL: '86400' // 24 hours in seconds
@@ -292,17 +274,9 @@ export async function POST(request: NextRequest) {
     const apnsConfig = {
       payload: {
         aps: {
-          alert: {
-            title: body.title,
-            body: body.body
-          },
-          badge: 1,
-          sound: 'default',
+          'content-available': 1,
           'mutable-content': 1,
-          'content-available': 1
-        },
-        fcm_options: {
-          image: body.image
+          sound: 'default'
         },
         data: dataPayload
       }
@@ -313,30 +287,10 @@ export async function POST(request: NextRequest) {
       priority: 'high' | 'normal';
       ttl?: number;
       restrictedPackageName?: string;
-      notification?: {
-        title?: string;
-        body?: string;
-        icon?: string;
-        color?: string;
-        sound?: string;
-        clickAction?: string;
-        imageUrl?: string;
-      };
     } = {
       priority: 'high',
-      ttl: 86400000, // 24 hours in milliseconds
-      notification: {
-        icon: androidIcon,
-        color: '#4CAF50',
-        sound: 'default',
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK'
-      }
+      ttl: 86400000 // 24 hours in milliseconds
     };
-
-    // Only add imageUrl to Android config if it's a valid URL
-    if (body.image && typeof body.image === 'string' && body.image.startsWith('http')) {
-      androidConfig.notification!.imageUrl = body.image;
-    }
 
     // Special case: if this is a cleanup request, run token cleanup
     if (body.action === 'cleanup_tokens') {

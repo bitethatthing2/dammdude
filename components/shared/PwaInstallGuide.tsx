@@ -62,13 +62,14 @@ export default function PwaInstallGuide({
       }
     }
     
-    // Check if we should show installation reminder
+    // Check if we should show installation reminder - ONLY FOR iOS
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const shouldRemind = !isInstalled && 
                          !isToastShown && 
                          (now - lastDismissed > oneDayMs) && 
-                         dismissCount < 3;
+                         dismissCount < 3 &&
+                         platform === 'ios'; // Only show automatic reminders for iOS
     
     if (shouldRemind) {
       // Reset the daily toast flag at midnight
@@ -84,57 +85,31 @@ export default function PwaInstallGuide({
       
       resetToastFlag();
       
-      // Show platform-specific installation reminder
+      // Show installation reminder ONLY for iOS
       setTimeout(() => {
-        if (platform === 'ios') {
-          // For iOS, use toast notifications with specific iOS instructions
-          toast((t: string) => (
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">Install this app on your iPhone</p>
-              <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  toast.dismiss(t);
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(now);
-                }}>
-                  Later
-                </Button>
-                <Button size="sm" onClick={() => {
-                  toast.dismiss(t);
-                  setIsToastShown(true);
-                  handleInstallClick();
-                }}>
-                  Show Me How
-                </Button>
-              </div>
+        // For iOS, use toast notifications with specific iOS instructions
+        toast((t: string) => (
+          <div className="flex flex-col gap-2">
+            <p className="font-medium">Install this app on your iPhone</p>
+            <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button size="sm" variant="outline" onClick={() => {
+                toast.dismiss(t);
+                setDismissCount(dismissCount + 1);
+                setLastDismissed(now);
+              }}>
+                Later
+              </Button>
+              <Button size="sm" onClick={() => {
+                toast.dismiss(t);
+                setIsToastShown(true);
+                handleInstallClick();
+              }}>
+                Show Me How
+              </Button>
             </div>
-          ), { duration: 10000 });
-        } else {
-          // For Android and desktop, show a simple toast with install button
-          toast((t: string) => (
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">Install this app for offline access</p>
-              <p className="text-sm text-muted-foreground">Install our app to use it even without internet</p>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  toast.dismiss(t);
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(now);
-                }}>
-                  Later
-                </Button>
-                <Button size="sm" onClick={() => {
-                  toast.dismiss(t);
-                  setIsToastShown(true);
-                  handleInstallClick();
-                }}>
-                  Install Now
-                </Button>
-              </div>
-            </div>
-          ), { duration: 10000 });
-        }
+          </div>
+        ), { duration: 10000 });
       }, 3000);
     }
     
@@ -186,7 +161,7 @@ export default function PwaInstallGuide({
     
     try {
       if (platform === 'ios') {
-        // Show toast instructions for iOS
+        // Show toast instructions for iOS only
         toast(
           <div className="flex flex-col gap-2">
             <div className="font-medium">Install this app on your iPhone</div>
@@ -223,11 +198,19 @@ export default function PwaInstallGuide({
           setDeferredPrompt(null);
         } catch (error) {
           console.error('Error showing install prompt:', error);
-          showManualInstallInstructions();
+          // If native prompt fails, we don't show manual instructions
+          // This avoids confusing the user with redundant instructions
         }
-      } else {
-        // If no deferred prompt is available, show manual installation instructions
-        showManualInstallInstructions();
+      } else if (platform !== 'ios') {
+        // For Android/Desktop without deferred prompt, show a simple message
+        // This happens when the PWA criteria aren't met or the prompt was already shown
+        toast.info(
+          "Installation not available", 
+          { 
+            description: "Please ensure you're using a supported browser or the app is already installed",
+            duration: 5000
+          }
+        );
       }
       
       // Track installation attempt
@@ -246,58 +229,9 @@ export default function PwaInstallGuide({
       
       // Show error toast
       toast.error("Couldn't install app", {
-        description: "Please try again or install manually from your browser menu",
+        description: "Please try again later",
         duration: 5000,
       });
-    }
-  };
-  
-  // Show manual installation instructions based on platform
-  const showManualInstallInstructions = () => {
-    if (platform === 'android') {
-      toast(
-        <div className="flex flex-col gap-2">
-          <div className="font-medium">Install this app on your Android device</div>
-          <div className="space-y-2 text-sm">
-            <p>1. Tap the menu button (three dots) in your browser</p>
-            <p>2. Select "Install app" or "Add to Home screen"</p>
-            <p>3. Follow the on-screen instructions</p>
-          </div>
-        </div>,
-        {
-          duration: 10000,
-          icon: <PlusCircle className="h-5 w-5" />,
-          action: {
-            label: "Got it",
-            onClick: () => {
-              setDismissCount(dismissCount + 1);
-              setLastDismissed(Date.now());
-            }
-          }
-        }
-      );
-    } else if (platform === 'desktop') {
-      toast(
-        <div className="flex flex-col gap-2">
-          <div className="font-medium">Install this app on your computer</div>
-          <div className="space-y-2 text-sm">
-            <p>1. Look for the install icon in your browser's address bar</p>
-            <p>2. Or select "Install" from the browser's menu</p>
-            <p>3. Follow the on-screen instructions</p>
-          </div>
-        </div>,
-        {
-          duration: 10000,
-          icon: <PlusCircle className="h-5 w-5" />,
-          action: {
-            label: "Got it",
-            onClick: () => {
-              setDismissCount(dismissCount + 1);
-              setLastDismissed(Date.now());
-            }
-          }
-        }
-      );
     }
   };
   
