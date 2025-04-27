@@ -1,24 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, Share, PlusCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { IosInstallGuide } from './installation/IosInstallGuide';
-import { InstallPopup } from './installation/InstallPopup';
-
-interface NavigatorWithInstallation extends Navigator {
-  getInstalledRelatedApps?: () => Promise<Array<{
-    id: string;
-    platform: string;
-    url: string;
-    version: string;
-  }>>;
-  installWebApp?: () => Promise<void>;
-  canInstallWebApp?: () => Promise<boolean>;
-}
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -44,7 +32,6 @@ export default function PwaInstallGuide({
   const [dismissCount, setDismissCount] = useLocalStorage('pwa-install-dismiss-count', 0);
   const [lastDismissed, setLastDismissed] = useLocalStorage('pwa-install-last-dismissed', 0);
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Detect platform and installation status
   useEffect(() => {
@@ -75,15 +62,16 @@ export default function PwaInstallGuide({
       }
     }
     
-    // Check if we should show installation reminder
+    // Check if we should show installation reminder for iOS only
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const shouldRemind = !isInstalled && 
                          !isToastShown && 
                          (now - lastDismissed > oneDayMs) && 
-                         dismissCount < 3;
+                         dismissCount < 3 &&
+                         platform === 'ios'; // Only show reminders for iOS
     
-    if (shouldRemind && !isInstalled) {
+    if (shouldRemind) {
       // Reset the daily toast flag at midnight
       const resetToastFlag = () => {
         const tomorrow = new Date();
@@ -97,44 +85,36 @@ export default function PwaInstallGuide({
       
       resetToastFlag();
       
-      // Show installation reminder based on platform
+      // Show installation reminder for iOS
       setTimeout(() => {
-        if (platform === 'ios') {
-          // For iOS, use toast notifications
-          toast((t: string) => (
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">Install this app on your iPhone</p>
-              <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  toast.dismiss(t);
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(now);
-                }}>
-                  Later
-                </Button>
-                <Button size="sm" onClick={() => {
-                  toast.dismiss(t);
-                  setIsToastShown(true);
-                  handleInstallClick();
-                }}>
-                  Show Me How
-                </Button>
-              </div>
+        toast((t: string) => (
+          <div className="flex flex-col gap-2">
+            <p className="font-medium">Install this app on your iPhone</p>
+            <p className="text-sm text-muted-foreground">Tap the share icon and then "Add to Home Screen"</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button size="sm" variant="outline" onClick={() => {
+                toast.dismiss(t);
+                setDismissCount(dismissCount + 1);
+                setLastDismissed(now);
+              }}>
+                Later
+              </Button>
+              <Button size="sm" onClick={() => {
+                toast.dismiss(t);
+                setIsToastShown(true);
+                handleInstallClick();
+              }}>
+                Show Me How
+              </Button>
             </div>
-          ), { duration: 10000 });
-        } else {
-          // For Android and desktop, use popup dialog
-          setIsPopupOpen(true);
-          setIsToastShown(true);
-        }
+          </div>
+        ), { duration: 10000 });
       }, 3000);
     }
     
-    // Listen for beforeinstallprompt event (Android)
+    // Listen for beforeinstallprompt event (for browsers that support it)
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('beforeinstallprompt event captured', e);
-      e.preventDefault();
+      // Store the event for later use
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     
@@ -142,7 +122,6 @@ export default function PwaInstallGuide({
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-      setIsPopupOpen(false);
       
       // Show success toast
       toast.success("App installed successfully", {
@@ -196,9 +175,22 @@ export default function PwaInstallGuide({
             }
           }
         );
-      } else {
-        // For Android and desktop, show popup
-        setIsPopupOpen(true);
+      } else if (deferredPrompt) {
+        // For browsers with native install prompt, trigger it
+        try {
+          await deferredPrompt.prompt();
+          const choiceResult = await deferredPrompt.userChoice;
+          
+          if (choiceResult.outcome === 'dismissed') {
+            setDismissCount(dismissCount + 1);
+            setLastDismissed(Date.now());
+          }
+          
+          // Clear the prompt reference
+          setDeferredPrompt(null);
+        } catch (error) {
+          console.error('Error showing install prompt:', error);
+        }
       }
       
       // Track installation attempt
@@ -222,180 +214,52 @@ export default function PwaInstallGuide({
       });
     }
   };
-
-  // Handle the actual installation process (for native prompts)
-  const handleNativeInstall = async () => {
-    console.log('handleNativeInstall called, deferredPrompt:', !!deferredPrompt);
-    
-    if (deferredPrompt) {
-      try {
-        console.log('Triggering native installation prompt');
-        // Force a small delay to ensure UI updates before prompt
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Trigger the native prompt
-        await deferredPrompt.prompt();
-        console.log('Native prompt displayed to user');
-        
-        const choiceResult = await deferredPrompt.userChoice;
-        console.log('User choice result:', choiceResult.outcome);
-        
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the installation prompt');
-          setIsInstalled(true);
-          setDeferredPrompt(null);
-          setIsPopupOpen(false);
-          
-          // Show success toast
-          toast.success("App installation started", {
-            description: "Follow the browser prompts to complete installation",
-            duration: 5000,
-          });
-        } else {
-          console.log('User dismissed the installation prompt');
-          setDismissCount(dismissCount + 1);
-          setLastDismissed(Date.now());
-        }
-      } catch (error) {
-        console.error('Error showing install prompt:', error);
-        toast.error("Couldn't show install prompt", {
-          description: "Please try installing manually from your browser menu",
-        });
-      }
-    } else {
-      console.log('No deferred prompt available for installation');
-      
-      // Try alternative installation methods
-      const navigatorExt = navigator as NavigatorWithInstallation;
-      
-      // Method 1: Try the experimental installWebApp API if available
-      if (navigatorExt.installWebApp) {
-        console.log('Trying installWebApp API');
-        try {
-          await navigatorExt.installWebApp();
-          console.log('Installation triggered via installWebApp API');
-          return;
-        } catch (e) {
-          console.error('Error using installWebApp API:', e);
-        }
-      }
-      
-      // Method 2: Check for installed related apps
-      if (navigatorExt.getInstalledRelatedApps) {
-        console.log('Checking for installed related apps');
-        try {
-          const relatedApps = await navigatorExt.getInstalledRelatedApps();
-          console.log('Related apps:', relatedApps);
-        } catch (e) {
-          console.error('Error checking related apps:', e);
-        }
-      }
-      
-      // Method 3: Try to create a direct install link for Chrome
-      if (platform === 'android' && /chrome/i.test(navigator.userAgent)) {
-        console.log('Trying Chrome-specific installation method');
-        try {
-          // Dispatch a custom event that might be captured by Chrome
-          const installEvent = new CustomEvent('onappinstalled', { 
-            bubbles: true,
-            cancelable: false 
-          });
-          window.dispatchEvent(installEvent);
-          console.log('Dispatched custom installation event');
-        } catch (e) {
-          console.error('Error dispatching custom event:', e);
-        }
-      }
-      
-      // If all else fails, keep the dialog open with manual instructions
-      setIsPopupOpen(true);
-    }
-  };
-  
-  // Handle popup dismiss
-  const handlePopupDismiss = () => {
-    setDismissCount(dismissCount + 1);
-    setLastDismissed(Date.now());
-  };
   
   // Don't render anything if already installed
   if (isInstalled) return null;
   
-  // Render based on variant
+  // Don't show install button for Android or Desktop - they'll get native prompts
+  if (platform === 'android' || platform === 'desktop') {
+    // Only render if we have a deferred prompt (browser hasn't shown native prompt yet)
+    if (!deferredPrompt) return null;
+  }
+  
+  // Render based on variant (only for iOS or when we have a deferred prompt)
   if (variant === 'icon') {
     return (
-      <>
-        <Button 
-          className={cn("p-0 h-9 w-9 rounded-full", className)}
-          onClick={handleInstallClick}
-          aria-label="Install app"
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-        
-        {(platform === 'android' || platform === 'desktop') && (
-          <InstallPopup
-            platform={platform}
-            hasNativePrompt={!!deferredPrompt}
-            onInstallAction={handleNativeInstall}
-            onDismissAction={handlePopupDismiss}
-            open={isPopupOpen}
-            onOpenChangeAction={setIsPopupOpen}
-          />
-        )}
-      </>
+      <Button 
+        className={cn("p-0 h-9 w-9 rounded-full", className)}
+        onClick={handleInstallClick}
+        aria-label="Install app"
+      >
+        <Download className="h-4 w-4" />
+      </Button>
     );
   }
   
   if (variant === 'minimal') {
     return (
-      <>
-        <button
-          onClick={handleInstallClick}
-          className={cn(
-            "inline-flex items-center gap-1.5 text-sm font-medium",
-            className
-          )}
-        >
-          <Download className="h-4 w-4" />
-          Install App
-        </button>
-        
-        {(platform === 'android' || platform === 'desktop') && (
-          <InstallPopup
-            platform={platform}
-            hasNativePrompt={!!deferredPrompt}
-            onInstallAction={handleNativeInstall}
-            onDismissAction={handlePopupDismiss}
-            open={isPopupOpen}
-            onOpenChangeAction={setIsPopupOpen}
-          />
+      <button
+        onClick={handleInstallClick}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-sm font-medium",
+          className
         )}
-      </>
+      >
+        <Download className="h-4 w-4" />
+        Install App
+      </button>
     );
   }
   
   // Default button variant
   return (
-    <>
-      <Button
-        className={cn("gap-1.5", className)}
-        onClick={handleInstallClick}
-      >
-        <Download className="h-4 w-4" />
-        Install App
-      </Button>
-      
-      {(platform === 'android' || platform === 'desktop') && (
-        <InstallPopup
-          platform={platform}
-          hasNativePrompt={!!deferredPrompt}
-          onInstallAction={handleNativeInstall}
-          onDismissAction={handlePopupDismiss}
-          open={isPopupOpen}
-          onOpenChangeAction={setIsPopupOpen}
-        />
-      )}
-    </>
+    <Button
+      className={cn("gap-1.5", className)}
+      onClick={handleInstallClick}
+    >
+      <Download className="h-4 w-4" />
+      Install App
+    </Button>
   );
 }

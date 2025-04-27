@@ -255,59 +255,140 @@ export function useFcmToken() {
       messageHandlerRef.current = setupForegroundMessageHandler(messaging, (payload: FcmMessagePayload) => {
         console.log('🔔 FOREGROUND PUSH NOTIFICATION RECEIVED:', payload);
         
-        // Extract all possible data from the message payload
-        const notification = payload.notification;
-        const title = notification?.title || 'New Message';
-        const body = notification?.body || '';
-        const iconUrl = notification?.icon || '/icons/android-lil-icon.png'; // Fallback icon
+        // Extract data from both notification object and data field
+        // This ensures we handle both notification+data messages and data-only messages
+        const notificationObject = payload.notification || {};
+        const dataObject = payload.data || {};
         
-        // Try to get the link from various possible locations in the payload
-        const link = payload.fcmOptions?.link || 
-                    (payload.data && typeof payload.data === 'object' && 'link' in payload.data ? 
-                     payload.data.link as string : undefined);
-
+        // Prioritize data fields over notification fields for consistency with service worker
+        const title = dataObject.title || notificationObject.title || 'New Message';
+        const body = dataObject.body || notificationObject.body || '';
+        const iconUrl = dataObject.icon || notificationObject.icon || '/icons/android-lil-icon.png';
+        
+        // Extract link from various possible locations
+        const link = 
+          dataObject.link || 
+          payload.fcmOptions?.link || 
+          // @ts-ignore - clickAction may exist in some notification payloads
+          notificationObject.clickAction || 
+          '/';
+        
+        // Extract image if available
+        const image = dataObject.image || notificationObject.image;
+        
+        // Extract action buttons if available
+        const actionButton = dataObject.actionButton;
+        const actionButtonText = dataObject.actionButtonText;
+        
+        // Extract any additional custom data
+        const customData: Record<string, any> = {};
+        Object.keys(dataObject).forEach(key => {
+          if (!['title', 'body', 'link', 'icon', 'image', 'actionButton', 'actionButtonText'].includes(key)) {
+            try {
+              // Try to parse JSON strings
+              customData[key] = JSON.parse(dataObject[key]);
+            } catch (e) {
+              // If not JSON, use the raw value
+              customData[key] = dataObject[key];
+            }
+          }
+        });
+        
+        console.log(`Showing notification - Title: "${title}", Body: "${body}", Link: "${link}"`, customData);
+        
         // Show toast notification (primary notification method)
         try {
-          console.log(`Showing notification - Title: "${title}", Body: "${body}"`);
-          
           toast(title, {
             description: body,
             duration: 8000,
             important: true,
-            action: link ? {
-              label: 'View',
+            icon: image ? undefined : <img src={iconUrl} alt="" className="w-6 h-6" />,
+            // Show image if available
+            ...(image && {
+              style: {
+                backgroundImage: `url(${image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                paddingTop: '56px', // Make room for the image
+              }
+            }),
+            action: {
+              label: actionButtonText || 'View',
               onClick: () => {
-                if (link) {
-                  // Handle internal vs external links
-                  if (link.startsWith('http')) {
-                    window.open(link, '_blank');
-                  } else {
-                    router.push(link);
-                  }
+                const targetUrl = actionButton || link;
+                // Handle internal vs external links
+                if (targetUrl.startsWith('http')) {
+                  window.open(targetUrl, '_blank');
+                } else {
+                  router.push(targetUrl);
                 }
               }
-            } : undefined
+            }
           });
           
           // Try to also show a native notification if the page is not visible
           if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
             try {
-              const notification = new Notification(title, { 
+              const notificationOptions: NotificationOptions = { 
                 body: body,
-                icon: iconUrl
-              });
+                icon: iconUrl,
+                requireInteraction: true,
+                // @ts-ignore - vibrate is valid in modern browsers
+                vibrate: [100, 50, 100],
+                // @ts-ignore - badge is valid in modern browsers
+                badge: '/icons/badge-icon.png',
+                data: {
+                  url: link,
+                  actionButton,
+                  ...customData
+                }
+              };
+              
+              // Add image if available
+              if (image) {
+                // @ts-ignore - image is valid in modern browsers
+                notificationOptions.image = image;
+              }
+              
+              // Add actions if available
+              if (actionButton && actionButtonText) {
+                // @ts-ignore - actions is valid in modern browsers
+                notificationOptions.actions = [
+                  {
+                    action: 'action-button',
+                    title: actionButtonText,
+                    icon: '/icons/action-icon.png'
+                  }
+                ];
+              }
+              
+              const notification = new Notification(title, notificationOptions);
               
               // Add click handler for native notification
-              if (link) {
-                notification.onclick = () => {
+              notification.onclick = (event) => {
+                event.preventDefault(); // Prevent default action
+                
+                // Handle action button clicks
+                if (event instanceof NotificationEvent && event.action === 'action-button' && actionButton) {
+                  if (actionButton.startsWith('http')) {
+                    window.open(actionButton, '_blank');
+                  } else {
+                    router.push(actionButton);
+                    window.focus();
+                  }
+                } else {
+                  // Default click behavior
                   if (link.startsWith('http')) {
                     window.open(link, '_blank');
                   } else {
                     router.push(link);
                     window.focus();
                   }
-                };
-              }
+                }
+                
+                notification.close();
+              };
             } catch (nativeError) {
               console.warn('Native notification failed:', nativeError);
             }

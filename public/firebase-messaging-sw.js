@@ -154,8 +154,6 @@ self.addEventListener('sync', event => {
 if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId) {
   try {
     // Initialize Firebase
-    // --- MODIFICATION START ---
-    // Use the standard Firebase config defined earlier (firebaseConfig)
     firebase.initializeApp(firebaseConfig);
 
     // Get a Messaging instance.
@@ -171,24 +169,45 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       console.log('[firebase-messaging-sw.js] onBackgroundMessage HANDLER TRIGGERED');
       console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-      // Extract notification data
-      const notificationTitle = payload.data?.title || 'New Notification';
-      const notificationBody = payload.data?.body || '';
+      // Extract notification data from either data or notification object
+      // This handles both data-only messages and notification+data messages
+      const notificationData = payload.data || {};
+      const notificationObject = payload.notification || {};
+      
+      // Use data fields first, fall back to notification object fields
+      // This ensures we prioritize custom data fields over FCM-generated notification fields
+      const notificationTitle = notificationData.title || notificationObject.title || 'New Notification';
+      const notificationBody = notificationData.body || notificationObject.body || '';
       
       // Extract any custom data
-      const link = payload.data?.link || '/';
-      const orderId = payload.data?.orderId || null;
-      const image = payload.data?.image || null;
-      const linkButtonText = payload.data?.linkButtonText || null;
-      const actionButton = payload.data?.actionButton || null;
-      const actionButtonText = payload.data?.actionButtonText || null;
+      const link = notificationData.link || notificationObject.link || '/';
+      const orderId = notificationData.orderId || null;
+      const image = notificationData.image || notificationObject.image || null;
+      const linkButtonText = notificationData.linkButtonText || null;
+      const actionButton = notificationData.actionButton || null;
+      const actionButtonText = notificationData.actionButtonText || null;
+      
+      // Extract any additional custom data fields
+      const customData = {};
+      Object.keys(notificationData).forEach(key => {
+        if (!['title', 'body', 'link', 'orderId', 'image', 'linkButtonText', 'actionButton', 'actionButtonText'].includes(key)) {
+          try {
+            // Try to parse JSON strings in case they contain objects
+            customData[key] = JSON.parse(notificationData[key]);
+          } catch (e) {
+            // If not JSON, use the raw value
+            customData[key] = notificationData[key];
+          }
+        }
+      });
       
       console.log('[firebase-messaging-sw.js] Preparing to show notification:', {
         title: notificationTitle,
         body: notificationBody,
         link,
         orderId,
-        hasImage: !!image
+        hasImage: !!image,
+        customData: Object.keys(customData)
       });
       
       // Configure notification options
@@ -200,42 +219,49 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
         badge: '/icons/android-lil-icon-white.png',
         // Add image if provided
         ...(image && { image }),
-        // Add actions based on context
-        ...((orderId || (link && linkButtonText) || (actionButton && actionButtonText)) && {
-          actions: [
-            ...(orderId ? [{
-              action: 'view-order',
-              title: 'View Order',
-              icon: '/icons/view-order-icon.png'
-            }] : []),
-            ...(link && linkButtonText ? [{
-              action: 'open-link',
-              title: linkButtonText,
-              icon: '/icons/link-icon.png'
-            }] : []),
-            ...(actionButton && actionButtonText ? [{
-              action: actionButton,
-              title: actionButtonText,
-              icon: '/icons/action-icon.png'
-            }] : [])
-          ]
-        }),
-        // Store data for when notification is clicked
+        // Enable vibration
+        vibrate: [100, 50, 100],
+        // Make notification persistent until clicked
+        requireInteraction: true,
+        // Add data for the click handler
         data: {
           url: link,
           orderId,
-          ...payload.data
+          ...customData
         },
-        // Ensure notification is shown even if app is in foreground
-        requireInteraction: true,
-        // Add vibration pattern
-        vibrate: [200, 100, 200],
-        // Add a tag to group similar notifications
-        tag: `sidehustle-${Date.now()}`
+        // Configure actions based on provided buttons
+        actions: []
       };
-      
+
+      // Add action buttons if provided
+      if (actionButton && actionButtonText) {
+        notificationOptions.actions.push({
+          action: 'action-button',
+          title: actionButtonText,
+          icon: '/icons/action-icon.png'
+        });
+      }
+
+      // Add link button if provided
+      if (link && linkButtonText) {
+        notificationOptions.actions.push({
+          action: 'link-button',
+          title: linkButtonText || 'View',
+          icon: '/icons/link-icon.png'
+        });
+      }
+
+      // Add order button if orderId is provided
+      if (orderId) {
+        notificationOptions.actions.push({
+          action: 'view-order',
+          title: 'View Order',
+          icon: '/icons/view-order-icon.png'
+        });
+      }
+
       // Show the notification
-      self.registration.showNotification(notificationTitle, notificationOptions);
+      return self.registration.showNotification(notificationTitle, notificationOptions);
     });
     
     // Handle notification click
@@ -245,105 +271,44 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       // Close the notification
       event.notification.close();
       
-      // Get stored data from the notification
-      const data = event.notification.data || {};
+      // Get notification data
+      const notificationData = event.notification.data || {};
+      let targetUrl = notificationData.url || '/';
       
-      // Handle specific actions
-      if (event.action === 'view-order' && data.orderId) {
-        // Navigate to order details
-        const orderUrl = `/orders/${data.orderId}`;
-        console.log(`[firebase-messaging-sw.js] Navigating to order: ${orderUrl}`);
-        
-        // Focus or open a window and navigate to the order
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(orderUrl);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(orderUrl);
-              }
-            })
-        );
-      } else if (event.action === 'open-link' && data.link) {
-        // Navigate to the specified link
-        console.log(`[firebase-messaging-sw.js] Navigating to link: ${data.link}`);
-        
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(data.link);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(data.link);
-              }
-            })
-        );
-      } else if (event.action && event.action === data.actionButton) {
-        // Handle custom action button
-        console.log(`[firebase-messaging-sw.js] Custom action: ${event.action}`);
-        
-        // For now, just navigate to the link if provided
-        if (data.link) {
-          event.waitUntil(
-            self.clients.matchAll({ type: 'window' })
-              .then(clientList => {
-                // Try to focus an existing window
-                for (const client of clientList) {
-                  if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    return client.focus().then(focusedClient => {
-                      return focusedClient.navigate(data.link);
-                    });
-                  }
-                }
-                
-                // If no existing window, open a new one
-                if (self.clients.openWindow) {
-                  return self.clients.openWindow(data.link);
-                }
-              })
-          );
-        }
-      } else {
-        // Default action - navigate to the URL stored in the notification
-        const url = data.url || '/';
-        console.log(`[firebase-messaging-sw.js] Default navigation to: ${url}`);
-        
-        event.waitUntil(
-          self.clients.matchAll({ type: 'window' })
-            .then(clientList => {
-              // Try to focus an existing window
-              for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                  return client.focus().then(focusedClient => {
-                    return focusedClient.navigate(url);
-                  });
-                }
-              }
-              
-              // If no existing window, open a new one
-              if (self.clients.openWindow) {
-                return self.clients.openWindow(url);
-              }
-            })
-        );
+      // Handle different action clicks
+      if (event.action === 'action-button' && notificationData.actionButton) {
+        targetUrl = notificationData.actionButton;
+      } else if (event.action === 'link-button' && notificationData.url) {
+        targetUrl = notificationData.url;
+      } else if (event.action === 'view-order' && notificationData.orderId) {
+        targetUrl = `/order/${notificationData.orderId}`;
       }
+      
+      // Ensure URL is absolute
+      if (!targetUrl.startsWith('http') && !targetUrl.startsWith('/')) {
+        targetUrl = '/' + targetUrl;
+      }
+      
+      // Focus on existing window or open a new one
+      event.waitUntil(
+        self.clients.matchAll({ type: 'window' })
+          .then(clientList => {
+            // Check if there's already a window/tab open with the target URL
+            for (const client of clientList) {
+              if (client.url.includes(targetUrl) && 'focus' in client) {
+                return client.focus();
+              }
+            }
+            
+            // If no window is open with that URL, open a new one
+            if (self.clients.openWindow) {
+              return self.clients.openWindow(targetUrl);
+            }
+          })
+          .catch(error => {
+            console.error('[firebase-messaging-sw.js] Error handling notification click:', error);
+          })
+      );
     });
   } catch (error) {
     console.error("[firebase-messaging-sw.js] Error initializing Firebase:", error);

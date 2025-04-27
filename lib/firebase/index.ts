@@ -299,20 +299,68 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
       console.log('Foreground message received:', payload);
       
       try {
-        // Call the callback if provided
+        // Extract data from both notification object and data field
+        // This ensures we handle both notification+data messages and data-only messages
+        const notificationObject = payload.notification || {};
+        const dataObject = payload.data || {};
+        
+        // Call the callback if provided - this will handle the custom UI notification
         if (callback) {
           callback(payload);
         }
         
-        // Create and show notification for foreground messages
-        if (payload.notification && 'Notification' in window && Notification.permission === 'granted') {
-          const { title, body, icon } = payload.notification;
-          
-          // Use the Notification API to show the notification
-          new Notification(title || 'New Message', {
-            body: body || 'You have a new notification',
-            icon: icon || '/icons/android-big-icon.png'
-          });
+        // For browsers that don't support the callback method (like Safari on iOS),
+        // create and show a native notification as a fallback
+        if ('Notification' in window && Notification.permission === 'granted') {
+          // Only show native notification if the page is not visible
+          if (document.visibilityState !== 'visible') {
+            // Prioritize data fields over notification fields for consistency
+            const title = dataObject.title || notificationObject.title || 'New Message';
+            const body = dataObject.body || notificationObject.body || '';
+            const icon = dataObject.icon || notificationObject.icon || '/icons/android-big-icon.png';
+            const image = dataObject.image || notificationObject.image;
+            
+            // Extract link from various possible locations
+            const link = 
+              dataObject.link || 
+              payload.fcmOptions?.link || 
+              (notificationObject as any).clickAction || 
+              '/';
+            
+            // Create notification options
+            const options: NotificationOptions = {
+              body,
+              icon,
+              requireInteraction: true,
+              data: { url: link }
+            };
+            
+            // Add image if available (supported in modern browsers)
+            if (image) {
+              // @ts-ignore - image is valid in modern browsers
+              options.image = image;
+            }
+            
+            // Create and show the notification
+            const notification = new Notification(title, options);
+            
+            // Add click handler
+            notification.onclick = () => {
+              // Focus the window if it's already open
+              window.focus();
+              
+              // Navigate to the link
+              if (link.startsWith('http')) {
+                window.open(link, '_blank');
+              } else {
+                // For internal links, we can use history API
+                window.location.href = link;
+              }
+              
+              // Close the notification
+              notification.close();
+            };
+          }
         }
       } catch (callbackError) {
         console.error('Error processing foreground message:', callbackError);

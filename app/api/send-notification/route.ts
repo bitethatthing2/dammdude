@@ -260,26 +260,78 @@ export async function POST(request: NextRequest) {
     
     console.log('Data payload for notification:', JSON.stringify(dataPayload, null, 2));
 
-    // Create the webpush configuration separately
+    // Create the webpush configuration for desktop browsers
     const webPushConfig = {
+      notification: {
+        title: body.title,
+        body: body.body,
+        icon: webIcon,
+        image: body.image,
+        badge: '/icons/badge-icon.png',
+        data: {
+          ...dataPayload,
+          url: body.link || '/'
+        },
+        actions: body.actionButton && body.actionButtonText ? [
+          {
+            action: 'action1',
+            title: body.actionButtonText,
+            icon: '/icons/action-icon.png'
+          }
+        ] : undefined
+      },
       fcmOptions: {
         link: body.link
       },
-      // Don't include notification property to avoid duplicates
       headers: {
         TTL: '86400' // 24 hours in seconds
+      }
+    };
+    
+    // Create APNS configuration for iOS
+    const apnsConfig = {
+      payload: {
+        aps: {
+          alert: {
+            title: body.title,
+            body: body.body
+          },
+          badge: 1,
+          sound: 'default',
+          'mutable-content': 1,
+          'content-available': 1
+        },
+        fcm_options: {
+          image: body.image
+        },
+        data: dataPayload
       }
     };
     
     // Create Android specific configuration with proper Firebase typing
     const androidConfig: {
       priority: 'high' | 'normal';
-      // Don't include notification property to avoid duplicates
       ttl?: number;
       restrictedPackageName?: string;
+      notification?: {
+        title?: string;
+        body?: string;
+        icon?: string;
+        color?: string;
+        sound?: string;
+        clickAction?: string;
+        imageUrl?: string;
+      };
     } = {
-      priority: 'high', // Using literal string with allowed values
-      ttl: 86400000 // 24 hours in milliseconds
+      priority: 'high',
+      ttl: 86400000, // 24 hours in milliseconds
+      notification: {
+        icon: androidIcon,
+        color: '#4CAF50',
+        sound: 'default',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        imageUrl: body.image
+      }
     };
 
     // Special case: if this is a cleanup request, run token cleanup
@@ -348,7 +400,8 @@ export async function POST(request: NextRequest) {
           tokens: tokens,
           data: dataPayload,
           webpush: webPushConfig,
-          android: androidConfig
+          android: androidConfig,
+          apns: apnsConfig
         });
         
         console.log(`Multicast send results: { successCount: ${batchResponse.successCount}, failureCount: ${batchResponse.failureCount}, responses: ${batchResponse.responses.length} }`);
@@ -405,7 +458,8 @@ export async function POST(request: NextRequest) {
           topic: body.topic,
           data: dataPayload,
           webpush: webPushConfig,
-          android: androidConfig
+          android: androidConfig,
+          apns: apnsConfig
         });
 
         console.log(`Successfully sent message to topic: ${response}`);
@@ -459,7 +513,8 @@ export async function POST(request: NextRequest) {
           token: body.token,
           data: dataPayload,
           webpush: webPushConfig,
-          android: androidConfig
+          android: androidConfig,
+          apns: apnsConfig
         });
         
         console.log(`Successfully sent message to token: ${response}`);
