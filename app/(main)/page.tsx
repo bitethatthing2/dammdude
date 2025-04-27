@@ -20,15 +20,9 @@ const NotificationIndicator = dynamic(() => import('@/components/shared/Notifica
   )
 });
 
-const PwaInstallGuide = dynamic(() => import('@/components/shared/PwaInstallGuide'), { 
-  ssr: false,
-  loading: () => (
-    <Button variant="outline" className="gap-1.5 bg-primary text-primary-foreground border-0">
-      <span className="h-4 w-4 animate-pulse bg-primary-foreground/50 rounded-full"></span>
-      <span>Loading...</span>
-    </Button>
-  )
-});
+// Import the PwaInstallGuide component directly instead of using dynamic import
+// This ensures it's always available when needed for installation
+import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 
 // Safe component without direct icon references
 const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {
@@ -93,7 +87,7 @@ export default function HomePage() {
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-              <PwaInstallGuide variant="button" className="bg-primary text-primary-foreground border-0" />
+              <PwaInstallGuide />
               <NotificationIndicator variant="button" />
             </div>
           </div>

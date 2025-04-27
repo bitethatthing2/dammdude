@@ -173,6 +173,17 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       // Fall back to notification object only if data is missing
       const notificationData = payload.data || {};
       
+      // For iOS and desktop compatibility, also check the notification object
+      // and merge with data to ensure consistent behavior across platforms
+      if (payload.notification) {
+        // Only use notification fields if they're not already in data
+        Object.keys(payload.notification).forEach(key => {
+          if (!notificationData[key]) {
+            notificationData[key] = payload.notification[key];
+          }
+        });
+      }
+      
       // All notification content should come from payload.data
       // This ensures iOS and other platforms receive the same notification content
       const notificationTitle = notificationData.title || 'New Notification';
@@ -186,10 +197,10 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       const actionButtonUrl = notificationData.actionButtonUrl || null;
       const actionButtonText = notificationData.actionButtonText || 'Action';
       
-      // CRITICAL: Always use the exact path for notification icons
-      // Do NOT use dynamic paths from the payload for these specific icons
-      const icon = '/icons/android-big-icon.png';
-      const badge = '/icons/android-lil-icon-white.png';
+      // Use icons from payload data if available, otherwise use defaults
+      // This ensures consistent icon display across all platforms
+      const icon = notificationData.icon || '/icons/android-big-icon.png';
+      const badge = notificationData.badge || '/icons/android-lil-icon-white.png';
       
       // Extract any additional custom data fields
       const customData = {};
@@ -219,10 +230,10 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       // Configure notification options
       const notificationOptions = {
         body: notificationBody,
-        // CRITICAL: Always use the exact path for the large notification icon
-        icon: '/icons/android-big-icon.png',
-        // Use the exact path for the badge icon
-        badge: '/icons/android-lil-icon-white.png',
+        // Use the icon from payload data or default
+        icon: icon,
+        // Use the badge from payload data or default
+        badge: badge,
         // Add image if provided
         ...(image && { image }),
         // Enable vibration
@@ -280,15 +291,26 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       
       // Get notification data
       const notificationData = event.notification.data || {};
+      
+      // Log the notification data to help with debugging
+      console.log('[firebase-messaging-sw.js] Notification data:', notificationData);
+      
+      // Default URL if none is provided
       let targetUrl = notificationData.url || '/';
       
       // Handle different action clicks
       if (event.action === 'action-button' && notificationData.actionButtonUrl) {
         targetUrl = notificationData.actionButtonUrl;
+        console.log('[firebase-messaging-sw.js] Action button clicked, navigating to:', targetUrl);
       } else if (event.action === 'link-button' && notificationData.url) {
         targetUrl = notificationData.url;
+        console.log('[firebase-messaging-sw.js] Link button clicked, navigating to:', targetUrl);
       } else if (event.action === 'view-order' && notificationData.orderId) {
         targetUrl = `/order/${notificationData.orderId}`;
+        console.log('[firebase-messaging-sw.js] View order button clicked, navigating to:', targetUrl);
+      } else {
+        // Default click behavior (no specific action)
+        console.log('[firebase-messaging-sw.js] Notification body clicked, navigating to:', targetUrl);
       }
       
       // Ensure URL is absolute

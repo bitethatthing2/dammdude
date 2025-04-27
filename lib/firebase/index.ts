@@ -177,23 +177,28 @@ export const isServiceWorkerActive = async (): Promise<boolean> => {
  * Register the Firebase messaging service worker
  */
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+  if (!('serviceWorker' in navigator)) {
     console.warn('Service workers are not supported in this browser');
     return null;
   }
   
-  try {
-    console.log('Registering Firebase messaging service worker');
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/'
-    });
-    
-    console.log('Service worker registered successfully:', registration.scope);
-    return registration;
-  } catch (error) {
-    console.error('Service worker registration failed:', error);
-    return null;
+  // Check if a service worker is already registered and controlling the page
+  if (navigator.serviceWorker.controller) {
+    console.log('Service worker is already registered and controlling the page');
+    try {
+      // Get the existing service worker registration
+      const registration = await navigator.serviceWorker.ready;
+      console.log('Using existing service worker registration:', registration.scope);
+      return registration;
+    } catch (error) {
+      console.error('Error getting existing service worker registration:', error);
+    }
   }
+  
+  // If we reach here, there's no service worker controlling the page
+  // DO NOT register a new one - let the ServiceWorkerRegister component handle this
+  console.log('Deferring service worker registration to ServiceWorkerRegister component');
+  return null;
 };
 
 /**
