@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { NotificationProvider } from '@/lib/contexts/notification-context';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
+import { initPwaEventListeners } from '@/lib/pwa/pwaEventHandler';
+
+// Initialize PWA event listeners as early as possible
+if (typeof window !== 'undefined') {
+  initPwaEventListeners();
+}
 
 interface ClientSideWrapperProps {
   children: React.ReactNode;
@@ -19,6 +25,10 @@ export function ClientSideWrapper({ children }: ClientSideWrapperProps) {
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Initialize PWA event listeners again to ensure they're registered
+    // This is a safety measure in case the top-level initialization was missed
+    initPwaEventListeners();
   }, []);
 
   // During SSR and initial hydration, render only children to avoid "window is not defined" errors

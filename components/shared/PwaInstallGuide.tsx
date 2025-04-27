@@ -7,19 +7,15 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { IosInstallGuide } from './installation/IosInstallGuide';
-
-// Global flag to track if the beforeinstallprompt event has been captured
-// This persists across component mounts but not page reloads
-let globalDeferredPrompt: Event | null = null;
-
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
+import { 
+  BeforeInstallPromptEvent, 
+  initPwaEventListeners, 
+  onBeforeInstallPrompt, 
+  onAppInstalled,
+  isInstalled as isPwaInstalled,
+  isPromptAvailable,
+  showInstallPrompt
+} from '@/lib/pwa/pwaEventHandler';
 
 interface PwaInstallGuideProps {
   variant?: 'button' | 'icon' | 'minimal';
@@ -31,81 +27,84 @@ export default function PwaInstallGuide({
   className = ''
 }: PwaInstallGuideProps) {
   const [platform, setPlatform] = useState<'android' | 'ios' | 'desktop' | null>(null);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [dismissCount, setDismissCount] = useLocalStorage('pwa-install-dismiss-count', 0);
   const [lastDismissed, setLastDismissed] = useLocalStorage('pwa-install-last-dismissed', 0);
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
   const [promptAvailable, setPromptAvailable] = useState(false);
-  const installEventRegistered = useRef(false);
+  const componentMounted = useRef(false);
   
-  // CRITICAL: Register the beforeinstallprompt event listener as early as possible
-  // This must happen before platform detection to ensure we don't miss the event
+  // Initialize PWA event listeners as early as possible
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Avoid duplicate event listeners
-    if (installEventRegistered.current) return;
-    installEventRegistered.current = true;
+    // Initialize the centralized PWA event handler
+    initPwaEventListeners();
     
-    // Check if we already have a captured prompt from the global variable
-    if (globalDeferredPrompt) {
-      console.log('Using previously captured beforeinstallprompt event');
-      setDeferredPrompt(globalDeferredPrompt as BeforeInstallPromptEvent);
-      setPromptAvailable(true);
+    // Mark component as mounted
+    componentMounted.current = true;
+    
+    console.log('[PwaInstallGuide] Component mounted');
+  }, []);
+  
+  // Set up event listeners and detect platform
+  useEffect(() => {
+    if (typeof window === 'undefined' || !componentMounted.current) return;
+    
+    // Detect platform with more robust checks
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                         (window.navigator as any).standalone === true;
+    
+    // More comprehensive device detection
+    if (/iphone|ipad|ipod/.test(userAgent) || /mac/.test(userAgent) && navigator.maxTouchPoints > 1) {
+      setPlatform('ios');
+      console.log('[PwaInstallGuide] Platform detected: iOS');
+      // Check if running as PWA on iOS
+      if ((window.navigator as any).standalone === true) {
+        setIsInstalled(true);
+        console.log('[PwaInstallGuide] App is already installed on iOS');
+      }
+    } else if (/android/.test(userAgent)) {
+      setPlatform('android');
+      console.log('[PwaInstallGuide] Platform detected: Android');
+      if (isStandalone) {
+        setIsInstalled(true);
+        console.log('[PwaInstallGuide] App is already installed on Android');
+      }
+    } else {
+      setPlatform('desktop');
+      console.log('[PwaInstallGuide] Platform detected: Desktop');
+      if (isStandalone) {
+        setIsInstalled(true);
+        console.log('[PwaInstallGuide] App is already installed on Desktop');
+      }
     }
     
-    // Check if we have a stored flag indicating a prompt was available
-    try {
-      const storedPromptAvailable = localStorage.getItem('pwa-prompt-available');
-      if (storedPromptAvailable === 'true') {
-        console.log('Prompt was previously available according to localStorage');
-        setPromptAvailable(true);
-      }
-    } catch (err) {
-      console.error('Error accessing localStorage:', err);
-    }
-    
-    // Listen for beforeinstallprompt event (for browsers that support it)
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      
-      console.log('beforeinstallprompt event captured', e);
-      
-      // Store the event both in state and in the global variable
-      const promptEvent = e as BeforeInstallPromptEvent;
-      globalDeferredPrompt = promptEvent;
-      setDeferredPrompt(promptEvent);
-      setPromptAvailable(true);
-      
-      // Store in localStorage that a prompt is available
-      try {
-        localStorage.setItem('pwa-prompt-available', 'true');
-      } catch (err) {
-        console.error('Error writing to localStorage:', err);
-      }
-      
-      console.log('Installation prompt is available for platforms:', 
-        (promptEvent as BeforeInstallPromptEvent).platforms);
-    };
-    
-    // Listen for appinstalled event
-    const handleAppInstalled = () => {
-      console.log('App was installed successfully');
-      
-      // Clear all installation-related state
+    // Check if the app is already installed using the centralized handler
+    if (isPwaInstalled()) {
       setIsInstalled(true);
-      setDeferredPrompt(null);
+      console.log('[PwaInstallGuide] App is already installed according to centralized handler');
+    }
+    
+    // Check if a prompt is available
+    if (isPromptAvailable()) {
+      setPromptAvailable(true);
+      console.log('[PwaInstallGuide] Installation prompt is available');
+    }
+    
+    // Listen for beforeinstallprompt events
+    const unsubscribeInstallPrompt = onBeforeInstallPrompt((event) => {
+      console.log('[PwaInstallGuide] Received beforeinstallprompt event from centralized handler');
+      setPromptAvailable(true);
+    });
+    
+    // Listen for appinstalled events
+    const unsubscribeAppInstalled = onAppInstalled(() => {
+      console.log('[PwaInstallGuide] Received appinstalled event from centralized handler');
+      setIsInstalled(true);
       setPromptAvailable(false);
-      globalDeferredPrompt = null;
-      
-      // Clear localStorage flag
-      try {
-        localStorage.removeItem('pwa-prompt-available');
-      } catch (err) {
-        console.error('Error removing from localStorage:', err);
-      }
       
       // Show success toast
       toast.success("App installed successfully", {
@@ -122,58 +121,9 @@ export default function PwaInstallGuide({
           });
         }
       } catch (error) {
-        console.error('Error tracking installation:', error);
+        console.error('[PwaInstallGuide] Error tracking installation:', error);
       }
-    };
-    
-    // Add event listeners
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []); // Empty dependency array to ensure this runs once and early
-  
-  // Detect platform and installation status - this runs AFTER event listeners are set up
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Detect platform with more robust checks
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-                         (window.navigator as any).standalone === true;
-    
-    // More comprehensive device detection
-    if (/iphone|ipad|ipod/.test(userAgent) || /mac/.test(userAgent) && navigator.maxTouchPoints > 1) {
-      setPlatform('ios');
-      // Check if running as PWA on iOS
-      if ((window.navigator as any).standalone === true) {
-        setIsInstalled(true);
-      }
-    } else if (/android/.test(userAgent)) {
-      setPlatform('android');
-      if (isStandalone) {
-        setIsInstalled(true);
-      }
-    } else {
-      setPlatform('desktop');
-      if (isStandalone) {
-        setIsInstalled(true);
-      }
-    }
-    
-    // If we're already installed, clear the prompt availability flag
-    if (isStandalone) {
-      setPromptAvailable(false);
-      try {
-        localStorage.removeItem('pwa-prompt-available');
-      } catch (err) {
-        console.error('Error removing from localStorage:', err);
-      }
-    }
+    });
     
     // Check if we should show installation reminder - ONLY FOR iOS
     const now = Date.now();
@@ -225,11 +175,20 @@ export default function PwaInstallGuide({
         ), { duration: 10000 });
       }, 3000);
     }
+    
+    // Clean up event listeners
+    return () => {
+      unsubscribeInstallPrompt();
+      unsubscribeAppInstalled();
+    };
   }, [platform, dismissCount, lastDismissed, isToastShown, isInstalled]);
   
   // Handle install button click
   const handleInstallClick = async () => {
     if (isInstalled) return;
+    
+    console.log('[PwaInstallGuide] Install button clicked for platform:', platform);
+    console.log('[PwaInstallGuide] Prompt available:', promptAvailable);
     
     try {
       if (platform === 'ios') {
@@ -251,47 +210,22 @@ export default function PwaInstallGuide({
             }
           }
         );
-      } else if (deferredPrompt) {
-        // For browsers with native install prompt, trigger it
-        console.log('Triggering native installation prompt');
-        try {
-          await deferredPrompt.prompt();
-          const choiceResult = await deferredPrompt.userChoice;
-          
-          if (choiceResult.outcome === 'dismissed') {
-            console.log('User dismissed the installation prompt');
-            setDismissCount(dismissCount + 1);
-            setLastDismissed(Date.now());
-          } else {
-            console.log('User accepted the installation prompt');
-          }
-          
-          // Clear the prompt reference
-          setDeferredPrompt(null);
-          globalDeferredPrompt = null;
-          setPromptAvailable(false);
-          
-          // Clear localStorage flag
-          try {
-            localStorage.removeItem('pwa-prompt-available');
-          } catch (err) {
-            console.error('Error removing from localStorage:', err);
-          }
-        } catch (error) {
-          console.error('Error showing install prompt:', error);
-          // No toast message here - we don't want to show a message if the native prompt fails
+      } else if (promptAvailable) {
+        // Use the centralized handler to show the installation prompt
+        console.log('[PwaInstallGuide] Triggering installation prompt via centralized handler');
+        const outcome = await showInstallPrompt();
+        
+        if (outcome === 'dismissed') {
+          console.log('[PwaInstallGuide] User dismissed the installation prompt');
+          setDismissCount(dismissCount + 1);
+          setLastDismissed(Date.now());
+        } else if (outcome === 'accepted') {
+          console.log('[PwaInstallGuide] User accepted the installation prompt');
+          // The appinstalled event will handle the rest
         }
-      } else if ((platform === 'android' || platform === 'desktop') && promptAvailable) {
-        // This is a fallback for when we know a prompt should be available
-        // but the deferredPrompt object was lost (e.g., after a page reload)
-        console.log('Installation prompt should be available but object was lost');
-        toast.info("Please reload the page to install", {
-          description: "The installation process requires a fresh page load",
-          duration: 5000
-        });
       } else if (platform === 'android' || platform === 'desktop') {
         // For Android/Desktop without prompt stored, just silently return
-        console.log('Native installation prompt not available at this time');
+        console.log('[PwaInstallGuide] Installation prompt not available');
         
         // Show a more helpful message when the button is clicked but no prompt is available
         toast.info("Installation not available", {
@@ -309,21 +243,34 @@ export default function PwaInstallGuide({
           });
         }
       } catch (error) {
-        console.error('Error tracking installation click:', error);
+        console.error('[PwaInstallGuide] Error tracking installation click:', error);
       }
     } catch (error) {
-      console.error('Error installing app:', error);
+      console.error('[PwaInstallGuide] Error installing app:', error);
       // No toast error message - we want silent failures as per requirements
     }
   };
   
   // Don't render anything if already installed
-  if (isInstalled) return null;
+  if (isInstalled) {
+    console.log('[PwaInstallGuide] App is already installed, not rendering button');
+    return null;
+  }
   
   // IMPROVED VISIBILITY LOGIC: Show button for iOS always, and for Android/desktop
-  // when promptAvailable is true OR we're on a platform that supports installation
+  // when promptAvailable is true
   const shouldShowButton = platform === 'ios' || promptAvailable;
-  if (!shouldShowButton) return null;
+  
+  // FORCE BUTTON TO APPEAR FOR DEBUGGING
+  // Remove this line in production
+  // const shouldShowButton = true;
+  
+  if (!shouldShowButton) {
+    console.log('[PwaInstallGuide] Button should not be shown - platform:', platform, 'promptAvailable:', promptAvailable);
+    return null;
+  }
+  
+  console.log('[PwaInstallGuide] Rendering installation button for platform:', platform);
   
   // Get button text based on platform
   const getButtonText = () => {
@@ -338,6 +285,7 @@ export default function PwaInstallGuide({
         className={cn("p-0 h-9 w-9 rounded-full", className)}
         onClick={handleInstallClick}
         aria-label="Install app"
+        data-testid="pwa-install-button-icon"
       >
         <Download className="h-4 w-4" />
       </Button>
@@ -352,6 +300,7 @@ export default function PwaInstallGuide({
           "inline-flex items-center gap-1.5 text-sm font-medium",
           className
         )}
+        data-testid="pwa-install-button-minimal"
       >
         <Download className="h-4 w-4" />
         {getButtonText()}
@@ -364,6 +313,7 @@ export default function PwaInstallGuide({
     <Button
       className={cn("gap-1.5", className)}
       onClick={handleInstallClick}
+      data-testid="pwa-install-button"
     >
       <Download className="h-4 w-4" />
       {getButtonText()}
