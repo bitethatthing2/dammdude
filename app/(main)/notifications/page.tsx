@@ -1,15 +1,26 @@
 "use client";
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState, ReactElement } from 'react';
 import { Bell } from 'lucide-react';
-import { useNotifications } from '@/lib/contexts/notification-context';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Info, AlertTriangle, XCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function NotificationsPage() {
+// Define notification type
+interface Notification {
+  id: number;
+  user_id: string;
+  type: "info" | "warning" | "error";
+  body: string;
+  link?: string;
+  dismissed: boolean;
+  expires_at: string;
+  created_at: string;
+}
+
+export default function NotificationsPage(): ReactElement {
   return (
     <div className="container py-8">
       <div className="flex items-center mb-8">
@@ -33,14 +44,14 @@ export default function NotificationsPage() {
   );
 }
 
-function NotificationsPageSkeleton() {
+function NotificationsPageSkeleton(): ReactElement {
   return (
     <div className="max-w-md mx-auto">
       <div className="h-4 w-3/4 bg-muted rounded mb-6 animate-pulse" />
       <div className="border border-primary rounded-lg p-4">
         <div className="h-6 w-1/2 bg-muted rounded mb-4 animate-pulse" />
         <div className="space-y-4">
-          {Array(3).fill(0).map((_, i) => (
+          {Array(3).fill(0).map((_, i: number) => (
             <div key={i} className="flex items-start gap-3">
               <div className="h-5 w-5 rounded-full bg-muted animate-pulse" />
               <div className="flex-1">
@@ -55,25 +66,121 @@ function NotificationsPageSkeleton() {
   );
 }
 
-function NotificationList() {
-  const { 
-    notifications, 
-    unreadCount, 
-    isLoading, 
-    dismissNotification, 
-    dismissAllNotifications,
-    refreshNotifications 
-  } = useNotifications();
-
-  // Refresh notifications when the component mounts
+function NotificationList(): ReactElement {
+  // State for error handling
+  const [error, setError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  
+  // Safely get the Supabase client
+  const getSupabaseBrowserClient = (): any => {
+    try {
+      // Dynamic import to avoid SSR issues
+      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs');
+      return createClientComponentClient();
+    } catch (err: any) {
+      console.error("Error creating Supabase client:", err);
+      setError("Failed to connect to notification service");
+      return null;
+    }
+  };
+  
+  // Fetch notifications directly
   useEffect(() => {
-    refreshNotifications();
-  }, [refreshNotifications]);
+    async function fetchNotifications(): Promise<void> {
+      try {
+        setIsLoading(true);
+        
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        
+        // Get current user
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        
+        if (!userId) {
+          setError("Please log in to view notifications");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fetch notifications
+        const { data, error: fetchError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        
+        if (fetchError) throw new Error(fetchError.message);
+        
+        setNotifications(data || []);
+        setUnreadCount(data?.filter((n: Notification) => !n.dismissed).length || 0);
+      } catch (err: any) {
+        console.error("Error fetching notifications:", err);
+        setError("Failed to load notifications");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchNotifications();
+  }, []);
+  
+  // Dismiss notification function
+  const dismissNotification = async (id: number): Promise<void> => {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+      
+      await supabase
+        .from('notifications')
+        .update({ dismissed: true })
+        .eq('id', id);
+      
+      // Update local state
+      setNotifications((prev: Notification[]) => 
+        prev.map((n: Notification) => n.id === id ? { ...n, dismissed: true } : n)
+      );
+      
+      setUnreadCount((prev: number) => Math.max(0, prev - 1));
+    } catch (err: any) {
+      console.error("Error dismissing notification:", err);
+    }
+  };
+  
+  // Dismiss all notifications
+  const dismissAllNotifications = async (): Promise<void> => {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+      
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      
+      if (!userId) return;
+      
+      await supabase
+        .from('notifications')
+        .update({ dismissed: true })
+        .eq('user_id', userId)
+        .eq('dismissed', false);
+      
+      // Update local state
+      setNotifications((prev: Notification[]) => 
+        prev.map((n: Notification) => ({ ...n, dismissed: true }))
+      );
+      
+      setUnreadCount(0);
+    } catch (err: any) {
+      console.error("Error dismissing all notifications:", err);
+    }
+  };
 
   /**
    * Function to render the appropriate icon based on notification type
    */
-  function getNotificationIcon(type: "info" | "warning" | "error") {
+  function getNotificationIcon(type: Notification["type"]): ReactElement {
     switch (type) {
       case "info":
         return <Info className="h-4 w-4 text-blue-500" />;
@@ -89,23 +196,43 @@ function NotificationList() {
   /**
    * Format time for display
    */
-  function formatTime(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
+  function formatTime(dateString: string): string {
+    if (!dateString) return "";
     
-    // If it's today, show relative time (e.g., "5 minutes ago")
-    if (date.toDateString() === now.toDateString()) {
-      return formatDistanceToNow(date, { addSuffix: true });
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      
+      // If it's today, show relative time (e.g., "5 minutes ago")
+      if (date.toDateString() === now.toDateString()) {
+        return formatDistanceToNow(date, { addSuffix: true });
+      }
+      
+      // Otherwise show the date
+      return format(date, "MMM d, yyyy");
+    } catch (err: any) {
+      console.error("Error formatting date:", err);
+      return "Unknown date";
     }
-    
-    // Otherwise show the date
-    return format(date, "MMM d, yyyy");
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="text-center p-4 border border-destructive/20 rounded-md">
+        <p className="text-destructive font-medium">{error}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Please try again later or contact support if the problem persists.
+        </p>
+      </div>
+    );
+  }
+
+  // Show loading state
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i: number) => (
           <div key={i} className="flex items-start gap-2 p-4 border-b">
             <Skeleton className="h-4 w-4 rounded-full" />
             <div className="space-y-2 flex-1">
@@ -118,7 +245,8 @@ function NotificationList() {
     );
   }
 
-  if (notifications.length === 0) {
+  // Show empty state
+  if (!notifications || notifications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <CheckCircle className="mb-2 h-8 w-8 text-muted-foreground/50" />
@@ -130,6 +258,7 @@ function NotificationList() {
     );
   }
 
+  // Show notifications
   return (
     <div>
       {unreadCount > 0 && (
@@ -146,7 +275,7 @@ function NotificationList() {
       )}
       
       <div className="divide-y">
-        {notifications.map((notification) => (
+        {notifications.map((notification: Notification) => (
           <div 
             key={notification.id}
             className={cn(
