@@ -7,6 +7,18 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { IosInstallGuide } from './installation/IosInstallGuide';
+import { InstallPopup } from './installation/InstallPopup';
+
+interface NavigatorWithInstallation extends Navigator {
+  getInstalledRelatedApps?: () => Promise<Array<{
+    id: string;
+    platform: string;
+    url: string;
+    version: string;
+  }>>;
+  installWebApp?: () => Promise<void>;
+  canInstallWebApp?: () => Promise<boolean>;
+}
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -32,6 +44,7 @@ export default function PwaInstallGuide({
   const [dismissCount, setDismissCount] = useLocalStorage('pwa-install-dismiss-count', 0);
   const [lastDismissed, setLastDismissed] = useLocalStorage('pwa-install-last-dismissed', 0);
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Detect platform and installation status
   useEffect(() => {
@@ -87,6 +100,7 @@ export default function PwaInstallGuide({
       // Show installation reminder based on platform
       setTimeout(() => {
         if (platform === 'ios') {
+          // For iOS, use toast notifications
           toast((t: string) => (
             <div className="flex flex-col gap-2">
               <p className="font-medium">Install this app on your iPhone</p>
@@ -109,35 +123,17 @@ export default function PwaInstallGuide({
               </div>
             </div>
           ), { duration: 10000 });
-        } else if (deferredPrompt) {
-          toast((t: string) => (
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">Install this app for a better experience</p>
-              <p className="text-sm text-muted-foreground">Add to your home screen for quick access</p>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  toast.dismiss(t);
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(now);
-                }}>
-                  Later
-                </Button>
-                <Button size="sm" onClick={() => {
-                  toast.dismiss(t);
-                  setIsToastShown(true);
-                  handleInstallClick();
-                }}>
-                  Install
-                </Button>
-              </div>
-            </div>
-          ), { duration: 10000 });
+        } else {
+          // For Android and desktop, use popup dialog
+          setIsPopupOpen(true);
+          setIsToastShown(true);
         }
       }, 3000);
     }
     
     // Listen for beforeinstallprompt event (Android)
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('beforeinstallprompt event captured', e);
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
@@ -146,10 +142,11 @@ export default function PwaInstallGuide({
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setIsPopupOpen(false);
       
       // Show success toast
       toast.success("App installed successfully", {
-        description: "You can now access PDX Sports Bar directly from your home screen",
+        description: "You can now access Side Hustle directly from your home screen",
         duration: 5000,
       });
       
@@ -173,68 +170,35 @@ export default function PwaInstallGuide({
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [platform]);
+  }, [platform, dismissCount, lastDismissed, isToastShown]);
   
   // Handle install button click
   const handleInstallClick = async () => {
     if (isInstalled) return;
     
     try {
-      if (platform === 'android' && deferredPrompt) {
-        // Show native install prompt for Android
-        await deferredPrompt.prompt();
-        const choiceResult = await deferredPrompt.userChoice;
-        
-        if (choiceResult.outcome === 'accepted') {
-          setIsInstalled(true);
-          setDeferredPrompt(null);
-        } else {
-          setDismissCount(dismissCount + 1);
-          setLastDismissed(Date.now());
-        }
+      if (platform === 'ios') {
+        // Show toast instructions for iOS
+        toast(
+          <div className="flex flex-col gap-2">
+            <div className="font-medium">Install this app on your iPhone</div>
+            <IosInstallGuide variant="compact" />
+          </div>,
+          {
+            duration: 10000,
+            icon: <PlusCircle className="h-5 w-5" />,
+            action: {
+              label: "Got it",
+              onClick: () => {
+                setDismissCount(dismissCount + 1);
+                setLastDismissed(Date.now());
+              }
+            }
+          }
+        );
       } else {
-        // Show toast instructions for iOS or Android without native prompt
-        if (platform === 'ios') {
-          toast(
-            <div className="flex flex-col gap-2">
-              <div className="font-medium">Install this app on your iPhone</div>
-              <IosInstallGuide variant="compact" />
-            </div>,
-            {
-              duration: 10000,
-              icon: <PlusCircle className="h-5 w-5" />,
-              action: {
-                label: "Got it",
-                onClick: () => {
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(Date.now());
-                }
-              }
-            }
-          );
-        } else if (platform === 'android' && !deferredPrompt) {
-          toast(
-            <div className="flex flex-col gap-2">
-              <div className="font-medium">Install this app on your Android device</div>
-              <div className="space-y-2 text-sm">
-                <p>1. Tap the menu button in your browser</p>
-                <p>2. Select "Install app" or "Add to Home Screen"</p>
-                <p>3. Follow the on-screen instructions</p>
-              </div>
-            </div>,
-            {
-              duration: 10000,
-              icon: <PlusCircle className="h-5 w-5" />,
-              action: {
-                label: "Got it",
-                onClick: () => {
-                  setDismissCount(dismissCount + 1);
-                  setLastDismissed(Date.now());
-                }
-              }
-            }
-          );
-        }
+        // For Android and desktop, show popup
+        setIsPopupOpen(true);
       }
       
       // Track installation attempt
@@ -258,6 +222,101 @@ export default function PwaInstallGuide({
       });
     }
   };
+
+  // Handle the actual installation process (for native prompts)
+  const handleNativeInstall = async () => {
+    console.log('handleNativeInstall called, deferredPrompt:', !!deferredPrompt);
+    
+    if (deferredPrompt) {
+      try {
+        console.log('Triggering native installation prompt');
+        // Force a small delay to ensure UI updates before prompt
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Trigger the native prompt
+        await deferredPrompt.prompt();
+        console.log('Native prompt displayed to user');
+        
+        const choiceResult = await deferredPrompt.userChoice;
+        console.log('User choice result:', choiceResult.outcome);
+        
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the installation prompt');
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+          setIsPopupOpen(false);
+          
+          // Show success toast
+          toast.success("App installation started", {
+            description: "Follow the browser prompts to complete installation",
+            duration: 5000,
+          });
+        } else {
+          console.log('User dismissed the installation prompt');
+          setDismissCount(dismissCount + 1);
+          setLastDismissed(Date.now());
+        }
+      } catch (error) {
+        console.error('Error showing install prompt:', error);
+        toast.error("Couldn't show install prompt", {
+          description: "Please try installing manually from your browser menu",
+        });
+      }
+    } else {
+      console.log('No deferred prompt available for installation');
+      
+      // Try alternative installation methods
+      const navigatorExt = navigator as NavigatorWithInstallation;
+      
+      // Method 1: Try the experimental installWebApp API if available
+      if (navigatorExt.installWebApp) {
+        console.log('Trying installWebApp API');
+        try {
+          await navigatorExt.installWebApp();
+          console.log('Installation triggered via installWebApp API');
+          return;
+        } catch (e) {
+          console.error('Error using installWebApp API:', e);
+        }
+      }
+      
+      // Method 2: Check for installed related apps
+      if (navigatorExt.getInstalledRelatedApps) {
+        console.log('Checking for installed related apps');
+        try {
+          const relatedApps = await navigatorExt.getInstalledRelatedApps();
+          console.log('Related apps:', relatedApps);
+        } catch (e) {
+          console.error('Error checking related apps:', e);
+        }
+      }
+      
+      // Method 3: Try to create a direct install link for Chrome
+      if (platform === 'android' && /chrome/i.test(navigator.userAgent)) {
+        console.log('Trying Chrome-specific installation method');
+        try {
+          // Dispatch a custom event that might be captured by Chrome
+          const installEvent = new CustomEvent('onappinstalled', { 
+            bubbles: true,
+            cancelable: false 
+          });
+          window.dispatchEvent(installEvent);
+          console.log('Dispatched custom installation event');
+        } catch (e) {
+          console.error('Error dispatching custom event:', e);
+        }
+      }
+      
+      // If all else fails, keep the dialog open with manual instructions
+      setIsPopupOpen(true);
+    }
+  };
+  
+  // Handle popup dismiss
+  const handlePopupDismiss = () => {
+    setDismissCount(dismissCount + 1);
+    setLastDismissed(Date.now());
+  };
   
   // Don't render anything if already installed
   if (isInstalled) return null;
@@ -265,39 +324,78 @@ export default function PwaInstallGuide({
   // Render based on variant
   if (variant === 'icon') {
     return (
-      <Button 
-        className={cn("p-0 h-9 w-9 rounded-full", className)}
-        onClick={handleInstallClick}
-        aria-label="Install app"
-      >
-        <Download className="h-4 w-4" />
-      </Button>
+      <>
+        <Button 
+          className={cn("p-0 h-9 w-9 rounded-full", className)}
+          onClick={handleInstallClick}
+          aria-label="Install app"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+        
+        {(platform === 'android' || platform === 'desktop') && (
+          <InstallPopup
+            platform={platform}
+            hasNativePrompt={!!deferredPrompt}
+            onInstallAction={handleNativeInstall}
+            onDismissAction={handlePopupDismiss}
+            open={isPopupOpen}
+            onOpenChangeAction={setIsPopupOpen}
+          />
+        )}
+      </>
     );
   }
   
   if (variant === 'minimal') {
     return (
-      <button
-        onClick={handleInstallClick}
-        className={cn(
-          "inline-flex items-center gap-1.5 text-sm font-medium",
-          className
+      <>
+        <button
+          onClick={handleInstallClick}
+          className={cn(
+            "inline-flex items-center gap-1.5 text-sm font-medium",
+            className
+          )}
+        >
+          <Download className="h-4 w-4" />
+          Install App
+        </button>
+        
+        {(platform === 'android' || platform === 'desktop') && (
+          <InstallPopup
+            platform={platform}
+            hasNativePrompt={!!deferredPrompt}
+            onInstallAction={handleNativeInstall}
+            onDismissAction={handlePopupDismiss}
+            open={isPopupOpen}
+            onOpenChangeAction={setIsPopupOpen}
+          />
         )}
-      >
-        <Download className="h-4 w-4" />
-        Install App
-      </button>
+      </>
     );
   }
   
   // Default button variant
   return (
-    <Button
-      className={cn("gap-1.5", className)}
-      onClick={handleInstallClick}
-    >
-      <Download className="h-4 w-4" />
-      Install App
-    </Button>
+    <>
+      <Button
+        className={cn("gap-1.5", className)}
+        onClick={handleInstallClick}
+      >
+        <Download className="h-4 w-4" />
+        Install App
+      </Button>
+      
+      {(platform === 'android' || platform === 'desktop') && (
+        <InstallPopup
+          platform={platform}
+          hasNativePrompt={!!deferredPrompt}
+          onInstallAction={handleNativeInstall}
+          onDismissAction={handlePopupDismiss}
+          open={isPopupOpen}
+          onOpenChangeAction={setIsPopupOpen}
+        />
+      )}
+    </>
   );
 }
