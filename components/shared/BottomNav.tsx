@@ -20,7 +20,7 @@ export const BottomNav = () => {
   const moreMenuRef = useRef<HTMLDivElement>(null);
   
   // Close more menu when clicking outside
-  useOnClickOutside(moreMenuRef, () => setMoreMenuOpen(false));
+  useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
   
   // Try to use the notification context if available
   let notificationContext;
@@ -123,7 +123,7 @@ export const BottomNav = () => {
           <Bell className="h-5 w-5" />
         )}
         {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-destructive-foreground">
+          <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
