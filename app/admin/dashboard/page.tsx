@@ -24,6 +24,10 @@ export default function AdminDashboard() {
   const [notificationBody, setNotificationBody] = useState('');
   const [notificationTarget, setNotificationTarget] = useState('all_devices');
   const [isSending, setIsSending] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageLink, setImageLink] = useState('');
+  const [actionButtonLabel, setActionButtonLabel] = useState('');
+  const [actionButtonUrl, setActionButtonUrl] = useState('');
 
   // Simple sign out function
   const handleSignOut = async () => {
@@ -79,12 +83,20 @@ export default function AdminDashboard() {
             ? {
                 title: notificationTitle,
                 body: notificationBody,
-                sendToAll: true
+                sendToAll: true,
+                imageUrl: imageUrl,
+                imageLink: imageLink,
+                actionButtonLabel: actionButtonLabel,
+                actionButtonUrl: actionButtonUrl
               }
             : {
                 title: notificationTitle,
                 body: notificationBody,
-                topic: notificationTarget
+                topic: notificationTarget,
+                imageUrl: imageUrl,
+                imageLink: imageLink,
+                actionButtonLabel: actionButtonLabel,
+                actionButtonUrl: actionButtonUrl
               }
         ),
       });
@@ -106,6 +118,10 @@ export default function AdminDashboard() {
       // Clear form after successful send
       setNotificationTitle('');
       setNotificationBody('');
+      setImageUrl('');
+      setImageLink('');
+      setActionButtonLabel('');
+      setActionButtonUrl('');
     } catch (error) {
       console.error('Error sending notification:', error);
       toast({
@@ -164,19 +180,39 @@ export default function AdminDashboard() {
               
               <TabsContent value="push">
                 <form onSubmit={handleSendNotification} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="notification-title">Notification Title</Label>
-                    <Input
-                      id="notification-title"
-                      value={notificationTitle}
-                      onChange={(e) => setNotificationTitle(e.target.value)}
-                      placeholder="Enter notification title"
-                      required
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="notification-title">Notification Title</Label>
+                      <Input
+                        id="notification-title"
+                        value={notificationTitle}
+                        onChange={(e) => setNotificationTitle(e.target.value)}
+                        placeholder="Enter notification title"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="notification-target">Target Audience</Label>
+                      <Select
+                        value={notificationTarget}
+                        onValueChange={setNotificationTarget}
+                      >
+                        <SelectTrigger id="notification-target">
+                          <SelectValue placeholder="Select audience" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all_devices">All Devices</SelectItem>
+                          <SelectItem value="admin_devices">Admin Devices</SelectItem>
+                          <SelectItem value="ios_devices">iOS Devices</SelectItem>
+                          <SelectItem value="android_devices">Android Devices</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="notification-body">Notification Body</Label>
+                    <Label htmlFor="notification-body">Notification Message</Label>
                     <Textarea
                       id="notification-body"
                       value={notificationBody}
@@ -187,27 +223,106 @@ export default function AdminDashboard() {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="notification-target">Target Audience</Label>
-                    <Select
-                      value={notificationTarget}
-                      onValueChange={setNotificationTarget}
-                    >
-                      <SelectTrigger id="notification-target">
-                        <SelectValue placeholder="Select audience" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all_devices">All Devices</SelectItem>
-                        <SelectItem value="admin_devices">Admin Devices</SelectItem>
-                        <SelectItem value="ios_devices">iOS Devices</SelectItem>
-                        <SelectItem value="android_devices">Android Devices</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Tabs defaultValue="basic" className="w-full mt-4">
+                    <TabsList className="w-full grid grid-cols-3">
+                      <TabsTrigger value="basic">Basic</TabsTrigger>
+                      <TabsTrigger value="media">Media</TabsTrigger>
+                      <TabsTrigger value="actions">Actions</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="basic" className="pt-4">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Basic notification with title and message. No additional options needed.
+                      </p>
+                    </TabsContent>
+                    
+                    <TabsContent value="media" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="notification-image" className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-image">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                          </svg>
+                          Notification Image URL
+                        </Label>
+                        <Input
+                          id="notification-image"
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full"
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          value={imageUrl}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Full URL to an image that will be displayed in the notification (must start with http:// or https://)
+                        </p>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="actions" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="notification-link" className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          </svg>
+                          Notification Link
+                        </Label>
+                        <Input
+                          id="notification-link"
+                          placeholder="/menu or https://example.com"
+                          className="w-full"
+                          onChange={(e) => setImageLink(e.target.value)}
+                          value={imageLink}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          URL to open when the notification is clicked (can be a relative path or full URL)
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="action-button-label" className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mouse-pointer-click">
+                              <path d="m9 9 5 12 1.774-5.226L21 14 9 9z"/>
+                              <path d="m16.071 16.071 4.243 4.243"/>
+                              <path d="m7.188 2.239.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656-2.12 2.122"/>
+                            </svg>
+                            Action Button Label
+                          </Label>
+                          <Input
+                            id="action-button-label"
+                            placeholder="View Order"
+                            onChange={(e) => setActionButtonLabel(e.target.value)}
+                            value={actionButtonLabel}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="action-button-url" className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                            Action Button URL
+                          </Label>
+                          <Input
+                            id="action-button-url"
+                            placeholder="/orders/123 or https://example.com"
+                            onChange={(e) => setActionButtonUrl(e.target.value)}
+                            value={actionButtonUrl}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Add a custom action button to your notification. Both label and URL are required for the button to appear.
+                      </p>
+                    </TabsContent>
+                  </Tabs>
                   
                   <Button 
                     type="submit" 
-                    className="w-full flex items-center justify-center"
+                    className="w-full flex items-center justify-center mt-6"
                     disabled={isSending}
                   >
                     {isSending ? (

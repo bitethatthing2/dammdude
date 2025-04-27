@@ -154,8 +154,12 @@ export async function POST(request: NextRequest) {
       ...rawBody, // Keep other potential top-level fields like token, topic, sendToAll
       title: notificationData.title, // Get title from notification object or top-level
       body: notificationData.body,   // Get body from notification object or top-level
-      icon: notificationData.icon, // Also handle icon and image if nested
-      image: notificationData.image
+      icon: notificationData.icon || '/icons/logo.png', // Default icon if not provided
+      image: notificationData.image || notificationData.imageUrl, // Support both image and imageUrl fields
+      link: notificationData.link || notificationData.imageLink, // Support both link and imageLink fields
+      actionButton: notificationData.actionButton || notificationData.actionButtonUrl, // Support both formats
+      actionButtonText: notificationData.actionButtonText || notificationData.actionButtonLabel, // Support both formats
+      data: notificationData.data || {} // Ensure data object exists
     };
 
     console.log('Send notification API called with parsed data:', {
@@ -241,12 +245,20 @@ export async function POST(request: NextRequest) {
     dataPayload.icon = webIcon;
     dataPayload.androidIcon = androidIcon;
     
+    // Add action button if provided
+    if (body.actionButton && body.actionButtonText) {
+      dataPayload.actionButton = body.actionButton;
+      dataPayload.actionButtonText = body.actionButtonText;
+    }
+    
     // Add any custom data fields
     if (body.data) {
       Object.entries(body.data).forEach(([key, value]) => {
-        dataPayload[key] = String(value); // Ensure all values are strings
+        dataPayload[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
       });
     }
+    
+    console.log('Data payload for notification:', JSON.stringify(dataPayload, null, 2));
 
     // Create the webpush configuration separately
     const webPushConfig = {
