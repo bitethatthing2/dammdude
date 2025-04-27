@@ -19,8 +19,8 @@ interface NotificationResult {
 
 export const NotificationSender = () => {
   // Basic notification fields
-  const [title, setTitle] = useState('Your order is ready!');
-  const [body, setBody] = useState('Come to the bar to pick up your order.');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<NotificationResult | null>(null);
   const { toast } = useToast();
@@ -37,7 +37,25 @@ export const NotificationSender = () => {
   // Additional options
   const [imageLink, setImageLink] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [customData, setCustomData] = useState({});
+  const [actionButtonLabel, setActionButtonLabel] = useState('View');
+  const [actionButtonUrl, setActionButtonUrl] = useState('');
+  const [customDataText, setCustomDataText] = useState('{}');
+  const [customData, setCustomData] = useState<Record<string, any>>({});
+
+  // Update custom data when text changes
+  useEffect(() => {
+    try {
+      if (customDataText.trim()) {
+        const parsed = JSON.parse(customDataText);
+        setCustomData(parsed);
+      } else {
+        setCustomData({});
+      }
+    } catch (e) {
+      // Invalid JSON, keep the previous value
+      console.warn('Invalid JSON in custom data field');
+    }
+  }, [customDataText]);
   
   // Send notification function
   const sendNotification = async () => {
@@ -58,6 +76,12 @@ export const NotificationSender = () => {
           ...customData
         }
       };
+      
+      // Add action button if provided
+      if (actionButtonLabel && actionButtonUrl) {
+        payload.actionButton = actionButtonUrl;
+        payload.actionButtonText = actionButtonLabel;
+      }
       
       // Add the appropriate targeting parameter based on the selected tab
       if (activeTab === 'token') {
@@ -164,7 +188,7 @@ export const NotificationSender = () => {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Notification title"
+              placeholder="Enter notification title"
               className="bg-background text-foreground"
               aria-label="Notification title"
               title="Enter the notification title"
@@ -177,7 +201,7 @@ export const NotificationSender = () => {
               id="body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Notification message"
+              placeholder="Enter notification message"
               className="bg-background text-foreground"
               rows={3}
               aria-label="Notification message"
@@ -236,7 +260,31 @@ export const NotificationSender = () => {
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
-              Link & Buttons
+              Notification Image
+            </Label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="imageInput"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="bg-background text-foreground"
+                  aria-label="Image URL"
+                  title="Enter a full URL for the notification image (must start with http:// or https://)"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Image URL must be a full URL starting with http:// or https://
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Notification Link
             </Label>
             
             <div className="space-y-2">
@@ -245,39 +293,69 @@ export const NotificationSender = () => {
                   id="linkInput"
                   value={imageLink}
                   onChange={(e) => setImageLink(e.target.value)}
-                  placeholder="URL to open (e.g., /orders/123)"
+                  placeholder="/orders/123 or https://example.com"
                   className="bg-background text-foreground"
                   aria-label="URL to open when notification is clicked"
                   title="Enter the URL to open when the notification is clicked"
                 />
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Input
-                  id="imageInput"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Image URL (e.g., https://example.com/image.jpg)"
-                  className="bg-background text-foreground"
-                  aria-label="Image URL"
-                  title="Enter the URL for the notification image"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                URL to open when notification is clicked (can be relative like /orders/123 or absolute)
+              </p>
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="customData">Custom Data</Label>
+            <Label className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Action Button
+            </Label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="actionButtonLabel"
+                  value={actionButtonLabel}
+                  onChange={(e) => setActionButtonLabel(e.target.value)}
+                  placeholder="View Order"
+                  className="bg-background text-foreground"
+                  aria-label="Action button label"
+                  title="Enter the label for the action button"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Input
+                  id="actionButtonUrl"
+                  value={actionButtonUrl}
+                  onChange={(e) => setActionButtonUrl(e.target.value)}
+                  placeholder="/orders/123 or https://example.com"
+                  className="bg-background text-foreground"
+                  aria-label="Action button URL"
+                  title="Enter the URL for the action button"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Add a custom action button to your notification
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="customData">Custom Data (JSON)</Label>
             <Textarea
               id="customData"
-              value={JSON.stringify(customData, null, 2)}
-              onChange={(e) => setCustomData(JSON.parse(e.target.value))}
-              placeholder="Custom data (JSON)"
-              className="bg-background text-foreground"
-              rows={3}
+              value={customDataText}
+              onChange={(e) => setCustomDataText(e.target.value)}
+              placeholder={`{\n  "orderId": "123",\n  "priority": "high"\n}`}
+              className="bg-background text-foreground font-mono text-sm"
+              rows={5}
               aria-label="Custom data"
               title="Enter custom data in JSON format"
             />
+            <p className="text-xs text-muted-foreground">
+              Add any additional data as JSON that will be sent with the notification
+            </p>
           </div>
           
           <Button 
@@ -297,17 +375,6 @@ export const NotificationSender = () => {
               </>
             )}
           </Button>
-          
-          {result && (
-            <div className={`p-3 rounded-md ${result.success ? 'bg-primary/20' : 'bg-destructive/20'}`}>
-              <p className="text-sm font-medium">{result.message}</p>
-              {result.recipients && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sent to {result.recipients} {result.recipients === 1 ? 'recipient' : 'recipients'}
-                </p>
-              )}
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>
