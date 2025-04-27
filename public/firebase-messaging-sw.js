@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-messaging-comp
 importScripts('/sw-cache.js');
 
 // Service worker version
-const SW_VERSION = '1.0.8';
+const SW_VERSION = '1.0.9';
 
 // Firebase configuration (PUBLIC Client-Side Values)
 // !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
@@ -185,8 +185,11 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
       const linkButtonText = notificationData.linkButtonText || 'View';
       const actionButtonUrl = notificationData.actionButtonUrl || null;
       const actionButtonText = notificationData.actionButtonText || 'Action';
-      const icon = notificationData.icon || '/icons/android-big-icon.png';
-      const badge = notificationData.badge || '/icons/android-lil-icon-white.png';
+      
+      // CRITICAL: Always use the exact path for notification icons
+      // Do NOT use dynamic paths from the payload for these specific icons
+      const icon = '/icons/android-big-icon.png';
+      const badge = '/icons/android-lil-icon-white.png';
       
       // Extract any additional custom data fields
       const customData = {};
@@ -209,16 +212,17 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagin
         link,
         orderId,
         hasImage: !!image,
+        icon: icon, // Log the exact icon path being used
         customData: Object.keys(customData)
       });
       
       // Configure notification options
       const notificationOptions = {
         body: notificationBody,
-        // Get icon from payload or use default
-        icon: icon,
-        // Get badge from payload or use default
-        badge: badge,
+        // CRITICAL: Always use the exact path for the large notification icon
+        icon: '/icons/android-big-icon.png',
+        // Use the exact path for the badge icon
+        badge: '/icons/android-lil-icon-white.png',
         // Add image if provided
         ...(image && { image }),
         // Enable vibration

@@ -364,7 +364,8 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             // Use consistent data format
             const title = dataObject.title || payload.notification?.title || 'New Message';
             const body = dataObject.body || payload.notification?.body || '';
-            const icon = dataObject.icon || payload.notification?.icon || '/icons/android-big-icon.png';
+            // CRITICAL: Always use the exact path for notification icons
+            const icon = '/icons/android-big-icon.png';
             const image = dataObject.image || payload.notification?.image;
             
             // Extract link from various possible locations
@@ -378,6 +379,7 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             const options: NotificationOptions = {
               body,
               icon,
+              badge: '/icons/android-lil-icon-white.png',
               requireInteraction: true,
               data: { url: link }
             };

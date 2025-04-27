@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Download, Share, PlusCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -33,6 +33,7 @@ export default function PwaInstallGuide({
   const [lastDismissed, setLastDismissed] = useLocalStorage('pwa-install-last-dismissed', 0);
   const [isToastShown, setIsToastShown] = useLocalStorage('pwa-toast-shown-today', false);
   const [promptAvailable, setPromptAvailable] = useState(false);
+  const installEventRegistered = useRef(false);
 
   // Detect platform and installation status
   useEffect(() => {
@@ -113,15 +114,25 @@ export default function PwaInstallGuide({
         ), { duration: 10000 });
       }, 3000);
     }
+  }, [platform, dismissCount, lastDismissed, isToastShown, isInstalled]);
+
+  // Set up event listeners for installation events
+  useEffect(() => {
+    if (typeof window === 'undefined' || installEventRegistered.current) return;
+    
+    installEventRegistered.current = true;
     
     // Listen for beforeinstallprompt event (for browsers that support it)
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      
       // Store the event for later use
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
       setPromptAvailable(true);
-      console.log('beforeinstallprompt event captured and stored');
+      
+      console.log('beforeinstallprompt event captured and stored', promptEvent.platforms);
     };
     
     // Listen for appinstalled event
@@ -149,6 +160,16 @@ export default function PwaInstallGuide({
       }
     };
     
+    // Check if there's a stored prompt in sessionStorage (for page reloads)
+    try {
+      const storedPromptAvailable = sessionStorage.getItem('promptAvailable');
+      if (storedPromptAvailable === 'true') {
+        setPromptAvailable(true);
+      }
+    } catch (err) {
+      console.error('Error accessing sessionStorage:', err);
+    }
+    
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     
@@ -156,7 +177,22 @@ export default function PwaInstallGuide({
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [platform, dismissCount, lastDismissed, isToastShown]);
+  }, [platform]);
+  
+  // Store promptAvailable in sessionStorage when it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      if (promptAvailable) {
+        sessionStorage.setItem('promptAvailable', 'true');
+      } else {
+        sessionStorage.removeItem('promptAvailable');
+      }
+    } catch (err) {
+      console.error('Error accessing sessionStorage:', err);
+    }
+  }, [promptAvailable]);
   
   // Handle install button click
   const handleInstallClick = async () => {
@@ -204,9 +240,16 @@ export default function PwaInstallGuide({
           console.error('Error showing install prompt:', error);
           // No toast message here - we don't want to show a message if the native prompt fails
         }
+      } else if ((platform === 'android' || platform === 'desktop') && promptAvailable) {
+        // This is a fallback for when we know a prompt should be available
+        // but the deferredPrompt object was lost (e.g., after a page reload)
+        console.log('Installation prompt should be available but object was lost');
+        toast.info("Please reload the page to install", {
+          description: "The installation process requires a fresh page load",
+          duration: 5000
+        });
       } else if (platform === 'android' || platform === 'desktop') {
         // For Android/Desktop without prompt stored, just silently return
-        // No toast message as per requirements - native prompts will handle this
         console.log('Native installation prompt not available at this time');
       }
       
@@ -229,6 +272,12 @@ export default function PwaInstallGuide({
   
   // Don't render anything if already installed
   if (isInstalled) return null;
+  
+  // Don't render for platforms that don't support installation
+  // or when installation is not available
+  if ((platform === 'android' || platform === 'desktop') && !promptAvailable) {
+    return null;
+  }
   
   // Get button text based on platform
   const getButtonText = () => {
