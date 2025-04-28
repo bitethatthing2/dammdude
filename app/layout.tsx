@@ -55,10 +55,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <div className="relative min-h-screen">
               {children}
               
-              {/* Fixed position elements */}
+              {/* REMOVED: Fixed position PwaInstallGuide */}
+              {/* 
               <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
                 <PwaInstallGuide />
               </div>
+              */}
             </div>
           </ClientSideWrapper>
         </ThemeProvider>

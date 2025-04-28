@@ -35,6 +35,11 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     }
   }, [permissionState]);
 
+  // Return null if notifications are already granted
+  if (permissionState === 'granted') {
+    return null;
+  }
+
   // Handle enabling notifications
   const handleToggleNotifications = async () => {
     if (permissionBlocked) {
@@ -42,14 +47,6 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
       toast.error('Notifications are blocked', {
         description: 'Please enable notifications in your browser settings',
         duration: 5000,
-      });
-      return;
-    }
-
-    if (permissionState === 'granted' && token) {
-      // Already enabled
-      toast.info('Notifications are already enabled', {
-        duration: 3000,
       });
       return;
     }
@@ -99,13 +96,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
 
   // Handle click on notification icon or button
   const handleClick = () => {
-    if (variant === 'icon' && permissionState === 'granted') {
-      // If icon variant and already enabled, navigate to notifications page
-      router.push('/notifications');
-    } else {
-      // Otherwise, toggle notifications
-      handleToggleNotifications();
-    }
+    handleToggleNotifications();
   };
 
   // Determine the status and tooltip content
@@ -126,18 +117,6 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
           </div>
         ),
         tooltip: 'Notifications are blocked. Please update your browser settings.'
-      };
-    }
-
-    if (permissionState === 'granted' && token) {
-      return {
-        icon: (
-          <div className="relative">
-            <Bell className="h-5 w-5 text-green-500" />
-            <span className="absolute -right-1 -top-1 flex h-3 w-3 rounded-full bg-green-500 ring-1 ring-white" />
-          </div>
-        ),
-        tooltip: 'Notifications are enabled'
       };
     }
 
@@ -163,7 +142,8 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     return {
       icon: (
         <div className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
+          {/* REMOVED text-muted-foreground to inherit from button */}
+          <Bell className="h-5 w-5" /> 
           <span className="absolute -right-1 -top-1 flex h-3 w-3 rounded-full bg-red-500 ring-1 ring-white" />
         </div>
       ),
@@ -193,25 +173,17 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
             <button
               type="button"
               onClick={handleClick}
-              disabled={isLoading || permissionState === 'granted'}
+              disabled={isLoading}
               className={cn(
                 "inline-flex items-center gap-2 justify-center rounded-md px-4 py-2 text-sm font-medium",
-                permissionState === 'granted' 
-                  ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-100 dark:hover:bg-green-800" 
-                  : "bg-primary text-primary-foreground hover:bg-primary/90 dark:text-white",
-                isLoading && "opacity-50 cursor-not-allowed",
+                "bg-primary text-primary-foreground hover:bg-primary/90 dark:text-white",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
                 className
               )}
+              aria-label={statusInfo.tooltip}
             >
-              {statusInfo.icon}
-              <span>
-                {isLoading 
-                  ? 'Enabling...' 
-                  : permissionState === 'granted' 
-                    ? 'Notifications Enabled' 
-                    : 'Enable Notifications'
-                }
-              </span>
+              {statusInfo.icon} 
+              <span>Enable Notifications</span>
             </button>
           )}
         </TooltipTrigger>

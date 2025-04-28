@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell, MoreHorizontal } from 'lucide-react';
+import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen } from 'lucide-react';
 import { NotificationIndicator } from './NotificationIndicator';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
@@ -117,8 +117,11 @@ export const BottomNav = () => {
       )}
     >
       <div className="relative">
-        {isMounted ? (
-          <NotificationIndicator />
+        {/* Conditionally render Bell icon or Indicator */}
+        {notificationPermissionStatus === 'granted' ? (
+          <Bell className="h-5 w-5" /> /* REMOVED explicit color, inherits from parent Link */
+        ) : isMounted ? (
+          <NotificationIndicator variant="icon" /> // Indicator for other states (default, denied, blocked, loading)
         ) : (
           <Bell className="h-5 w-5" />
         )}

@@ -56,6 +56,14 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
         duration: 5000,
         action: <ToastAction altText="Dismiss">Got it</ToastAction>,
       });
+    } else {
+      // If no prompt and not iOS, inform the user
+      toast({
+        title: "Installation Unavailable",
+        description: "Your browser may not support PWA installation, or the prompt is not yet ready. Please try again shortly.",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
@@ -82,12 +90,6 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
   // Don't show the button if the app is already installed
   if (isInstalled) {
     return null;
-  }
-
-  // Only show the button if we can prompt for installation (Android/Desktop) 
-  // or if it's iOS (to show instructions via toast)
-  if (!deferredPrompt && !isIOS) {
-    return null; // Not installable via prompt and not iOS
   }
 
   return (
