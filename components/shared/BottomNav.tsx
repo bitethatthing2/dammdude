@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen } from 'lucide-react';
+import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen, LogIn } from 'lucide-react';
 import { NotificationIndicator } from './NotificationIndicator';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
@@ -160,6 +160,9 @@ export const BottomNav = () => {
                 {renderNavItem(item, () => setMoreMenuOpen(false))}
               </div>
             ))}
+            <div className="w-full border-t pt-1 mt-1">
+              {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
+            </div>
           </div>
         </div>
       )}
