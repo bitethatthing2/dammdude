@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -17,7 +18,7 @@ import React, { Suspense } from 'react';
 const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { 
   ssr: false,
   loading: () => (
-    <Button variant="outline" className="gap-1.5">
+    <Button className="gap-1.5">
       <span className="h-4 w-4 animate-pulse bg-muted rounded-full"></span>
       <span>Loading...</span>
     </Button>
