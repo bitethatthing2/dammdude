@@ -168,7 +168,14 @@ export const BottomNav = () => {
       )}
     </div>
   );
-  
+
+  // Render the Login item separately for large screens
+  const renderLoginItem = () => (
+    <div className="w-full flex justify-center">
+      {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' })}
+    </div>
+  );
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-transparent backdrop-blur-md z-50 flex justify-around items-center px-2">
       {/* Mobile view (3 core items + notifications + more) */}
@@ -185,10 +192,15 @@ export const BottomNav = () => {
         {renderMoreMenu()}
       </div>
       
-      {/* Large screen view (all items) */}
-      <div className="hidden lg:flex justify-between w-full">
-        {[...coreNavItems, ...secondaryNavItems].map((item) => renderNavItem(item))}
-        {renderNotificationItem()}
+      {/* Large screen view (all items + notifications + login) */}
+      <div className="hidden lg:flex justify-between items-center w-full">
+        <div className="flex justify-start"> {/* Group main nav items */} 
+          {[...coreNavItems, ...secondaryNavItems].map((item) => renderNavItem(item))}
+        </div>
+        <div className="flex justify-end items-center"> {/* Group notification and login */} 
+          {renderNotificationItem()}
+          {renderLoginItem()} {/* Add Login item here */} 
+        </div>
       </div>
     </nav>
   );
