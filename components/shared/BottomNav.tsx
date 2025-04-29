@@ -193,14 +193,10 @@ export const BottomNav = () => {
       </div>
       
       {/* Large screen view (all items + notifications + login) */}
-      <div className="hidden lg:flex justify-between items-center w-full">
-        <div className="flex justify-start"> {/* Group main nav items */} 
-          {[...coreNavItems, ...secondaryNavItems].map((item) => renderNavItem(item))}
-        </div>
-        <div className="flex justify-end items-center"> {/* Group notification and login */} 
-          {renderNotificationItem()}
-          {renderLoginItem()} {/* Add Login item here */} 
-        </div>
+      <div className="hidden lg:flex justify-evenly items-center w-full"> 
+        {[...coreNavItems, ...secondaryNavItems].map((item) => renderNavItem(item))}
+        {renderNotificationItem()}
+        {renderLoginItem()}
       </div>
     </nav>
   );
