@@ -161,7 +161,7 @@ export const BottomNav = () => {
               </div>
             ))}
             <div className="w-full border-t pt-1 mt-1">
-              {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
+              {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
             </div>
           </div>
         </div>
@@ -172,7 +172,7 @@ export const BottomNav = () => {
   // Render the Login item separately for large screens
   const renderLoginItem = () => (
     <div className="w-full flex justify-center">
-      {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' })}
+      {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' })}
     </div>
   );
 
