@@ -28,8 +28,12 @@ export default function HeaderLogo() {
       <Image 
         src={logoSrc}
         alt="Side Hustle Logo"
-        width={150} // Adjust width as needed for optimal display
-        height={24} // Adjust height as needed (aspect ratio)
+        width={150} // Original width
+        height={24} // Original height
+        style={{
+          height: 'auto', // Allow height to adjust based on width
+          maxWidth: '150px' // Match original width
+        }}
         priority // Prioritize loading the logo
       />
     </div>
