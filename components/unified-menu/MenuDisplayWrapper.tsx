@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { CartProvider } from '@/components/bartap/CartContext';
 import { UnifiedMenuDisplay } from '@/components/unified-menu/UnifiedMenuDisplay';
+import { BarTapProvider } from '@/lib/contexts/bartap-context';
 
 interface MenuDisplayWrapperProps {
   mode: 'view' | 'order';
@@ -23,16 +24,18 @@ export function MenuDisplayWrapper({
   
   if (mode === 'order') {
     return (
-      <CartProvider tableId={tableNumber || '1'} deliveryFee={0}>
-        <div className="h-full">
-          <UnifiedMenuDisplay 
-            mode="order"
-            tableNumber={tableNumber}
-            initialCategories={categories}
-            onBack={handleBack}
-          />
-        </div>
-      </CartProvider>
+      <BarTapProvider>
+        <CartProvider tableId={tableNumber || '1'} deliveryFee={0}>
+          <div className="h-full">
+            <UnifiedMenuDisplay 
+              mode="order"
+              tableNumber={tableNumber}
+              initialCategories={categories}
+              onBack={handleBack}
+            />
+          </div>
+        </CartProvider>
+      </BarTapProvider>
     );
   }
   

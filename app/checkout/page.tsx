@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { CartProvider } from '@/components/bartap/CartContext';
-import { CheckoutForm } from '@/components/bartap/CheckoutForm';
+import { ClientCheckoutForm } from '@/components/bartap/ClientCheckoutForm';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
@@ -50,10 +50,10 @@ export default async function CheckoutPage({
       <div className="container max-w-md mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-2">Review Your Order</h1>
         <p className="text-muted-foreground mb-6">
-          Table {tableData.name} {tableData.section ? `(${tableData.section})` : ''}
+          Table {tableData.name}{tableData.section ? ` (${tableData.section})` : ''}
         </p>
         
-        <CheckoutForm tableData={tableData} />
+        <ClientCheckoutForm tableData={tableData} />
       </div>
     </CartProvider>
   );

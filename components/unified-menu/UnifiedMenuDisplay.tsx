@@ -34,6 +34,31 @@ interface Category {
   type?: 'food' | 'drink';
 }
 
+// Cart item type definition
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+  image_url?: string | null;
+  description?: string | null;
+  category_id?: string | null;
+  available?: boolean;
+  customizations?: {
+    meatType?: string;
+    extras?: string[];
+    preferences?: string[];
+  };
+}
+
+// Item customizations type
+interface ItemCustomizations {
+  meatType?: string;
+  extras?: string[];
+  preferences?: string[];
+}
+
 interface UnifiedMenuDisplayProps {
   mode: 'view' | 'order';
   tableNumber?: string;
@@ -342,7 +367,7 @@ export function UnifiedMenuDisplay({
   
   // Add item to cart
   const addToCart = (item: MenuItem) => {
-    if (mode !== 'order') return;
+    if (mode !== 'order' || !cart) return;
     
     // Create cart item
     const cartItem: CartItem = {
@@ -369,7 +394,7 @@ export function UnifiedMenuDisplay({
   
   // Update item quantity in cart
   const updateCartItemQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
+    if (quantity <= 0 || !cart || mode !== 'order') {
       removeFromCart(id);
       return;
     }
@@ -385,6 +410,8 @@ export function UnifiedMenuDisplay({
   
   // Remove item from cart
   const removeFromCart = (id: string) => {
+    if (!cart || mode !== 'order') return;
+    
     // Update local cart state
     cart.removeItem(id);
     
@@ -396,6 +423,8 @@ export function UnifiedMenuDisplay({
   
   // Clear cart
   const clearCart = () => {
+    if (!cart || mode !== 'order') return;
+    
     // Update local cart state
     cart.clearCart();
     
@@ -408,17 +437,11 @@ export function UnifiedMenuDisplay({
   // Proceed to checkout
   const proceedToCheckout = () => {
     if (!tableId) {
-      // toast.error('Table not identified', {
-      //   description: 'Please scan a QR code or enter your table number',
-      // });
       router.push('/table');
       return;
     }
     
-    if (cart.items.length === 0) {
-      // toast.error('Your cart is empty', {
-      //   description: 'Please add items to your cart before checking out',
-      // });
+    if (!cart || cart.items.length === 0) {
       return;
     }
     
@@ -810,7 +833,7 @@ export function UnifiedMenuDisplay({
       )}
       
       {/* Order mode: Fixed checkout button */}
-      {mode === 'order' && cart && cart.items.length > 0 && (
+      {mode === 'order' && cart !== null && cart.items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-background shadow-lg border-t border-border py-3 px-4 z-10">
           <Button 
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

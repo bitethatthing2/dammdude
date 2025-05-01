@@ -614,16 +614,16 @@
     scrollbar-width: none; 
     /* IE and Edge */
     -ms-overflow-style: none; 
+    /* Safari, Chrome, and other WebKit browsers */
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
     /* General overflow behavior */
     overflow-y: auto;
     overflow-x: auto;
-  }
-  
-  /* WebKit browsers (Chrome, Safari, newer Edge) */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
   }
   
   /* Carousel transform utilities */

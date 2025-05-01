@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { ManualTableEntry } from '../../components/bartap/ManualTableEntry';
+import { ClientManualTableEntry } from '../../components/bartap/ClientManualTableEntry';
 import { QRScanner } from '../../components/bartap/QRScanner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
@@ -33,7 +33,7 @@ export default function TableEntryPage() {
         <TabsContent value="manual">
           <div className="bg-card rounded-lg p-6 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Enter Your Table Number</h2>
-            <ManualTableEntry />
+            <ClientManualTableEntry />
           </div>
         </TabsContent>
         

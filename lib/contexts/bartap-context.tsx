@@ -43,7 +43,7 @@ interface BarTapContextType {
   updateCustomizations: (id: string, customizations: BarTapCartItem['customizations']) => void;
 }
 
-// Create the context
+// Create the context with a default undefined value
 const BarTapContext = createContext<BarTapContextType | undefined>(undefined);
 
 // Provider component
