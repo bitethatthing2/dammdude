@@ -24,6 +24,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
 import { useNotifications } from '@/components/shared/notification-provider';
+import { useBarTap } from '@/lib/contexts/bartap-context';
+import { useRouter } from 'next/navigation';
 
 interface TableData {
   id: string;

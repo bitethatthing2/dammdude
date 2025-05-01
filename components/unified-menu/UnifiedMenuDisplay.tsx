@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, Plus, Minus, X, ShoppingBag, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/bartap/CartContext';
+import { useBarTap } from '@/lib/contexts/bartap-context';
 import Link from 'next/link';
 import type { Database } from '@/lib/database.types';
 
@@ -75,6 +76,10 @@ export function UnifiedMenuDisplay({
   
   // Cart state (only used in order mode)
   const cart = mode === 'order' ? useCart() : null;
+  const barTap = mode === 'order' ? useBarTap() : null;
+  
+  // State for table ID
+  const [tableId, setTableId] = useState<string | null>(null);
   
   // Define drink category names
   const drinkCategoryNames = [
@@ -335,29 +340,94 @@ export function UnifiedMenuDisplay({
     return item ? item.quantity : 0;
   };
   
-  // Handle adding an item to the cart
-  const handleAddToCart = (item: MenuItem) => {
-    if (!cart || mode !== 'order') return;
+  // Add item to cart
+  const addToCart = (item: MenuItem) => {
+    if (mode !== 'order') return;
     
-    cart.addItem({
+    // Create cart item
+    const cartItem: CartItem = {
       id: item.id,
       name: item.name,
       price: item.price,
-      image_url: item.image_url || '',
-      description: item.description || '',
-      category_id: item.category_id || '',
-      available: item.available
-    });
+      quantity: 1,
+      notes: '',
+      image_url: item.image_url,
+      description: item.description,
+      category_id: item.category_id,
+      available: item.available,
+      customizations: {},
+    };
+    
+    // Update local cart state
+    cart.addItem(cartItem);
+    
+    // Update BarTap context if available
+    if (barTap) {
+      barTap.addToCart(cartItem);
+    }
   };
   
-  // Handle updating item quantity
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    if (!cart || mode !== 'order') return;
+  // Update item quantity in cart
+  const updateCartItemQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(id);
+      return;
+    }
     
-    if (quantity > 0) {
-      cart.updateQuantity(id, quantity);
+    // Update local cart state
+    cart.updateQuantity(id, quantity);
+    
+    // Update BarTap context if available
+    if (barTap) {
+      barTap.updateQuantity(id, quantity);
+    }
+  };
+  
+  // Remove item from cart
+  const removeFromCart = (id: string) => {
+    // Update local cart state
+    cart.removeItem(id);
+    
+    // Update BarTap context if available
+    if (barTap) {
+      barTap.removeFromCart(id);
+    }
+  };
+  
+  // Clear cart
+  const clearCart = () => {
+    // Update local cart state
+    cart.clearCart();
+    
+    // Update BarTap context if available
+    if (barTap) {
+      barTap.clearCart();
+    }
+  };
+  
+  // Proceed to checkout
+  const proceedToCheckout = () => {
+    if (!tableId) {
+      // toast.error('Table not identified', {
+      //   description: 'Please scan a QR code or enter your table number',
+      // });
+      router.push('/table');
+      return;
+    }
+    
+    if (cart.items.length === 0) {
+      // toast.error('Your cart is empty', {
+      //   description: 'Please add items to your cart before checking out',
+      // });
+      return;
+    }
+    
+    // Use BarTap context if available
+    if (barTap) {
+      barTap.proceedToCheckout();
     } else {
-      cart.removeItem(id);
+      // Fallback to direct navigation
+      router.push('/checkout');
     }
   };
   
@@ -365,6 +435,40 @@ export function UnifiedMenuDisplay({
   const goToCheckout = () => {
     router.push('/checkout');
   };
+  
+  // Initialize state from BarTap context when in order mode
+  useEffect(() => {
+    if (mode === 'order' && barTap) {
+      // Convert BarTap cart items to local format
+      const convertedItems = barTap.cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        notes: item.notes || '',
+        image_url: item.image_url || null,
+        description: item.description || null,
+        category_id: item.category_id || null,
+        available: item.available !== false,
+        customizations: item.customizations || {},
+      }));
+      
+      // Set table ID from context or URL
+      if (barTap.tableId) {
+        setTableId(barTap.tableId);
+      } else {
+        const searchParams = useSearchParams();
+        const tableIdFromUrl = searchParams.get('table');
+        if (tableIdFromUrl) {
+          barTap.setTableId(tableIdFromUrl);
+          setTableId(tableIdFromUrl);
+        } else if (mode === 'order') {
+          // Redirect to table entry if no table ID is available
+          router.push('/table');
+        }
+      }
+    }
+  }, [mode, barTap, router]);
   
   return (
     <div className="flex flex-col h-full bg-background">
@@ -394,6 +498,15 @@ export function UnifiedMenuDisplay({
               <span className="text-xs text-muted-foreground mr-1">Table</span>
               <span className="w-10 h-6 p-0 text-sm text-center">{tableNumber}</span>
             </div>
+            {cart && cart.items.length > 0 && (
+              <Button
+                onClick={() => router.push('/checkout')} 
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Checkout
+              </Button>
+            )}
             <Button
               onClick={() => router.push('/checkout')} 
               size="icon"
@@ -554,7 +667,7 @@ export function UnifiedMenuDisplay({
                     {mode === 'order' && (
                       quantity === 0 ? (
                         <Button 
-                          onClick={() => handleAddToCart(item)}
+                          onClick={() => addToCart(item)}
                           size="sm" 
                           className="h-8 text-xs px-2.5 shrink-0"
                         >
@@ -566,7 +679,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
+                            onClick={() => updateCartItemQuantity(item.id, quantity - 1)}
                           >
                             {quantity === 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                           </Button>
@@ -575,7 +688,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
+                            onClick={() => updateCartItemQuantity(item.id, quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -648,7 +761,7 @@ export function UnifiedMenuDisplay({
                     {mode === 'order' && (
                       quantity === 0 ? (
                         <Button 
-                          onClick={() => handleAddToCart(item)}
+                          onClick={() => addToCart(item)}
                           size="sm" 
                           className="h-8 text-xs px-2.5 shrink-0"
                         >
@@ -660,7 +773,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
+                            onClick={() => updateCartItemQuantity(item.id, quantity - 1)}
                           >
                             {quantity === 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                           </Button>
@@ -669,7 +782,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
+                            onClick={() => updateCartItemQuantity(item.id, quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -701,7 +814,7 @@ export function UnifiedMenuDisplay({
         <div className="fixed bottom-0 left-0 right-0 bg-background shadow-lg border-t border-border py-3 px-4 z-10">
           <Button 
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={goToCheckout}
+            onClick={proceedToCheckout}
           >
             View Order ({cart.items.reduce((total, item) => total + item.quantity, 0)} items)
           </Button>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
 import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen, LogIn } from 'lucide-react';
 import { NotificationIndicator } from './NotificationIndicator';
@@ -10,14 +10,17 @@ import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/lib/contexts/notification-context';
 import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
+import { useBarTap } from '@/lib/contexts/bartap-context';
 
 export const BottomNav = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { notificationPermissionStatus } = useFcmContext();
   const [isMounted, setIsMounted] = useState(false);
   const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const { resetFlow } = useBarTap();
 
   // Close more menu when clicking outside
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
@@ -65,13 +68,27 @@ export const BottomNav = () => {
     iconName?: string;
     icon?: React.ReactNode;
     label: string;
+    onClick?: () => void;
   }
+
+  // Handle BarTap navigation
+  const handleBarTapClick = () => {
+    // Reset the BarTap flow and navigate to table entry
+    resetFlow();
+    router.push('/table');
+    return false; // Prevent default Link behavior
+  };
 
   // Core navigation items - always visible
   const coreNavItems: NavItem[] = [
     { href: '/', iconName: 'Home', label: 'Home' },
     { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
-    { href: '/bar-tap', icon: <QrCode className="h-5 w-5" />, label: 'BarTap' },
+    { 
+      href: '/table', 
+      icon: <QrCode className="h-5 w-5" />, 
+      label: 'BarTap',
+      onClick: handleBarTapClick
+    },
   ];
 
   // Secondary navigation items - shown on larger screens or in a "more" menu
@@ -99,7 +116,7 @@ export const BottomNav = () => {
           "flex flex-col items-center justify-center p-2",
           isActive ? "text-foreground" : "text-muted-foreground"
         )}
-        onClick={onClick}
+        onClick={onClick || item.onClick}
       >
         {Icon ? <Icon className="h-5 w-5" /> : item.icon}
         <span className="text-[10px] mt-1">{item.label}</span>

@@ -8,6 +8,7 @@ import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationProvider } from '@/components/shared/notification-provider';
 import { Suspense } from 'react';
 import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
+import { BarTapProvider } from '@/lib/contexts/bartap-context';
 
 // Group related dynamic imports to improve bundling
 const ClientComponents = {
@@ -97,18 +98,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <ThemeProviderWrapper>
       <QueryStateProvider>
         <NotificationProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <div className="flex-1">
-              <main className="pb-16">{children}</main>
+          <BarTapProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <div className="flex-1">
+                <main className="pb-16">{children}</main>
+              </div>
+              <PwaInstallGuide />
+              <ClientComponents.BottomNav />
             </div>
-            <PwaInstallGuide />
-            <ClientComponents.BottomNav />
-          </div>
-          <Suspense fallback={null}>
-            {/* Client component with ssr: false */}
-            <ClientOnlyRoot />
-          </Suspense>
+            <Suspense fallback={null}>
+              {/* Client component with ssr: false */}
+              <ClientOnlyRoot />
+            </Suspense>
+          </BarTapProvider>
         </NotificationProvider>
       </QueryStateProvider>
     </ThemeProviderWrapper>

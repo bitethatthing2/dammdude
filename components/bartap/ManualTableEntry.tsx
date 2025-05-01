@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useBarTap } from '@/lib/contexts/bartap-context';
 
 /**
  * Component for manually entering table number/name
@@ -22,6 +23,7 @@ export function ManualTableEntry() {
   
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
+  const { setTableId } = useBarTap();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +54,11 @@ export function ManualTableEntry() {
         description: `You're now at Table ${tableData.name}${tableData.section ? ` (${tableData.section})` : ''}`,
       });
       
-      // Redirect to bar-tap page
-      router.push(`/bar-tap?table=${tableData.id}`);
+      // Update BarTap context with the table ID
+      setTableId(tableData.id);
+      
+      // Redirect to menu page with order mode
+      router.push(`/menu?mode=order&table=${tableData.id}`);
     } catch (error) {
       console.error('Error identifying table:', error);
       setError('Something went wrong. Please try again.');
