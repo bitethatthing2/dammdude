@@ -73,6 +73,7 @@ export function UnifiedMenuDisplay({
   initialCategories = []
 }: UnifiedMenuDisplayProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // State for active tab (food or drinks)
   const [activeTab, setActiveTab] = useState<'food' | 'drinks'>('food');
@@ -480,7 +481,6 @@ export function UnifiedMenuDisplay({
       if (barTap.tableId) {
         setTableId(barTap.tableId);
       } else {
-        const searchParams = useSearchParams();
         const tableIdFromUrl = searchParams.get('table');
         if (tableIdFromUrl) {
           barTap.setTableId(tableIdFromUrl);

@@ -33,11 +33,9 @@ export default async function MenuPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   // Get mode from search params (default to 'view')
-  // Use optional chaining and type checking to safely access searchParams properties
-  const mode = typeof searchParams?.mode === 'string' && searchParams.mode === 'order' 
-    ? 'order' 
-    : 'view';
+  const mode = searchParams?.mode === 'order' ? 'order' : 'view';
   
+  // Get table ID from search params
   const tableId = typeof searchParams?.table === 'string' 
     ? searchParams.table 
     : undefined;
