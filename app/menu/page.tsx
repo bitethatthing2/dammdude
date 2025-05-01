@@ -9,6 +9,14 @@ import { getCategories } from '@/lib/menu-data';
 // Client component wrapper in a separate file
 import { MenuDisplayWrapper } from '@/components/unified-menu/MenuDisplayWrapper';
 
+// Import the Category type or define it here
+type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  display_order: number | null;
+};
+
 export const metadata: Metadata = {
   title: 'Menu | Side Hustle',
   description: 'Browse our menu and place your order',
@@ -25,11 +33,23 @@ export default async function MenuPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   // Get mode from search params (default to 'view')
-  const mode = searchParams.mode === 'order' ? 'order' : 'view';
-  const tableId = searchParams.table as string | undefined;
+  // Use optional chaining and type checking to safely access searchParams properties
+  const mode = typeof searchParams?.mode === 'string' && searchParams.mode === 'order' 
+    ? 'order' 
+    : 'view';
+  
+  const tableId = typeof searchParams?.table === 'string' 
+    ? searchParams.table 
+    : undefined;
   
   // Get categories for the menu display
-  const categories = await getCategories();
+  let categories: Category[] = [];
+  try {
+    categories = await getCategories();
+  } catch (error) {
+    console.error('Failed to load categories:', error);
+    // Continue with empty categories array
+  }
   
   // Only check for table ID in order mode
   if (mode === 'order') {

@@ -23,30 +23,40 @@ export async function getCategories(): Promise<Category[]> {
   // This is helpful for data that changes often.
   noStore();
 
-  const cookieStore = await cookies(); // Await cookie store
-  const supabase = createSupabaseServerClient(cookieStore); // Pass cookie store
+  try {
+    const cookieStore = await cookies(); // Await cookie store
+    const supabase = createSupabaseServerClient(cookieStore); // Pass cookie store
 
-  // Fetch all categories from the menu_categories table
-  const { data: categories, error } = await supabase
-    .from('menu_categories')
-    .select('id, name, icon, display_order')
-    .order('display_order', { ascending: true });
+    // Fetch all categories from the menu_categories table
+    // Removing 'icon' from the query since it doesn't exist in the table
+    const { data: categories, error } = await supabase
+      .from('menu_categories')
+      .select('id, name, display_order')
+      .order('display_order', { ascending: true });
+     
+    if (error) {
+      console.error('Error fetching categories:', error);
+      throw new Error(`Failed to fetch categories: ${JSON.stringify(error)}`);
+    }
+     
+    if (!categories || categories.length === 0) {
+      console.warn('No categories found');
+      return [];
+    }
+
+    // Format categories to match our unified Category type
+    const formattedCategories: Category[] = categories.map((cat: { id: string | number; name: string; display_order: number | null; }) => ({
+      id: typeof cat.id === 'number' ? cat.id.toString() : cat.id, // Handle both string and number IDs
+      name: cat.name,
+      description: null, // Since icon doesn't exist, set description to null
+      display_order: cat.display_order
+    }));
    
-  if (error) {
-    console.error('Error fetching categories:', error);
-    // In a real app, you might want to throw the error or return a specific error state
-    return []; // Return empty array on error
+    return formattedCategories;
+  } catch (error) {
+    console.error('Unexpected error fetching categories:', error);
+    throw new Error(`Failed to fetch categories: ${error instanceof Error ? error.message : String(error)}`);
   }
-   
-  // Format categories to match our unified Category type
-  const formattedCategories: Category[] = (categories || []).map((cat: { id: number; name: string; icon: string | null; display_order: number | null; }) => ({
-    id: cat.id.toString(), // Convert numeric ID to string
-    name: cat.name,
-    description: cat.icon, // Use icon as description for consistency
-    display_order: cat.display_order
-  }));
- 
-  return formattedCategories;
 }
 
 // --- Additions below ---

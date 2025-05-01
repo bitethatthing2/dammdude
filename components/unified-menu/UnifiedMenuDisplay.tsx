@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { ChevronLeft, Plus, Minus, X, ShoppingBag, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -103,7 +102,7 @@ export function UnifiedMenuDisplay({
           const supabase = getSupabaseBrowserClient();
           const { data, error } = await supabase
             .from('menu_categories')
-            .select('*')
+            .select('id, name, display_order')
             .order('display_order');
             
           if (error) {
@@ -453,46 +452,50 @@ export function UnifiedMenuDisplay({
       </div>
       
       {/* Food Categories */}
-      <ScrollArea className={`pb-2 border-b border-border ${activeTab === 'food' ? 'block' : 'hidden'}`}>
-        <div className="flex gap-1.5 overflow-x-auto py-2 px-4 snap-x">
-          {foodCategories.map(category => (
-            <Button
-              key={category.id}
-              onClick={() => setSelectedFoodCategory(category.id)}
-              variant="ghost"
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs sm:text-sm whitespace-nowrap snap-start shrink-0",
-                selectedFoodCategory === category.id 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "bg-card hover:bg-accent text-foreground border border-border"
-              )}
-            >
-              {category.name}
-            </Button>
-          ))}
+      <div className={`pb-2 border-b border-border ${activeTab === 'food' ? 'block' : 'hidden'}`}>
+        <div className="flex overflow-x-auto no-scrollbar py-2 px-4">
+          <div className="flex gap-1.5 w-max">
+            {foodCategories.map(category => (
+              <Button
+                key={category.id}
+                onClick={() => setSelectedFoodCategory(category.id)}
+                variant="ghost"
+                className={cn(
+                  "rounded-lg px-2 py-1 text-xs whitespace-nowrap flex-shrink-0",
+                  selectedFoodCategory === category.id 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-card hover:bg-accent text-foreground border border-border"
+                )}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
         </div>
-      </ScrollArea>
+      </div>
       
       {/* Drink Categories */}
-      <ScrollArea className={`pb-2 border-b border-border ${activeTab === 'drinks' ? 'block' : 'hidden'}`}>
-        <div className="flex gap-1.5 overflow-x-auto py-2 px-4 snap-x">
-          {drinkCategories.map(category => (
-            <Button
-              key={category.id}
-              onClick={() => setSelectedDrinkCategory(category.id)}
-              variant="ghost"
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs sm:text-sm whitespace-nowrap snap-start shrink-0",
-                selectedDrinkCategory === category.id 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "bg-card hover:bg-accent text-foreground border border-border"
-              )}
-            >
-              {category.name}
-            </Button>
-          ))}
+      <div className={`pb-2 border-b border-border ${activeTab === 'drinks' ? 'block' : 'hidden'}`}>
+        <div className="flex overflow-x-auto no-scrollbar py-2 px-4">
+          <div className="flex gap-1.5 w-max">
+            {drinkCategories.map(category => (
+              <Button
+                key={category.id}
+                onClick={() => setSelectedDrinkCategory(category.id)}
+                variant="ghost"
+                className={cn(
+                  "rounded-lg px-2 py-1 text-xs whitespace-nowrap flex-shrink-0",
+                  selectedDrinkCategory === category.id 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-card hover:bg-accent text-foreground border border-border"
+                )}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
         </div>
-      </ScrollArea>
+      </div>
       
       {/* Food Items List */}
       <div className={`flex-1 overflow-auto pb-32 ${activeTab === 'food' ? 'block' : 'hidden'}`}>
