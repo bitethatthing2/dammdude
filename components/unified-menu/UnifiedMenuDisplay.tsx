@@ -16,7 +16,7 @@ import type { Database } from '@/lib/database.types';
 
 // Type definitions
 interface MenuItem {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   price: number;
@@ -24,7 +24,7 @@ interface MenuItem {
   available: boolean;
   category: string;
   type?: 'food' | 'drink';
-  category_id: number;
+  category_id?: string;
   is_specialty?: boolean;
 }
 
@@ -187,7 +187,7 @@ export function UnifiedMenuDisplay({
         let query = supabase
           .from('menu_items')
           .select('*')
-          .in('category_id', foodCategoryIds);
+          .in('menu_category_id', foodCategoryIds);
         
         // No filtering based on is_specialty - show all items in both modes
         
@@ -205,10 +205,10 @@ export function UnifiedMenuDisplay({
             description: item.description,
             price: item.price || 0,
             image_url: item.image_url,
-            available: item.is_specialty ?? true,
-            category: item.category_id?.toString() || '',
-            category_id: item.category_id || 0,
-            is_specialty: item.is_specialty,
+            available: item.available ?? true,
+            category: item.menu_category_id?.toString() || '',
+            category_id: item.menu_category_id,
+            is_specialty: false, // Default value since it's not in the database
             type: 'food' as const
           }));
           
@@ -249,7 +249,7 @@ export function UnifiedMenuDisplay({
         let query = supabase
           .from('menu_items')
           .select('*')
-          .in('category_id', drinkCategoryIds);
+          .in('menu_category_id', drinkCategoryIds);
         
         // No filtering based on is_specialty - show all items in both modes
         
@@ -267,10 +267,10 @@ export function UnifiedMenuDisplay({
             description: item.description,
             price: item.price || 0,
             image_url: item.image_url,
-            available: item.is_specialty ?? true,
-            category: item.category_id?.toString() || '',
-            category_id: item.category_id || 0,
-            is_specialty: item.is_specialty,
+            available: item.available ?? true,
+            category: item.menu_category_id?.toString() || '',
+            category_id: item.menu_category_id,
+            is_specialty: false, // Default value since it's not in the database
             type: 'drink' as const
           }));
           
@@ -330,9 +330,9 @@ export function UnifiedMenuDisplay({
   }, [drinkItems, selectedDrinkCategory, searchQuery]);
   
   // Get item quantity in cart
-  const getItemQuantity = (itemId: number): number => {
+  const getItemQuantity = (itemId: string): number => {
     if (!cart || mode !== 'order') return 0;
-    const item = cart.items.find(item => item.id === itemId.toString());
+    const item = cart.items.find(item => item.id === itemId);
     return item ? item.quantity : 0;
   };
   
@@ -341,12 +341,12 @@ export function UnifiedMenuDisplay({
     if (!cart || mode !== 'order') return;
     
     cart.addItem({
-      id: item.id.toString(),
+      id: item.id,
       name: item.name,
       price: item.price,
       image_url: item.image_url || '',
       description: item.description || '',
-      category_id: item.category_id?.toString() || '',
+      category_id: item.category_id || '',
       available: item.available
     });
   };
@@ -563,7 +563,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), quantity - 1)}
+                            onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
                           >
                             {quantity === 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                           </Button>
@@ -572,7 +572,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -657,7 +657,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), quantity - 1)}
+                            onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
                           >
                             {quantity === 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                           </Button>
@@ -666,7 +666,7 @@ export function UnifiedMenuDisplay({
                             size="icon"
                             variant="outline"
                             className="h-7 w-7 rounded-full"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>

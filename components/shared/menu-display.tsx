@@ -17,7 +17,10 @@ import type { Database } from '@/lib/database.types';
 
 // Define types
 type MenuCategory = Database['public']['Tables']['menu_categories']['Row'];
-type MenuItem = Database['public']['Tables']['menu_items']['Row'];
+type MenuItem = Database['public']['Tables']['menu_items']['Row'] & {
+  is_specialty?: boolean;
+  category_id?: string;
+};
 
 interface MenuDisplayProps {
   initialCategories: MenuCategory[];
@@ -142,7 +145,7 @@ export function MenuDisplay({
         let query = supabase
           .from('menu_items')
           .select('*')
-          .in('category_id', foodCategoryIds);
+          .in('menu_category_id', foodCategoryIds);
         
         // Apply available filter if needed
         if (mode === 'order' && filterAvailable) {
@@ -188,7 +191,7 @@ export function MenuDisplay({
         let query = supabase
           .from('menu_items')
           .select('*')
-          .in('category_id', drinkCategoryIds);
+          .in('menu_category_id', drinkCategoryIds);
         
         // Apply available filter if needed
         if (mode === 'order' && filterAvailable) {
@@ -221,7 +224,8 @@ export function MenuDisplay({
     
     // Apply category filter
     if (selectedFoodCategory !== 'all-food') {
-      filtered = filtered.filter(item => item.category_id && item.category_id.toString() === selectedFoodCategory);
+      filtered = filtered.filter(item => 
+        (item.menu_category_id?.toString() === selectedFoodCategory));
     }
     
     // Apply search filter
@@ -242,7 +246,8 @@ export function MenuDisplay({
     
     // Apply category filter
     if (selectedDrinkCategory !== 'all-drinks') {
-      filtered = filtered.filter(item => item.category_id && item.category_id.toString() === selectedDrinkCategory);
+      filtered = filtered.filter(item => 
+        (item.menu_category_id?.toString() === selectedDrinkCategory));
     }
     
     // Apply search filter
@@ -258,9 +263,9 @@ export function MenuDisplay({
   }, [drinkItems, selectedDrinkCategory, searchQuery]);
   
   // Get item quantity in cart
-  const getItemQuantity = (itemId: number): number => {
+  const getItemQuantity = (itemId: string): number => {
     if (!cart) return 0;
-    const item = cart.items.find(item => item.id === itemId.toString());
+    const item = cart.items.find(item => item.id === itemId);
     return item ? item.quantity : 0;
   };
   
@@ -274,8 +279,8 @@ export function MenuDisplay({
       price: item.price || 0,
       image_url: item.image_url,
       description: item.description,
-      category_id: item.category_id?.toString(),
-      available: item.is_specialty ?? true
+      category_id: item.menu_category_id?.toString(),
+      available: item.available ?? true
     });
   };
   
@@ -415,7 +420,7 @@ export function MenuDisplay({
                   </CardContent>
                   {mode === 'order' && (
                     <CardFooter className="pt-1 pb-3 px-3">
-                      {getItemQuantity(item.id) === 0 ? (
+                      {getItemQuantity(item.id.toString()) === 0 ? (
                         <Button 
                           size="sm" 
                           className="w-full"
@@ -430,16 +435,16 @@ export function MenuDisplay({
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id) - 1)}
+                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id.toString()) - 1)}
                           >
                             <LucideIcons.Minus className="h-4 w-4" />
                           </Button>
-                          <span className="font-medium">{getItemQuantity(item.id)}</span>
+                          <span className="font-medium">{getItemQuantity(item.id.toString())}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id) + 1)}
+                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id.toString()) + 1)}
                           >
                             <LucideIcons.Plus className="h-4 w-4" />
                           </Button>
@@ -495,7 +500,7 @@ export function MenuDisplay({
                   </CardContent>
                   {mode === 'order' && (
                     <CardFooter className="pt-1 pb-3 px-3">
-                      {getItemQuantity(item.id) === 0 ? (
+                      {getItemQuantity(item.id.toString()) === 0 ? (
                         <Button 
                           size="sm" 
                           className="w-full"
@@ -510,16 +515,16 @@ export function MenuDisplay({
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id) - 1)}
+                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id.toString()) - 1)}
                           >
                             <LucideIcons.Minus className="h-4 w-4" />
                           </Button>
-                          <span className="font-medium">{getItemQuantity(item.id)}</span>
+                          <span className="font-medium">{getItemQuantity(item.id.toString())}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id) + 1)}
+                            onClick={() => handleUpdateQuantity(item.id.toString(), getItemQuantity(item.id.toString()) + 1)}
                           >
                             <LucideIcons.Plus className="h-4 w-4" />
                           </Button>

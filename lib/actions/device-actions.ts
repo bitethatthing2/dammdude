@@ -66,5 +66,5 @@ export async function registerDevice(params: RegisterDeviceParams): Promise<Regi
   }
 
   console.log(`Successfully registered/updated device: ${deviceId}`);
-  return { success: true, error: null };
+  return { success: true, error: undefined };
 }

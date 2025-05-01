@@ -52,10 +52,21 @@ export async function getCategories(): Promise<Category[]> {
 // --- Additions below ---
 
 // Define complex type for Menu Item with its options
-type Option = Database['public']['Tables']['options']['Row'];
-type OptionGroup = Database['public']['Tables']['option_groups']['Row'] & {
+// Define custom types since they're not in the database schema
+interface Option {
+  id: string;
+  name: string;
+  price?: number | null;
+  available?: boolean | null;
+}
+
+interface OptionGroup {
+  id: string;
+  name: string;
+  required?: boolean | null;
   options: Option[];
-};
+}
+
 type MenuItemWithOptions = Database['public']['Tables']['menu_items']['Row'] & {
   option_groups: OptionGroup[];
 };

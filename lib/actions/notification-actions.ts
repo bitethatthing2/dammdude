@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Database } from '@/lib/database.types';
 
 // Type definitions
 export type NotificationType = "info" | "warning" | "error";
@@ -32,7 +33,8 @@ export async function createNotification(
     const validated = createNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     
     // Check if user exists
     const { data: userData, error: userError } = await supabase
@@ -86,7 +88,8 @@ export async function createBulkNotifications(
     }
     
     // Get Supabase client
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     
     // Prepare notification records
     const notifications = userIds.map(userId => ({
@@ -128,7 +131,8 @@ export async function dismissNotification(
     const validated = dismissNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -167,7 +171,8 @@ export async function dismissNotification(
 export async function dismissAllNotifications() {
   try {
     // Get Supabase client
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -207,7 +212,8 @@ export async function dismissAllNotifications() {
 export async function cleanupExpiredNotifications() {
   try {
     // Get Supabase client with service role
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     
     // Delete expired notifications
     const { data, error } = await supabase
@@ -226,6 +232,180 @@ export async function cleanupExpiredNotifications() {
     };
   } catch (error) {
     console.error("Error cleaning up notifications:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+
+/**
+ * Send order notification to staff when a customer places an order
+ */
+export async function sendOrderNotificationToStaff(
+  orderId: string,
+  tableId: string,
+  orderDetails: string
+) {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    // Find staff devices to notify (primary device first)
+    const { data: staffDevices, error: deviceError } = await supabase
+      .from("device_registrations")
+      .select("device_id")
+      .eq("type", "staff")
+      .order("is_primary", { ascending: false });
+    
+    if (deviceError) {
+      console.error("Error finding staff devices:", deviceError);
+      return { success: false, error: "Failed to find staff devices" };
+    }
+    
+    if (!staffDevices || staffDevices.length === 0) {
+      console.warn("No staff devices registered to receive notifications");
+      return { success: false, error: "No staff devices registered" };
+    }
+    
+    // Get table information
+    const { data: tableData, error: tableError } = await supabase
+      .from("tables")
+      .select("name")
+      .eq("id", tableId)
+      .single();
+    
+    if (tableError) {
+      console.error("Error finding table:", tableError);
+      return { success: false, error: "Failed to find table information" };
+    }
+    
+    // Create notification for each staff device
+    const notifications = staffDevices.map((device: { device_id: string }) => ({
+      recipient_id: device.device_id,
+      message: `New order from Table ${tableData.name}: ${orderDetails}`,
+      type: "order_new" as Database["public"]["Enums"]["notification_type"],
+      status: "unread"
+    }));
+    
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert(notifications);
+    
+    if (notificationError) {
+      console.error("Error creating staff notifications:", notificationError);
+      return { success: false, error: "Failed to create notifications" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending order notification to staff:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+
+/**
+ * Send order ready notification to customer
+ */
+export async function sendOrderReadyNotification(
+  orderId: string,
+  tableId: string
+) {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    // Find customer devices for this table
+    const { data: customerDevices, error: deviceError } = await supabase
+      .from("device_registrations")
+      .select("device_id")
+      .eq("type", "customer")
+      .eq("table_id", tableId);
+    
+    if (deviceError) {
+      console.error("Error finding customer devices:", deviceError);
+      return { success: false, error: "Failed to find customer devices" };
+    }
+    
+    if (!customerDevices || customerDevices.length === 0) {
+      console.warn("No customer devices registered for table:", tableId);
+      return { success: false, error: "No customer devices registered for this table" };
+    }
+    
+    // Get table information
+    const { data: tableData, error: tableError } = await supabase
+      .from("tables")
+      .select("name")
+      .eq("id", tableId)
+      .single();
+    
+    if (tableError) {
+      console.error("Error finding table:", tableError);
+      return { success: false, error: "Failed to find table information" };
+    }
+    
+    // Create notification for each customer device
+    const notifications = customerDevices.map((device: { device_id: string }) => ({
+      recipient_id: device.device_id,
+      message: `Your order for Table ${tableData.name} is ready for pickup!`,
+      type: "order_ready" as Database["public"]["Enums"]["notification_type"],
+      status: "unread"
+    }));
+    
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert(notifications);
+    
+    if (notificationError) {
+      console.error("Error creating customer notifications:", notificationError);
+      return { success: false, error: "Failed to create notifications" };
+    }
+    
+    // Update order status to ready
+    const { error: orderError } = await supabase
+      .from("orders")
+      .update({ status: "ready" })
+      .eq("id", orderId);
+    
+    if (orderError) {
+      console.error("Error updating order status:", orderError);
+      return { success: false, error: "Failed to update order status" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending order ready notification:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+
+/**
+ * Mark notification as read
+ */
+export async function markNotificationAsRead(notificationId: string) {
+  try {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    const { error } = await supabase
+      .from("notifications")
+      .update({ status: "read" })
+      .eq("id", notificationId);
+    
+    if (error) {
+      console.error("Error marking notification as read:", error);
+      return { success: false, error: "Failed to mark notification as read" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Unknown error" 
