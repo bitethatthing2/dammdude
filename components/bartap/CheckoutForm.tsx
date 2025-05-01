@@ -278,7 +278,7 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
       const notificationPayload = {
         message: `Order #${orderData.id.slice(-6).toUpperCase()} from Table ${tableData.name}`,
         recipient_id: 'staff', // Using a default recipient ID for staff notifications
-        type: 'system',
+        notification_type: 'order', // Changed from 'type' to 'notification_type'
         status: 'unread'
       };
       
