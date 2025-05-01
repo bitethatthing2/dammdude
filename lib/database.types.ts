@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 export type Json =
   | string
   | number
@@ -66,27 +67,6 @@ export type Database = {
           id?: string
           role?: string | null
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      categories: {
-        Row: {
-          display_order: number | null
-          icon: string | null
-          id: number
-          name: string
-        }
-        Insert: {
-          display_order?: number | null
-          icon?: string | null
-          id?: number
-          name: string
-        }
-        Update: {
-          display_order?: number | null
-          icon?: string | null
-          id?: number
-          name?: string
         }
         Relationships: []
       }
@@ -198,50 +178,40 @@ export type Database = {
       menu_items: {
         Row: {
           available: boolean | null
-          category_id: number
-          created_at: string | null
+          created_at: string
           description: string | null
-          id: number
+          display_order: number | null
+          id: string
           image_url: string | null
           menu_category_id: string | null
           name: string
-          price: number | null
-          updated_at: string | null
+          price: number
         }
         Insert: {
           available?: boolean | null
-          category_id: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
-          id?: number
+          display_order?: number | null
+          id?: string
           image_url?: string | null
           menu_category_id?: string | null
           name: string
-          price?: number | null
-          updated_at?: string | null
+          price: number
         }
         Update: {
           available?: boolean | null
-          category_id?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
-          id?: number
+          display_order?: number | null
+          id?: string
           image_url?: string | null
           menu_category_id?: string | null
           name?: string
-          price?: number | null
-          updated_at?: string | null
+          price?: number
         }
         Relationships: [
           {
-            foreignKeyName: "menu_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "menu_items_menu_category_id_fkey"
+            foreignKeyName: "fk_menu_category"
             columns: ["menu_category_id"]
             isOneToOne: false
             referencedRelation: "menu_categories"
@@ -254,122 +224,66 @@ export type Database = {
           created_at: string
           id: string
           message: string
-          read: boolean
-          recipient_id: string | null
-          recipient_type: string | null
-          sender_id: string | null
-          sender_type: string | null
-          target_id: string | null
-          target_type: string | null
-          title: string
+          recipient_id: string
+          status: string | null
           type: Database["public"]["Enums"]["notification_type"]
         }
         Insert: {
           created_at?: string
           id?: string
           message: string
-          read?: boolean
-          recipient_id?: string | null
-          recipient_type?: string | null
-          sender_id?: string | null
-          sender_type?: string | null
-          target_id?: string | null
-          target_type?: string | null
-          title: string
-          type: Database["public"]["Enums"]["notification_type"]
+          recipient_id: string
+          status?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
         }
         Update: {
           created_at?: string
           id?: string
           message?: string
-          read?: boolean
-          recipient_id?: string | null
-          recipient_type?: string | null
-          sender_id?: string | null
-          sender_type?: string | null
-          target_id?: string | null
-          target_type?: string | null
-          title?: string
+          recipient_id?: string
+          status?: string | null
           type?: Database["public"]["Enums"]["notification_type"]
         }
         Relationships: []
       }
-      order_items: {
-        Row: {
-          created_at: string
-          id: string
-          item_id: number
-          notes: string | null
-          order_id: string
-          quantity: number
-          status: string | null
-          subtotal: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          item_id: number
-          notes?: string | null
-          order_id: string
-          quantity?: number
-          status?: string | null
-          subtotal?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          item_id?: number
-          notes?: string | null
-          order_id?: string
-          quantity?: number
-          status?: string | null
-          subtotal?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       orders: {
         Row: {
           created_at: string
+          customer_notes: string | null
           id: string
+          session_id: string | null
           status: string | null
           table_id: string
-          total_amount: number | null
-          updated_at: string | null
+          total_price: number | null
         }
         Insert: {
           created_at?: string
+          customer_notes?: string | null
           id?: string
+          session_id?: string | null
           status?: string | null
           table_id: string
-          total_amount?: number | null
-          updated_at?: string | null
+          total_price?: number | null
         }
         Update: {
           created_at?: string
+          customer_notes?: string | null
           id?: string
+          session_id?: string | null
           status?: string | null
           table_id?: string
-          total_amount?: number | null
-          updated_at?: string | null
+          total_price?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "orders_table_id_fkey"
+            foreignKeyName: "fk_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "active_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_table"
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "tables"
@@ -377,55 +291,94 @@ export type Database = {
           },
         ]
       }
-      tables: {
+      order_items: {
         Row: {
-          capacity: number | null
-          created_at: string | null
+          created_at: string
           id: string
-          location: string | null
-          qr_code_url: string | null
-          status: string | null
-          table_number: string
-          updated_at: string | null
+          item_id: string
+          item_name: string | null
+          modifiers: Json | null
+          order_id: string
+          price_at_order: number | null
+          quantity: number
         }
         Insert: {
-          capacity?: number | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          location?: string | null
-          qr_code_url?: string | null
-          status?: string | null
-          table_number: string
-          updated_at?: string | null
+          item_id: string
+          item_name?: string | null
+          modifiers?: Json | null
+          order_id: string
+          price_at_order?: number | null
+          quantity: number
         }
         Update: {
-          capacity?: number | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_name?: string | null
+          modifiers?: Json | null
+          order_id?: string
+          price_at_order?: number | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_item"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_activity: string | null
+          location: string | null
+          name: string
+        }
+        Insert: {
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
           location?: string | null
-          qr_code_url?: string | null
-          status?: string | null
-          table_number?: string
-          updated_at?: string | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
+          location?: string | null
+          name?: string
         }
         Relationships: []
       }
       wing_flavors: {
         Row: {
           available: boolean | null
-          heat_level: number | null
           id: string
           name: string
         }
         Insert: {
           available?: boolean | null
-          heat_level?: number | null
           id?: string
           name: string
         }
         Update: {
           available?: boolean | null
-          heat_level?: number | null
           id?: string
           name?: string
         }
@@ -451,6 +404,7 @@ type PublicSchema = Database[Extract<keyof Database, "public">]
 
 export type DbResult<T> = T extends PromiseLike<infer U> ? U : never
 export type DbResultOk<T> = T extends PromiseLike<{ data: infer U }> ? Exclude<U, null> : never
+// DbResultErr is removed, use PostgrestError directly
 
 export type DbResultStatus = "idle" | "loading" | "success" | "error"
 export type DbResultAction = <T>(promise: PromiseLike<T>) => Promise<DbResult<T>>
@@ -459,7 +413,6 @@ export type DbResultActionArgs<T> = [DbResult<T>, DbResultStatus]
 import { PostgrestError } from "@supabase/supabase-js";
 
 // Helper types for Schema Inference
-// Source: https://github.com/supabase/supabase/blob/master/examples/nextjs/utils/supabase/types.ts
 export type SchemaName = keyof Database;
 export type TableName<S extends SchemaName> = keyof Database[S]["Tables"];
 export type ViewName<S extends SchemaName> = keyof Database[S]["Views"];
@@ -467,19 +420,7 @@ export type FunctionName<S extends SchemaName> = keyof Database[S]["Functions"];
 export type EnumName<S extends SchemaName> = keyof Database[S]["Enums"];
 export type CompositeTypeName<S extends SchemaName> = keyof Database[S]["CompositeTypes"];
 
-// export type Table<T extends TableName<"public">> = Database["public"]["Tables"][T]
-// export type View<T extends ViewName<"public">> = Database["public"]["Views"][T]
-// export type Function<T extends FunctionName<"public">> = Database["public"]["Functions"][T]
-// export type Enum<T extends EnumName<"public">> = Database["public"]["Enums"][T]
-// export type CompositeType<T extends CompositeTypeName<"public">> = Database["public"]["CompositeTypes"][T]
-
-// If you have multiple schemas, you can alias the schema name like this:
-// export type AuthTable<T extends TableName<"auth">> = Database["auth"]["Tables"][T]
-// ...and then use it like this: AuthTable<"users">
-
-// The following are TS types for convenience based on the default "public" schema
-// If you specified a different schema in your Supabase project, update these types accordingly
-// Example: export type MyTable = Tables<"MyTable", { schema: "my_schema" }>
+// Specific Aliases
 
 // Tables
 export type ActiveSession = PublicSchema["Tables"]["active_sessions"]["Row"]
@@ -489,10 +430,6 @@ export type ActiveSessionUpdate = PublicSchema["Tables"]["active_sessions"]["Upd
 export type AdminUser = PublicSchema["Tables"]["admin_users"]["Row"]
 export type AdminUserInsert = PublicSchema["Tables"]["admin_users"]["Insert"]
 export type AdminUserUpdate = PublicSchema["Tables"]["admin_users"]["Update"]
-
-export type Category = PublicSchema["Tables"]["categories"]["Row"]
-export type CategoryInsert = PublicSchema["Tables"]["categories"]["Insert"]
-export type CategoryUpdate = PublicSchema["Tables"]["categories"]["Update"]
 
 export type DeviceRegistration = PublicSchema["Tables"]["device_registrations"]["Row"]
 export type DeviceRegistrationInsert = PublicSchema["Tables"]["device_registrations"]["Insert"]
@@ -538,7 +475,13 @@ export type WingFlavor = PublicSchema["Tables"]["wing_flavors"]["Row"]
 export type WingFlavorInsert = PublicSchema["Tables"]["wing_flavors"]["Insert"]
 export type WingFlavorUpdate = PublicSchema["Tables"]["wing_flavors"]["Update"]
 
-// Default schema alias (adjust if your default schema is not public)
+// Enums
+export type NotificationType = PublicSchema["Enums"]["notification_type"]
+
+// Composite Types
+// No composite types found in schema public
+
+// Default schema alias
 declare global {
   // eslint-disable-next-line no-unused-vars
   type DefaultSchema = Database["public"];
