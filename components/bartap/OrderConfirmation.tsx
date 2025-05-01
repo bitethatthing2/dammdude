@@ -9,6 +9,8 @@ import { formatOrderDate } from '@/lib/utils/date-utils';
 import { useOrderSubscription } from '@/lib/hooks/useOrderSubscription';
 import { StatusBadge } from '@/components/bartap/ui/StatusBadge';
 import { formatCurrency } from '@/lib/utils/format-utils';
+import { useBarTap } from '@/lib/contexts/bartap-context';
+import { useRouter } from 'next/navigation';
 
 interface TableData {
   id: string;
@@ -33,6 +35,33 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
     // Show notifications for important status changes
     showNotifications: true
   });
+  
+  // Get BarTap context to reset flow when needed
+  const barTap = useBarTap();
+  const router = useRouter();
+  
+  // When component mounts, ensure the BarTap context is updated
+  useEffect(() => {
+    if (barTap) {
+      // Set the flow step to confirmation
+      barTap.clearCart();
+    }
+  }, [barTap]);
+  
+  // Handle placing a new order
+  const handleNewOrder = () => {
+    if (barTap) {
+      // Reset the flow but keep the table ID
+      const currentTableId = barTap.tableId;
+      barTap.resetFlow();
+      if (currentTableId) {
+        barTap.setTableId(currentTableId);
+      }
+    }
+    
+    // Navigate back to the menu
+    router.push('/menu?mode=order');
+  };
   
   // Format date
   const formattedDate = order?.created_at 
@@ -170,12 +199,10 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
               </Button>
             </Link>
             
-            <Link href="/cart">
-              <Button className="w-full gap-2 h-12">
-                <ShoppingBag className="h-4 w-4" />
-                <span>New Order</span>
-              </Button>
-            </Link>
+            <Button onClick={handleNewOrder} className="w-full gap-2 h-12">
+              <ShoppingBag className="h-4 w-4" />
+              <span>New Order</span>
+            </Button>
           </div>
         </CardFooter>
       </Card>

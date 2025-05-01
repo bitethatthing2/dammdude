@@ -36,9 +36,7 @@ export default async function MenuPage({
   const mode = searchParams?.mode === 'order' ? 'order' : 'view';
   
   // Get table ID from search params
-  const tableId = typeof searchParams?.table === 'string' 
-    ? searchParams.table 
-    : undefined;
+  const tableId = searchParams?.table as string | undefined;
   
   // Get categories for the menu display
   let categories: Category[] = [];

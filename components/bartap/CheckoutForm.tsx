@@ -87,6 +87,10 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
     setLastOrderTime
   } = useCart();
   
+  // Get BarTap context
+  const barTap = useBarTap();
+  const router = useRouter();
+  
   const [newPromoCode, setNewPromoCode] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -251,6 +255,11 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
       
       // Clear the cart
       clearCart();
+      
+      // Also clear the BarTap context cart if available
+      if (barTap) {
+        barTap.clearCart();
+      }
       
       // Set the order ID for confirmation
       setOrderId(orderData.id);
