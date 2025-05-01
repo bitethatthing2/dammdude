@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
@@ -9,14 +9,19 @@ import { toast } from "sonner";
 export function FcmTokenRegistration() {
   const { token, notificationPermissionStatus, registerToken, isLoading } = useFcmContext();
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   
-  // Check if browser supports notifications
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window;
+  // Check browser support in useEffect to avoid hydration mismatch
+  useEffect(() => {
+    setIsBrowserSupported('Notification' in window);
+  }, []);
+  
+  // Use the permission from context
   const permission = notificationPermissionStatus || 'default';
   
   // Handle permission request and token registration using the centralized context
   const handleEnableNotifications = async () => {
-    if (!isSupported || permission !== 'default') return;
+    if (!isBrowserSupported || permission !== 'default') return;
     
     setIsRegistering(true);
     
@@ -60,7 +65,7 @@ export function FcmTokenRegistration() {
   let buttonDisabled = false;
   let statusText = '';
   
-  if (!isSupported) {
+  if (!isBrowserSupported) {
     buttonText = 'Notifications Not Supported';
     buttonDisabled = true;
     statusText = 'Your browser does not support notifications';

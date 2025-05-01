@@ -16,6 +16,9 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 interface ClientSideWrapperProps {
+  /**
+   * The children to be rendered within the ClientSideWrapper
+   */
   children: React.ReactNode;
 }
 

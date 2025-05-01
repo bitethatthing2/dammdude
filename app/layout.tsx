@@ -1,15 +1,8 @@
 import '@/app/globals.css';
 import type { ReactNode } from 'react';
-import { ThemeProvider } from '@/components/ui/theme-provider';
-import dynamic from 'next/dynamic';
 import { Metadata, Viewport } from 'next';
-import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
-
-// Dynamically import client-side components with SSR disabled
-const ClientSideWrapper = dynamic(
-  () => import('@/components/shared/ClientSideWrapper').then(mod => mod.default),
-  { ssr: false }
-);
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { ThemeProvider } from '@/components/ui/theme-provider';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -50,19 +43,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
-          {/* Client-side wrapper ensures proper initialization */}
-          <ClientSideWrapper>
-            <div className="relative min-h-screen">
-              {children}
-              
-              {/* REMOVED: Fixed position PwaInstallGuide */}
-              {/* 
-              <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-                <PwaInstallGuide />
-              </div>
-              */}
-            </div>
-          </ClientSideWrapper>
+          <NuqsAdapter>
+            {children}
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>

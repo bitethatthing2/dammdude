@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { useFcmContext, getNotificationPermissionAndToken } from '@/lib/hooks/useFcmToken';
@@ -17,48 +17,54 @@ export default function NotificationGuide({
   className = ''
 }: NotificationGuideProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   const { notificationPermissionStatus: permissionState, registerToken } = useFcmContext();
+
+  // Check browser support in useEffect to prevent hydration mismatch
+  useEffect(() => {
+    setIsBrowserSupported('Notification' in window);
+  }, []);
 
   // Request notification permission and register FCM token
   const handleRequestPermission = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setIsLoading(true);
-      try {
-        // Trigger native permission dialog
-        const permission = await Notification.requestPermission();
+    if (!isBrowserSupported) return;
+    
+    setIsLoading(true);
+    try {
+      // Trigger native permission dialog
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        // Register token using context method
+        const token = await registerToken();
         
-        if (permission === 'granted') {
-          // Register token using context method
-          const token = await registerToken();
-          
-          if (token) {
-            console.log('FCM token registered successfully');
-            toast.success('Notifications enabled', {
-              description: 'You will now receive important updates and announcements',
-              duration: 5000,
-            });
-          } else {
-            console.warn('Failed to register FCM token');
-            toast.error('Could not enable notifications', {
-              description: 'Please try again or check your browser settings',
-              duration: 5000,
-            });
-          }
-        } else if (permission === 'denied') {
-          toast.error('Notifications blocked', {
-            description: 'Please enable notifications in your browser settings',
+        if (token) {
+          console.log('FCM token registered successfully');
+          toast.success('Notifications enabled', {
+            description: 'You will now receive important updates and announcements',
+            duration: 5000,
+          });
+        } else {
+          console.warn('Failed to register FCM token');
+          toast.error('Could not enable notifications', {
+            description: 'Please try again or check your browser settings',
             duration: 5000,
           });
         }
-      } catch (error) {
-        console.error('Error requesting notification permission:', error);
-        toast.error('Something went wrong', {
-          description: 'Could not enable notifications',
+      } else if (permission === 'denied') {
+        toast.error('Notifications blocked', {
+          description: 'Please enable notifications in your browser settings',
           duration: 5000,
         });
-      } finally {
-        setIsLoading(false);
       }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      toast.error('Something went wrong', {
+        description: 'Could not enable notifications',
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 

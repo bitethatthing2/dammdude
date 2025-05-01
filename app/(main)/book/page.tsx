@@ -6,11 +6,12 @@ import { useLocationState } from '@/lib/hooks/useLocationState';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-// Dynamically import the Toaster component to avoid SSR issues
-const Toaster = dynamic(() => import('@/components/ui/toaster').then(mod => mod.Toaster), { ssr: false });
+// Dynamically import the Toaster component without ssr: false
+const Toaster = dynamic(() => import('@/components/ui/toaster').then(mod => mod.Toaster));
 
-// Success component to avoid any window references during SSR
+// Success component as a client component
 const BookingSuccess = dynamic(() => 
   Promise.resolve(({ onReset }: { onReset: () => void }) => (
     <div className="max-w-md mx-auto text-center py-12">
@@ -19,12 +20,11 @@ const BookingSuccess = dynamic(() =>
       </div>
       <h2 className="text-2xl font-bold mb-2">Booking Request Sent!</h2>
       <p className="text-muted-foreground mb-6">
-        Thank you for your reservation request. We'll contact you shortly to confirm your booking.
+        Thank you for your reservation request. We&apos;ll contact you shortly to confirm your booking.
       </p>
       <Button onClick={onReset}>Make Another Booking</Button>
     </div>
-  )),
-  { ssr: false }
+  ))
 );
 
 export default function BookingPage() {
@@ -70,7 +70,9 @@ export default function BookingPage() {
         )}
       </div>
       
-      <Toaster />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Toaster />
+      </Suspense>
     </div>
   );
 }

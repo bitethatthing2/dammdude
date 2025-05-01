@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -14,16 +13,18 @@ import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import React, { Suspense } from 'react';
 
-// Dynamically import components that use browser APIs with priority loading
-const NotificationIndicator = dynamic(() => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator), { 
-  ssr: false,
-  loading: () => (
-    <Button className="gap-1.5">
-      <span className="h-4 w-4 animate-pulse bg-muted rounded-full"></span>
-      <span>Loading...</span>
-    </Button>
-  )
-});
+// Dynamically import components that use browser APIs
+const NotificationIndicator = dynamic(
+  () => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator)
+);
+
+// Loading fallback component
+const NotificationIndicatorFallback = () => (
+  <Button className="gap-1.5">
+    <span className="h-4 w-4 animate-pulse bg-muted rounded-full"></span>
+    <span>Loading...</span>
+  </Button>
+);
 
 // Safe component without direct icon references
 const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {
@@ -44,9 +45,15 @@ const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode;
 export default function HomePage() {
   const { location } = useLocationState();
   const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Wait for component to mount to ensure client-side rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Determine image source based on theme
-  const wolfIconSrc = resolvedTheme === 'dark' 
+  const wolfIconSrc = mounted && resolvedTheme === 'dark' 
     ? '/icons/wolf-icon-main-page.png' 
     : '/icons/wolf-icon-main-page-light-screen.png';
 
@@ -55,11 +62,15 @@ export default function HomePage() {
 
       {/* Theme-aware Wolf Icon - Takes full width with minimal side padding */}
       <div className="mb-0 w-full px-2"> 
-        <img 
-          src={wolfIconSrc} 
-          alt="Side Hustle Wolf Icon" 
-          className="mx-auto h-auto w-full md:max-w-lg" 
-        />
+        {mounted ? (
+          <img 
+            src={wolfIconSrc} 
+            alt="Side Hustle Wolf Icon" 
+            className="mx-auto h-auto w-full md:max-w-lg" 
+          />
+        ) : (
+          <div className="mx-auto h-64 w-full md:max-w-lg bg-muted animate-pulse" />
+        )}
       </div>
       
       {/* Centered Location Toggle - Constrained width */}
@@ -125,12 +136,41 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex-shrink-0 mt-1 sm:mt-0">
-                  <NotificationIndicator variant="button" className="w-full sm:w-auto h-9 text-sm px-4" /> 
+                  <Suspense fallback={<NotificationIndicatorFallback />}>
+                    <NotificationIndicator variant="button" className="w-full sm:w-auto h-9 text-sm px-4" /> 
+                  </Suspense>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Quick Links Section */}
+      <div className="w-full max-w-md px-4 mt-6 mb-4">
+        <h2 className="text-lg font-semibold mb-4 text-center">Quick Links</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <QuickLink 
+            href="/menu" 
+            icon={<BookOpen className="h-6 w-6 text-primary" />} 
+            label="View Menu" 
+          />
+          <QuickLink 
+            href="/table" 
+            icon={<Utensils className="h-6 w-6 text-primary" />} 
+            label="Order Now" 
+          />
+          <QuickLink 
+            href="/events" 
+            icon={<CalendarDays className="h-6 w-6 text-primary" />} 
+            label="Events" 
+          />
+          <QuickLink 
+            href="/notifications" 
+            icon={<Bell className="h-6 w-6 text-primary" />} 
+            label="Notifications" 
+          />
+        </div>
       </div>
 
       {/* Category Grid can go here or other content */}

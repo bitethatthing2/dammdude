@@ -18,6 +18,7 @@ interface CartState {
   addItem: (item: MenuItem) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateItemQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
@@ -27,13 +28,24 @@ interface CartState {
 // Define the persist options separately for clarity
 const persistOptions: PersistOptions<CartState> = {
   name: 'cart-storage',
-  storage: createJSONStorage(() => localStorage),
+  storage: createJSONStorage(() => {
+    // Check if window is defined (we're in the browser)
+    if (typeof window !== 'undefined') {
+      return localStorage;
+    }
+    // Return a no-op storage for SSR
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {}
+    };
+  }),
 };
 
 // Create the store using create<CartState>(persist(...) as any) structure
-export const useCartState = create<CartState>( // Type create directly
+export const useCartState = create<CartState>(
   persist(
-    (set, get, api) => ({ // Use full (set, get, api) signature
+    (set, get, api) => ({
       items: [],
       showCart: false,
       addItem: (item) => {
@@ -68,6 +80,9 @@ export const useCartState = create<CartState>( // Type create directly
             .filter((i) => i.quantity > 0),
         }));
       },
+      updateItemQuantity: (itemId, quantity) => {
+        get().updateQuantity(itemId, quantity);
+      },
       clearCart: () => set({ items: [] }),
       getTotalPrice: () => {
         return get().items.reduce(
@@ -83,5 +98,5 @@ export const useCartState = create<CartState>( // Type create directly
       },
     }),
     persistOptions
-  ) as any // Cast the result of persist to any to bypass internal type check
+  ) as any
 );

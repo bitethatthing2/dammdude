@@ -1,0 +1,18 @@
+#PROJECT_MANAGEMENT_DIRECTIVE
+Before implementing ANY changes or suggestions:
+1. DO NOT create new files unless absolutely necessary
+2. ALWAYS check if similar files/functionality already exists ANYWHERE in the project
+3. SEARCH the entire project tree for related files before suggesting new ones
+4. CONSOLIDATE rather than duplicate - modify existing files where possible
+5. CHECK DEVELOPER TOOLS for real-time errors and address them immediately
+6. USE SUPABASE MCP TOOLS to verify database interactions and schema consistency
+7. DOCUMENT any file changes or (if unavoidable) new file creation
+8. MAINTAIN a single source of truth for each functionality
+9. FOLLOW our established folder structure and naming conventions
+10. VERIFY your changes won't create path conflicts or circular dependencies
+11. PRIORITIZE mobile-first responsive design throughout all components
+12. UTILIZE error logs and developer console to diagnose and fix issues in real-time
+
+Remember: Our development process should be fast, smooth, and error-free through proactive monitoring and immediate correction of issues using our dev tools and Supabase MCP tools.
+#END_DIRECTIVE
+

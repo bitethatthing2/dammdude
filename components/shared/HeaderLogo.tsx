@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export default function HeaderLogo() {
   const [mounted, setMounted] = useState(false);
@@ -24,15 +25,16 @@ export default function HeaderLogo() {
     
   return (
     <div className="flex items-center">
-      {/* Use Next.js Image component for optimization */}
+      {/* Use Next.js Image component with correct aspect ratio handling */}
       <Image 
         src={logoSrc}
         alt="Side Hustle Logo"
-        width={150} // Original width
-        height={24} // Original height
+        width={150}
+        height={24}
         style={{
-          height: 'auto', // Allow height to adjust based on width
-          maxWidth: '150px' // Match original width
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '150px'
         }}
         priority // Prioritize loading the logo
       />

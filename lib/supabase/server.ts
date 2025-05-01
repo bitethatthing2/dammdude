@@ -1,36 +1,45 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import type { Database } from '../database.types';
+import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
 
 /**
  * Creates a Supabase client for server-side usage
- * This should be used in server components, server actions, and API routes
  */
-export function createClient() {
-  const cookieStore = cookies();
+export function createSupabaseServerClient(cookieStore: ReadonlyRequestCookies) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase URL or Anon Key');
+  }
+  
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        try {
           return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // This will throw in middleware, but we can safely ignore it
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // This will throw in middleware, but we can safely ignore it
-          }
-        },
+        } catch (error) {
+          console.warn('Cookie get error:', name);
+          return undefined;
+        }
       },
+      set(name: string, value: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value, ...options });
+        } catch (error) {
+          // This is normal in Server Components
+        }
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value: '', maxAge: 0, ...options });
+        } catch (error) {
+          // This is normal in Server Components
+        }
+      }
     }
-  );
+  });
 }
+
+// For backward compatibility
+export const createClient = createSupabaseServerClient;

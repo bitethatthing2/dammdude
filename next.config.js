@@ -1,29 +1,46 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // This is used to facilitate deployment on Vercel while we continue to fix type issues.
-    // In the future, this should be removed once all type errors are resolved.
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Similarly, allow production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
+  poweredByHeader: false,
   images: {
-    domains: ['xrqsqjwbmxgvbfnqxvmb.supabase.co'],
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.co',
+      },
+    ],
   },
   experimental: {
+    optimizePackageImports: ['lucide-react'],
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'dammdude.vercel.app']
-    }
-  }
+      bodySizeLimit: '2mb',
+    },
+  },
+  async headers() {
+    return [
+      {
+        source: '/firebase-messaging-sw.js',
+        headers: [
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/firebase-messaging-sw.js',
+        destination: '/firebase-messaging-sw.js',     
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, BellOff, AlertCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import {
   Tooltip,
@@ -21,6 +21,7 @@ interface NotificationIndicatorProps {
 export function NotificationIndicator({ className, variant = 'icon' }: NotificationIndicatorProps) {
   const router = useRouter();
   const [permissionBlocked, setPermissionBlocked] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { 
     token,
     notificationPermissionStatus: permissionState, 
@@ -30,7 +31,11 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
   } = useFcmContext();
 
   useEffect(() => {
-    if ('Notification' in window) {
+    // Set mounted state to true once the component is mounted
+    setMounted(true);
+    
+    // Check if notifications are blocked (can only happen client-side)
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermissionBlocked(Notification.permission === 'denied');
     }
   }, [permissionState]);
@@ -99,12 +104,21 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     handleToggleNotifications();
   };
 
-  // Determine the status and tooltip content
-  const getStatusInfo = () => {
-    if (!('Notification' in window)) {
+  // Use memoization to prevent recreating status info on every render
+  const statusInfo = useMemo(() => {
+    // Return default state when not mounted (during SSR)
+    if (!mounted) {
+      return {
+        icon: <Bell className="h-5 w-5" />,
+        tooltip: 'Enable notifications'
+      };
+    }
+    
+    // Client-side checks after mounting
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       return {
         icon: <Bell className="h-5 w-5 text-muted-foreground" />,
-        tooltip: 'Your browser does not support notifications'
+        tooltip: 'Notifications not available'
       };
     }
 
@@ -142,16 +156,13 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
     return {
       icon: (
         <div className="relative">
-          {/* REMOVED text-muted-foreground to inherit from button */}
           <Bell className="h-5 w-5" /> 
           <span className="absolute -right-1 -top-1 flex h-3 w-3 rounded-full bg-red-500 ring-1 ring-white" />
         </div>
       ),
       tooltip: 'Enable notifications'
     };
-  };
-
-  const statusInfo = getStatusInfo();
+  }, [mounted, permissionBlocked, tokenError, isLoading]);
 
   return (
     <TooltipProvider>
@@ -166,6 +177,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
                 className
               )}
               aria-label={statusInfo.tooltip}
+              {...(isLoading && { role: "status" })}
             >
               {statusInfo.icon}
             </button>
@@ -181,6 +193,7 @@ export function NotificationIndicator({ className, variant = 'icon' }: Notificat
                 className
               )}
               aria-label={statusInfo.tooltip}
+              {...(isLoading && { role: "status" })}
             >
               {statusInfo.icon} 
               <span>Enable Notifications</span>

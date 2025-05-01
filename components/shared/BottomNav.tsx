@@ -18,10 +18,10 @@ export const BottomNav = () => {
   const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  
+
   // Close more menu when clicking outside
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
-  
+
   // Try to use the notification context if available
   let notificationContext;
   try {
@@ -37,13 +37,13 @@ export const BottomNav = () => {
   // Set up mounted state and listen for notification updates
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Try to get unread count from localStorage as fallback
     const storedCount = localStorage.getItem('unread-notification-count');
     if (storedCount) {
       setFallbackUnreadCount(parseInt(storedCount, 10));
     }
-    
+
     // Listen for custom events from notification context
     const handleNotificationUpdate = (e: CustomEvent<{ unreadCount: number }>) => {
       if (e.detail && typeof e.detail.unreadCount === 'number') {
@@ -51,14 +51,14 @@ export const BottomNav = () => {
         localStorage.setItem('unread-notification-count', e.detail.unreadCount.toString());
       }
     };
-    
+
     window.addEventListener('notification-update', handleNotificationUpdate as EventListener);
-    
+
     return () => {
       window.removeEventListener('notification-update', handleNotificationUpdate as EventListener);
     };
   }, []);
-  
+
   // Define the type for navigation items
   interface NavItem {
     href: string;
@@ -66,14 +66,14 @@ export const BottomNav = () => {
     icon?: React.ReactNode;
     label: string;
   }
-  
+
   // Core navigation items - always visible
   const coreNavItems: NavItem[] = [
     { href: '/', iconName: 'Home', label: 'Home' },
-    { href: '/menu', iconName: 'UtensilsCrossed', label: 'Menu' },
-    { href: '/order', icon: <QrCode className="h-5 w-5" />, label: 'BarTap' },
+    { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
+    { href: '/bar-tap', icon: <QrCode className="h-5 w-5" />, label: 'BarTap' },
   ];
-  
+
   // Secondary navigation items - shown on larger screens or in a "more" menu
   const secondaryNavItems: NavItem[] = [
     { href: '/events', iconName: 'CalendarDays', label: 'Events' },
@@ -85,12 +85,12 @@ export const BottomNav = () => {
 
   // Combine for medium screens
   const mediumScreenItems = [...coreNavItems, secondaryNavItems[0], secondaryNavItems[1]];
-  
+
   // Render a navigation item
   const renderNavItem = (item: NavItem, onClick?: () => void) => {
     const isActive = pathname === item.href;
     const Icon = item.iconName ? (LucideIcons as Record<string, React.ComponentType<any>>)[item.iconName] : null;
-    
+
     return (
       <Link
         key={item.href}
@@ -106,7 +106,7 @@ export const BottomNav = () => {
       </Link>
     );
   };
-  
+
   // Render notification item with badge
   const renderNotificationItem = () => (
     <Link
@@ -136,7 +136,7 @@ export const BottomNav = () => {
       </span>
     </Link>
   );
-  
+
   // Render the "More" button and dropdown
   const renderMoreMenu = () => (
     <div className="relative" ref={moreMenuRef}>
@@ -151,7 +151,7 @@ export const BottomNav = () => {
         <MoreHorizontal className="h-5 w-5" />
         <span className="text-[10px] mt-1">More</span>
       </button>
-      
+
       {moreMenuOpen && (
         <div className="absolute bottom-16 right-0 bg-background border rounded-md shadow-lg p-2 min-w-[180px] z-50">
           <div className="grid grid-cols-1 gap-1">
@@ -184,29 +184,24 @@ export const BottomNav = () => {
         {renderNotificationItem()}
         {renderMoreMenu()}
       </div>
-      
+
       {/* Medium screen view (6 items) */}
       <div className="hidden md:flex lg:hidden justify-between w-full">
         {mediumScreenItems.map((item) => renderNavItem(item))}
         {renderNotificationItem()}
         {renderMoreMenu()}
       </div>
-      
+
       {/* Large screen view (all items + notifications + login) */}
-      <div className="hidden lg:grid lg:grid-cols-11 gap-2 items-center w-full max-w-7xl mx-auto"> 
+      <div className="hidden lg:grid lg:grid-cols-11 gap-2 items-center w-full max-w-7xl mx-auto">
         {[...coreNavItems, ...secondaryNavItems].map((item) => (
           <div key={item.href} className="flex justify-center">
             {renderNavItem(item)}
           </div>
         ))}
-        <div className="flex justify-center">
-          {renderNotificationItem()}
-        </div>
-        <div className="flex justify-center">
-          {renderLoginItem()}
-        </div>
+        <div className="flex justify-center">{renderNotificationItem()}</div>
+        <div className="flex justify-center">{renderLoginItem()}</div>
       </div>
     </nav>
   );
 };
-

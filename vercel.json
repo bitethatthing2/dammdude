@@ -15,7 +15,7 @@
       "use": "@vercel/next",
       "config": {
         "skipTypeCheck": true,
-        "nodeVersion": "v20.19.1"
+        "nodeVersion": "v22.15.0"
       }
     }
   ]

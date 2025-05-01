@@ -1,29 +1,116 @@
+import '@/app/globals.css';
+import { QueryStateProvider } from '@/app/providers';
 import type { ReactNode } from 'react';
-import { NotificationIndicator } from '@/components/shared/NotificationIndicator';
-import { ThemeControl } from '@/components/shared/ThemeControl';
+import React from 'react';
+import { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
-import { BottomNav } from '@/components/shared/BottomNav';
+import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
+import { NotificationProvider } from '@/components/shared/notification-provider';
+import { Suspense } from 'react';
+import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
 
-// Import the client components with no SSR to avoid hydration issues
-const HeaderLogo = dynamic(() => import('@/components/shared/HeaderLogo'), { ssr: false });
-const ClientSideWrapper = dynamic(() => import('@/components/shared/ClientSideWrapper'), { ssr: false });
+// Group related dynamic imports to improve bundling
+const ClientComponents = {
+  // Navigation components
+  BottomNav: dynamic(
+    () => import('@/components/shared/ClientBottomNav').then(mod => mod.default),
+    { loading: () => <div className="h-16 bg-muted animate-pulse" /> }
+  ),
+  
+  // Header components
+  HeaderLogo: dynamic(
+    () => import('@/components/shared/HeaderLogo').then(mod => mod.default),
+    { loading: () => <div className="h-6 w-24 bg-muted animate-pulse rounded" /> }
+  ),
+  
+  NotificationBell: dynamic(
+    () => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator),
+    { loading: () => <div className="h-8 w-8 rounded-full bg-muted animate-pulse" /> }
+  )
+};
 
-export default function MainLayout({ children }: { children: ReactNode }) {
+// Client components that need ssr: false
+import { ClientOnlyRoot } from '@/components/shared/ClientOnlyRoot';
+
+// Use regular imports with 'use client' directive
+import { ThemeControl } from '@/components/shared/ThemeControl';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' }
+  ]
+};
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Salem PDX',
+    default: 'Salem PDX | Sports Bar & Restaurant in Portland'
+  },
+  description: 'A modern sports bar and restaurant in Portland, Oregon. Watch sports, enjoy great food and drinks.',
+  icons: {
+    icon: '/icons/favicon.ico',
+    apple: '/icons/apple-touch-icon.png'
+  },
+  manifest: '/manifest.json',
+  applicationName: 'Salem PDX',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Salem PDX',
+  },
+  formatDetection: {
+    telephone: true
+  }
+};
+
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+// Header component extracted for better organization
+function Header() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="fixed top-0 left-0 right-0 h-14 border-b bg-transparent backdrop-blur-md z-50 flex items-center justify-between px-4">
-        <HeaderLogo />
-        <div className="flex items-center gap-2">
-          <ThemeControl />
-          <NotificationIndicator />
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4">
+          <ClientComponents.HeaderLogo />
         </div>
-      </header>
+        <div className="flex flex-1 items-center justify-end space-x-4">
+          <nav className="flex items-center space-x-2">
+            <ThemeControl />
+            <ClientComponents.NotificationBell />
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
 
-      <main className="flex-1 pt-14 pb-16">{children}</main>
-
-      <ClientSideWrapper>
-        <BottomNav />
-      </ClientSideWrapper>
-    </div>
+export default function MainLayout({ children }: MainLayoutProps) {
+  return (
+    <ThemeProviderWrapper>
+      <QueryStateProvider>
+        <NotificationProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <div className="flex-1">
+              <main className="pb-16">{children}</main>
+            </div>
+            <PwaInstallGuide />
+            <ClientComponents.BottomNav />
+          </div>
+          <Suspense fallback={null}>
+            {/* Client component with ssr: false */}
+            <ClientOnlyRoot />
+          </Suspense>
+        </NotificationProvider>
+      </QueryStateProvider>
+    </ThemeProviderWrapper>
   );
 }

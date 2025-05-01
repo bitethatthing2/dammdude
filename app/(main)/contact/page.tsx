@@ -22,7 +22,7 @@ export default function ContactPage() {
         <div>
           <h2 className="text-2xl font-semibold mb-4">Get In Touch</h2>
           <p className="text-muted-foreground mb-6">
-            Have questions or feedback? We'd love to hear from you. Fill out the form and we'll get back to you as soon as possible.
+            Have questions or feedback? We&apos;d love to hear from you. Fill out the form and we&apos;ll get back to you as soon as possible.
           </p>
           
           <form className="space-y-4">
@@ -49,7 +49,7 @@ export default function ContactPage() {
         </div>
         
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Location & Hours</h2>
+          <h2 className="text-2xl font-semibold mb-4">Location &amp; Hours</h2>
           <div className="grid gap-4">
             <Card>
               <CardHeader>
