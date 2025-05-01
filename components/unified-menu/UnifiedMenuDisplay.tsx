@@ -437,27 +437,86 @@ export function UnifiedMenuDisplay({
   
   // Proceed to checkout
   const proceedToCheckout = () => {
+    console.log('[UnifiedMenuDisplay] proceedToCheckout called, tableId:', tableId);
+    console.log('[UnifiedMenuDisplay] localStorage table_id:', localStorage.getItem('table_id'));
+    
+    // First check if we have a tableId in the component state
     if (!tableId) {
+      console.log('[UnifiedMenuDisplay] No tableId in component state');
+      // Try to get table ID from localStorage before redirecting
+      const storedTableId = localStorage.getItem('table_id');
+      console.log('[UnifiedMenuDisplay] Found in localStorage:', storedTableId);
+      
+      if (storedTableId) {
+        console.log('[UnifiedMenuDisplay] Setting tableId from localStorage:', storedTableId);
+        setTableId(storedTableId);
+        
+        // Use BarTap context if available
+        if (barTap) {
+          console.log('[UnifiedMenuDisplay] Using barTap context to proceed to checkout');
+          barTap.setTableId(storedTableId);
+          
+          // Use a timeout to ensure the tableId is set before navigation
+          setTimeout(() => {
+            router.push(`/checkout?table=${storedTableId}`);
+          }, 100);
+        } else {
+          // Fallback to direct navigation
+          console.log('[UnifiedMenuDisplay] No barTap context, using direct navigation');
+          router.push(`/checkout?table=${storedTableId}`);
+        }
+        return;
+      }
+      
+      // No table ID found, redirect to table entry
+      console.log('[UnifiedMenuDisplay] No tableId found anywhere, redirecting to /table');
       router.push('/table');
       return;
     }
     
     if (!cart || cart.items.length === 0) {
+      console.log('[UnifiedMenuDisplay] Cart is empty, cannot proceed to checkout');
       return;
     }
     
     // Use BarTap context if available
     if (barTap) {
+      console.log('[UnifiedMenuDisplay] Using barTap context with existing tableId:', tableId);
       barTap.proceedToCheckout();
     } else {
       // Fallback to direct navigation
-      router.push('/checkout');
+      console.log('[UnifiedMenuDisplay] No barTap context, using direct navigation to /checkout');
+      router.push(`/checkout?table=${tableId}`);
     }
   };
   
   // Navigate to checkout
   const goToCheckout = () => {
-    router.push('/checkout');
+    console.log('[UnifiedMenuDisplay] goToCheckout called, tableId:', tableId);
+    console.log('[UnifiedMenuDisplay] localStorage table_id:', localStorage.getItem('table_id'));
+    
+    // First check if we have a tableId in the component state
+    if (!tableId) {
+      console.log('[UnifiedMenuDisplay] No tableId in component state');
+      // Try to get table ID from localStorage before redirecting
+      const storedTableId = localStorage.getItem('table_id');
+      console.log('[UnifiedMenuDisplay] Found in localStorage:', storedTableId);
+      
+      if (storedTableId) {
+        console.log('[UnifiedMenuDisplay] Setting tableId from localStorage and navigating to /checkout');
+        setTableId(storedTableId);
+        router.push(`/checkout?table=${storedTableId}`);
+        return;
+      }
+      
+      // No table ID found, redirect to table entry
+      console.log('[UnifiedMenuDisplay] No tableId found anywhere, redirecting to /table');
+      router.push('/table');
+      return;
+    }
+    
+    console.log('[UnifiedMenuDisplay] Navigating to /checkout with tableId:', tableId);
+    router.push(`/checkout?table=${tableId}`);
   };
   
   // Initialize state from BarTap context when in order mode

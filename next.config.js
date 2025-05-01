@@ -19,6 +19,12 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Move allowedDevOrigins inside experimental as per Next.js docs
+    allowedDevOrigins: [
+      'http://localhost:3000',
+      'http://127.0.0.1:64913', // Specific port for the browser preview
+      'http://127.0.0.1:*',     // Wildcard for any port on 127.0.0.1
+    ],
   },
   async headers() {
     return [

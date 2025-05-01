@@ -49,9 +49,15 @@ export async function verifyAndStoreTableSession(
         last_activity: new Date().toISOString(),
       });
 
-    // Store table ID in localStorage for persistence
+    // Store table ID in localStorage and cookie for persistence
     if (typeof window !== 'undefined') {
+      console.log('[table-utils] Setting table_id in storage:', data.id);
+      
+      // Store in localStorage
       localStorage.setItem('table_id', data.id);
+      
+      // Also store as a cookie for server components
+      document.cookie = `table_id=${data.id}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
     }
 
     return { 

@@ -32,11 +32,14 @@ export default async function MenuPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  // Properly await searchParams before using its properties
+  const searchParamsObj = await searchParams;
+  
   // Get mode from search params (default to 'view')
-  const mode = searchParams?.mode === 'order' ? 'order' : 'view';
+  const mode = searchParamsObj?.mode === 'order' ? 'order' : 'view';
   
   // Get table ID from search params
-  const tableId = searchParams?.table as string | undefined;
+  const tableId = searchParamsObj?.table as string | undefined;
   
   // Get categories for the menu display
   let categories: Category[] = [];

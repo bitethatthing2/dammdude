@@ -179,6 +179,14 @@ function useToast() {
       if (index > -1) {
         listeners.splice(index, 1)
       }
+      
+      // Also clear any timeouts associated with this component's toasts
+      state.toasts.forEach(toast => {
+        if (toastTimeouts.has(toast.id)) {
+          clearTimeout(toastTimeouts.get(toast.id))
+          toastTimeouts.delete(toast.id)
+        }
+      })
     }
   }, [state])
 

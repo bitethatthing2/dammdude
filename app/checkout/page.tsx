@@ -20,12 +20,22 @@ export default async function CheckoutPage({
 }) {
   // Get the table ID from either the URL or cookie
   const cookieStore = await cookies();
-  const tableId = 
-    (searchParams.table as string | undefined) || 
-    cookieStore.get('table_id')?.value;
+  
+  // Properly handle searchParams - must await them in Next.js 15
+  const searchParamsObj = await searchParams;
+  const tableParam = searchParamsObj?.table;
+  const tableIdFromParam = typeof tableParam === 'string' ? tableParam : undefined;
+  
+  const tableId = tableIdFromParam || cookieStore.get('table_id')?.value;
+  
+  console.log('[CheckoutPage] searchParams:', JSON.stringify(await searchParamsObj));
+  console.log('[CheckoutPage] tableIdFromParam:', tableIdFromParam);
+  console.log('[CheckoutPage] cookie table_id:', cookieStore.get('table_id')?.value);
+  console.log('[CheckoutPage] final tableId:', tableId);
   
   // If no table ID, redirect to table identification
   if (!tableId) {
+    console.log('[CheckoutPage] No tableId found, redirecting to /table');
     redirect('/table');
   }
   
@@ -39,8 +49,12 @@ export default async function CheckoutPage({
     .eq('id', tableId)
     .single();
   
+  console.log('[CheckoutPage] tableData:', JSON.stringify(tableData));
+  console.log('[CheckoutPage] table query error:', error?.message);
+  
   // If table doesn't exist, redirect to table identification
   if (error || !tableData) {
+    console.log('[CheckoutPage] Table not found or error, redirecting to /table');
     cookieStore.delete('table_id');
     redirect('/table');
   }

@@ -348,6 +348,7 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let isActive = true;
+    let subscription: any = null;
     
     async function fetchOrders() {
       if (!isActive) return;
@@ -505,11 +506,18 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
     
     // Set up real-time subscription for order updates
     function subscribeToOrderUpdates() {
-      const subscription = supabase
+      // Clean up any existing subscription first
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+      
+      // Create a new subscription
+      const newSubscription = supabase
         .channel('kitchen-orders')
         .on('postgres_changes', 
           { event: 'INSERT', schema: 'public', table: 'orders' },
           (payload: any) => {
+            if (!isActive) return;
             // New order created
             fetchOrders();
           }
@@ -517,6 +525,7 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
         .on('postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'orders' },
           (payload: any) => {
+            if (!isActive) return;
             // Order status changed
             playStatusChangeSound();
             fetchOrders();
@@ -524,12 +533,12 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
         )
         .subscribe();
         
-      return subscription;
+      return newSubscription;
     }
     
     // Initialize
     fetchOrders();
-    const subscription = subscribeToOrderUpdates();
+    subscription = subscribeToOrderUpdates();
     
     // Refresh orders every minute
     interval = setInterval(fetchOrders, 60000);
@@ -538,9 +547,12 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
     return () => {
       isActive = false;
       clearInterval(interval);
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+        subscription = null;
+      }
     };
-  }, [supabase, isLoading, soundEnabled, notificationsEnabled]);
+  }, [supabase, soundEnabled, notificationsEnabled]);
   
   return (
     <div className="space-y-4">

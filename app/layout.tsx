@@ -9,6 +9,19 @@ export const metadata: Metadata = {
   title: 'Side Hustle',
   description: 'Order food and drinks at Side Hustle - A faster, app-like experience with offline access',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icons/favicon-for-public/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/favicon-for-public/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ],
+    shortcut: [
+      { url: '/favicon.ico' }
+    ]
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

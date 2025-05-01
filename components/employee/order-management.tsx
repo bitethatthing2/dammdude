@@ -37,8 +37,11 @@ export function OrderManagement() {
   
   // Fetch orders on mount and set up real-time subscription
   useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let isActive = true; // Flag to prevent state updates after unmount
+    
     const fetchOrders = async () => {
-      const supabase = getSupabaseBrowserClient();
+      if (!isActive) return;
       
       try {
         setIsLoading(true);
@@ -48,37 +51,40 @@ export function OrderManagement() {
           .from('orders')
           .select(`
             *,
-            order_items (*)
+            order_items:order_items(*)
           `)
-          .order('order_time', { ascending: false });
+          .order('created_at', { ascending: false });
           
         if (error) throw error;
         
         // Format orders
-        const formattedOrders = data?.map((order: Database['public']['Tables']['orders']['Row']) => ({
+        const formattedOrders = data?.map((order: Database['public']['Tables']['orders']['Row'] & { order_items: Database['public']['Tables']['order_items']['Row'][] }) => ({
           id: order.id,
-          table_number: order.table_number,
-          status: order.status,
-          order_time: new Date(order.order_time).toLocaleString(),
-          total_amount: order.total_amount,
+          table_number: order.table_id,
+          status: order.status || 'pending',
+          order_time: new Date(order.created_at).toLocaleString(),
+          total_amount: order.total_price || 0,
           items: order.order_items || []
         })) || [];
         
-        setOrders(formattedOrders);
+        if (isActive) {
+          setOrders(formattedOrders);
+        }
       } catch (error) {
         console.error('Error fetching orders:', error);
       } finally {
-        setIsLoading(false);
+        if (isActive) {
+          setIsLoading(false);
+        }
       }
     };
     
     fetchOrders();
     
     // Set up real-time subscription
-    const supabase = getSupabaseBrowserClient();
+    const channel = supabase.channel('orders-channel');
     
-    const subscription = supabase
-      .channel('orders-channel')
+    channel
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -92,14 +98,15 @@ export function OrderManagement() {
         fetchOrders();
         
         // Play notification sound for new orders
-        if (payload.eventType === 'INSERT') {
+        if (payload.eventType === 'INSERT' && isActive) {
           playNotificationSound();
         }
       })
       .subscribe();
       
     return () => {
-      supabase.channel('orders-channel').unsubscribe();
+      isActive = false; // Prevent state updates after unmount
+      channel.unsubscribe();
     };
   }, []);
   
@@ -141,7 +148,7 @@ export function OrderManagement() {
       // Get the order details
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('table_number')
+        .select('table_id')
         .eq('id', orderId)
         .single();
         
@@ -152,7 +159,7 @@ export function OrderManagement() {
         .from('notifications')
         .insert({
           title: 'Order Ready',
-          message: `Your order for Table ${order.table_number} is ready for pickup at the bar!`,
+          message: `Your order for Table ${order.table_id} is ready for pickup at the bar!`,
           type: 'order_ready',
           target_id: orderId,
           target_type: 'order'

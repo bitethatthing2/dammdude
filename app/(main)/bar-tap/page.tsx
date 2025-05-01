@@ -18,24 +18,31 @@ export default async function BarTapPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Get table ID from search params
-  const tableId = searchParams.table as string | undefined;
+  // Properly await searchParams before using its properties
+  const searchParamsObj = await searchParams;
+  
+  // Get table ID from search params - properly handle the type
+  const tableParam = searchParamsObj?.table;
+  const tableId = typeof tableParam === 'string' ? tableParam : undefined;
   
   // Get categories for the menu display
   const categories = await getCategories();
   
-  // Get cookies for authentication
+  // Get cookies for authentication - properly handle the cookies API
   const cookieStore = await cookies();
   const storedTableId = cookieStore.get('table_id')?.value;
   
   // If no table ID provided, check for cookie
   const activeTableId = tableId || storedTableId || '1';
   
-  // Create a Supabase client
-  const supabase = createClient(await cookieStore);
+  // Create a Supabase client with the correct cookie store
+  const supabase = createClient(cookieStore);
   
   // Update last activity time for the table session if we have a table ID
   if (tableId) {
+    // We can't set cookies directly in server components in Next.js 15
+    // Instead we'll rely on the client component to set the cookie
+    
     await supabase
       .from('active_sessions')
       .upsert({

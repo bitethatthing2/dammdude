@@ -192,62 +192,109 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (items.length === 0) return;
+    // Validate order
+    if (items.length === 0) {
+      toast({
+        title: "Empty Cart",
+        description: "Please add items to your cart before placing an order.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Check if user can place a new order (time restriction)
+    // Check if user can place a new order (time-based throttling)
     if (!canPlaceNewOrder) {
-      alert(`Please wait ${timeUntilNextOrder} more minutes before placing another order.`);
+      toast({
+        title: "Order Too Soon",
+        description: `Please wait ${timeUntilNextOrder} before placing another order.`,
+        variant: "destructive",
+      });
       return;
     }
     
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting order for table:', tableData);
+      
       // Create the order in the database
+      const orderPayload = {
+        table_id: tableData.id,
+        status: 'pending',
+        customer_notes: orderNotes,
+        total_price: grandTotal,
+      };
+      
+      console.log('Order payload:', orderPayload);
+      
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          table_id: tableData.id,
-          status: 'pending',
-          notes: orderNotes,
-          total_amount: grandTotal,
-        })
+        .insert(orderPayload)
         .select()
         .single();
       
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        console.error('Order payload that failed:', orderPayload);
+        throw new Error(`Failed to create order: ${orderError.message || JSON.stringify(orderError)}`);
+      }
+      
+      if (!orderData || !orderData.id) {
+        console.error('Order created but no data returned');
+        throw new Error('Order created but no data returned');
+      }
+      
+      console.log('Order created successfully:', orderData);
       
       // Create order items
-      const orderItems = items.map(item => ({
-        order_id: orderData.id,
-        menu_item_id: item.id,
-        quantity: item.quantity,
-        notes: item.notes || null,
-        customizations: item.customizations || null,
-        unit_price: item.price,
-        subtotal: item.price * item.quantity,
-      }));
+      const orderItems = items.map(item => {
+        const orderItem = {
+          order_id: orderData.id,
+          item_id: item.id,
+          quantity: item.quantity,
+          item_name: item.name || '',
+          modifiers: item.customizations ? JSON.stringify(item.customizations) : null,
+          price_at_order: item.price,
+        };
+        return orderItem;
+      });
       
-      const { error: itemsError } = await supabase
+      console.log('Order items payload:', orderItems);
+      
+      const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
-        .insert(orderItems);
+        .insert(orderItems)
+        .select();
       
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        console.error('Order items payload that failed:', orderItems);
+        throw new Error(`Failed to create order items: ${itemsError.message || JSON.stringify(itemsError)}`);
+      }
+      
+      console.log('Order items created successfully:', itemsData);
       
       // Create a notification in the database for staff
-      const { error: notificationError } = await supabase
+      const notificationPayload = {
+        message: `Order #${orderData.id.slice(-6).toUpperCase()} from Table ${tableData.name}`,
+        recipient_id: 'staff', // Using a default recipient ID for staff notifications
+        type: 'system',
+        status: 'unread'
+      };
+      
+      console.log('Notification payload:', notificationPayload);
+      
+      const { data: notificationData, error: notificationError } = await supabase
         .from('notifications')
-        .insert({
-          title: 'New Order Received',
-          message: `Order #${orderData.id.slice(-6).toUpperCase()} from Table ${tableData.name}`,
-          type: 'system',
-          target_id: orderData.id,
-          target_type: 'order',
-          read: false
-        });
+        .insert(notificationPayload)
+        .select();
       
       if (notificationError) {
         console.error('Error creating notification:', notificationError);
+        console.error('Notification payload that failed:', notificationPayload);
+        // Don't throw here, just log the error as notifications are not critical
+      } else {
+        console.log('Notification created successfully:', notificationData);
       }
       
       // Set the last order time

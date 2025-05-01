@@ -51,55 +51,35 @@ export function BarTapProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  // State
-  const [tableId, setTableIdState] = useState<string | null>(null);
+  // Initialize state from localStorage if available
+  const [tableId, setTableIdState] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('table_id');
+    }
+    return null;
+  });
+  
   const [cartItems, setCartItems] = useState<BarTapCartItem[]>([]);
   const [flowStep, setFlowStep] = useState<BarTapFlowStep>('table');
   
-  // Initialize from localStorage on mount
+  // Sync tableId with localStorage and cookie whenever it changes
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Get table ID from localStorage
-    const storedTableId = localStorage.getItem('table_id');
-    if (storedTableId) {
-      setTableIdState(storedTableId);
-      setFlowStep('menu');
-    }
-    
-    // Get cart items from localStorage
-    const storedCart = localStorage.getItem('bartap_cart');
-    if (storedCart) {
-      try {
-        const parsedCart = JSON.parse(storedCart);
-        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
-          setCartItems(parsedCart);
-        }
-      } catch (error) {
-        console.error('Error parsing stored cart:', error);
-      }
-    }
-  }, []);
-  
-  // Update localStorage when state changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    if (tableId) {
+    if (typeof window !== 'undefined' && tableId) {
+      console.log('[BarTapContext] Syncing tableId to storage:', tableId);
       localStorage.setItem('table_id', tableId);
+      document.cookie = `table_id=${tableId}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
     }
-    
-    if (cartItems.length > 0) {
-      localStorage.setItem('bartap_cart', JSON.stringify(cartItems));
-    } else {
-      localStorage.removeItem('bartap_cart');
-    }
-  }, [tableId, cartItems]);
+  }, [tableId]);
   
-  // Set table ID and advance to menu
+  // Set table ID and sync with storage
   const setTableId = (id: string) => {
+    console.log('[BarTapContext] Setting tableId:', id);
     setTableIdState(id);
-    setFlowStep('menu');
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('table_id', id);
+      document.cookie = `table_id=${id}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+    }
   };
   
   // Add item to cart
@@ -173,19 +153,41 @@ export function BarTapProvider({ children }: { children: ReactNode }) {
   
   // Proceed to checkout
   const proceedToCheckout = () => {
+    console.log('[BarTapContext] proceedToCheckout called, tableId:', tableId);
+    console.log('[BarTapContext] localStorage table_id:', localStorage.getItem('table_id'));
+    
     if (!tableId) {
-      // Redirect to table entry if no table ID
+      // Try to get table ID from localStorage before redirecting
+      const storedTableId = localStorage.getItem('table_id');
+      console.log('[BarTapContext] No tableId in context, found in localStorage:', storedTableId);
+      
+      if (storedTableId) {
+        console.log('[BarTapContext] Setting tableId from localStorage and proceeding to checkout');
+        setTableId(storedTableId);
+        setFlowStep('checkout');
+        
+        // Use a timeout to ensure the tableId is set before navigation
+        setTimeout(() => {
+          router.push(`/checkout?table=${storedTableId}`);
+        }, 100);
+        return;
+      }
+      
+      // No table ID found, redirect to table entry
+      console.log('[BarTapContext] No tableId found anywhere, redirecting to /table');
       router.push('/table');
       return;
     }
     
     if (cartItems.length === 0) {
       // Can't checkout with empty cart
+      console.log('[BarTapContext] Cart is empty, cannot proceed to checkout');
       return;
     }
     
+    console.log('[BarTapContext] All conditions met, proceeding to checkout');
     setFlowStep('checkout');
-    router.push('/checkout');
+    router.push(`/checkout?table=${tableId}`);
   };
   
   // Reset flow
