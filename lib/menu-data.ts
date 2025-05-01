@@ -14,7 +14,7 @@ type Category = {
 
 /**
  * Fetches all menu categories from Supabase.
- * Gets categories from the 'categories' table which contains both food and drink categories.
+ * Gets categories from the 'menu_categories' table which contains both food and drink categories.
  * Uses unstable_noStore to prevent caching on the server.
  * @returns {Promise<Category[]>} A promise that resolves to an array of categories.
  */
@@ -26,9 +26,9 @@ export async function getCategories(): Promise<Category[]> {
   const cookieStore = await cookies(); // Await cookie store
   const supabase = createSupabaseServerClient(cookieStore); // Pass cookie store
 
-  // Fetch all categories from the categories table
+  // Fetch all categories from the menu_categories table
   const { data: categories, error } = await supabase
-    .from('categories')
+    .from('menu_categories')
     .select('id, name, icon, display_order')
     .order('display_order', { ascending: true });
    

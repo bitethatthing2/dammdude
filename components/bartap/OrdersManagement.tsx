@@ -26,9 +26,12 @@ import {
   Check, 
   X,
   FileText, 
-  Bell
+  Bell,
+  Loader2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from '@/components/ui/use-toast';
+import { updateOrderStatus } from '@/lib/actions/order-actions';
 
 interface Order {
   id: string;
@@ -63,6 +66,7 @@ export function OrdersManagement() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingOrders, setProcessingOrders] = useState<Record<string, boolean>>({});
   
   const supabase = getSupabaseBrowserClient();
   
@@ -144,38 +148,53 @@ export function OrdersManagement() {
     }
   };
   
-  // Update order status
-  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+  // Handle order status update
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled') => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
-        
-      if (error) throw error;
+      // Set processing state
+      setProcessingOrders(prev => ({ ...prev, [orderId]: true }));
       
-      // Optionally show success message
+      // Call server action to update status and send notifications if needed
+      const result = await updateOrderStatus(orderId, newStatus === 'delivered' ? 'completed' : newStatus);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update order status');
+      }
+      
+      // Show success toast
+      toast({
+        title: 'Order Updated',
+        description: `Order status changed to ${newStatus}${result.notificationSent ? ' and customer notified' : ''}`,
+        variant: 'default',
+      });
+      
+      // Refresh orders (or update local state)
+      if (newStatus === 'ready' || newStatus === 'delivered' || newStatus === 'cancelled') {
+        // Remove from current tab's list
+        setDisplayedOrders(prev => prev.filter(order => order.id !== orderId));
+      } else {
+        // Update in current list
+        setDisplayedOrders(prev => 
+          prev.map(order => order.id === orderId ? { ...order, status: newStatus } : order)
+        );
+      }
     } catch (error) {
-      console.error(`Error updating order to ${status}:`, error);
+      console.error('Error updating order status:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update order status',
+        variant: 'destructive',
+      });
+    } finally {
+      // Clear processing state
+      setProcessingOrders(prev => ({ ...prev, [orderId]: false }));
     }
   };
   
-  // Get status badge color
-  const getStatusBadge = (status: Order['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
-      case 'preparing':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Preparing</Badge>;
-      case 'ready':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Ready</Badge>;
-      case 'delivered':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Delivered</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
+  // View order details
+  const viewOrderDetails = async (orderId: string) => {
+    if (!orderId) return;
+    setSelectedOrder(orderId);
   };
   
   return (
@@ -228,7 +247,7 @@ export function OrdersManagement() {
                       className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
                         selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
                       }`}
-                      onClick={() => setSelectedOrder(order.id)}
+                      onClick={() => viewOrderDetails(order.id)}
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -243,8 +262,63 @@ export function OrdersManagement() {
                             {formatTime(order.created_at)}
                           </div>
                         </div>
-                        {getStatusBadge(order.status)}
+                        {/* getStatusBadge(order.status) */}
                       </div>
+                      <CardFooter className="flex justify-between pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewOrderDetails(order.id)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Details
+                        </Button>
+                        
+                        {order.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Clock className="h-4 w-4 mr-2" />
+                            )}
+                            Start Preparing
+                          </Button>
+                        )}
+                        
+                        {order.status === 'preparing' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Bell className="h-4 w-4 mr-2" />
+                            )}
+                            Mark Ready & Notify
+                          </Button>
+                        )}
+                        
+                        {order.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-2" />
+                            )}
+                            Mark Delivered
+                          </Button>
+                        )}
+                      </CardFooter>
                     </div>
                   ))}
                 </div>
@@ -264,7 +338,7 @@ export function OrdersManagement() {
                       className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
                         selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
                       }`}
-                      onClick={() => setSelectedOrder(order.id)}
+                      onClick={() => viewOrderDetails(order.id)}
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -279,8 +353,63 @@ export function OrdersManagement() {
                             {formatTime(order.created_at)}
                           </div>
                         </div>
-                        {getStatusBadge(order.status)}
+                        {/* getStatusBadge(order.status) */}
                       </div>
+                      <CardFooter className="flex justify-between pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewOrderDetails(order.id)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Details
+                        </Button>
+                        
+                        {order.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Clock className="h-4 w-4 mr-2" />
+                            )}
+                            Start Preparing
+                          </Button>
+                        )}
+                        
+                        {order.status === 'preparing' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Bell className="h-4 w-4 mr-2" />
+                            )}
+                            Mark Ready & Notify
+                          </Button>
+                        )}
+                        
+                        {order.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                            disabled={processingOrders[order.id]}
+                          >
+                            {processingOrders[order.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-2" />
+                            )}
+                            Mark Delivered
+                          </Button>
+                        )}
+                      </CardFooter>
                     </div>
                   ))}
                 </div>
@@ -356,17 +485,27 @@ export function OrdersManagement() {
                     <Button 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => updateOrderStatus(selectedOrder, 'preparing')}
+                      onClick={() => handleUpdateOrderStatus(selectedOrder, 'preparing')}
+                      disabled={processingOrders[selectedOrder]}
                     >
-                      <FileText className="h-4 w-4 mr-2" />
+                      {processingOrders[selectedOrder] ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
                       Start Preparing
                     </Button>
                     <Button 
                       variant="outline" 
                       className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
-                      onClick={() => updateOrderStatus(selectedOrder, 'cancelled')}
+                      onClick={() => handleUpdateOrderStatus(selectedOrder, 'cancelled')}
+                      disabled={processingOrders[selectedOrder]}
                     >
-                      <X className="h-4 w-4 mr-2" />
+                      {processingOrders[selectedOrder] ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4 mr-2" />
+                      )}
                       Cancel
                     </Button>
                   </>
@@ -375,9 +514,14 @@ export function OrdersManagement() {
                 {displayedOrders.find(o => o.id === selectedOrder)?.status === 'preparing' && (
                   <Button 
                     className="w-full"
-                    onClick={() => updateOrderStatus(selectedOrder, 'ready')}
+                    onClick={() => handleUpdateOrderStatus(selectedOrder, 'ready')}
+                    disabled={processingOrders[selectedOrder]}
                   >
-                    <Bell className="h-4 w-4 mr-2" />
+                    {processingOrders[selectedOrder] ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Bell className="h-4 w-4 mr-2" />
+                    )}
                     Mark Ready for Pickup
                   </Button>
                 )}
@@ -385,9 +529,14 @@ export function OrdersManagement() {
                 {displayedOrders.find(o => o.id === selectedOrder)?.status === 'ready' && (
                   <Button 
                     className="w-full"
-                    onClick={() => updateOrderStatus(selectedOrder, 'delivered')}
+                    onClick={() => handleUpdateOrderStatus(selectedOrder, 'delivered')}
+                    disabled={processingOrders[selectedOrder]}
                   >
-                    <Check className="h-4 w-4 mr-2" />
+                    {processingOrders[selectedOrder] ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-2" />
+                    )}
                     Mark as Delivered
                   </Button>
                 )}
