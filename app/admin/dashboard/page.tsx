@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NotificationCreator } from '@/components/admin/NotificationCreator';
-import { DeviceRegistration } from '@/components/admin/DeviceRegistration';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminDashboard() {
@@ -378,15 +377,6 @@ export default function AdminDashboard() {
             <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Settings", description: "This feature is coming soon" })}>
               View Settings
             </Button>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Device Registration</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DeviceRegistration />
           </CardContent>
         </Card>
       </div>

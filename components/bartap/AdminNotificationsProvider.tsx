@@ -11,6 +11,7 @@ interface Order {
   table_name?: string;
   status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
   created_at: string;
+  total_amount?: number;
 }
 
 interface AdminNotificationsContextType {
@@ -44,34 +45,51 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
   useEffect(() => {
     async function loadInitialOrders() {
       try {
-        // Get pending orders
+        // Get pending orders with table information
         const { data: pendingOrdersData, error: pendingError } = await supabase
           .from('orders')
           .select(`
             id,
             table_id,
-            tables (name),
             status,
-            created_at
+            created_at,
+            total_amount,
+            tables!inner (
+              name,
+              section
+            )
           `)
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
         
-        // Get ready orders
+        // Get ready orders with table information
         const { data: readyOrdersData, error: readyError } = await supabase
           .from('orders')
           .select(`
             id,
             table_id,
-            tables (name),
             status,
-            created_at
+            created_at,
+            total_amount,
+            tables!inner (
+              name,
+              section
+            )
           `)
           .eq('status', 'ready')
           .order('created_at', { ascending: false });
           
-        if (pendingError) throw pendingError;
-        if (readyError) throw readyError;
+        if (pendingError) {
+          console.error('Error fetching pending orders:', pendingError);
+          setPendingOrders([]);
+          return;
+        }
+        
+        if (readyError) {
+          console.error('Error fetching ready orders:', readyError);
+          setReadyOrders([]);
+          return;
+        }
         
         // Format orders with table names
         const formattedPendingOrders = pendingOrdersData?.map((order: any) => ({
@@ -80,6 +98,7 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           table_name: order.tables?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
+          total_amount: order.total_amount || 0
         })) || [];
         
         const formattedReadyOrders = readyOrdersData?.map((order: any) => ({
@@ -88,6 +107,7 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           table_name: order.tables?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
+          total_amount: order.total_amount || 0
         })) || [];
         
         setPendingOrders(formattedPendingOrders);
@@ -95,6 +115,9 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
         setNewOrdersCount(formattedPendingOrders.length);
       } catch (error) {
         console.error('Error loading initial orders:', error);
+        // Don't let this error break the component
+        setPendingOrders([]);
+        setReadyOrders([]);
       }
     }
     

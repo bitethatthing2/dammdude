@@ -54,10 +54,12 @@ export default function AdminLoginPage() {
           description: "Welcome back!",
         });
         
-        // Use a small timeout to ensure the toast is shown
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 100);
+        // Store auth state in localStorage to help with persistence
+        localStorage.setItem('admin_authenticated', 'true');
+        
+        // Use window.location for a full page navigation instead of router.push
+        // This ensures a complete page reload and avoids client/server state conflicts
+        window.location.href = '/admin/dashboard';
         return;
       }
     } catch (err) {

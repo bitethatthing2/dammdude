@@ -356,7 +356,7 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
       setIsLoading(true);
       
       try {
-        // Fetch orders with relevant statuses
+        // Fetch orders with relevant statuses and table information
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select(`
@@ -368,70 +368,61 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
             total_amount,
             notes,
             estimated_time,
-            tables(name, section)
+            items,
+            tables!inner (
+              name,
+              section
+            )
           `)
-          .in('status', ['pending', 'preparing', 'ready', 'delivered', 'cancelled'])
+          .in('status', ['pending', 'preparing', 'ready'])
           .order('created_at', { ascending: false });
           
-        if (ordersError) throw ordersError;
+        if (ordersError) {
+          console.error('Error fetching orders:', ordersError);
+          setError('Failed to load orders');
+          setIsLoading(false);
+          return;
+        }
         
         // Process fetched orders
-        const processedOrders = ordersData.map((order: any) => ({
-          ...order,
-          table_name: order.tables?.name,
-          table_section: order.tables?.section,
-          items: [], // Will be populated shortly
-        }));
-        
-        // Fetch order items for all orders
-        if (processedOrders.length > 0) {
-          const orderIds = processedOrders.map((order: Order) => order.id);
-          
-          const { data: itemsData, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              id,
-              order_id,
-              menu_item_id,
-              menu_items(name),
-              quantity,
-              notes,
-              unit_price,
-              subtotal,
-              customizations
-            `)
-            .in('order_id', orderIds);
+        const processedOrders = ordersData.map((order: any) => {
+          // Parse items from the JSONB items field
+          let parsedItems: OrderItem[] = [];
+          try {
+            const itemsJson = order.items;
+            const items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
             
-          if (itemsError) throw itemsError;
-          
-          // Group items by order
-          const itemsByOrder: Record<string, OrderItem[]> = {};
-          
-          itemsData.forEach((item: any) => {
-            const orderItem: OrderItem = {
-              id: item.id,
-              order_id: item.order_id,
-              menu_item_id: item.menu_item_id,
-              menu_item_name: item.menu_items.name,
-              quantity: item.quantity,
-              notes: item.notes,
-              unit_price: item.unit_price,
-              subtotal: item.subtotal,
-              customizations: item.customizations
-            };
-            
-            if (!itemsByOrder[item.order_id]) {
-              itemsByOrder[item.order_id] = [];
+            if (Array.isArray(items)) {
+              parsedItems = items.map((item: any, index: number) => ({
+                id: item.id || `${order.id}-item-${index}`,
+                order_id: order.id,
+                menu_item_id: item.menu_item_id || item.id,
+                menu_item_name: item.name,
+                quantity: item.quantity || 1,
+                notes: item.notes,
+                unit_price: item.price || 0,
+                subtotal: (item.price || 0) * (item.quantity || 1),
+                customizations: item.customizations
+              }));
             }
-            
-            itemsByOrder[item.order_id].push(orderItem);
-          });
+          } catch (e) {
+            console.error(`Error parsing items for order ${order.id}:`, e);
+          }
           
-          // Add items to corresponding orders
-          processedOrders.forEach((order: Order) => {
-            order.items = itemsByOrder[order.id] || [];
-          });
-        }
+          return {
+            ...order,
+            table_name: order.tables?.name || `Table ${order.table_id}`,
+            table_section: order.tables?.section,
+            items: parsedItems,
+            // Check if this is a new order we haven't seen before
+            isNew: !seenOrderIdsRef.current.has(order.id) && order.status === 'pending'
+          };
+        });
+        
+        // Update seen order IDs
+        processedOrders.forEach((order: Order) => {
+          seenOrderIdsRef.current.add(order.id);
+        });
         
         // Group orders by status
         const grouped: Record<KitchenOrderStatus, Order[]> = {
@@ -440,67 +431,44 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
           ready: [],
         };
         
-        // Check for new orders and mark them
         const newOrderIds: string[] = [];
         
         processedOrders.forEach((order: Order) => {
-          // Check if this is a new order we haven't seen before
-          if (order.status === 'pending' && !seenOrderIdsRef.current.has(order.id)) {
-            order.isNew = true;
-            newOrderIds.push(order.id);
-            seenOrderIdsRef.current.add(order.id);
-          }
-          
           if (order.status in grouped) {
             grouped[order.status as KitchenOrderStatus].push(order);
           }
+          
+          // Check for new pending orders to notify
+          if (order.isNew) {
+            newOrderIds.push(order.id);
+          }
         });
         
-        // Handle new orders
-        if (newOrderIds.length > 0 && !isLoading) {
-          // Only play sound and show notification if this isn't the initial load
+        // Update state with grouped orders
+        setOrders(grouped);
+        
+        // Handle notifications for new orders
+        if (newOrderIds.length > 0) {
+          // Play sound for new orders
           playNewOrderSound();
-          setNewOrderCount(prev => prev + newOrderIds.length);
           
-          // Show notification for new orders
-          if (newOrderIds.length === 1) {
-            const newOrder = processedOrders.find((o: Order) => o.id === newOrderIds[0]);
-            showNotification(
-              'New Order Received',
-              `Table ${newOrder?.table_name || 'Unknown'} has placed a new order.`
-            );
-          } else {
-            showNotification(
-              'New Orders Received',
-              `${newOrderIds.length} new orders have been received.`
-            );
-          }
-          
-          // Show toast notification
-          toast.success(
-            newOrderIds.length === 1 
-              ? 'New order received' 
-              : `${newOrderIds.length} new orders received`,
-            {
-              description: 'Check the Pending tab to view new orders',
-              duration: 5000,
-            }
+          // Show browser notification
+          const newOrderCount = newOrderIds.length;
+          showNotification(
+            `${newOrderCount} New Order${newOrderCount > 1 ? 's' : ''}`,
+            `You have ${newOrderCount} new order${newOrderCount > 1 ? 's' : ''} to prepare.`
           );
+          
+          // Update new order count
+          setNewOrderCount(prev => prev + newOrderCount);
         }
         
-        if (isActive) {
-          setOrders(grouped);
-          setError(null);
-        }
+        setIsLoading(false);
+        setError(null);
       } catch (err: any) {
         console.error('Error fetching orders:', err);
-        if (isActive) {
-          setError(err.message || 'Failed to load orders');
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        setError(err.message || 'Failed to load orders');
+        setIsLoading(false);
       }
     }
     

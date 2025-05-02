@@ -246,187 +246,189 @@ export function OrdersManagement() {
           </CardHeader>
           
           <CardContent>
-            <TabsContent value="pending" className="m-0">
-              {displayedOrders.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No pending orders</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {displayedOrders.map(order => (
-                    <div
-                      key={order.id}
-                      className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
-                        selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
-                      }`}
-                      onClick={() => viewOrderDetails(order.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium flex items-center gap-2">
-                            Table {order.table_name || order.table_id}
-                            <Badge variant="secondary" className="text-xs font-normal">
-                              #{order.id.slice(-6).toUpperCase()}
-                            </Badge>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsContent value="pending" className="m-0">
+                {displayedOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No pending orders</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {displayedOrders.map(order => (
+                      <div
+                        key={order.id}
+                        className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
+                          selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
+                        }`}
+                        onClick={() => viewOrderDetails(order.id)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              Table {order.table_name || order.table_id}
+                              <Badge variant="secondary" className="text-xs font-normal">
+                                #{order.id.slice(-6).toUpperCase()}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(order.created_at)}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTime(order.created_at)}
-                          </div>
+                          {/* getStatusBadge(order.status) */}
                         </div>
-                        {/* getStatusBadge(order.status) */}
+                        <CardFooter className="flex justify-between pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewOrderDetails(order.id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Details
+                          </Button>
+                          
+                          {order.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Clock className="h-4 w-4 mr-2" />
+                              )}
+                              Start Preparing
+                            </Button>
+                          )}
+                          
+                          {order.status === 'preparing' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Bell className="h-4 w-4 mr-2" />
+                              )}
+                              Mark Ready & Notify
+                            </Button>
+                          )}
+                          
+                          {order.status === 'ready' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                              )}
+                              Mark Delivered
+                            </Button>
+                          )}
+                        </CardFooter>
                       </div>
-                      <CardFooter className="flex justify-between pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => viewOrderDetails(order.id)}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Details
-                        </Button>
-                        
-                        {order.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Clock className="h-4 w-4 mr-2" />
-                            )}
-                            Start Preparing
-                          </Button>
-                        )}
-                        
-                        {order.status === 'preparing' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Bell className="h-4 w-4 mr-2" />
-                            )}
-                            Mark Ready & Notify
-                          </Button>
-                        )}
-                        
-                        {order.status === 'ready' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Check className="h-4 w-4 mr-2" />
-                            )}
-                            Mark Delivered
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="ready" className="m-0">
-              {displayedOrders.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No orders ready for pickup</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {displayedOrders.map(order => (
-                    <div
-                      key={order.id}
-                      className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
-                        selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
-                      }`}
-                      onClick={() => viewOrderDetails(order.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium flex items-center gap-2">
-                            Table {order.table_name || order.table_id}
-                            <Badge variant="secondary" className="text-xs font-normal">
-                              #{order.id.slice(-6).toUpperCase()}
-                            </Badge>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="ready" className="m-0">
+                {displayedOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No orders ready for pickup</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {displayedOrders.map(order => (
+                      <div
+                        key={order.id}
+                        className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
+                          selectedOrder === order.id ? 'bg-muted/70 border-primary' : ''
+                        }`}
+                        onClick={() => viewOrderDetails(order.id)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              Table {order.table_name || order.table_id}
+                              <Badge variant="secondary" className="text-xs font-normal">
+                                #{order.id.slice(-6).toUpperCase()}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(order.created_at)}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTime(order.created_at)}
-                          </div>
+                          {/* getStatusBadge(order.status) */}
                         </div>
-                        {/* getStatusBadge(order.status) */}
+                        <CardFooter className="flex justify-between pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewOrderDetails(order.id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Details
+                          </Button>
+                          
+                          {order.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Clock className="h-4 w-4 mr-2" />
+                              )}
+                              Start Preparing
+                            </Button>
+                          )}
+                          
+                          {order.status === 'preparing' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Bell className="h-4 w-4 mr-2" />
+                              )}
+                              Mark Ready & Notify
+                            </Button>
+                          )}
+                          
+                          {order.status === 'ready' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                              disabled={processingOrders[order.id]}
+                            >
+                              {processingOrders[order.id] ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                              )}
+                              Mark Delivered
+                            </Button>
+                          )}
+                        </CardFooter>
                       </div>
-                      <CardFooter className="flex justify-between pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => viewOrderDetails(order.id)}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Details
-                        </Button>
-                        
-                        {order.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Clock className="h-4 w-4 mr-2" />
-                            )}
-                            Start Preparing
-                          </Button>
-                        )}
-                        
-                        {order.status === 'preparing' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Bell className="h-4 w-4 mr-2" />
-                            )}
-                            Mark Ready & Notify
-                          </Button>
-                        )}
-                        
-                        {order.status === 'ready' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
-                            disabled={processingOrders[order.id]}
-                          >
-                            {processingOrders[order.id] ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Check className="h-4 w-4 mr-2" />
-                            )}
-                            Mark Delivered
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

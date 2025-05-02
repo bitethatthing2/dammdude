@@ -8,7 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { registerDevice } from '@/lib/actions/device-actions';
-import { v4 as uuidv4 } from 'uuid';
+
+// Simple function to generate a unique ID
+function generateUniqueId() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
 
 export function DeviceRegistration() {
   const [deviceId, setDeviceId] = useState<string>('');
@@ -26,7 +30,7 @@ export function DeviceRegistration() {
       setIsRegistered(true);
     } else {
       // Generate a new device ID if none exists
-      const newDeviceId = uuidv4();
+      const newDeviceId = generateUniqueId();
       setDeviceId(newDeviceId);
     }
 
@@ -93,7 +97,7 @@ export function DeviceRegistration() {
     localStorage.removeItem('admin_staff_id');
     setIsRegistered(false);
     setStaffId('');
-    const newDeviceId = uuidv4();
+    const newDeviceId = generateUniqueId();
     setDeviceId(newDeviceId);
     
     toast({

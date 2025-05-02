@@ -16,6 +16,7 @@ export interface BeforeInstallPromptEvent extends Event {
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let isAppInstalled = false;
 let hasInitialized = false;
+let hasProcessedPrompt = false; // Flag to track if we've already processed a prompt
 
 // Hack: To fix PWA installation on Chrome, we need to expose the
 // deferredPrompt to the window object
@@ -54,6 +55,14 @@ export function initPwaEventListeners() {
   window.addEventListener('beforeinstallprompt', (e: Event) => {
     // Prevent Chrome from automatically showing the prompt
     e.preventDefault();
+    
+    // Only process the first prompt event to avoid duplicates
+    if (hasProcessedPrompt) {
+      console.log('[PWA] Ignoring duplicate beforeinstallprompt event');
+      return;
+    }
+    
+    hasProcessedPrompt = true;
     
     // Store the event for later use
     deferredPrompt = e as BeforeInstallPromptEvent;
