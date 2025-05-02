@@ -11,7 +11,11 @@ import type { Database } from '@/lib/database.types';
 export async function GET() {
   try {
     // Create server-side Supabase client
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    // FIX: Using await with cookies() as per Next.js warnings
+    const cookieStore = await cookies();
+    const supabase = createRouteHandlerClient<Database>({
+      cookies: () => cookieStore,
+    });
     
     // Test database connection and collect diagnostics
     const diagnostics = {

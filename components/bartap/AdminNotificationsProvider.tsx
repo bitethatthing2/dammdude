@@ -83,76 +83,96 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
         const readyQueryParams = new URLSearchParams();
         readyQueryParams.append('status', 'ready');
         
-        // Fetch with error handling
-        const pendingResponse = await fetch(`/api/admin/orders?${pendingQueryParams.toString()}`, {
-          signal: controller.signal,
-          // Add cache control to prevent stale data
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        }).catch(err => {
-          console.error('Network error fetching pending orders:', err);
-          return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-        });
-        
-        const readyResponse = await fetch(`/api/admin/orders?${readyQueryParams.toString()}`, {
-          signal: controller.signal,
-          // Add cache control to prevent stale data
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        }).catch(err => {
-          console.error('Network error fetching ready orders:', err);
-          return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-        });
-        
-        clearTimeout(timeoutId);
-        
-        // Log responses for debugging
-        console.log('Pending orders response status:', pendingResponse.status);
-        console.log('Ready orders response status:', readyResponse.status);
-        
-        if (!pendingResponse.ok) {
-          console.error('Error fetching pending orders:', 
-            pendingResponse.status, pendingResponse.statusText);
-        }
-        
-        if (!readyResponse.ok) {
-          console.error('Error fetching ready orders:', 
-            readyResponse.status, readyResponse.statusText);
-        }
-        
-        // Parse the responses with error handling
-        let pendingData = { orders: [] };
-        let readyData = { orders: [] };
-        
+        // Use Promise.all to fetch both endpoints in parallel, with better error handling
         try {
-          if (pendingResponse.ok) {
-            pendingData = await pendingResponse.json();
+          const [pendingResponsePromise, readyResponsePromise] = await Promise.all([
+            fetch(`/api/admin/orders?${pendingQueryParams.toString()}`, {
+              signal: controller.signal,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
+            }).catch(err => {
+              console.error('Network error fetching pending orders:', err);
+              throw err; // Rethrow to be caught by the outer try/catch
+            }),
+            
+            fetch(`/api/admin/orders?${readyQueryParams.toString()}`, {
+              signal: controller.signal,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
+            }).catch(err => {
+              console.error('Network error fetching ready orders:', err);
+              throw err; // Rethrow to be caught by the outer try/catch
+            })
+          ]);
+          
+          clearTimeout(timeoutId);
+          
+          // Process responses
+          console.log('Pending orders response status:', pendingResponsePromise.status);
+          console.log('Ready orders response status:', readyResponsePromise.status);
+          
+          // Parse responses with improved error handling
+          const pendingData = pendingResponsePromise.ok 
+            ? await pendingResponsePromise.json().catch(err => {
+                console.error('Error parsing pending orders JSON:', err);
+                return { orders: [] };
+              }) 
+            : { orders: [] };
+          
+          const readyData = readyResponsePromise.ok 
+            ? await readyResponsePromise.json().catch(err => {
+                console.error('Error parsing ready orders JSON:', err);
+                return { orders: [] };
+              }) 
+            : { orders: [] };
+          
+          // Log response details for debugging
+          if (!pendingResponsePromise.ok) {
+            console.error('Error fetching pending orders:', {
+              status: pendingResponsePromise.status,
+              statusText: pendingResponsePromise.statusText,
+              body: await pendingResponsePromise.text().catch(() => 'Failed to read response text')
+            });
           }
-        } catch (parseErr) {
-          console.error('Error parsing pending orders response:', parseErr);
-        }
-        
-        try {
-          if (readyResponse.ok) {
-            readyData = await readyResponse.json();
+          
+          if (!readyResponsePromise.ok) {
+            console.error('Error fetching ready orders:', {
+              status: readyResponsePromise.status,
+              statusText: readyResponsePromise.statusText,
+              body: await readyResponsePromise.text().catch(() => 'Failed to read response text')
+            });
           }
-        } catch (parseErr) {
-          console.error('Error parsing ready orders response:', parseErr);
+          
+          // Debug data structure
+          if (pendingData.orders && pendingData.orders.length > 0) {
+            console.log('Sample pending order structure:', JSON.stringify(pendingData.orders[0], null, 2));
+          }
+          
+          // Safely check and set orders with proper defaults
+          const validPendingOrders = Array.isArray(pendingData.orders) ? pendingData.orders : [];
+          const validReadyOrders = Array.isArray(readyData.orders) ? readyData.orders : [];
+          
+          // Set orders safely with defaults and proper typing
+          setPendingOrders(validPendingOrders);
+          setReadyOrders(validReadyOrders);
+          setNewOrdersCount(validPendingOrders.length);
+          
+          console.log(`Successfully loaded ${validPendingOrders.length} pending orders and ${validReadyOrders.length} ready orders`);
+          
+        } catch (fetchError) {
+          console.error('API fetch error:', fetchError);
+          setPendingOrders([]);
+          setReadyOrders([]);
+          setNewOrdersCount(0);
+          
+          // Re-throw to the outer catch for proper error logging
+          throw fetchError;
         }
         
-        // Log the first order structure for debugging
-        if (pendingData.orders && pendingData.orders.length > 0) {
-          console.log('Sample pending order structure:', JSON.stringify(pendingData.orders[0], null, 2));
-        }
-        
-        // Set orders safely with defaults
-        setPendingOrders(pendingData.orders || []);
-        setReadyOrders(readyData.orders || []);
-        setNewOrdersCount(pendingData.orders?.length || 0);
       } catch (error) {
         console.error('Error loading initial orders:', error);
         setPendingOrders([]);
@@ -170,68 +190,79 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'orders' },
         async (payload: RealtimePayload<Order>) => {
-          // New order created
-          const newOrder = payload.new as Order;
-          
-          // Try to get table name using API call instead of direct query
-          let orderWithTableName = { ...newOrder };
-          
           try {
-            // Add controller to prevent hanging requests
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            // New order created
+            const newOrder = payload.new as Order;
             
-            const response = await fetch(`/api/admin/tables/${newOrder.table_id}`, {
-              signal: controller.signal,
-              headers: {
-                'Cache-Control': 'no-cache'
+            // Try to get table name using API call instead of direct query
+            let orderWithTableName = { ...newOrder };
+            
+            try {
+              // Add controller to prevent hanging requests
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+              
+              // More robust fetch
+              const response = await fetch(`/api/admin/tables/${newOrder.table_id}`, {
+                signal: controller.signal,
+                headers: {
+                  'Cache-Control': 'no-cache'
+                }
+              });
+              
+              clearTimeout(timeoutId);
+              
+              if (response.ok) {
+                try {
+                  const tableData = await response.json();
+                  orderWithTableName.table_name = tableData.name || `Table ${newOrder.table_id}`;
+                } catch (jsonError) {
+                  console.error('Error parsing table JSON:', jsonError);
+                  orderWithTableName.table_name = `Table ${newOrder.table_id}`;
+                }
+              } else {
+                console.error('Error fetching table data:', {
+                  status: response.status, 
+                  statusText: response.statusText,
+                  body: await response.text().catch(() => 'Could not read response body')
+                });
+                orderWithTableName.table_name = `Table ${newOrder.table_id}`;
               }
-            }).catch(err => {
-              console.error('Network error fetching table data:', err);
-              return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              const tableData = await response.json();
-              orderWithTableName.table_name = tableData.name || `Table ${newOrder.table_id}`;
-            } else {
-              console.error('Error fetching table data:', response.status, response.statusText);
+            } catch (err) {
+              console.error('Error fetching table name:', err);
               orderWithTableName.table_name = `Table ${newOrder.table_id}`;
             }
-          } catch (err) {
-            console.error('Error fetching table name:', err);
-            orderWithTableName.table_name = `Table ${newOrder.table_id}`;
-          }
-          
-          if (newOrder.status === 'pending') {
-            setPendingOrders(prev => [orderWithTableName, ...prev]);
-            setNewOrdersCount(prev => prev + 1);
             
-            // Show notification for new order
-            toast.message(
-              <div className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                <span>New Order</span>
-              </div>,
-              {
-                description: `New order from ${orderWithTableName.table_name}`,
-                duration: 5000,
-                action: {
-                  label: 'View',
-                  onClick: () => window.location.href = `/admin/orders/${orderWithTableName.id}`,
-                },
+            if (newOrder.status === 'pending') {
+              setPendingOrders(prev => [orderWithTableName, ...prev]);
+              setNewOrdersCount(prev => prev + 1);
+              
+              // Show notification for new order
+              toast.message(
+                <div className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  <span>New Order</span>
+                </div>,
+                {
+                  description: `New order from ${orderWithTableName.table_name}`,
+                  duration: 5000,
+                  action: {
+                    label: 'View',
+                    onClick: () => window.location.href = `/admin/orders/${orderWithTableName.id}`,
+                  },
+                }
+              );
+              
+              // Play sound if browser supports it
+              if (typeof Audio !== 'undefined') {
+                const audio = new Audio('/sounds/notification.mp3');
+                audio.play().catch(error => {
+                  console.error('Error playing notification sound:', error);
+                });
               }
-            );
-            
-            // Play sound if browser supports it
-            if (typeof Audio !== 'undefined') {
-              const audio = new Audio('/sounds/notification.mp3');
-              audio.play().catch(error => {
-                console.error('Error playing notification sound:', error);
-              });
             }
+          } catch (error) {
+            console.error('Error processing new order notification:', error);
           }
         }
       )

@@ -21,7 +21,11 @@ export async function GET(
     }
     
     // Create server-side Supabase client
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    // FIX: Using await with cookies() as per Next.js warnings
+    const cookieStore = await cookies();
+    const supabase = createRouteHandlerClient<Database>({
+      cookies: () => cookieStore,
+    });
     
     // Fetch table data
     const { data, error } = await supabase

@@ -7,7 +7,8 @@ export async function GET() {
   try {
     console.log("[TEST API] Starting database test");
     
-    const cookieStore = cookies();
+    // FIX: Using await with cookies() as per Next.js warnings
+    const cookieStore = await cookies();
     const supabase = createRouteHandlerClient<Database>({
       cookies: () => cookieStore,
       options: {

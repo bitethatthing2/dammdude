@@ -15,7 +15,8 @@ export async function GET(request: Request) {
     console.log("[API DEBUG] Status parameters:", statusParams);
     
     // Use async/await with cookies as required in Next.js 13+
-    const cookieStore = cookies();
+    // FIX: Using await with cookies() as per Next.js warnings
+    const cookieStore = await cookies();
     console.log("[API DEBUG] Cookie store created");
     
     // Create server-side Supabase client with async cookies
@@ -32,12 +33,20 @@ export async function GET(request: Request) {
     });
     console.log("[API DEBUG] Supabase client created");
     
-    // SIMPLIFIED QUERY - removing potential error sources
-    console.log("[API DEBUG] Fetching orders with stripped down query...");
+    // SIMPLIFIED QUERY - avoiding table joins due to relationship error
+    console.log("[API DEBUG] Fetching orders with separate queries to avoid table join issues...");
     
-    // Start with a minimal query to test if it works
+    // Start with a minimal query to test if it works - no table joins
     // Error fix: changed created_at to updated_at since that's the actual column name
-    let query = supabase.from('orders').select('id, status, updated_at, total_amount');
+    // Additional fix: Only query the orders table without joining tables
+    let query = supabase.from('orders').select(`
+      id, 
+      status, 
+      updated_at, 
+      total_amount,
+      table_id,
+      customer_notes
+    `);
     
     // Add filters only if needed
     if (statusParams.length > 0) {
@@ -71,6 +80,33 @@ export async function GET(request: Request) {
     
     // Verify data exists
     console.log("[API DEBUG] Query successful, row count:", data?.length || 0);
+    
+    // If needed, we could fetch table information separately here
+    // but for now we're keeping queries simple to avoid relationship errors
+    /*
+    if (data && data.length > 0) {
+      // Get unique table IDs
+      const tableIds = [...new Set(data.map(order => order.table_id))];
+      
+      // Fetch table data separately
+      const { data: tableData } = await supabase
+        .from('tables')
+        .select('id, name')
+        .in('id', tableIds);
+        
+      // Create a lookup map
+      const tableLookup = tableData?.reduce((map, table) => {
+        map[table.id] = table;
+        return map;
+      }, {}) || {};
+      
+      // Enhance orders with table information
+      data = data.map(order => ({
+        ...order,
+        table_name: tableLookup[order.table_id]?.name || `Table ${order.table_id}`
+      }));
+    }
+    */
     
     // Return simplified data
     return NextResponse.json({ 
