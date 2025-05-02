@@ -96,7 +96,12 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
-  const supabase = createClient();
+  const [supabaseClient, setSupabaseClient] = useState<any>(null);
+  
+  // Initialize Supabase client on the client side only
+  useEffect(() => {
+    setSupabaseClient(createClient());
+  }, []);
   
   // If no items in cart, show empty state
   if (items.length === 0 && !orderId) {
@@ -234,7 +239,16 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
       
       console.log('Order payload:', orderPayload);
       
-      const { data: orderData, error: orderError } = await supabase
+      if (!supabaseClient) {
+        toast({
+          title: "Error",
+          description: "Unable to connect to the server. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const { data: orderData, error: orderError } = await supabaseClient
         .from('orders')
         .insert(orderPayload)
         .select()
@@ -267,7 +281,16 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
       
       console.log('Order items payload:', orderItems);
       
-      const { data: itemsData, error: itemsError } = await supabase
+      if (!supabaseClient) {
+        toast({
+          title: "Error",
+          description: "Unable to connect to the server. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const { data: itemsData, error: itemsError } = await supabaseClient
         .from('order_items')
         .insert(orderItems)
         .select();
@@ -294,7 +317,16 @@ export function CheckoutForm({ tableData }: CheckoutFormProps) {
       
       console.log('Notification payload:', notificationPayload);
       
-      const { data: notificationData, error: notificationError } = await supabase
+      if (!supabaseClient) {
+        toast({
+          title: "Error",
+          description: "Unable to connect to the server. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const { data: notificationData, error: notificationError } = await supabaseClient
         .from('notifications')
         .insert(notificationPayload)
         .select();
