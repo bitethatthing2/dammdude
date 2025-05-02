@@ -3,111 +3,88 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
 
-// Define interfaces for type safety
-interface RawOrder {
-  id: string;
-  table_id: string;
-  status: string;
-  created_at: string;
-  total_amount?: number;
-  total_price?: number;
-  notes?: string;
-  customer_notes?: string;
-  estimated_time?: number;
-  order_items?: any[];
-  items?: any[];
-}
-
-interface ProcessedOrder {
-  id: string;
-  table_id: string;
-  table_name: string;
-  status: string;
-  created_at: string;
-  total_amount: number;
-  items: any[];
-  notes: string | null;
-  estimated_time: number | null;
-}
-
-/**
- * Admin orders API endpoint
- * Fetches orders with filtering, pagination and error handling
- */
 export async function GET(request: Request) {
   try {
+    console.log("[API DEBUG] Starting orders API request");
+    
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     
     // Get all status values, not just one
     const statusParams = searchParams.getAll('status');
+    console.log("[API DEBUG] Status parameters:", statusParams);
     
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const page = parseInt(searchParams.get('page') || '1');
-    const offset = (page - 1) * limit;
-    
-    // Create server-side Supabase client - fixed cookie handling
+    // Use async/await with cookies as required in Next.js 13+
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+    console.log("[API DEBUG] Cookie store created");
     
-    // Build query - REMOVED the table join that was causing errors
-    let query = supabase
-      .from('orders')
-      .select('*, order_items(*)');
+    // Create server-side Supabase client with async cookies
+    // Fix: Added proper typing and handling for Supabase authentication
+    const supabase = createRouteHandlerClient<Database>({
+      cookies: () => cookieStore,
+      options: {
+        global: {
+          headers: {
+            // Add any necessary headers for authentication
+          }
+        }
+      }
+    });
+    console.log("[API DEBUG] Supabase client created");
     
-    // Add filters - handle multiple status values
+    // SIMPLIFIED QUERY - removing potential error sources
+    console.log("[API DEBUG] Fetching orders with stripped down query...");
+    
+    // Start with a minimal query to test if it works
+    // Error fix: changed created_at to updated_at since that's the actual column name
+    let query = supabase.from('orders').select('id, status, updated_at, total_amount');
+    
+    // Add filters only if needed
     if (statusParams.length > 0) {
       query = query.in('status', statusParams);
+      console.log("[API DEBUG] Added status filter:", statusParams);
     }
     
-    // Add pagination and ordering
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Remove pagination for now to simplify
+    // Error fix: changed created_at to updated_at in the order clause
+    query = query.order('updated_at', { ascending: false }).limit(10);
     
-    // Execute query
-    const { data, error, count } = await query;
+    // Execute the simplified query
+    console.log("[API DEBUG] Executing query...");
+    const { data, error } = await query;
     
+    // Handle errors with detailed logging
     if (error) {
-      console.error('Supabase error fetching orders:', error);
+      console.error('[API ERROR] Supabase error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       
       return NextResponse.json({
-        error: {
-          message: 'Failed to fetch orders from database',
-          code: 'SUPABASE_ERROR',
-          details: error.message,
-          hint: error.hint || 'Check database connection and permissions'
-        }
+        error: 'Database query failed',
+        details: error.message,
+        code: error.code
       }, { status: 500 });
     }
     
-    // Process orders - simplified to avoid table access
-    const processedOrders = (data || []).map((order: RawOrder): ProcessedOrder => ({
-      id: order.id,
-      table_id: order.table_id,
-      table_name: `Table ${order.table_id}`, // Simplified - don't try to access table.name
-      status: order.status,
-      created_at: order.created_at,
-      total_amount: order.total_amount || order.total_price || 0,
-      items: order.order_items || order.items || [],
-      notes: order.notes || order.customer_notes || null,
-      estimated_time: order.estimated_time || null
-    }));
+    // Verify data exists
+    console.log("[API DEBUG] Query successful, row count:", data?.length || 0);
     
+    // Return simplified data
     return NextResponse.json({ 
-      orders: processedOrders,
-      pagination: {
-        total: count || processedOrders.length,
-        page,
-        limit
-      }
+      orders: data || [],
+      count: data?.length || 0,
+      debug: { statusParams }
     });
     
-  } catch (err: any) {
-    console.error('Server error fetching orders:', err);
+  } catch (err) {
+    // Catch and log any unexpected errors
+    console.error('[API CRITICAL ERROR]', err);
     return NextResponse.json({
-      error: 'Unexpected error when fetching orders',
-      details: err.message
+      error: 'Unexpected server error',
+      details: err instanceof Error ? err.message : String(err)
     }, { status: 500 });
   }
 }

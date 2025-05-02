@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NotificationCreator } from '@/components/admin/NotificationCreator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DatabaseDebugger } from '@/components/admin/DatabaseDebugger';
+import { ApiDiagnosticTool } from '@/components/admin/ApiDiagnosticTool';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -357,7 +358,18 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DatabaseDebugger />
+            <Tabs defaultValue="basic">
+              <TabsList className="w-full">
+                <TabsTrigger value="basic">Basic Diagnostics</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced API Testing</TabsTrigger>
+              </TabsList>
+              <TabsContent value="basic">
+                <DatabaseDebugger />
+              </TabsContent>
+              <TabsContent value="advanced" className="mt-4">
+                <ApiDiagnosticTool />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
         
