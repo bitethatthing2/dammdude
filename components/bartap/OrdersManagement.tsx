@@ -97,33 +97,40 @@ export function OrdersManagement() {
       setIsLoading(true);
       
       try {
-        const { data, error } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            order_id,
-            menu_item_id,
-            menu_items(name),
-            quantity,
-            notes,
-            unit_price,
-            subtotal
-          `)
-          .eq('order_id', selectedOrder);
+        // Fetch the order with its items JSON
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', selectedOrder)
+          .single();
           
-        if (error) throw error;
+        if (orderError) throw orderError;
+        if (!orderData) throw new Error('Order not found');
         
-        // Format order items with menu item names
-        const formattedItems = data.map((item: any) => ({
-          id: item.id,
-          order_id: item.order_id,
-          menu_item_id: item.menu_item_id,
-          quantity: item.quantity,
-          notes: item.notes,
-          unit_price: item.unit_price,
-          subtotal: item.subtotal,
-          menu_item_name: item.menu_items?.name
-        }));
+        // Parse items from the JSONB items field
+        let formattedItems: OrderItem[] = [];
+        try {
+          const itemsJson = orderData.items;
+          const parsedItems = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+          
+          if (Array.isArray(parsedItems)) {
+            formattedItems = parsedItems.map((item: any, index: number) => ({
+              id: item.id || `${selectedOrder}-item-${index}`,
+              order_id: selectedOrder,
+              menu_item_id: item.menu_item_id || item.id,
+              menu_item_name: item.name,
+              quantity: item.quantity || 1,
+              notes: item.notes,
+              unit_price: item.unit_price || item.price || 0,
+              subtotal: (item.price || 0) * (item.quantity || 1)
+            }));
+          } else {
+            console.warn(`Items field for order ${selectedOrder} is not an array:`, parsedItems);
+          }
+        } catch (parseError) {
+          console.error(`Error parsing items JSON for order ${selectedOrder}:`, parseError);
+          throw new Error('Failed to parse order items');
+        }
         
         setOrderDetails(formattedItems);
         
@@ -131,6 +138,11 @@ export function OrdersManagement() {
         markOrderAsViewed(selectedOrder);
       } catch (error) {
         console.error('Error loading order details:', error);
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to load order details',
+          variant: 'destructive',
+        });
       } finally {
         setIsLoading(false);
       }
