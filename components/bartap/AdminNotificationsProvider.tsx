@@ -59,95 +59,40 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
   useEffect(() => {
     async function loadInitialOrders() {
       try {
-        // Get pending orders - simple query
-        const { data: pendingOrdersData, error: pendingError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false });
+        console.log('Fetching orders via API...');
         
-        // Get ready orders - simple query
-        const { data: readyOrdersData, error: readyError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('status', 'ready')
-          .order('created_at', { ascending: false });
-          
-        if (pendingError) {
-          console.error('Error fetching pending orders:', pendingError);
-          setPendingOrders([]);
-          return;
+        // Use the API endpoint instead of direct Supabase queries
+        const pendingResponse = await fetch('/api/admin/orders?status=pending');
+        const readyResponse = await fetch('/api/admin/orders?status=ready');
+        
+        // Log any HTTP errors
+        if (!pendingResponse.ok) {
+          console.error('Error fetching pending orders:', 
+            pendingResponse.status, pendingResponse.statusText);
         }
         
-        if (readyError) {
-          console.error('Error fetching ready orders:', readyError);
-          setReadyOrders([]);
-          return;
+        if (!readyResponse.ok) {
+          console.error('Error fetching ready orders:', 
+            readyResponse.status, readyResponse.statusText);
         }
         
-        // Log the first order to help with debugging schema issues
-        if (pendingOrdersData && pendingOrdersData.length > 0) {
-          console.log('Sample pending order structure:', JSON.stringify(pendingOrdersData[0], null, 2));
+        // Parse the responses
+        const pendingData = pendingResponse.ok ? await pendingResponse.json() : { orders: [] };
+        const readyData = readyResponse.ok ? await readyResponse.json() : { orders: [] };
+        
+        // Log the first order structure for debugging
+        if (pendingData.orders && pendingData.orders.length > 0) {
+          console.log('Sample pending order structure:', JSON.stringify(pendingData.orders[0], null, 2));
         }
         
-        // Get all table IDs from orders
-        const tableIds = [...new Set([
-          ...(pendingOrdersData?.map((order: Order) => order.table_id) || []),
-          ...(readyOrdersData?.map((order: Order) => order.table_id) || [])
-        ])].filter(Boolean);
-        
-        // Fetch table information if we have table IDs
-        let tableInfo: Record<string, { name: string, section?: string }> = {};
-        
-        if (tableIds.length > 0) {
-          try {
-            const { data: tablesData } = await supabase
-              .from('tables')
-              .select('id, name, section')
-              .in('id', tableIds);
-              
-            if (tablesData && tablesData.length > 0) {
-              // Create a lookup object for tables
-              tableInfo = tablesData.reduce((acc: Record<string, { name: string, section?: string }>, table: { id: string, name: string, section?: string }) => {
-                acc[table.id] = { name: table.name, section: table.section };
-                return acc;
-              }, {} as Record<string, { name: string, section?: string }>);
-            }
-          } catch (tableError) {
-            console.error('Error fetching tables:', tableError);
-            // Continue with default table names
-          }
-        }
-        
-        // Format orders with table names
-        const formattedPendingOrders = pendingOrdersData?.map((order: any) => ({
-          id: order.id,
-          table_id: order.table_id,
-          table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
-          status: order.status,
-          created_at: order.created_at,
-          total_price: getFieldValue(order, ['total_price', 'total_amount'], 0),
-          customer_notes: getFieldValue(order, ['customer_notes', 'notes'], '')
-        })) || [];
-        
-        const formattedReadyOrders = readyOrdersData?.map((order: any) => ({
-          id: order.id,
-          table_id: order.table_id,
-          table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
-          status: order.status,
-          created_at: order.created_at,
-          total_price: getFieldValue(order, ['total_price', 'total_amount'], 0),
-          customer_notes: getFieldValue(order, ['customer_notes', 'notes'], '')
-        })) || [];
-        
-        setPendingOrders(formattedPendingOrders);
-        setReadyOrders(formattedReadyOrders);
-        setNewOrdersCount(formattedPendingOrders.length);
+        setPendingOrders(pendingData.orders || []);
+        setReadyOrders(readyData.orders || []);
+        setNewOrdersCount(pendingData.orders?.length || 0);
       } catch (error) {
         console.error('Error loading initial orders:', error);
-        // Don't let this error break the component
         setPendingOrders([]);
         setReadyOrders([]);
+        setNewOrdersCount(0);
       }
     }
     
@@ -163,17 +108,21 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           // New order created
           const newOrder = payload.new as Order;
           
-          // Get table name
-          const { data: tableData } = await supabase
-            .from('tables')
-            .select('name')
-            .eq('id', newOrder.table_id)
-            .single();
-            
-          const orderWithTableName = {
-            ...newOrder,
-            table_name: tableData?.name || `Table ${newOrder.table_id}`,
-          };
+          // Try to get table name using API call instead of direct query
+          let orderWithTableName = { ...newOrder };
+          
+          try {
+            const response = await fetch(`/api/admin/tables/${newOrder.table_id}`);
+            if (response.ok) {
+              const tableData = await response.json();
+              orderWithTableName.table_name = tableData.name || `Table ${newOrder.table_id}`;
+            } else {
+              orderWithTableName.table_name = `Table ${newOrder.table_id}`;
+            }
+          } catch (err) {
+            console.error('Error fetching table name:', err);
+            orderWithTableName.table_name = `Table ${newOrder.table_id}`;
+          }
           
           if (newOrder.status === 'pending') {
             setPendingOrders(prev => [orderWithTableName, ...prev]);

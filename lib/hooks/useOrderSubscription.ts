@@ -1,37 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { formatTimeDistance } from '@/lib/utils/date-utils';
-
-// Define types for order data
-export interface Order {
-  id: string;
-  table_id: string;
-  status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-  total_amount: number;
-  notes?: string | null;
-  estimated_time?: number | null;
-  items: any;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  menu_item_id: string;
-  menu_item_name?: string;
-  quantity: number;
-  price: number;
-  unit_price: number;
-  subtotal: number;
-}
+import { captureError } from '@/lib/utils/error-utils';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Interface for Supabase real-time payload
-interface RealtimePayload {
-  new: Record<string, any>;
-  old: Record<string, any>;
+export interface RealtimePayload<T = Record<string, any>> {
+  new: T;
+  old: T;
   commit_timestamp: string;
   errors: any[] | null;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -39,222 +16,172 @@ interface RealtimePayload {
   table: string;
 }
 
-type OrderUpdateHandler = (order: Order) => void;
-
 interface UseOrderSubscriptionOptions {
-  onUpdate?: OrderUpdateHandler;
-  onStatusChange?: (oldStatus: Order['status'], newStatus: Order['status']) => void;
-  showNotifications?: boolean;
+  onInsert?: (payload: RealtimePayload) => void;
+  onUpdate?: (payload: RealtimePayload) => void;
+  onDelete?: (payload: RealtimePayload) => void;
+  table?: string;
+  schema?: string;
+  filter?: string;
 }
 
 /**
  * Custom hook for subscribing to real-time order updates
- * 
- * @param orderId - The ID of the order to subscribe to
- * @param options - Optional configuration options
- * @returns Object containing order data and loading state
+ * Provides functions to set up and clear Supabase real-time subscriptions
  */
-export function useOrderSubscription(
-  orderId: string,
-  options: UseOrderSubscriptionOptions = {}
-) {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
+export function useOrderSubscription({
+  onInsert,
+  onUpdate,
+  onDelete,
+  table = 'orders',
+  schema = 'public',
+  filter = '*'
+}: UseOrderSubscriptionOptions = {}) {
+  // Use refs to store subscription and prevent dependency changes
+  const channelRef = useRef<any>(null);
   
-  const { onUpdate, onStatusChange, showNotifications = true } = options;
-  
-  // Use refs to prevent infinite loops
-  const dataFetchedRef = useRef(false);
-  const subscriptionSetupRef = useRef(false);
-  const orderRef = useRef<Order | null>(null);
-  
-  // Memoize callbacks to prevent dependency changes
-  const memoizedOnUpdate = useCallback(onUpdate || (() => {}), []);
-  const memoizedOnStatusChange = useCallback(onStatusChange || (() => {}), []);
-  
-  useEffect(() => {
-    if (!orderId) return;
-    
-    const supabase = getSupabaseBrowserClient();
-    let subscription: any;
-    let isActive = true;
-    
-    // Fetch initial order data
-    async function fetchOrderData() {
-      if (!isActive || dataFetchedRef.current) return;
+  // Set up subscription
+  const setupSubscription = useCallback(() => {
+    try {
+      // Get Supabase client
+      const supabase = getSupabaseBrowserClient();
       
-      setIsLoading(true);
-      setError(null);
+      // Create a unique channel name
+      const channelName = `${table}-changes-${Date.now()}`;
       
-      try {
-        // Get order details
-        const { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single();
-          
-        if (orderError) {
-          console.error(`Error fetching order with ID ${orderId}:`, orderError);
-          throw new Error(`Failed to fetch order: ${orderError.message || JSON.stringify(orderError)}`);
-        }
-        
-        if (!orderData) {
-          console.error(`No order found with ID ${orderId}`);
-          throw new Error(`No order found with ID ${orderId}`);
-        }
-        
-        // Parse items from the JSONB items field
-        let formattedItems: OrderItem[] = [];
-        try {
-          const itemsJson = orderData.items;
-          const parsedItems = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
-          
-          if (Array.isArray(parsedItems)) {
-            formattedItems = parsedItems.map((item: any, index: number) => ({
-              id: item.id || `${orderId}-item-${index}`,
-              order_id: orderId,
-              menu_item_id: item.menu_item_id || item.id,
-              menu_item_name: item.name,
-              quantity: item.quantity || 1,
-              price: item.price || 0,
-              unit_price: item.unit_price || item.price || 0,
-              subtotal: (item.price || 0) * (item.quantity || 1)
-            }));
-          } else {
-            console.warn(`Items field for order ${orderId} is not an array:`, parsedItems);
-          }
-        } catch (parseError) {
-          console.error(`Error parsing items JSON for order ${orderId}:`, parseError);
-        }
-        
-        if (isActive) {
-          console.log(`Successfully fetched order ${orderId} with ${formattedItems.length} items`);
-          setOrder(orderData);
-          orderRef.current = orderData;
-          setOrderItems(formattedItems);
-          dataFetchedRef.current = true;
-          setIsReady(true);
-        }
-      } catch (err: any) {
-        const errorMessage = err.message || 'Unknown error fetching order data';
-        console.error(`Error fetching order data for ${orderId}:`, err);
-        if (isActive) {
-          setError(errorMessage);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-    
-    // Initialize
-    fetchOrderData();
-    
-    // Set up real-time subscription only if not already set up
-    const setupSubscription = () => {
-      if (!isActive || subscriptionSetupRef.current) return;
-      subscriptionSetupRef.current = true;
+      // Create channel
+      const channel = supabase.channel(channelName);
       
-      try {
-        subscription = supabase
-          .channel(`order=${orderId}`)
-          .on('postgres_changes', 
-            { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-            (payload: RealtimePayload) => {
-              if (!isActive) return;
-              
-              const updatedOrder = payload.new as Order;
-              
-              // Only update if there's an actual change
-              if (!orderRef.current || 
-                  JSON.stringify(orderRef.current) === JSON.stringify(updatedOrder)) {
-                return;
-              }
-              
-              // Handle status change notification/callback
-              if (orderRef.current.status !== updatedOrder.status) {
-                try {
-                  memoizedOnStatusChange(orderRef.current.status, updatedOrder.status);
-                } catch (err) {
-                  console.error('Error in status change handler:', err);
+      // Set up INSERT listener if callback provided
+      if (onInsert) {
+        channel.on(
+          'postgres_changes',
+          { 
+            event: 'INSERT', 
+            schema, 
+            table, 
+            filter 
+          },
+          (payload: RealtimePayload) => {
+            try {
+              onInsert(payload);
+            } catch (err) {
+              console.error(`Error in ${table} INSERT handler:`, err);
+              captureError(
+                err instanceof Error ? err : new Error(`Error in ${table} INSERT handler`),
+                {
+                  source: 'useOrderSubscription.onInsert',
+                  context: { payload }
                 }
-                
-                // Show notification if enabled
-                if (showNotifications && 
-                    typeof window !== 'undefined' && 
-                    'Notification' in window && 
-                    Notification.permission === 'granted') {
-                  
-                  try {
-                    // Special notification for order ready
-                    if (updatedOrder.status === 'ready') {
-                      new Notification('Your Order is Ready!', {
-                        body: 'Please pick up your order at the counter.',
-                        icon: '/icons/icon-192x192.png',
-                      });
-                    } else {
-                      new Notification(`Order Status: ${updatedOrder.status.toUpperCase()}`, {
-                        body: `Your order has been updated to ${updatedOrder.status} ${formatTimeDistance(updatedOrder.updated_at)}.`,
-                        icon: '/icons/icon-192x192.png',
-                      });
-                    }
-                  } catch (err) {
-                    console.error('Error showing notification:', err);
-                  }
-                }
-              }
-              
-              // Update refs and state
-              orderRef.current = updatedOrder;
-              setOrder(updatedOrder);
-              
-              // Call update handler if provided
-              try {
-                memoizedOnUpdate(updatedOrder);
-              } catch (err) {
-                console.error('Error in update handler:', err);
-              }
+              );
             }
-          )
-          .subscribe();
-      } catch (err) {
-        console.error('Error setting up subscription:', err);
+          }
+        );
       }
-    };
-    
-    // Set up subscription after a short delay to ensure initial data is loaded
-    const subscriptionTimer = setTimeout(setupSubscription, 1000);
-    
-    // Cleanup subscription on unmount
-    return () => {
-      isActive = false;
-      clearTimeout(subscriptionTimer);
       
-      if (subscription) {
-        try {
-          subscription.unsubscribe();
-        } catch (err) {
-          console.error('Error unsubscribing:', err);
-        }
+      // Set up UPDATE listener if callback provided
+      if (onUpdate) {
+        channel.on(
+          'postgres_changes',
+          { 
+            event: 'UPDATE', 
+            schema, 
+            table, 
+            filter 
+          },
+          (payload: RealtimePayload) => {
+            try {
+              onUpdate(payload);
+            } catch (err) {
+              console.error(`Error in ${table} UPDATE handler:`, err);
+              captureError(
+                err instanceof Error ? err : new Error(`Error in ${table} UPDATE handler`),
+                {
+                  source: 'useOrderSubscription.onUpdate',
+                  context: { payload }
+                }
+              );
+            }
+          }
+        );
       }
-    };
-  }, [orderId, showNotifications]); // Remove dependencies that could change
+      
+      // Set up DELETE listener if callback provided
+      if (onDelete) {
+        channel.on(
+          'postgres_changes',
+          { 
+            event: 'DELETE', 
+            schema, 
+            table, 
+            filter 
+          },
+          (payload: RealtimePayload) => {
+            try {
+              onDelete(payload);
+            } catch (err) {
+              console.error(`Error in ${table} DELETE handler:`, err);
+              captureError(
+                err instanceof Error ? err : new Error(`Error in ${table} DELETE handler`),
+                {
+                  source: 'useOrderSubscription.onDelete',
+                  context: { payload }
+                }
+              );
+            }
+          }
+        );
+      }
+      
+      // Subscribe to channel
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Subscribed to ${table} changes`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`Error subscribing to ${table} changes`);
+          captureError(
+            new Error(`Supabase channel error for ${table}`),
+            {
+              source: 'useOrderSubscription.subscribe',
+              context: { table, status }
+            }
+          );
+        }
+      });
+      
+      // Store channel reference
+      channelRef.current = channel;
+      
+      return () => {
+        clearSubscription();
+      };
+    } catch (err) {
+      console.error('Error setting up subscription:', err);
+      captureError(
+        err instanceof Error ? err : new Error('Error setting up subscription'),
+        {
+          source: 'useOrderSubscription.setupSubscription',
+          context: { table, schema }
+        }
+      );
+    }
+  }, [onInsert, onUpdate, onDelete, table, schema, filter]);
+  
+  // Clear subscription
+  const clearSubscription = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        channelRef.current.unsubscribe();
+        console.log(`Unsubscribed from ${table} changes`);
+      } catch (err) {
+        console.error('Error clearing subscription:', err);
+      }
+      channelRef.current = null;
+    }
+  }, [table]);
   
   return {
-    order,
-    orderItems,
-    isLoading,
-    error,
-    // Helper computed properties
-    isReady: order?.status === 'ready',
-    isPending: order?.status === 'pending',
-    isPreparing: order?.status === 'preparing',
-    isDelivered: order?.status === 'delivered',
-    isCancelled: order?.status === 'cancelled',
+    setupSubscription,
+    clearSubscription
   };
 }

@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'completed';
 
 interface StatusBadgeProps {
   status: OrderStatus;
@@ -31,6 +31,10 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     cancelled: {
       text: 'Cancelled',
       className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+    },
+    completed: {
+      text: 'Completed',
+      className: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
     }
   };
   

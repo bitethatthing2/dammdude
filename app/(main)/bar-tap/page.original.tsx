@@ -30,11 +30,6 @@ interface Category {
   type?: 'food' | 'drink';
 }
 
-interface CategoryData {
-  id: number;
-  name: string;
-}
-
 export default function BarTapPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -104,7 +99,7 @@ export default function BarTapPage() {
         
         // Map category names to their IDs for easy lookup
         const categoryMap = new Map();
-        categoryData.forEach((category: any) => {
+        categoryData.forEach((category: Database['public']['Tables']['menu_categories']['Row']) => {
           categoryMap.set(category.name.toUpperCase(), category.id);
         });
         
@@ -165,7 +160,7 @@ export default function BarTapPage() {
         const { data: drinkData, error: drinkError } = await supabase
           .from('menu_items')
           .select('*')
-          .in('category_id', drinkCategoryIds)
+          .in('menu_category_id', drinkCategoryIds)
           .order('name');
         
         if (drinkError) {
@@ -176,27 +171,27 @@ export default function BarTapPage() {
         
         // Transform menu items into drinks format
         const formattedDrinks = (drinkData || []).map((item: Database['public']['Tables']['menu_items']['Row']) => {
-          // Determine the front-end category based on the database category_id
+          // Determine the front-end category based on the database menu_category_id
           let category = 'all';
           
-          // Map Supabase category_id to our front-end category
-          if (item.category_id === categoryMap.get('BOARDS')) {
+          // Map Supabase menu_category_id to our front-end category
+          if (item.menu_category_id === categoryMap.get('BOARDS')) {
             category = 'board';
-          } else if (item.category_id === categoryMap.get('FLIGHTS')) {
+          } else if (item.menu_category_id === categoryMap.get('FLIGHTS')) {
             category = 'flight';
-          } else if (item.category_id === categoryMap.get('TOWERS')) {
+          } else if (item.menu_category_id === categoryMap.get('TOWERS')) {
             category = 'tower';
-          } else if (item.category_id === categoryMap.get('HOUSE FAVORITES')) {
+          } else if (item.menu_category_id === categoryMap.get('HOUSE FAVORITES')) {
             category = 'house-favorites';
-          } else if (item.category_id === categoryMap.get('MARTINIS')) {
+          } else if (item.menu_category_id === categoryMap.get('MARTINIS')) {
             category = 'martini';
-          } else if (item.category_id === categoryMap.get('MARGARITAS')) {
+          } else if (item.menu_category_id === categoryMap.get('MARGARITAS')) {
             category = 'margarita';
-          } else if (item.category_id === categoryMap.get('BOTTLE BEER')) {
+          } else if (item.menu_category_id === categoryMap.get('BOTTLE BEER')) {
             category = 'beer';
-          } else if (item.category_id === categoryMap.get('WINE')) {
+          } else if (item.menu_category_id === categoryMap.get('WINE')) {
             category = 'wine';
-          } else if (item.category_id === categoryMap.get('NON-ALCOHOLIC BEVERAGES')) {
+          } else if (item.menu_category_id === categoryMap.get('NON-ALCOHOLIC BEVERAGES')) {
             category = 'non-alcoholic';
           } else {
             // If category_id doesn't match, fall back to name-based determination

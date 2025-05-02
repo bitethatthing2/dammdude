@@ -35,8 +35,31 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
   const isLoginRoute = request.nextUrl.pathname === '/admin/login';
   const isDashboardRoute = request.nextUrl.pathname === '/admin/dashboard';
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+  
+  // Check if the request is for the table route with no ID
+  const isTableRoute = request.nextUrl.pathname === '/table';
   
   console.log(`Middleware: Processing ${request.nextUrl.pathname}`);
+
+  // Skip authentication checks for API routes
+  if (isApiRoute) {
+    return response;
+  }
+
+  // For direct /table requests, ensure they're handled correctly
+  if (isTableRoute) {
+    // If this is a page navigation, let it proceed
+    const accept = request.headers.get('accept');
+    if (accept && accept.includes('text/html')) {
+      return response;
+    }
+    
+    // If it's an API request or resource fetch, redirect to the API endpoint
+    console.log('Middleware: Redirecting /table resource request to proper endpoint');
+    const url = new URL('/api/table-identification', request.url);
+    return NextResponse.redirect(url);
+  }
 
   // For login route: if already logged in, redirect to dashboard
   if (isLoginRoute) {
@@ -77,7 +100,12 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Only run middleware on admin routes
+// Update matcher to exclude API routes and include /table route
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/admin/:path*', 
+    '/table',
+    // Exclude API routes from authentication checks
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
+import { captureError } from '@/lib/utils/error-utils';
 import {
   Card,
   CardContent,
@@ -91,14 +92,14 @@ export function TableManagement({ initialTables }: TableManagementProps) {
   });
   
   // Effect to set base URL for QR codes
-  useState(() => {
+  useEffect(() => {
     // Use window.location on the client side
     if (typeof window !== 'undefined') {
       // Extract just the origin part (protocol + host)
       const url = new URL(window.location.href);
       setBaseUrl(`${url.protocol}//${url.host}`);
     }
-  });
+  }, []);
   
   // Handle adding a new table
   const handleAddTable = async (values: TableFormValues) => {
@@ -125,8 +126,19 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       
       toast.success('Table added successfully');
       router.refresh(); // Refresh server data
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding table:', error);
+      
+      // Log error to our tracking system
+      captureError(new Error(error?.message || 'Error adding table'), {
+        source: 'TableManagement',
+        context: { 
+          action: 'addTable',
+          values,
+          originalError: error
+        }
+      });
+      
       toast.error('Failed to add table');
     } finally {
       setIsSubmitting(false);
@@ -164,8 +176,20 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       
       toast.success('Table updated successfully');
       router.refresh(); // Refresh server data
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating table:', error);
+      
+      // Log error to our tracking system
+      captureError(new Error(error?.message || 'Error updating table'), {
+        source: 'TableManagement',
+        context: { 
+          action: 'editTable',
+          tableId: selectedTable.id,
+          values,
+          originalError: error
+        }
+      });
+      
       toast.error('Failed to update table');
     } finally {
       setIsSubmitting(false);
@@ -191,8 +215,19 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       
       toast.success('Table deleted successfully');
       router.refresh(); // Refresh server data
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting table:', error);
+      
+      // Log error to our tracking system
+      captureError(new Error(error?.message || 'Error deleting table'), {
+        source: 'TableManagement',
+        context: { 
+          action: 'deleteTable',
+          tableId: id,
+          originalError: error
+        }
+      });
+      
       toast.error('Failed to delete table');
     }
   };
@@ -286,8 +321,21 @@ export function TableManagement({ initialTables }: TableManagementProps) {
   
   // Open QR code dialog
   const openQrDialog = (table: Table) => {
-    setSelectedTable(table);
-    setIsQrDialogOpen(true);
+    try {
+      setSelectedTable(table);
+      setIsQrDialogOpen(true);
+    } catch (error: any) {
+      console.error('Error opening QR dialog:', error);
+      captureError(new Error(error?.message || 'Error opening QR dialog'), {
+        source: 'TableManagement',
+        context: { 
+          action: 'openQrDialog',
+          tableId: table.id,
+          originalError: error
+        }
+      });
+      toast.error('Failed to open QR code dialog');
+    }
   };
   
   return (
@@ -301,60 +349,60 @@ export function TableManagement({ initialTables }: TableManagementProps) {
               Add Table
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add New Table</DialogTitle>
               <DialogDescription>
-                Add a new table to your restaurant floor plan.
+                Create a new table for your venue. Tables can be assigned to sections.
               </DialogDescription>
             </DialogHeader>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleAddTable)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Table Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. 12" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        This is the name or number displayed to customers.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="section"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Section (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Patio" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormDescription>
-                        Optionally assign this table to a section of your venue.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Adding...' : 'Add Table'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            <form onSubmit={form.handleSubmit(handleAddTable)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Table Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Table 1" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The name that will be displayed to customers.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="section"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Section (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., Patio" 
+                        {...field} 
+                        value={field.value || ''} 
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Group tables by section for easier management.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Adding...' : 'Add Table'}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -382,7 +430,7 @@ export function TableManagement({ initialTables }: TableManagementProps) {
                     <TableCell>{table.section || '-'}</TableCell>
                     <TableCell>
                       <div id={`qr-${table.id}`} className="hidden">
-                        <QRCode value={`${baseUrl}/table/${table.id}`} size={150} />
+                        <QRCodeSVG value={`${baseUrl}/table/${table.id}`} size={150} />
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => openQrDialog(table)}>
                         <QrCode className="h-4 w-4 mr-2" />
@@ -416,54 +464,60 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       
       {/* Edit Table Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Table</DialogTitle>
             <DialogDescription>
-              Update this table's information.
+              Update the details for this table.
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleEditTable)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Table Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. 12" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="section"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Section (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Patio" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <form onSubmit={form.handleSubmit(handleEditTable)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Table Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Table 1" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    The name that will be displayed to customers.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="section"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Section (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g., Patio" 
+                      {...field} 
+                      value={field.value || ''} 
+                      onChange={(e) => field.onChange(e.target.value || null)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Group tables by section for easier management.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Updating...' : 'Update Table'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
       
@@ -480,7 +534,7 @@ export function TableManagement({ initialTables }: TableManagementProps) {
           <div className="flex flex-col items-center py-4">
             {selectedTable && (
               <>
-                <QRCode 
+                <QRCodeSVG 
                   value={`${baseUrl}/table/${selectedTable.id}`} 
                   size={200}
                   id={`qr-display-${selectedTable.id}`}
