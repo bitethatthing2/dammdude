@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import type { Database } from '@/lib/database.types';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
  * Enhanced database health check API endpoint
@@ -10,12 +10,9 @@ import type { Database } from '@/lib/database.types';
  */
 export async function GET() {
   try {
-    // Create server-side Supabase client
-    // FIX: Using await with cookies() as per Next.js warnings
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient<Database>({
-      cookies: () => cookieStore,
-    });
+    // Create server-side Supabase client with our custom function
+    const cookieStore = cookies();
+    const supabase = createSupabaseServerClient(cookieStore);
     
     // Test database connection and collect diagnostics
     const diagnostics = {

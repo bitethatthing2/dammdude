@@ -1,24 +1,15 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
     console.log("[TEST API] Starting database test");
     
-    // FIX: Using await with cookies() as per Next.js warnings
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient<Database>({
-      cookies: () => cookieStore,
-      options: {
-        global: {
-          headers: {
-            // Add any necessary headers for authentication
-          }
-        }
-      }
-    });
+    // Use our custom server client that handles cookies correctly
+    const cookieStore = cookies();
+    const supabase = createSupabaseServerClient(cookieStore);
     
     // Test 1: Simple query to check basic connectivity
     console.log("[TEST API] Running simple query test");

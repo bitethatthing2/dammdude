@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
  * API endpoint for fetching a single table by ID
@@ -20,12 +20,9 @@ export async function GET(
       );
     }
     
-    // Create server-side Supabase client
-    // FIX: Using await with cookies() as per Next.js warnings
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient<Database>({
-      cookies: () => cookieStore,
-    });
+    // Create server-side Supabase client using our custom function
+    const cookieStore = cookies();
+    const supabase = createSupabaseServerClient(cookieStore);
     
     // Fetch table data
     const { data, error } = await supabase

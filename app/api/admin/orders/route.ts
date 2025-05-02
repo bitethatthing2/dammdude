@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -14,23 +14,13 @@ export async function GET(request: Request) {
     const statusParams = searchParams.getAll('status');
     console.log("[API DEBUG] Status parameters:", statusParams);
     
-    // Use async/await with cookies as required in Next.js 13+
-    // FIX: Using await with cookies() as per Next.js warnings
-    const cookieStore = await cookies();
+    // Use the correct cookie store
+    const cookieStore = cookies();
     console.log("[API DEBUG] Cookie store created");
     
-    // Create server-side Supabase client with async cookies
-    // Fix: Added proper typing and handling for Supabase authentication
-    const supabase = createRouteHandlerClient<Database>({
-      cookies: () => cookieStore,
-      options: {
-        global: {
-          headers: {
-            // Add any necessary headers for authentication
-          }
-        }
-      }
-    });
+    // Use our custom server client that properly handles cookies
+    const supabase = createSupabaseServerClient(cookieStore);
+    console.log("[API DEBUG] Supabase client created");
     console.log("[API DEBUG] Supabase client created");
     
     // SIMPLIFIED QUERY - avoiding table joins due to relationship error
@@ -39,13 +29,13 @@ export async function GET(request: Request) {
     // Start with a minimal query to test if it works - no table joins
     // Error fix: changed created_at to updated_at since that's the actual column name
     // Additional fix: Only query the orders table without joining tables
+    // Further fix: Removed 'customer_notes' column that doesn't exist in the database
     let query = supabase.from('orders').select(`
       id, 
       status, 
       updated_at, 
       total_amount,
-      table_id,
-      customer_notes
+      table_id
     `);
     
     // Add filters only if needed
