@@ -223,6 +223,19 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
   
   const supabase = getSupabaseBrowserClient();
   
+  // Helper function to get value from different possible field names
+  function getFieldValue(obj: any, fieldNames: string[], defaultValue: any = null): any {
+    if (!obj) return defaultValue;
+    
+    for (const field of fieldNames) {
+      if (obj[field] !== undefined) {
+        return obj[field];
+      }
+    }
+    
+    return defaultValue;
+  }
+  
   // Initialize audio elements
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -354,9 +367,10 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
       if (!isActive) return;
       
       setIsLoading(true);
+      setError(null);
       
       try {
-        // Fetch orders with relevant statuses - simple query
+        // Use a simple query to get orders
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select('*')
@@ -370,48 +384,82 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
           return;
         }
         
+        if (!ordersData || ordersData.length === 0) {
+          setOrders({
+            pending: [],
+            preparing: [],
+            ready: [],
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Log the first order to help with debugging schema issues
+        if (ordersData.length > 0) {
+          console.log('Sample order structure:', JSON.stringify(ordersData[0], null, 2));
+        }
+        
         // Get all table IDs from orders
-        const tableIds = [...new Set(ordersData?.map(order => order.table_id) || [])];
+        const tableIds = [...new Set(ordersData.map((order: any) => order.table_id).filter(Boolean))];
         
         // Fetch table information if we have table IDs
         let tableInfo: Record<string, { name: string, section?: string }> = {};
         
         if (tableIds.length > 0) {
-          const { data: tablesData, error: tablesError } = await supabase
-            .from('tables')
-            .select('id, name, section')
-            .in('id', tableIds);
-            
-          if (tablesError) {
-            console.error('Error fetching tables:', tablesError);
-          } else if (tablesData) {
-            // Create a lookup object for tables
-            tableInfo = tablesData.reduce((acc, table) => {
-              acc[table.id] = { name: table.name, section: table.section };
-              return acc;
-            }, {} as Record<string, { name: string, section?: string }>);
+          try {
+            const { data: tablesData } = await supabase
+              .from('tables')
+              .select('id, name, section')
+              .in('id', tableIds);
+              
+            if (tablesData && tablesData.length > 0) {
+              // Create a lookup object for tables
+              tableInfo = tablesData.reduce((acc: Record<string, { name: string, section?: string }>, table: { id: string, name: string, section?: string }) => {
+                acc[table.id] = { name: table.name, section: table.section };
+                return acc;
+              }, {} as Record<string, { name: string, section?: string }>);
+            }
+          } catch (tableError) {
+            console.error('Error fetching tables:', tableError);
+            // Continue with default table names
           }
         }
         
         // Process fetched orders
         const processedOrders = ordersData.map((order: any) => {
-          // Parse items from the JSONB items field
+          // Parse items - handle both string JSON and object format
           let parsedItems: OrderItem[] = [];
+          
           try {
-            const itemsJson = order.items;
-            const items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+            // Try to get items from the order
+            let items = [];
+            
+            // Check if order has items field
+            if (order.items) {
+              // Handle both string and object formats
+              if (typeof order.items === 'string') {
+                items = JSON.parse(order.items);
+              } else if (Array.isArray(order.items)) {
+                items = order.items;
+              } else if (typeof order.items === 'object') {
+                items = [order.items];
+              }
+            } else {
+              // If no items field, try to fetch from order_items table later
+              items = [];
+            }
             
             if (Array.isArray(items)) {
               parsedItems = items.map((item: any, index: number) => ({
                 id: item.id || `${order.id}-item-${index}`,
                 order_id: order.id,
-                menu_item_id: item.menu_item_id || item.id,
-                menu_item_name: item.name,
+                menu_item_id: item.menu_item_id || item.item_id || '',
+                menu_item_name: item.name || item.item_name || 'Unknown Item',
                 quantity: item.quantity || 1,
-                notes: item.notes,
-                unit_price: item.price || 0,
-                subtotal: (item.price || 0) * (item.quantity || 1),
-                customizations: item.customizations
+                notes: item.notes || null,
+                unit_price: item.price || item.unit_price || 0,
+                subtotal: (item.price || item.unit_price || 0) * (item.quantity || 1),
+                customizations: item.customizations || null
               }));
             }
           } catch (e) {
@@ -419,11 +467,17 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
           }
           
           return {
-            ...order,
+            id: order.id,
+            table_id: order.table_id,
+            status: order.status,
+            created_at: order.created_at,
+            updated_at: order.updated_at || order.created_at,
+            total_amount: order.total_price || order.total_amount || 0,
+            notes: order.customer_notes || order.notes || null,
+            estimated_time: order.estimated_time || null,
             table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
-            table_section: tableInfo[order.table_id]?.section,
+            table_section: tableInfo[order.table_id]?.section || null,
             items: parsedItems,
-            // Check if this is a new order we haven't seen before
             isNew: !seenOrderIdsRef.current.has(order.id) && order.status === 'pending'
           };
         });

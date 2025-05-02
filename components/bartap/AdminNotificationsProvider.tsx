@@ -11,7 +11,8 @@ interface Order {
   table_name?: string;
   status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
   created_at: string;
-  total_amount?: number;
+  total_price?: number;
+  customer_notes?: string;
 }
 
 interface AdminNotificationsContextType {
@@ -73,45 +74,52 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
         
         // Get all table IDs from orders
         const tableIds = [...new Set([
-          ...(pendingOrdersData?.map(order => order.table_id) || []),
-          ...(readyOrdersData?.map(order => order.table_id) || [])
-        ])];
+          ...(pendingOrdersData?.map((order: Order) => order.table_id) || []),
+          ...(readyOrdersData?.map((order: Order) => order.table_id) || [])
+        ])].filter(Boolean);
         
         // Fetch table information if we have table IDs
         let tableInfo: Record<string, { name: string, section?: string }> = {};
         
         if (tableIds.length > 0) {
-          const { data: tablesData } = await supabase
-            .from('tables')
-            .select('id, name, section')
-            .in('id', tableIds);
-            
-          if (tablesData) {
-            // Create a lookup object for tables
-            tableInfo = tablesData.reduce((acc, table) => {
-              acc[table.id] = { name: table.name, section: table.section };
-              return acc;
-            }, {} as Record<string, { name: string, section?: string }>);
+          try {
+            const { data: tablesData } = await supabase
+              .from('tables')
+              .select('id, name, section')
+              .in('id', tableIds);
+              
+            if (tablesData && tablesData.length > 0) {
+              // Create a lookup object for tables
+              tableInfo = tablesData.reduce((acc: Record<string, { name: string, section?: string }>, table: { id: string, name: string, section?: string }) => {
+                acc[table.id] = { name: table.name, section: table.section };
+                return acc;
+              }, {} as Record<string, { name: string, section?: string }>);
+            }
+          } catch (tableError) {
+            console.error('Error fetching tables:', tableError);
+            // Continue with default table names
           }
         }
         
         // Format orders with table names
-        const formattedPendingOrders = pendingOrdersData?.map((order: any) => ({
+        const formattedPendingOrders = pendingOrdersData?.map((order: Order) => ({
           id: order.id,
           table_id: order.table_id,
           table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
-          total_amount: order.total_amount || 0
+          total_price: order.total_price || 0,
+          customer_notes: order.customer_notes || ''
         })) || [];
         
-        const formattedReadyOrders = readyOrdersData?.map((order: any) => ({
+        const formattedReadyOrders = readyOrdersData?.map((order: Order) => ({
           id: order.id,
           table_id: order.table_id,
           table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
-          total_amount: order.total_amount || 0
+          total_price: order.total_price || 0,
+          customer_notes: order.customer_notes || ''
         })) || [];
         
         setPendingOrders(formattedPendingOrders);
