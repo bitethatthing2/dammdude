@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
       { url: '/icons/favicon-for-public/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/favicon-for-public/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }
     ],
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
       { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
     ],
     shortcut: [
-      { url: '/favicon.ico' }
+      { url: '/favicon.ico', type: 'image/x-icon' }
     ]
   },
   appleWebApp: {
@@ -35,6 +35,8 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "mobile-web-app-capable": "yes",
+    "msapplication-TileImage": "/icons/favicon-for-public/web-app-manifest-192x192.png",
+    "msapplication-TileColor": "#000000"
   },
 };
 

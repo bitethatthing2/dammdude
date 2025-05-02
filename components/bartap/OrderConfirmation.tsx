@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ArrowRight, Bell, Clock, Home, ShoppingBag } from 'lucide-react';
+import { CheckCircle, ArrowRight, Bell, Clock, Home, ShoppingBag, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { formatOrderDate } from '@/lib/utils/date-utils';
 import { useOrderSubscription } from '@/lib/hooks/useOrderSubscription';
@@ -41,12 +41,24 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
   const router = useRouter();
   
   // When component mounts, ensure the BarTap context is updated
+  // Using a ref to track if we've already cleared the cart to prevent infinite loops
+  const hasCleared = useRef(false);
+  
   useEffect(() => {
-    if (barTap) {
+    // Only clear cart once when component mounts
+    if (barTap && !hasCleared.current) {
+      hasCleared.current = true;
       // Set the flow step to confirmation
       barTap.clearCart();
     }
   }, [barTap]);
+  
+  // Handle error cases more gracefully
+  useEffect(() => {
+    if (error) {
+      console.log(`Order confirmation error: ${error}`);
+    }
+  }, [error]);
   
   // Handle placing a new order
   const handleNewOrder = () => {
@@ -86,12 +98,23 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">
-              {error || 'Order not found'}
-            </p>
-            <Link href="/menu">
-              <Button>Back to Menu</Button>
-            </Link>
+            <div className="mb-4 flex flex-col items-center">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <h3 className="text-lg font-medium mb-1">Order Not Found</h3>
+              <p className="text-muted-foreground mb-4">
+                {error || "We couldn't find this order. It may have been deleted or never existed."}
+              </p>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <Link href="/menu">
+                <Button className="w-full">Back to Menu</Button>
+              </Link>
+              <Button variant="outline" onClick={handleNewOrder} className="w-full">
+                Place a New Order
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -162,9 +185,6 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
                 <div key={item.id} className="flex justify-between text-sm">
                   <span>
                     {item.quantity}x {item.menu_item_name}
-                    {item.notes && (
-                      <p className="text-xs text-muted-foreground">{item.notes}</p>
-                    )}
                   </span>
                   <span>{formatCurrency(item.unit_price * item.quantity)}</span>
                 </div>

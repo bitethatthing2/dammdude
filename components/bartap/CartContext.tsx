@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect } from 'react';
 
 // Define types for our cart items and context
 interface CartItem {
@@ -193,7 +193,9 @@ export function CartProvider({
             return { 
               ...initialState, 
               items: parsedCart.items || [],
-              lastOrderTime: parsedCart.lastOrderTime || null
+              lastOrderTime: parsedCart.lastOrderTime || null,
+              promoCode: parsedCart.promoCode || null,
+              discount: parsedCart.discount || 0
             };
           } catch (e) {
             console.error('Failed to parse saved cart', e);
@@ -206,12 +208,12 @@ export function CartProvider({
   
   // Memoized calculations for totals
   const totalItems = useMemo(() => 
-    state.items.reduce((sum, item) => sum + item.quantity, 0),
+    state.items.reduce((sum: number, item: CartItem) => sum + item.quantity, 0),
     [state.items]
   );
   
   const totalPrice = useMemo(() => 
-    state.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    state.items.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0),
     [state.items]
   );
   
@@ -240,11 +242,18 @@ export function CartProvider({
   }, [state.lastOrderTime, canPlaceNewOrder]);
   
   // Save cart to localStorage whenever it changes
-  useMemo(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`cart_${tableId}`, JSON.stringify(state));
+      // Only store the necessary data, not the entire state object
+      const dataToStore = {
+        items: state.items,
+        lastOrderTime: state.lastOrderTime,
+        promoCode: state.promoCode,
+        discount: state.discount
+      };
+      localStorage.setItem(`cart_${tableId}`, JSON.stringify(dataToStore));
     }
-  }, [state, tableId]);
+  }, [state.items, state.lastOrderTime, state.promoCode, state.discount, tableId]);
   
   // Action dispatcher functions
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {

@@ -45,6 +45,15 @@ const nextConfig = {
         source: '/firebase-messaging-sw.js',
         destination: '/firebase-messaging-sw.js',     
       },
+      // Ensure favicon.ico is always served correctly
+      {
+        source: '/favicon.ico',
+        destination: '/favicon.ico',
+      },
+      {
+        source: '/icons/favicon.ico',
+        destination: '/favicon.ico',
+      },
     ];
   },
 };

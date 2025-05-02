@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatTimeDistance } from '@/lib/utils/date-utils';
 
@@ -14,6 +14,7 @@ export interface Order {
   total_amount: number;
   notes?: string | null;
   estimated_time?: number | null;
+  items: any;
 }
 
 export interface OrderItem {
@@ -22,7 +23,7 @@ export interface OrderItem {
   menu_item_id: string;
   menu_item_name?: string;
   quantity: number;
-  notes?: string | null;
+  price: number;
   unit_price: number;
   subtotal: number;
 }
@@ -61,8 +62,18 @@ export function useOrderSubscription(
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   
   const { onUpdate, onStatusChange, showNotifications = true } = options;
+  
+  // Use refs to prevent infinite loops
+  const dataFetchedRef = useRef(false);
+  const subscriptionSetupRef = useRef(false);
+  const orderRef = useRef<Order | null>(null);
+  
+  // Memoize callbacks to prevent dependency changes
+  const memoizedOnUpdate = useCallback(onUpdate || (() => {}), []);
+  const memoizedOnStatusChange = useCallback(onStatusChange || (() => {}), []);
   
   useEffect(() => {
     if (!orderId) return;
@@ -73,7 +84,7 @@ export function useOrderSubscription(
     
     // Fetch initial order data
     async function fetchOrderData() {
-      if (!isActive) return;
+      if (!isActive || dataFetchedRef.current) return;
       
       setIsLoading(true);
       setError(null);
@@ -86,50 +97,53 @@ export function useOrderSubscription(
           .eq('id', orderId)
           .single();
           
-        if (orderError) throw orderError;
+        if (orderError) {
+          console.error(`Error fetching order with ID ${orderId}:`, orderError);
+          throw new Error(`Failed to fetch order: ${orderError.message || JSON.stringify(orderError)}`);
+        }
         
-        // Get order items with menu item details
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            order_id,
-            menu_item_id,
-            menu_items(name),
-            quantity,
-            notes,
-            unit_price,
-            subtotal
-          `)
-          .eq('order_id', orderId);
+        if (!orderData) {
+          console.error(`No order found with ID ${orderId}`);
+          throw new Error(`No order found with ID ${orderId}`);
+        }
+        
+        // Parse items from the JSONB items field
+        let formattedItems: OrderItem[] = [];
+        try {
+          const itemsJson = orderData.items;
+          const parsedItems = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
           
-        if (itemsError) throw itemsError;
-        
-        // Format items with menu item names
-        const formattedItems = (itemsData || []).map((item: any) => ({
-          id: item.id,
-          order_id: item.order_id,
-          menu_item_id: item.menu_item_id,
-          menu_item_name: item.menu_items?.name,
-          quantity: item.quantity,
-          notes: item.notes,
-          unit_price: item.unit_price,
-          subtotal: item.subtotal,
-        }));
+          if (Array.isArray(parsedItems)) {
+            formattedItems = parsedItems.map((item: any, index: number) => ({
+              id: item.id || `${orderId}-item-${index}`,
+              order_id: orderId,
+              menu_item_id: item.menu_item_id || item.id,
+              menu_item_name: item.name,
+              quantity: item.quantity || 1,
+              price: item.price || 0,
+              unit_price: item.unit_price || item.price || 0,
+              subtotal: (item.price || 0) * (item.quantity || 1)
+            }));
+          } else {
+            console.warn(`Items field for order ${orderId} is not an array:`, parsedItems);
+          }
+        } catch (parseError) {
+          console.error(`Error parsing items JSON for order ${orderId}:`, parseError);
+        }
         
         if (isActive) {
+          console.log(`Successfully fetched order ${orderId} with ${formattedItems.length} items`);
           setOrder(orderData);
+          orderRef.current = orderData;
           setOrderItems(formattedItems);
-          
-          // Call update handler if provided
-          if (onUpdate && orderData) {
-            onUpdate(orderData);
-          }
+          dataFetchedRef.current = true;
+          setIsReady(true);
         }
       } catch (err: any) {
-        console.error('Error fetching order data:', err);
+        const errorMessage = err.message || 'Unknown error fetching order data';
+        console.error(`Error fetching order data for ${orderId}:`, err);
         if (isActive) {
-          setError(err.message || 'Failed to load order data');
+          setError(errorMessage);
         }
       } finally {
         if (isActive) {
@@ -138,23 +152,36 @@ export function useOrderSubscription(
       }
     }
     
-    // Set up real-time subscription
-    function setupSubscription() {
-      subscription = supabase
-        .channel(`order=${orderId}`)
-        .on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-          (payload: RealtimePayload) => {
-            const updatedOrder = payload.new as Order;
-            const previousOrder = payload.old as Order;
-            
-            // Update local state
-            setOrder((prev) => {
+    // Initialize
+    fetchOrderData();
+    
+    // Set up real-time subscription only if not already set up
+    const setupSubscription = () => {
+      if (!isActive || subscriptionSetupRef.current) return;
+      subscriptionSetupRef.current = true;
+      
+      try {
+        subscription = supabase
+          .channel(`order=${orderId}`)
+          .on('postgres_changes', 
+            { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+            (payload: RealtimePayload) => {
+              if (!isActive) return;
+              
+              const updatedOrder = payload.new as Order;
+              
+              // Only update if there's an actual change
+              if (!orderRef.current || 
+                  JSON.stringify(orderRef.current) === JSON.stringify(updatedOrder)) {
+                return;
+              }
+              
               // Handle status change notification/callback
-              if (prev && prev.status !== updatedOrder.status) {
-                // Call status change handler if provided
-                if (onStatusChange) {
-                  onStatusChange(prev.status, updatedOrder.status);
+              if (orderRef.current.status !== updatedOrder.status) {
+                try {
+                  memoizedOnStatusChange(orderRef.current.status, updatedOrder.status);
+                } catch (err) {
+                  console.error('Error in status change handler:', err);
                 }
                 
                 // Show notification if enabled
@@ -163,45 +190,60 @@ export function useOrderSubscription(
                     'Notification' in window && 
                     Notification.permission === 'granted') {
                   
-                  // Special notification for order ready
-                  if (updatedOrder.status === 'ready') {
-                    new Notification('Your Order is Ready!', {
-                      body: 'Please pick up your order at the counter.',
-                      icon: '/icons/icon-192x192.png',
-                    });
-                  } else {
-                    new Notification(`Order Status: ${updatedOrder.status.toUpperCase()}`, {
-                      body: `Your order has been updated to ${updatedOrder.status} ${formatTimeDistance(updatedOrder.updated_at)}.`,
-                      icon: '/icons/icon-192x192.png',
-                    });
+                  try {
+                    // Special notification for order ready
+                    if (updatedOrder.status === 'ready') {
+                      new Notification('Your Order is Ready!', {
+                        body: 'Please pick up your order at the counter.',
+                        icon: '/icons/icon-192x192.png',
+                      });
+                    } else {
+                      new Notification(`Order Status: ${updatedOrder.status.toUpperCase()}`, {
+                        body: `Your order has been updated to ${updatedOrder.status} ${formatTimeDistance(updatedOrder.updated_at)}.`,
+                        icon: '/icons/icon-192x192.png',
+                      });
+                    }
+                  } catch (err) {
+                    console.error('Error showing notification:', err);
                   }
                 }
               }
               
-              // Call update handler if provided
-              if (onUpdate) {
-                onUpdate(updatedOrder);
-              }
+              // Update refs and state
+              orderRef.current = updatedOrder;
+              setOrder(updatedOrder);
               
-              return updatedOrder;
-            });
-          }
-        )
-        .subscribe();
-    }
+              // Call update handler if provided
+              try {
+                memoizedOnUpdate(updatedOrder);
+              } catch (err) {
+                console.error('Error in update handler:', err);
+              }
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error('Error setting up subscription:', err);
+      }
+    };
     
-    // Initialize
-    fetchOrderData();
-    setupSubscription();
+    // Set up subscription after a short delay to ensure initial data is loaded
+    const subscriptionTimer = setTimeout(setupSubscription, 1000);
     
     // Cleanup subscription on unmount
     return () => {
       isActive = false;
+      clearTimeout(subscriptionTimer);
+      
       if (subscription) {
-        subscription.unsubscribe();
+        try {
+          subscription.unsubscribe();
+        } catch (err) {
+          console.error('Error unsubscribing:', err);
+        }
       }
     };
-  }, [orderId, onUpdate, onStatusChange, showNotifications]);
+  }, [orderId, showNotifications]); // Remove dependencies that could change
   
   return {
     order,
