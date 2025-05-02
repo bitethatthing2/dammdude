@@ -435,31 +435,30 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
             let items = [];
             
             // Check if order has items field
-            if (order.items) {
+            const itemsData = getFieldValue(order, ['items', 'order_items'], null);
+            
+            if (itemsData) {
               // Handle both string and object formats
-              if (typeof order.items === 'string') {
-                items = JSON.parse(order.items);
-              } else if (Array.isArray(order.items)) {
-                items = order.items;
-              } else if (typeof order.items === 'object') {
-                items = [order.items];
+              if (typeof itemsData === 'string') {
+                items = JSON.parse(itemsData);
+              } else if (Array.isArray(itemsData)) {
+                items = itemsData;
+              } else if (typeof itemsData === 'object') {
+                items = [itemsData];
               }
-            } else {
-              // If no items field, try to fetch from order_items table later
-              items = [];
             }
             
             if (Array.isArray(items)) {
               parsedItems = items.map((item: any, index: number) => ({
-                id: item.id || `${order.id}-item-${index}`,
+                id: getFieldValue(item, ['id'], `${order.id}-item-${index}`),
                 order_id: order.id,
-                menu_item_id: item.menu_item_id || item.item_id || '',
-                menu_item_name: item.name || item.item_name || 'Unknown Item',
-                quantity: item.quantity || 1,
-                notes: item.notes || null,
-                unit_price: item.price || item.unit_price || 0,
-                subtotal: (item.price || item.unit_price || 0) * (item.quantity || 1),
-                customizations: item.customizations || null
+                menu_item_id: getFieldValue(item, ['menu_item_id', 'item_id'], ''),
+                menu_item_name: getFieldValue(item, ['name', 'item_name'], 'Unknown Item'),
+                quantity: getFieldValue(item, ['quantity'], 1),
+                notes: getFieldValue(item, ['notes'], null),
+                unit_price: getFieldValue(item, ['price', 'unit_price'], 0),
+                subtotal: getFieldValue(item, ['subtotal'], getFieldValue(item, ['price', 'unit_price'], 0) * getFieldValue(item, ['quantity'], 1)),
+                customizations: getFieldValue(item, ['customizations'], null)
               }));
             }
           } catch (e) {
@@ -471,10 +470,10 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
             table_id: order.table_id,
             status: order.status,
             created_at: order.created_at,
-            updated_at: order.updated_at || order.created_at,
-            total_amount: order.total_price || order.total_amount || 0,
-            notes: order.customer_notes || order.notes || null,
-            estimated_time: order.estimated_time || null,
+            updated_at: getFieldValue(order, ['updated_at'], order.created_at),
+            total_amount: getFieldValue(order, ['total_price', 'total_amount'], 0),
+            notes: getFieldValue(order, ['customer_notes', 'notes'], null),
+            estimated_time: getFieldValue(order, ['estimated_time'], null),
             table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
             table_section: tableInfo[order.table_id]?.section || null,
             items: parsedItems,
