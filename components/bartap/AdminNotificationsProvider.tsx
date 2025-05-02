@@ -42,6 +42,19 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const supabase = getSupabaseBrowserClient();
   
+  // Helper function to get value from different possible field names
+  function getFieldValue(obj: any, fieldNames: string[], defaultValue: any = null): any {
+    if (!obj) return defaultValue;
+    
+    for (const field of fieldNames) {
+      if (obj[field] !== undefined) {
+        return obj[field];
+      }
+    }
+    
+    return defaultValue;
+  }
+
   // Load initial orders data
   useEffect(() => {
     async function loadInitialOrders() {
@@ -70,6 +83,11 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           console.error('Error fetching ready orders:', readyError);
           setReadyOrders([]);
           return;
+        }
+        
+        // Log the first order to help with debugging schema issues
+        if (pendingOrdersData && pendingOrdersData.length > 0) {
+          console.log('Sample pending order structure:', JSON.stringify(pendingOrdersData[0], null, 2));
         }
         
         // Get all table IDs from orders
@@ -102,24 +120,24 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
         }
         
         // Format orders with table names
-        const formattedPendingOrders = pendingOrdersData?.map((order: Order) => ({
+        const formattedPendingOrders = pendingOrdersData?.map((order: any) => ({
           id: order.id,
           table_id: order.table_id,
           table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
-          total_price: order.total_price || 0,
-          customer_notes: order.customer_notes || ''
+          total_price: getFieldValue(order, ['total_price', 'total_amount'], 0),
+          customer_notes: getFieldValue(order, ['customer_notes', 'notes'], '')
         })) || [];
         
-        const formattedReadyOrders = readyOrdersData?.map((order: Order) => ({
+        const formattedReadyOrders = readyOrdersData?.map((order: any) => ({
           id: order.id,
           table_id: order.table_id,
           table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
-          total_price: order.total_price || 0,
-          customer_notes: order.customer_notes || ''
+          total_price: getFieldValue(order, ['total_price', 'total_amount'], 0),
+          customer_notes: getFieldValue(order, ['customer_notes', 'notes'], '')
         })) || [];
         
         setPendingOrders(formattedPendingOrders);
