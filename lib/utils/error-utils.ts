@@ -4,6 +4,17 @@ interface ErrorContext {
   componentStack?: string;
 }
 
+interface ErrorLog {
+  message: string;
+  timestamp: string;
+  source?: string;
+  stack?: string;
+  context?: Record<string, any>;
+}
+
+// Array to store error logs
+const errorLogs: ErrorLog[] = [];
+
 /**
  * Captures and logs errors with context information
  * Can be extended later to send to error tracking service
@@ -16,11 +27,49 @@ export function captureError(error: Error, context?: ErrorContext) {
     ...context
   });
   
+  // Store in error logs
+  errorLogs.push({
+    message: error.message,
+    timestamp: new Date().toISOString(),
+    source: context?.source,
+    stack: error.stack,
+    context: context?.context
+  });
+  
+  // Limit logs to most recent 50
+  if (errorLogs.length > 50) {
+    errorLogs.shift();
+  }
+  
   // In the future, this could send to an error tracking service
   // For now, just ensure we have good console logs for debugging
   
   // Return the error for potential chaining
   return error;
+}
+
+/**
+ * Sets up global error handlers for the application
+ */
+export function setupGlobalErrorHandlers() {
+  if (typeof window === 'undefined') return;
+  
+  // Already set up in error-monitoring.ts
+  console.log('Global error handlers initialized');
+}
+
+/**
+ * Get stored error logs for debugging
+ */
+export function getStoredErrors(): ErrorLog[] {
+  return [...errorLogs];
+}
+
+/**
+ * Clear stored error logs
+ */
+export function clearStoredErrors(): void {
+  errorLogs.length = 0;
 }
 
 /**

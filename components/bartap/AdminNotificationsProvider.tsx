@@ -61,11 +61,48 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
       try {
         console.log('Fetching orders via API...');
         
-        // Use the API endpoint instead of direct Supabase queries
-        const pendingResponse = await fetch('/api/admin/orders?status=pending');
-        const readyResponse = await fetch('/api/admin/orders?status=ready');
+        // Add error handling timeouts to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        // Log any HTTP errors
+        // Use the API endpoint with proper error handling, following the pattern from useAdminOrders.ts
+        const pendingQueryParams = new URLSearchParams();
+        pendingQueryParams.append('status', 'pending');
+        
+        const readyQueryParams = new URLSearchParams();
+        readyQueryParams.append('status', 'ready');
+        
+        // Fetch with error handling
+        const pendingResponse = await fetch(`/api/admin/orders?${pendingQueryParams.toString()}`, {
+          signal: controller.signal,
+          // Add cache control to prevent stale data
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }).catch(err => {
+          console.error('Network error fetching pending orders:', err);
+          return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+        });
+        
+        const readyResponse = await fetch(`/api/admin/orders?${readyQueryParams.toString()}`, {
+          signal: controller.signal,
+          // Add cache control to prevent stale data
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }).catch(err => {
+          console.error('Network error fetching ready orders:', err);
+          return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Log responses for debugging
+        console.log('Pending orders response status:', pendingResponse.status);
+        console.log('Ready orders response status:', readyResponse.status);
+        
         if (!pendingResponse.ok) {
           console.error('Error fetching pending orders:', 
             pendingResponse.status, pendingResponse.statusText);
@@ -76,15 +113,32 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
             readyResponse.status, readyResponse.statusText);
         }
         
-        // Parse the responses
-        const pendingData = pendingResponse.ok ? await pendingResponse.json() : { orders: [] };
-        const readyData = readyResponse.ok ? await readyResponse.json() : { orders: [] };
+        // Parse the responses with error handling
+        let pendingData = { orders: [] };
+        let readyData = { orders: [] };
+        
+        try {
+          if (pendingResponse.ok) {
+            pendingData = await pendingResponse.json();
+          }
+        } catch (parseErr) {
+          console.error('Error parsing pending orders response:', parseErr);
+        }
+        
+        try {
+          if (readyResponse.ok) {
+            readyData = await readyResponse.json();
+          }
+        } catch (parseErr) {
+          console.error('Error parsing ready orders response:', parseErr);
+        }
         
         // Log the first order structure for debugging
         if (pendingData.orders && pendingData.orders.length > 0) {
           console.log('Sample pending order structure:', JSON.stringify(pendingData.orders[0], null, 2));
         }
         
+        // Set orders safely with defaults
         setPendingOrders(pendingData.orders || []);
         setReadyOrders(readyData.orders || []);
         setNewOrdersCount(pendingData.orders?.length || 0);
@@ -112,11 +166,27 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           let orderWithTableName = { ...newOrder };
           
           try {
-            const response = await fetch(`/api/admin/tables/${newOrder.table_id}`);
+            // Add controller to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            const response = await fetch(`/api/admin/tables/${newOrder.table_id}`, {
+              signal: controller.signal,
+              headers: {
+                'Cache-Control': 'no-cache'
+              }
+            }).catch(err => {
+              console.error('Network error fetching table data:', err);
+              return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (response.ok) {
               const tableData = await response.json();
               orderWithTableName.table_name = tableData.name || `Table ${newOrder.table_id}`;
             } else {
+              console.error('Error fetching table data:', response.status, response.statusText);
               orderWithTableName.table_name = `Table ${newOrder.table_id}`;
             }
           } catch (err) {

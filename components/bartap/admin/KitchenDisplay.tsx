@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/bartap/ui/StatusBadge';
 import { formatRelativeTime } from '@/lib/utils/date-utils';
 import { formatCurrency } from '@/lib/utils/format-utils';
-import { Clock, AlertTriangle, CheckCircle2, Coffee, Bell, BellOff, Volume2, VolumeX, Bug } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, Coffee, Bell, BellOff, Volume2, VolumeX, Bug, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { useAdminOrders, AdminOrder, OrderStatus } from '@/lib/hooks/useAdminOrd
 import { setupGlobalErrorHandlers, captureError, getStoredErrors, clearStoredErrors } from '@/lib/utils/error-utils';
 import { setupErrorMonitoring } from '@/lib/utils/error-monitoring';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { ApiDiagnostics } from './ApiDiagnostics';
 
 // Order statuses we care about in the kitchen
 type KitchenOrderStatus = 'pending' | 'preparing' | 'ready';
@@ -372,126 +373,110 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
         </Card>
         
         {/* Diagnostics panel for admins */}
-        {false && (
-          <Card className="mb-4 bg-muted">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <Bug className="h-5 w-5 mr-2" />
-                Diagnostics Panel
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card className="mb-4 bg-muted/20">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center">
+              <Database className="h-4 w-4 mr-2 text-primary" />
+              System Diagnostics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 py-2">
+            {/* API Diagnostics tool */}
+            <ApiDiagnostics compact={true} />
+            
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium">Order Fetch Status</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-card p-2 rounded">
+                  <span className="font-medium">Loading:</span> {isLoading ? 'Yes' : 'No'}
+                </div>
+                <div className="bg-card p-2 rounded">
+                  <span className="font-medium">Error:</span> {error ? 'Yes' : 'No'}
+                </div>
+                <div className="bg-card p-2 rounded">
+                  <span className="font-medium">Pending Orders:</span> {pendingOrders.length}
+                </div>
+                <div className="bg-card p-2 rounded">
+                  <span className="font-medium">Total Orders:</span> {orders.length}
+                </div>
+              </div>
+            </div>
+            
+            {error && (
+              <div className="bg-destructive/10 p-3 rounded-md">
+                <h3 className="text-xs font-medium text-destructive mb-1">Error Details</h3>
+                <p className="text-xs font-mono whitespace-pre-wrap">{error}</p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-medium">Actions</h3>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-6 text-xs"
+                  onClick={() => {
+                    clearStoredErrors();
+                    toast.success('Error logs cleared');
+                  }}
+                >
+                  Clear Logs
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    fetchOrders();
+                    toast.success('Manually refreshed orders');
+                  }}
+                >
+                  Refresh Orders
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    window.location.reload();
+                  }}
+                >
+                  Reload Page
+                </Button>
+              </div>
+            </div>
+            
+            {getStoredErrors().length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">Order Fetch Status</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-card p-2 rounded">
-                    <span className="font-medium">Loading:</span> {isLoading ? 'Yes' : 'No'}
-                  </div>
-                  <div className="bg-card p-2 rounded">
-                    <span className="font-medium">Error:</span> {error ? 'Yes' : 'No'}
-                  </div>
-                  <div className="bg-card p-2 rounded">
-                    <span className="font-medium">Pending Orders:</span> {pendingOrders.length}
-                  </div>
-                  <div className="bg-card p-2 rounded">
-                    <span className="font-medium">Total Orders:</span> {orders.length}
+                <h3 className="text-xs font-medium">Recent Errors</h3>
+                <div className="bg-card rounded-md max-h-24 overflow-y-auto">
+                  <div className="divide-y divide-border">
+                    {getStoredErrors().slice(0, 3).map((errorLog, index) => (
+                      <div key={index} className="p-2 text-xs">
+                        <div className="font-medium">{errorLog.message}</div>
+                        <div className="text-muted-foreground text-xs">{new Date(errorLog.timestamp).toLocaleString()}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-              
-              {error && (
-                <div className="bg-destructive/10 p-3 rounded-md">
-                  <h3 className="text-sm font-medium text-destructive mb-1">Error Details</h3>
-                  <p className="text-xs font-mono whitespace-pre-wrap">{error}</p>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Actions</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => {
-                      fetchOrders();
-                      toast.success('Manually refreshed orders');
-                    }}
-                  >
-                    Refresh Orders
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => {
-                      try {
-                        // Trigger a test error to verify error handling
-                        captureError(new Error('Test error from KitchenDisplay'), {
-                          source: 'KitchenDisplay',
-                          context: { test: true }
-                        });
-                        toast.info('Test error logged');
-                      } catch (e) {
-                        console.error('Error logging test error:', e);
-                      }
-                    }}
-                  >
-                    Log Test Error
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => {
-                      window.location.reload();
-                    }}
-                  >
-                    Reload Page
-                  </Button>
-                </div>
+            )}
+            
+            <details className="text-xs">
+              <summary className="cursor-pointer font-medium">Database Information</summary>
+              <div className="mt-2 p-2 bg-card rounded-md">
+                <p className="mb-1">Table schema expectations:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><code>orders</code> table: <code>notes</code>, <code>total_amount</code>, <code>location</code>, <code>items</code></li>
+                  <li><code>order_items</code> table: <code>menu_item_id</code>, <code>price</code>, <code>name</code></li>
+                </ul>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium">Recent Errors</h3>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => {
-                      clearStoredErrors();
-                      toast.success('Error logs cleared');
-                    }}
-                  >
-                    Clear
-                  </Button>
-                </div>
-                <div className="bg-card rounded-md max-h-48 overflow-y-auto">
-                  {getStoredErrors().length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">No errors logged</p>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {getStoredErrors().slice(0, 5).map((errorLog, index) => (
-                        <div key={index} className="p-2 text-xs">
-                          <div className="font-medium">{errorLog.message}</div>
-                          <div className="text-muted-foreground">{new Date(errorLog.timestamp).toLocaleString()}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <details className="text-xs">
-                <summary className="cursor-pointer font-medium">Database Schema Information</summary>
-                <div className="mt-2 p-2 bg-card rounded-md">
-                  <p className="mb-1">Based on previous fixes, ensure these field names are used:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li><code>orders</code> table: <code>notes</code>, <code>total_amount</code>, <code>location</code>, <code>items</code></li>
-                    <li><code>order_items</code> table: <code>menu_item_id</code>, <code>price</code>, <code>name</code></li>
-                  </ul>
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-        )}
+            </details>
+          </CardContent>
+        </Card>
         
         {/* Notification permission alert */}
         {notificationsEnabled && 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { LogOut, Bell, Send } from 'lucide-react';
+import { LogOut, Bell, Send, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NotificationCreator } from '@/components/admin/NotificationCreator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DatabaseDebugger } from '@/components/admin/DatabaseDebugger';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -344,15 +345,40 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         
+        {/* Database Diagnostics Card */}
+        <Card className="col-span-1 md:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center text-lg">
+              <Database className="h-5 w-5 mr-2 text-primary" />
+              System Diagnostics
+            </CardTitle>
+            <CardDescription>
+              Troubleshoot database connections and API endpoints
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DatabaseDebugger />
+          </CardContent>
+        </Card>
+        
         <Card>
           <CardHeader>
             <CardTitle>Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <p>Manage customer orders</p>
-            <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Orders", description: "This feature is coming soon" })}>
-              View Orders
-            </Button>
+            <div className="flex mt-4 space-x-2">
+              <Button variant="outline" 
+                onClick={() => router.push('/admin/orders')}
+              >
+                View Orders
+              </Button>
+              <Button variant="outline" 
+                onClick={() => router.push('/admin/kitchen')}
+              >
+                Kitchen Display
+              </Button>
+            </div>
           </CardContent>
         </Card>
         
@@ -370,12 +396,12 @@ export default function AdminDashboard() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Settings</CardTitle>
+            <CardTitle>Tables</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Manage your account settings</p>
-            <Button variant="outline" className="mt-4" onClick={() => toast({ title: "Settings", description: "This feature is coming soon" })}>
-              View Settings
+            <p>Manage tables and QR codes</p>
+            <Button variant="outline" className="mt-4" onClick={() => router.push('/admin/tables')}>
+              Manage Tables
             </Button>
           </CardContent>
         </Card>
