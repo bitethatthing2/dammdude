@@ -356,24 +356,10 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
       setIsLoading(true);
       
       try {
-        // Fetch orders with relevant statuses and table information
+        // Fetch orders with relevant statuses - simple query
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
-          .select(`
-            id,
-            table_id,
-            status,
-            created_at,
-            updated_at,
-            total_amount,
-            notes,
-            estimated_time,
-            items,
-            tables!inner (
-              name,
-              section
-            )
-          `)
+          .select('*')
           .in('status', ['pending', 'preparing', 'ready'])
           .order('created_at', { ascending: false });
           
@@ -382,6 +368,29 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
           setError('Failed to load orders');
           setIsLoading(false);
           return;
+        }
+        
+        // Get all table IDs from orders
+        const tableIds = [...new Set(ordersData?.map(order => order.table_id) || [])];
+        
+        // Fetch table information if we have table IDs
+        let tableInfo: Record<string, { name: string, section?: string }> = {};
+        
+        if (tableIds.length > 0) {
+          const { data: tablesData, error: tablesError } = await supabase
+            .from('tables')
+            .select('id, name, section')
+            .in('id', tableIds);
+            
+          if (tablesError) {
+            console.error('Error fetching tables:', tablesError);
+          } else if (tablesData) {
+            // Create a lookup object for tables
+            tableInfo = tablesData.reduce((acc, table) => {
+              acc[table.id] = { name: table.name, section: table.section };
+              return acc;
+            }, {} as Record<string, { name: string, section?: string }>);
+          }
         }
         
         // Process fetched orders
@@ -411,8 +420,8 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
           
           return {
             ...order,
-            table_name: order.tables?.name || `Table ${order.table_id}`,
-            table_section: order.tables?.section,
+            table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
+            table_section: tableInfo[order.table_id]?.section,
             items: parsedItems,
             // Check if this is a new order we haven't seen before
             isNew: !seenOrderIdsRef.current.has(order.id) && order.status === 'pending'

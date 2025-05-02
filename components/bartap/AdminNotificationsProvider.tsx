@@ -45,37 +45,17 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
   useEffect(() => {
     async function loadInitialOrders() {
       try {
-        // Get pending orders with table information
+        // Get pending orders - simple query
         const { data: pendingOrdersData, error: pendingError } = await supabase
           .from('orders')
-          .select(`
-            id,
-            table_id,
-            status,
-            created_at,
-            total_amount,
-            tables!inner (
-              name,
-              section
-            )
-          `)
+          .select('*')
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
         
-        // Get ready orders with table information
+        // Get ready orders - simple query
         const { data: readyOrdersData, error: readyError } = await supabase
           .from('orders')
-          .select(`
-            id,
-            table_id,
-            status,
-            created_at,
-            total_amount,
-            tables!inner (
-              name,
-              section
-            )
-          `)
+          .select('*')
           .eq('status', 'ready')
           .order('created_at', { ascending: false });
           
@@ -91,11 +71,35 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
           return;
         }
         
+        // Get all table IDs from orders
+        const tableIds = [...new Set([
+          ...(pendingOrdersData?.map(order => order.table_id) || []),
+          ...(readyOrdersData?.map(order => order.table_id) || [])
+        ])];
+        
+        // Fetch table information if we have table IDs
+        let tableInfo: Record<string, { name: string, section?: string }> = {};
+        
+        if (tableIds.length > 0) {
+          const { data: tablesData } = await supabase
+            .from('tables')
+            .select('id, name, section')
+            .in('id', tableIds);
+            
+          if (tablesData) {
+            // Create a lookup object for tables
+            tableInfo = tablesData.reduce((acc, table) => {
+              acc[table.id] = { name: table.name, section: table.section };
+              return acc;
+            }, {} as Record<string, { name: string, section?: string }>);
+          }
+        }
+        
         // Format orders with table names
         const formattedPendingOrders = pendingOrdersData?.map((order: any) => ({
           id: order.id,
           table_id: order.table_id,
-          table_name: order.tables?.name || `Table ${order.table_id}`,
+          table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
           total_amount: order.total_amount || 0
@@ -104,7 +108,7 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
         const formattedReadyOrders = readyOrdersData?.map((order: any) => ({
           id: order.id,
           table_id: order.table_id,
-          table_name: order.tables?.name || `Table ${order.table_id}`,
+          table_name: tableInfo[order.table_id]?.name || `Table ${order.table_id}`,
           status: order.status,
           created_at: order.created_at,
           total_amount: order.total_amount || 0
