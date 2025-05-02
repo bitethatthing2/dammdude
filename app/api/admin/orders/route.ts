@@ -16,10 +16,6 @@ interface RawOrder {
   estimated_time?: number;
   order_items?: any[];
   items?: any[];
-  table?: {
-    name?: string;
-    section?: string;
-  };
 }
 
 interface ProcessedOrder {
@@ -50,13 +46,14 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const offset = (page - 1) * limit;
     
-    // Create server-side Supabase client
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    // Create server-side Supabase client - fixed cookie handling
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
     
-    // Build query with proper error handling
+    // Build query - REMOVED the table join that was causing errors
     let query = supabase
       .from('orders')
-      .select('*, table:tables(name, section), order_items(*)');
+      .select('*, order_items(*)');
     
     // Add filters - handle multiple status values
     if (statusParams.length > 0) {
@@ -84,11 +81,11 @@ export async function GET(request: Request) {
       }, { status: 500 });
     }
     
-    // Process orders to ensure consistent structure for the front-end
+    // Process orders - simplified to avoid table access
     const processedOrders = (data || []).map((order: RawOrder): ProcessedOrder => ({
       id: order.id,
       table_id: order.table_id,
-      table_name: order.table?.name || `Table ${order.table_id}`,
+      table_name: `Table ${order.table_id}`, // Simplified - don't try to access table.name
       status: order.status,
       created_at: order.created_at,
       total_amount: order.total_amount || order.total_price || 0,

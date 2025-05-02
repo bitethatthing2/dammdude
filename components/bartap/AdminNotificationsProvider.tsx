@@ -40,7 +40,7 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
   const [readyOrders, setReadyOrders] = useState<Order[]>([]);
   const [viewedOrders, setViewedOrders] = useState<Set<string>>(new Set());
   const [newOrdersCount, setNewOrdersCount] = useState(0);
-  const supabase = getSupabaseBrowserClient();
+  const [supabase, setSupabase] = useState<any>(null);
   
   // Helper function to get value from different possible field names
   function getFieldValue(obj: any, fieldNames: string[], defaultValue: any = null): any {
@@ -55,8 +55,19 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
     return defaultValue;
   }
 
+  // Initialize Supabase client on the client side only
+  useEffect(() => {
+    // Only import the Supabase client on the client side
+    if (typeof window !== 'undefined') {
+      setSupabase(getSupabaseBrowserClient());
+    }
+  }, []);
+
   // Load initial orders data
   useEffect(() => {
+    // Skip if Supabase client isn't initialized yet
+    if (!supabase) return;
+    
     async function loadInitialOrders() {
       try {
         console.log('Fetching orders via API...');
@@ -277,7 +288,7 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
     return () => {
       ordersSubscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase]); // Only run this effect when supabase client is available
   
   // Mark an order as viewed to reduce notification count
   const markOrderAsViewed = (orderId: string) => {
