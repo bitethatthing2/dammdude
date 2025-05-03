@@ -111,9 +111,16 @@ export async function safeFetch<T>(url: string, options?: RequestInit): Promise<
  * with appropriate error handling
  */
 export function formatTimeDistance(dateString: string): string {
+  if (!dateString) return 'unknown time';
+  
   try {
     const now = new Date();
     const date = new Date(dateString);
+    
+    // Check for invalid date
+    if (isNaN(date.getTime())) {
+      return 'invalid date';
+    }
     
     // Calculate time difference in milliseconds
     const diffMs = now.getTime() - date.getTime();
@@ -145,8 +152,16 @@ export function formatTimeDistance(dateString: string): string {
  * with appropriate error handling
  */
 export function formatOrderDate(dateString: string): string {
+  if (!dateString) return 'Invalid date';
+  
   try {
     const date = new Date(dateString);
+    
+    // Check for invalid date
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
     return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',

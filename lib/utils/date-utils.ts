@@ -51,26 +51,38 @@ export function parseISO(dateString: string): Date | null {
  * @returns Formatted relative time string
  */
 export function formatRelativeTime(date: string | Date): string {
-  const now = new Date();
-  const targetDate = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return 'unknown time';
   
-  // Calculate time difference in milliseconds
-  const diffMs = now.getTime() - targetDate.getTime();
-  
-  // Convert to seconds, minutes, hours, days
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  
-  // Format the relative time
-  if (diffSec < 60) {
-    return `${diffSec} seconds ago`;
-  } else if (diffMin < 60) {
-    return diffMin === 1 ? '1 minute ago' : `${diffMin} minutes ago`;
-  } else if (diffHour < 24) {
-    return diffHour === 1 ? '1 hour ago' : `${diffHour} hours ago`;
-  } else {
-    return diffDay === 1 ? '1 day ago' : `${diffDay} days ago`;
+  try {
+    const now = new Date();
+    const targetDate = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check for invalid date
+    if (isNaN(targetDate.getTime())) {
+      return 'invalid date';
+    }
+    
+    // Calculate time difference in milliseconds
+    const diffMs = now.getTime() - targetDate.getTime();
+    
+    // Convert to seconds, minutes, hours, days
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    // Format the relative time
+    if (diffSec < 60) {
+      return `${diffSec} seconds ago`;
+    } else if (diffMin < 60) {
+      return diffMin === 1 ? '1 minute ago' : `${diffMin} minutes ago`;
+    } else if (diffHour < 24) {
+      return diffHour === 1 ? '1 hour ago' : `${diffHour} hours ago`;
+    } else {
+      return diffDay === 1 ? '1 day ago' : `${diffDay} days ago`;
+    }
+  } catch (error) {
+    console.error('Error formatting relative time:', error);
+    return 'unknown time';
   }
 }

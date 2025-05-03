@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
-import { NotificationIndicator } from '@/components/shared/NotificationIndicator';
+import { NotificationIndicator } from '@/components/unified/notifications';
 import { OrderConfirmation } from '@/components/bartap/OrderConfirmation';
 import { 
   Select, 
@@ -23,7 +23,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
-import { useNotifications } from '@/components/shared/notification-provider';
+import { useNotifications } from '@/components/unified/notifications';
 import { useBarTap } from '@/lib/contexts/bartap-context';
 import { useRouter } from 'next/navigation';
 

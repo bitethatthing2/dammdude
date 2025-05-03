@@ -22,7 +22,7 @@ export async function GET(
     
     // Create server-side Supabase client using our custom function
     const cookieStore = cookies();
-    const supabase = createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient(cookieStore);
     
     // Fetch table data
     const { data, error } = await supabase

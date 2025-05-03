@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const supabase = createSupabaseServerClient();
+    const cookieStore = cookies();
+    const supabase = await createSupabaseServerClient(cookieStore);
     
     // Get menu items for the specified category
     const { data, error } = await supabase

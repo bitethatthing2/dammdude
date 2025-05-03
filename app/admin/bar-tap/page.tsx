@@ -1,3 +1,5 @@
+'use client';
+
 import RealtimeOrderList from '@/components/admin/RealtimeOrderList';
 import { NotificationSender } from '@/components/admin/NotificationSender';
 

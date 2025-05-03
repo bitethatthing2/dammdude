@@ -1,5 +1,8 @@
 import { Metadata } from 'next';
-import { OrdersManagement } from '@/components/bartap/OrdersManagement';
+import { Suspense } from 'react';
+
+// Import from unified components instead of bartap
+import { OrdersManagement } from '@/components/unified/OrdersManagement';
 
 export const metadata: Metadata = {
   title: 'BarTap Admin - Orders',
@@ -8,7 +11,7 @@ export const metadata: Metadata = {
 
 /**
  * Admin orders page for managing all customer orders
- * Uses server-side rendering for initial data load
+ * Uses the unified OrdersManagement component
  */
 export default function OrdersPage() {
   return (
@@ -20,7 +23,29 @@ export default function OrdersPage() {
         </p>
       </div>
       
-      <OrdersManagement />
+      {/* Add Suspense boundary for better UX */}
+      <Suspense fallback={<OrdersSkeleton />}>
+        <OrdersManagement />
+      </Suspense>
+    </div>
+  );
+}
+
+/**
+ * Skeleton UI for orders loading state
+ */
+function OrdersSkeleton() {
+  return (
+    <div className="rounded-md border p-8 animate-pulse">
+      <div className="flex justify-between items-center mb-6">
+        <div className="h-6 bg-muted rounded w-[150px]"></div>
+        <div className="h-10 bg-muted rounded w-[120px]"></div>
+      </div>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-24 bg-muted rounded-md"></div>
+        ))}
+      </div>
     </div>
   );
 }

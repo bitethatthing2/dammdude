@@ -12,7 +12,7 @@ export async function GET() {
   try {
     // Create server-side Supabase client with our custom function
     const cookieStore = cookies();
-    const supabase = createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient(cookieStore);
     
     // Test database connection and collect diagnostics
     const diagnostics = {
@@ -27,11 +27,15 @@ export async function GET() {
     
     // Test orders table
     let start = Date.now();
-    const ordersResult = await supabase
-      .from('orders')
-      .select('count')
-      .limit(1)
-      .catch(err => ({ data: null, error: err }));
+    let ordersResult;
+    try {
+      ordersResult = await supabase
+        .from('orders')
+        .select('count')
+        .limit(1);
+    } catch (err) {
+      ordersResult = { data: null, error: err };
+    }
     
     diagnostics.ordersTable.latency = Date.now() - start;
     diagnostics.ordersTable.success = !ordersResult.error;
@@ -48,11 +52,15 @@ export async function GET() {
     
     // Test tables table
     start = Date.now();
-    const tablesResult = await supabase
-      .from('tables')
-      .select('count')
-      .limit(1)
-      .catch(err => ({ data: null, error: err }));
+    let tablesResult;
+    try {
+      tablesResult = await supabase
+        .from('tables')
+        .select('count')
+        .limit(1);
+    } catch (err) {
+      tablesResult = { data: null, error: err };
+    }
     
     diagnostics.tablesTable.latency = Date.now() - start;
     diagnostics.tablesTable.success = !tablesResult.error;
@@ -69,11 +77,15 @@ export async function GET() {
     
     // Test order_items table
     start = Date.now();
-    const orderItemsResult = await supabase
-      .from('order_items')
-      .select('count')
-      .limit(1)
-      .catch(err => ({ data: null, error: err }));
+    let orderItemsResult;
+    try {
+      orderItemsResult = await supabase
+        .from('order_items')
+        .select('count')
+        .limit(1);
+    } catch (err) {
+      orderItemsResult = { data: null, error: err };
+    }
     
     diagnostics.orderItemsTable.latency = Date.now() - start;
     diagnostics.orderItemsTable.success = !orderItemsResult.error;

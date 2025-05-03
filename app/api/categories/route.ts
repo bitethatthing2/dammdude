@@ -1,10 +1,12 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient();
+    const cookieStore = cookies();
+    const supabase = await createSupabaseServerClient(cookieStore);
     
     const { data, error } = await supabase
       .from('categories')

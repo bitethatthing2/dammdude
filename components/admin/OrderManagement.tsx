@@ -226,18 +226,31 @@ export function OrderManagement() {
   
   // Format time since order was placed
   const getTimeSinceOrder = (orderTime: string) => {
-    const orderDate = new Date(orderTime);
-    const now = new Date();
-    const diffMs = now.getTime() - orderDate.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
+    if (!orderTime) return 'Unknown time';
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins === 1) return '1 minute ago';
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours === 1) return '1 hour ago';
-    return `${diffHours} hours ago`;
+    try {
+      const orderDate = new Date(orderTime);
+      
+      // Check for invalid date
+      if (isNaN(orderDate.getTime())) {
+        return 'Invalid date';
+      }
+      
+      const now = new Date();
+      const diffMs = now.getTime() - orderDate.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins === 1) return '1 minute ago';
+      if (diffMins < 60) return `${diffMins} minutes ago`;
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours === 1) return '1 hour ago';
+      return `${diffHours} hours ago`;
+    } catch (error) {
+      console.error('Error calculating time difference:', error);
+      return 'Unknown time';
+    }
   };
   
   // Filter orders by status

@@ -5,7 +5,7 @@ import { cookies, headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Home, FileText, Users, Settings, LogOut, MenuSquare, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AdminNotificationsProvider } from '@/components/bartap/AdminNotificationsProvider';
+import { UnifiedNotificationProvider } from '@/components/unified';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -13,7 +13,6 @@ interface AdminLayoutProps {
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
   // Special case for login page - don't check authentication
-  // This is determined by checking if the children component is the login page
   if (children.type?.name === 'AdminLoginPage') {
     return (
       <div className="min-h-screen flex dark:bg-background">
@@ -27,13 +26,13 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   // Get the session from cookies
-  const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient(cookieStore);
+  const cookieStore = cookies();
+  const supabase = await createSupabaseServerClient(cookieStore);
   
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // Skip authentication check for now to prevent login loops
-  // We'll rely on client-side auth in the login page
+  // Get authenticated user
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
+  const userId = session?.user?.id;
   
   // Navigation links
   const navItems = [
@@ -42,11 +41,12 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/menu', label: 'Menu', icon: MenuSquare },
     { href: '/admin/kitchen', label: 'Kitchen', icon: ChefHat },
     { href: '/admin/tables', label: 'Tables', icon: Users },
+    { href: '/admin/unified', label: 'Unified Admin', icon: FileText },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
   
   return (
-    <AdminNotificationsProvider>
+    <UnifiedNotificationProvider recipientId={userId || 'admin'} role="admin">
       <div className="min-h-screen flex dark:bg-background">
         {/* Sidebar navigation */}
         <aside className="hidden md:flex w-64 flex-col bg-muted/40 border-r border-border">
@@ -99,6 +99,6 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           </main>
         </div>
       </div>
-    </AdminNotificationsProvider>
+    </UnifiedNotificationProvider>
   );
 }

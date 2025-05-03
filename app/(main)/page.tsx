@@ -15,7 +15,7 @@ import React, { Suspense } from 'react';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
-  () => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator)
+  () => import('@/components/unified/notifications').then(mod => mod.NotificationIndicator)
 );
 
 // Loading fallback component

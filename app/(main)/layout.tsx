@@ -5,7 +5,7 @@ import React from 'react';
 import { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
-import { NotificationProvider } from '@/components/shared/notification-provider';
+import { UnifiedNotificationProvider } from '@/components/unified';
 import { Suspense } from 'react';
 import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
 import { BarTapProvider } from '@/lib/contexts/bartap-context';
@@ -25,7 +25,7 @@ const ClientComponents = {
   ),
   
   NotificationBell: dynamic(
-    () => import('@/components/shared/NotificationIndicator').then(mod => mod.NotificationIndicator),
+    () => import('@/components/unified/notifications').then(mod => mod.NotificationIndicator),
     { loading: () => <div className="h-8 w-8 rounded-full bg-muted animate-pulse" /> }
   )
 };
@@ -97,7 +97,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <ThemeProviderWrapper>
       <QueryStateProvider>
-        <NotificationProvider>
+        <UnifiedNotificationProvider recipientId='customer' role='customer'>
           <BarTapProvider>
             <div className="relative flex min-h-screen flex-col">
               <Header />
@@ -112,7 +112,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <ClientOnlyRoot />
             </Suspense>
           </BarTapProvider>
-        </NotificationProvider>
+        </UnifiedNotificationProvider>
       </QueryStateProvider>
     </ThemeProviderWrapper>
   );

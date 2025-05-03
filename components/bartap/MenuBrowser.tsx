@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, ShoppingCart, Coffee, Wine, Beer, Cocktail, Utensils, Salad, Egg, Drumstick, Fish, Pizza, AlertCircle } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Coffee, Wine, Beer, Utensils, Salad, Egg, Drumstick, Fish, Pizza, AlertCircle, GlassWater } from 'lucide-react';
 import Image from 'next/image';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
@@ -39,9 +39,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Boards': <Pizza className="h-4 w-4" />,
   'Flights': <Wine className="h-4 w-4" />,
   'Towers': <Beer className="h-4 w-4" />,
-  'House Favorites': <Cocktail className="h-4 w-4" />,
-  'Martinis': <Cocktail className="h-4 w-4" />,
-  'Margaritas': <Cocktail className="h-4 w-4" />,
+  'House Favorites': <GlassWater className="h-4 w-4" />,
+  'Martinis': <GlassWater className="h-4 w-4" />,
+  'Margaritas': <GlassWater className="h-4 w-4" />,
   'Malibu Buckets': <Beer className="h-4 w-4" />,
   'Refreshers': <Coffee className="h-4 w-4" />,
   'Bottle Beer': <Beer className="h-4 w-4" />,

@@ -7,7 +7,7 @@ import { CheckCircle, ArrowRight, Bell, Clock, Home, ShoppingBag, AlertCircle } 
 import Link from 'next/link';
 import { formatOrderDate } from '@/lib/utils/date-utils';
 import { useOrderSubscription } from '@/lib/hooks/useOrderSubscription';
-import { StatusBadge } from '@/components/bartap/ui/StatusBadge';
+import { StatusBadge } from '@/components/unified/ui/StatusBadge';
 import { formatCurrency } from '@/lib/utils/format-utils';
 import { useBarTap } from '@/lib/contexts/bartap-context';
 import { useRouter } from 'next/navigation';

@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
  * POST handler for manual table identification
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
   }
   
   // Create a server-side Supabase client
-  const supabase = createClient();
+  const cookieStore = cookies();
+  const supabase = await createSupabaseServerClient(cookieStore);
   
   // Find table by number/name
   const { data: tableData, error } = await supabase
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
   
   // Set table ID cookie
   try {
-    // @ts-ignore - Force TypeScript to accept this implementation
-    cookies().set({
+    // Use await with cookies
+    await cookieStore.set({
       name: 'table_id',
       value: tableData.id,
       path: '/',

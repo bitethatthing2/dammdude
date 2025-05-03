@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BottomNav } from './BottomNav';
-import { NotificationProvider } from '@/lib/contexts/notification-context';
+import { UnifiedNotificationProvider } from '@/components/unified/notifications';
 
 /**
  * Client-side wrapper for the BottomNav component
@@ -25,11 +25,11 @@ const ClientBottomNav = () => {
     );
   }
 
-  // Wrap BottomNav with NotificationProvider to ensure notifications work
+  // Wrap BottomNav with UnifiedNotificationProvider to ensure notifications work
   return (
-    <NotificationProvider>
+    <UnifiedNotificationProvider recipientId='customer' role='customer'>
       <BottomNav />
-    </NotificationProvider>
+    </UnifiedNotificationProvider>
   );
 };
 

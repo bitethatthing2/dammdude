@@ -9,7 +9,7 @@ export async function GET() {
     
     // Use our custom server client that handles cookies correctly
     const cookieStore = cookies();
-    const supabase = createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient(cookieStore);
     
     // Test 1: Simple query to check basic connectivity
     console.log("[TEST API] Running simple query test");
@@ -43,12 +43,18 @@ export async function GET() {
 
     // Test 4: Try different query approach for orders
     console.log("[TEST API] Trying alternative orders query");
-    const { data: altOrdersData, error: altOrdersError } = await supabase.rpc(
-      'get_orders',
-      { status_filter: ['pending', 'ready'] }
-    ).catch(err => {
-      return { data: null, error: { message: `RPC not found: ${err.message}` } };
-    });
+    let altOrdersData = null;
+    let altOrdersError = null;
+    try {
+      const result = await supabase.rpc(
+        'get_orders',
+        { status_filter: ['pending', 'ready'] }
+      );
+      altOrdersData = result.data;
+      altOrdersError = result.error;
+    } catch (err) {
+      altOrdersError = { message: `RPC not found: ${err instanceof Error ? err.message : String(err)}` };
+    }
     
     // Return all test results
     return NextResponse.json({

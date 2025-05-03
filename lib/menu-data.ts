@@ -24,8 +24,8 @@ export async function getCategories(): Promise<Category[]> {
   noStore();
 
   try {
-    const cookieStore = await cookies(); // Await cookie store
-    const supabase = createSupabaseServerClient(cookieStore); // Pass cookie store
+    const cookieStore = cookies();
+    const supabase = await createSupabaseServerClient(cookieStore); // Pass cookie store and await
 
     // Fetch all categories from the menu_categories table
     // Removing 'icon' from the query since it doesn't exist in the table
@@ -90,8 +90,8 @@ type MenuItemWithOptions = Database['public']['Tables']['menu_items']['Row'] & {
 export async function getMenuItemsByCategory(categoryId: string | number): Promise<MenuItemWithOptions[]> {
   noStore();
    
-  const cookieStore = await cookies(); // Await cookie store
-  const supabase = createSupabaseServerClient(cookieStore); // Pass cookie store
+  const cookieStore = cookies();
+  const supabase = await createSupabaseServerClient(cookieStore); // Pass cookie store and await
    
   // Convert string ID to number if needed
   const numericCategoryId = typeof categoryId === 'string' ? parseInt(categoryId, 10) : categoryId;

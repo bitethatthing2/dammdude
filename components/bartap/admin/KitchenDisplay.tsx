@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/bartap/ui/StatusBadge';
+import { StatusBadge } from '@/components/unified/ui/StatusBadge';
 import { formatRelativeTime } from '@/lib/utils/date-utils';
 import { formatCurrency } from '@/lib/utils/format-utils';
 import { Clock, AlertTriangle, CheckCircle2, Coffee, Bell, BellOff, Volume2, VolumeX, Bug, Database } from 'lucide-react';

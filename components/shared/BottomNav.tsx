@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
 import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen, LogIn } from 'lucide-react';
-import { NotificationIndicator } from './NotificationIndicator';
+import { NotificationIndicator } from '@/components/unified/notifications';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { useState, useEffect, useRef } from 'react';
-import { useNotifications } from '@/lib/contexts/notification-context';
+import { useNotifications } from '@/components/unified/notifications';
 import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
 import { useBarTap } from '@/lib/contexts/bartap-context';
 

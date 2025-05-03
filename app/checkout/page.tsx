@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { CartProvider } from '@/components/bartap/CartContext';
 import { ClientCheckoutForm } from '@/components/bartap/ClientCheckoutForm';
-import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: 'BarTap - Checkout',
@@ -19,18 +19,20 @@ export default async function CheckoutPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   // Get the table ID from either the URL or cookie
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   
   // Properly handle searchParams - must await them in Next.js 15
   const searchParamsObj = await searchParams;
   const tableParam = searchParamsObj?.table;
   const tableIdFromParam = typeof tableParam === 'string' ? tableParam : undefined;
   
-  const tableId = tableIdFromParam || cookieStore.get('table_id')?.value;
+  const tableCookie = cookieStore.get('table_id');
+  const tableId = tableIdFromParam || tableCookie?.value;
   
   console.log('[CheckoutPage] searchParams:', JSON.stringify(await searchParamsObj));
   console.log('[CheckoutPage] tableIdFromParam:', tableIdFromParam);
-  console.log('[CheckoutPage] cookie table_id:', cookieStore.get('table_id')?.value);
+  const logCookie = cookieStore.get('table_id');
+  console.log('[CheckoutPage] cookie table_id:', logCookie?.value);
   console.log('[CheckoutPage] final tableId:', tableId);
   
   // If no table ID, redirect to table identification
@@ -40,7 +42,7 @@ export default async function CheckoutPage({
   }
   
   // Create Supabase client
-  const supabase = createClient(cookieStore);
+  const supabase = await createSupabaseServerClient(cookieStore);
   
   // Verify the table exists
   const { data: tableData, error } = await supabase

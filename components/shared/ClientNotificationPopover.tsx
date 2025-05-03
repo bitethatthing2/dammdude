@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { NotificationPopover } from '@/components/shared/NotificationPopover';
+import { NotificationPopover } from '@/components/unified/notifications';
 import { Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
