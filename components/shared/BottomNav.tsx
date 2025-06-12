@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen, LogIn } from 'lucide-react';
-import { NotificationIndicator } from '@/components/unified/notifications';
+import { QrCode, Bell, MoreHorizontal } from 'lucide-react';
+import { NotificationIndicator } from '@/components/unified';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { useState, useEffect, useRef } from 'react';
-import { useNotifications } from '@/components/unified/notifications';
 import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
 import { useBarTap } from '@/lib/contexts/bartap-context';
 
@@ -17,7 +16,6 @@ export const BottomNav = () => {
   const router = useRouter();
   const { notificationPermissionStatus } = useFcmContext();
   const [isMounted, setIsMounted] = useState(false);
-  const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const { resetFlow } = useBarTap();
@@ -25,41 +23,9 @@ export const BottomNav = () => {
   // Close more menu when clicking outside
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
 
-  // Try to use the notification context if available
-  let notificationContext;
-  try {
-    notificationContext = useNotifications();
-  } catch (error) {
-    // Context not available, will use fallback
-    notificationContext = null;
-  }
-
-  // Get unread count from context or fallback
-  const unreadCount = notificationContext?.unreadCount ?? fallbackUnreadCount;
-
-  // Set up mounted state and listen for notification updates
+  // Set up mounted state
   useEffect(() => {
     setIsMounted(true);
-
-    // Try to get unread count from localStorage as fallback
-    const storedCount = localStorage.getItem('unread-notification-count');
-    if (storedCount) {
-      setFallbackUnreadCount(parseInt(storedCount, 10));
-    }
-
-    // Listen for custom events from notification context
-    const handleNotificationUpdate = (e: CustomEvent<{ unreadCount: number }>) => {
-      if (e.detail && typeof e.detail.unreadCount === 'number') {
-        setFallbackUnreadCount(e.detail.unreadCount);
-        localStorage.setItem('unread-notification-count', e.detail.unreadCount.toString());
-      }
-    };
-
-    window.addEventListener('notification-update', handleNotificationUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('notification-update', handleNotificationUpdate as EventListener);
-    };
   }, []);
 
   // Define the type for navigation items
@@ -106,7 +72,9 @@ export const BottomNav = () => {
   // Render a navigation item
   const renderNavItem = (item: NavItem, onClick?: () => void) => {
     const isActive = pathname === item.href;
-    const Icon = item.iconName ? (LucideIcons as Record<string, React.ComponentType<any>>)[item.iconName] : null;
+    const Icon = item.iconName
+      ? (LucideIcons as Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>>)[item.iconName]
+      : null;
 
     return (
       <Link
@@ -124,7 +92,7 @@ export const BottomNav = () => {
     );
   };
 
-  // Render notification item with badge
+  // Render notification item WITHOUT badge (badge removed)
   const renderNotificationItem = () => (
     <Link
       href="/notifications"
@@ -136,17 +104,13 @@ export const BottomNav = () => {
       <div className="relative">
         {/* Conditionally render Bell icon or Indicator */}
         {notificationPermissionStatus === 'granted' ? (
-          <Bell className="h-5 w-5" /> /* REMOVED explicit color, inherits from parent Link */
+          <Bell className="h-5 w-5" />
         ) : isMounted ? (
-          <NotificationIndicator variant="icon" /> // Indicator for other states (default, denied, blocked, loading)
+          <NotificationIndicator variant="subtle" />
         ) : (
           <Bell className="h-5 w-5" />
         )}
-        {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-white">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
+        {/* BADGE REMOVED - No more notification count badge */}
       </div>
       <span className="text-[10px] mt-1">
         {notificationPermissionStatus === 'granted' ? 'Alerts' : 'Notifications'}

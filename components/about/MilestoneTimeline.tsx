@@ -6,10 +6,8 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle, 
-  CardDescription 
+  CardTitle
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 // Milestone data
 const MILESTONES: Milestone[] = [

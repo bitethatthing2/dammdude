@@ -1,6 +1,5 @@
 import '@/app/globals.css';
 import { QueryStateProvider } from '@/app/providers';
-import type { ReactNode } from 'react';
 import React from 'react';
 import { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
@@ -25,7 +24,7 @@ const ClientComponents = {
   ),
   
   NotificationBell: dynamic(
-    () => import('@/components/unified/notifications').then(mod => mod.NotificationIndicator),
+    () => import('@/components/unified/notifications/NotificationIndicator').then(mod => mod.NotificationIndicator),
     { loading: () => <div className="h-8 w-8 rounded-full bg-muted animate-pulse" /> }
   )
 };

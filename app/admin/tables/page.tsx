@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { TableManagement } from '@/components/unified';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
-
 export const metadata: Metadata = {
   title: 'BarTap Admin - Tables',
   description: 'Manage tables and generate QR codes'
@@ -15,8 +13,7 @@ export const metadata: Metadata = {
  */
 export default async function TablesPage() {
   // Create Supabase client with cookies
-  const cookieStore = cookies();
-  const supabase = await createSupabaseServerClient(cookieStore);
+  const supabase = await createSupabaseServerClient();
   
   // Fetch all tables
   const { data: tables } = await supabase

@@ -14,7 +14,7 @@ interface TableIdentificationProps {
 export async function TableIdentification({ tableId }: TableIdentificationProps) {
   // Create a server-side Supabase client
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClient(cookieStore);
   
   // If no table ID is provided, show a manual entry form
   if (!tableId) {

@@ -1,6 +1,4 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import type { Database } from '@/lib/database.types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
@@ -8,10 +6,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { tableId: string } }
+  { params }: { params: Promise<{ tableId: string }> }
 ) {
   try {
-    const { tableId } = params;
+    const { tableId } = await params;
     
     if (!tableId) {
       return NextResponse.json(
@@ -21,8 +19,7 @@ export async function GET(
     }
     
     // Create server-side Supabase client using our custom function
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Fetch table data
     const { data, error } = await supabase
@@ -54,11 +51,13 @@ export async function GET(
     
     return NextResponse.json(data);
     
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Unexpected error in table API:', err);
     
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    
     return NextResponse.json(
-      { error: 'Unexpected error', details: err.message },
+      { error: 'Unexpected error', details: errorMessage },
       { status: 500 }
     );
   }

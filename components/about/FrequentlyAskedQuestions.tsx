@@ -92,7 +92,7 @@ export function FrequentlyAskedQuestions() {
       
       <div className="max-w-3xl mx-auto">
         <Accordion type="single" collapsible className="w-full">
-          {filteredFaqs.map((faq, index) => (
+          {filteredFaqs.map((faq) => (
             <AccordionItem key={faq.id} value={faq.id}>
               <AccordionTrigger className="text-lg font-medium text-left">
                 {faq.question}

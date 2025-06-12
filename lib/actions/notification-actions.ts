@@ -33,8 +33,8 @@ export async function createNotification(
     const validated = createNotificationSchema.parse(data);
     
     // Get Supabase client
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Check if user exists
     const { data: userData, error: userError } = await supabase
@@ -88,8 +88,8 @@ export async function createBulkNotifications(
     }
     
     // Get Supabase client
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Prepare notification records
     const notifications = userIds.map(userId => ({
@@ -131,8 +131,8 @@ export async function dismissNotification(
     const validated = dismissNotificationSchema.parse(data);
     
     // Get Supabase client
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -171,8 +171,8 @@ export async function dismissNotification(
 export async function dismissAllNotifications() {
   try {
     // Get Supabase client
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -212,8 +212,8 @@ export async function dismissAllNotifications() {
 export async function cleanupExpiredNotifications() {
   try {
     // Get Supabase client with service role
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Delete expired notifications
     const { data, error } = await supabase
@@ -248,8 +248,8 @@ export async function sendOrderNotificationToStaff(
   orderDetails: string
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Find staff devices to notify (primary device first)
     const { data: staffDevices, error: deviceError } = await supabase
@@ -315,8 +315,8 @@ export async function sendOrderReadyNotification(
   tableId: string
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     // Find customer devices for this table
     const { data: customerDevices, error: deviceError } = await supabase
@@ -390,8 +390,8 @@ export async function sendOrderReadyNotification(
  */
 export async function markNotificationAsRead(notificationId: string) {
   try {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
     
     const { error } = await supabase
       .from("notifications")

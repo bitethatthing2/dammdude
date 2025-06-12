@@ -1,8 +1,16 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import type { Database } from '@/lib/database.types';
+import type { Order, Table } from '@/lib/database.types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { OrderStatus } from '@/lib/types/order';
+
+// Type for the selected order fields from our query
+type OrderQueryResult = Pick<Order, 'id' | 'table_id' | 'status' | 'created_at'> & {
+  total_price: number | null;
+  user_notes: string | null;
+};
+
+// Type for table query result
+type TableQueryResult = Pick<Table, 'id' | 'name'>;
 
 /**
  * GET /api/admin/orders
@@ -22,8 +30,7 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
     
     // Get cookie store and create Supabase client with fixed async cookie handling
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // SIMPLIFIED QUERY - Avoiding table joins until migration is applied
     // Using a simpler query structure for now to avoid foreign key errors
@@ -32,10 +39,9 @@ export async function GET(request: Request) {
         id, 
         table_id,
         status, 
-        created_at, 
-        updated_at,
-        total_amount,
-        notes
+        created_at,
+        total_price,
+        user_notes
       `);
     
     // Add status filter if provided
@@ -66,7 +72,7 @@ export async function GET(request: Request) {
     // Fetch table names separately to avoid join issues
     let tableNamesMap: Record<string, string> = {};
     if (data && data.length > 0) {
-      const tableIds = Array.from(new Set(data.map(order => order.table_id)));
+      const tableIds = Array.from(new Set(data.map((order: OrderQueryResult) => order.table_id)));
       
       try {
         const { data: tableData } = await supabase
@@ -75,7 +81,7 @@ export async function GET(request: Request) {
           .in('id', tableIds);
           
         if (tableData) {
-          tableNamesMap = tableData.reduce((acc: Record<string, string>, table: any) => {
+          tableNamesMap = tableData.reduce((acc: Record<string, string>, table: TableQueryResult) => {
             acc[table.id] = table.name;
             return acc;
           }, {});
@@ -85,17 +91,17 @@ export async function GET(request: Request) {
         // Continue without table names if there's an error
       }
     }
-    
+
     // Format orders with table name (from map or fallback) and empty items array for now
-    const formattedOrders = data?.map(order => ({
+    const formattedOrders = data?.map((order: OrderQueryResult) => ({
       id: order.id,
       table_id: order.table_id,
       table_name: tableNamesMap[order.table_id] || `Table ${order.table_id}`,
       status: order.status,
       created_at: order.created_at,
-      updated_at: order.updated_at,
-      total_amount: order.total_amount,
-      notes: order.notes,
+      updated_at: order.created_at, // Use created_at since updated_at isn't selected
+      total_amount: order.total_price,
+      notes: order.user_notes,
       items: [] // Simplified until order_items relationship is fixed
     })) || [];
     

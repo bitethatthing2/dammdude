@@ -1,313 +1,309 @@
-'use client';
+import React, { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase'; // Adjust path to your generated types
 
-import { useState, useEffect, ReactNode } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { Bell, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
-import { OrderNotification } from './OrderNotification';
-import type { Database } from '@/lib/database.types';
+// Initialize Supabase client with proper typing
+const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-  modifiers?: any;
+// Type definitions based on your database schema
+type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
+type OrderStatus = BartenderOrder['status'];
+
+// Extended order type with items details
+interface OrderWithDetails extends BartenderOrder {
+  // Parse the JSON items field for better type safety
+  parsedItems?: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    notes?: string;
+    customizations?: Record<string, any>;
+  }>;
 }
 
-interface Order {
-  id: string;
-  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
-  created_at: string;
-  table_id: string;
-  items: OrderItem[];
-  total_price: number | null;
-}
-
+// Props interface for the component
 interface CustomerOrderStatusProps {
-  tableId: string;
-  deviceId: string;
+  customerId: string;
+  onOrderUpdate?: (order: OrderWithDetails) => void;
 }
 
-export function CustomerOrderStatus({ tableId, deviceId }: CustomerOrderStatusProps) {
-  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasNotifications, setHasNotifications] = useState(false);
-  
-  // Fetch active orders for this table
+// Status display configuration
+const STATUS_CONFIG: Record<string, {
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: string;
+}> = {
+  pending: {
+    label: 'Pending',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-100',
+    icon: '⏳'
+  },
+  accepted: {
+    label: 'Accepted',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    icon: '✅'
+  },
+  preparing: {
+    label: 'Preparing',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+    icon: '👨‍🍳'
+  },
+  ready: {
+    label: 'Ready',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    icon: '🎉'
+  },
+  completed: {
+    label: 'Completed',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100',
+    icon: '✔️'
+  },
+  cancelled: {
+    label: 'Cancelled',
+    color: 'text-red-600',
+    bgColor: 'bg-red-100',
+    icon: '❌'
+  },
+  expired: {
+    label: 'Expired',
+    color: 'text-gray-500',
+    bgColor: 'bg-gray-100',
+    icon: '⏰'
+  }
+};
+
+export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({ 
+  customerId, 
+  onOrderUpdate 
+}) => {
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const fetchActiveOrders = async () => {
-      try {
-        setIsLoading(true);
-        const supabase = getSupabaseBrowserClient();
-        
-        // Get orders for this table that are not completed or cancelled
-        const { data, error } = await supabase
-          .from('orders')
-          .select(`
-            *,
-            order_items (*)
-          `)
-          .eq('table_id', tableId)
-          .in('status', ['pending', 'preparing', 'ready'])
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
-        
-        setActiveOrders(data || []);
-      } catch (error) {
-        console.error('Error fetching active orders:', error);
-        toast({
-          title: 'Error',
-          description: 'Could not load your orders. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchActiveOrders();
-    
-    // Set up real-time subscription for order updates
-    const supabase = getSupabaseBrowserClient();
-    
-    const orderSubscription = supabase
-      .channel('orders-channel')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'orders',
-        filter: `table_id=eq.${tableId}`,
-      }, (payload: {
-        new: {
-          id: string;
-          status: string;
-        };
-        old: {
-          id: string;
-          status: string;
-        };
-      }) => {
-        // Refresh orders when status changes
-        fetchActiveOrders();
-        
-        // Show notification when order becomes ready
-        if (payload.new.status === 'ready' && payload.old.status !== 'ready') {
-          toast({
-            title: 'Order Ready!',
-            description: 'Your order is ready for pickup!',
-            variant: 'default',
-          });
-          
-          // Play notification sound
-          playNotificationSound();
-          
-          // Show browser notification if permitted
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Order Ready!', {
-              body: 'Your order is ready for pickup!',
-              icon: '/images/logo.png'
-            });
-          }
+    // Fetch initial orders
+    fetchOrders();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('customer-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bartender_orders',
+          filter: `customer_id=eq.${customerId}`
+        },
+        (payload) => {
+          handleRealtimeUpdate(payload);
         }
-      })
+      )
       .subscribe();
-      
-    // Set up subscription for notifications
-    const notificationSubscription = supabase
-      .channel('notifications-channel')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${deviceId}`,
-      }, (payload: {
-        new: {
-          id: string;
-          message: string;
-          type: string;
-        };
-      }) => {
-        setHasNotifications(true);
-        
-        // Show toast notification
-        toast({
-          title: 'New Notification',
-          description: payload.new.message,
-          variant: 'default',
-        });
-        
-        // Play notification sound
-        playNotificationSound();
-        
-        // Show browser notification if permitted
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('New Notification', {
-            body: payload.new.message,
-            icon: '/images/logo.png'
-          });
-        }
-        
-        // Refresh orders if it's an order notification
-        if (payload.new.type === 'order_ready') {
-          fetchActiveOrders();
-        }
-      })
-      .subscribe();
-      
-    // Request notification permission if not already granted
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
-    }
-    
+
     return () => {
-      supabase.channel('orders-channel').unsubscribe();
-      supabase.channel('notifications-channel').unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [tableId, deviceId]);
-  
-  // Play notification sound
-  const playNotificationSound = () => {
+  }, [customerId]);
+
+  const fetchOrders = async () => {
     try {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.play();
-    } catch (error) {
-      console.error('Error playing notification sound:', error);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bartender_orders')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Parse items JSON for each order
+      const ordersWithParsedItems: OrderWithDetails[] = (data || []).map(order => ({
+        ...order,
+        parsedItems: order.items ? JSON.parse(order.items as string) : []
+      }));
+
+      setOrders(ordersWithParsedItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
     }
   };
-  
-  // Format time since order
-  const formatTime = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (error) {
-      return 'Unknown time';
+
+  const handleRealtimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    switch (eventType) {
+      case 'INSERT':
+        const newOrder: OrderWithDetails = {
+          ...newRecord,
+          parsedItems: newRecord.items ? JSON.parse(newRecord.items) : []
+        };
+        setOrders(prev => [newOrder, ...prev]);
+        onOrderUpdate?.(newOrder);
+        break;
+
+      case 'UPDATE':
+        const updatedOrder: OrderWithDetails = {
+          ...newRecord,
+          parsedItems: newRecord.items ? JSON.parse(newRecord.items) : []
+        };
+        setOrders(prev => 
+          prev.map(order => 
+            order.id === newRecord.id ? updatedOrder : order
+          )
+        );
+        onOrderUpdate?.(updatedOrder);
+        break;
+
+      case 'DELETE':
+        setOrders(prev => prev.filter(order => order.id !== oldRecord.id));
+        break;
     }
   };
-  
-  // Get status badge
-  const getStatusBadge = (status: Order['status']): ReactNode => {
-    switch (status) {
-      case 'pending':
-        return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case 'preparing':
-        return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Preparing
-          </Badge>
-        );
-      case 'ready':
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Ready
-          </Badge>
-        );
-      case 'cancelled':
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Cancelled
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
+
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
   };
-  
-  if (isLoading) {
+
+  const calculateProgress = (status: string | null): number => {
+    const progressMap: Record<string, number> = {
+      'pending': 20,
+      'accepted': 40,
+      'preparing': 60,
+      'ready': 80,
+      'completed': 100,
+      'cancelled': 0,
+      'expired': 0
+    };
+    return progressMap[status || 'pending'] || 0;
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
   }
-  
-  if (activeOrders.length === 0) {
+
+  if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Active Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">You don't have any active orders at the moment.</p>
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" className="w-full" onClick={() => window.location.href = '/menu'}>
-            Browse Menu
-          </Button>
-        </CardFooter>
-      </Card>
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-600">Error: {error}</p>
+      </div>
     );
   }
-  
+
+  if (orders.length === 0) {
+    return (
+      <div className="text-center p-8 text-gray-500">
+        No active orders
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold">Your Orders</h2>
-      
-      {activeOrders.map((order) => (
-        <Card key={order.id} className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">
-                Order #{order.id.slice(-6).toUpperCase()}
-              </CardTitle>
-              {getStatusBadge(order.status)}
+      {orders.map((order) => {
+        const statusConfig = STATUS_CONFIG[order.status || 'pending'];
+        const progress = calculateProgress(order.status);
+
+        return (
+          <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
+            {/* Order Header */}
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Order #{order.order_number}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {order.order_type === 'pickup' ? '🛍️ Pickup' : '🪑 Table Service'}
+                  {order.table_location && ` - ${order.table_location}`}
+                </p>
+              </div>
+              <div className={`px-3 py-1 rounded-full ${statusConfig.bgColor}`}>
+                <span className={`text-sm font-medium ${statusConfig.color}`}>
+                  {statusConfig.icon} {statusConfig.label}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Placed {formatTime(order.created_at)}
-            </p>
-          </CardHeader>
-          
-          <CardContent>
-            <ul className="space-y-2">
-              {order.items.map((item) => (
-                <li key={item.id} className="flex justify-between text-sm">
-                  <div>
-                    <span className="font-medium">{item.quantity}x</span> {item.name}
-                    {item.modifiers && Object.keys(item.modifiers).length > 0 && (
-                      <ul className="ml-6 text-xs text-muted-foreground">
-                        {Object.entries(item.modifiers).map(([key, value]) => (
-                          <li key={key}>
-                            {key}: {value}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <div className="mt-4 flex justify-between items-center border-t pt-2">
-              <span className="font-medium">Total</span>
-              <span className="font-bold">${order.total_price?.toFixed(2) || '0.00'}</span>
+
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          </CardContent>
-          
-          {order.status === 'ready' && (
-            <CardFooter className="bg-green-50">
-              <OrderNotification 
-                orderId={order.id}
-                status="ready"
-                createdAt={order.created_at}
-              />
-            </CardFooter>
-          )}
-        </Card>
-      ))}
+
+            {/* Order Items */}
+            <div className="mb-4">
+              <h4 className="font-medium mb-2">Items:</h4>
+              <ul className="space-y-1">
+                {order.parsedItems?.map((item, index) => (
+                  <li key={index} className="text-sm text-gray-600">
+                    {item.quantity}x {item.name} 
+                    {item.notes && <span className="italic"> - {item.notes}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Timeline */}
+            <div className="text-sm text-gray-500 space-y-1">
+              {order.created_at && (
+                <div>Ordered: {formatTime(order.created_at)}</div>
+              )}
+              {order.accepted_at && (
+                <div>Accepted: {formatTime(order.accepted_at)}</div>
+              )}
+              {order.ready_at && (
+                <div>Ready: {formatTime(order.ready_at)}</div>
+              )}
+              {order.completed_at && (
+                <div>Completed: {formatTime(order.completed_at)}</div>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Total:</span>
+                <span className="text-lg font-semibold">
+                  ${order.total_amount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Customer Notes */}
+            {order.customer_notes && (
+              <div className="mt-3 p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Note:</span> {order.customer_notes}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
-}
+};

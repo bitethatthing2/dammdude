@@ -26,7 +26,7 @@ interface RegisterDeviceResult {
  */
 export async function registerDevice(params: RegisterDeviceParams): Promise<RegisterDeviceResult> {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClient(cookieStore);
 
   const { deviceId, type, staffId, tableId, isPrimary } = params;
 

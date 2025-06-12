@@ -64,8 +64,7 @@ export function CommunityInvolvement() {
         <HeartHandshake className="h-10 w-10 text-primary mx-auto mb-4" />
         <h2 className="text-3xl font-bold mb-2">Community Involvement</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          We're committed to giving back to the {location === "portland" ? "Portland" : "Salem"} community 
-          that has supported us from the beginning.
+           {location === "portland" ? "Portland" : "Salem"}
         </p>
         <Separator className="w-24 h-1 bg-primary mx-auto mt-6" />
       </div>

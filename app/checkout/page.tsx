@@ -1,8 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
-import { CartProvider } from '@/components/bartap/CartContext';
-import { ClientCheckoutForm } from '@/components/bartap/ClientCheckoutForm';
+import { CheckoutForm } from '@/components/bartap/CheckoutForm';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
@@ -10,16 +9,16 @@ export const metadata: Metadata = {
   description: 'Review and submit your order',
 };
 
+interface CheckoutPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
 /**
  * Checkout page where customers can review and submit their order
  */
-export default async function CheckoutPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
   // Get the table ID from either the URL or cookie
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   
   // Properly handle searchParams - must await them in Next.js 15
   const searchParamsObj = await searchParams;
@@ -29,7 +28,7 @@ export default async function CheckoutPage({
   const tableCookie = cookieStore.get('table_id');
   const tableId = tableIdFromParam || tableCookie?.value;
   
-  console.log('[CheckoutPage] searchParams:', JSON.stringify(await searchParamsObj));
+  console.log('[CheckoutPage] searchParams:', JSON.stringify(searchParamsObj));
   console.log('[CheckoutPage] tableIdFromParam:', tableIdFromParam);
   const logCookie = cookieStore.get('table_id');
   console.log('[CheckoutPage] cookie table_id:', logCookie?.value);
@@ -62,15 +61,13 @@ export default async function CheckoutPage({
   }
   
   return (
-    <CartProvider tableId={tableId} deliveryFee={0}>
-      <div className="container max-w-md mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold mb-2">Review Your Order</h1>
-        <p className="text-muted-foreground mb-6">
-          Table {tableData.name}{tableData.section ? ` (${tableData.section})` : ''}
-        </p>
-        
-        <ClientCheckoutForm tableData={tableData} />
-      </div>
-    </CartProvider>
+    <div className="container max-w-md mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-2">Review Your Order</h1>
+      <p className="text-muted-foreground mb-6">
+        Table {tableData.name}{tableData.section ? ` (${tableData.section})` : ''}
+      </p>
+      
+      <CheckoutForm tableData={tableData} />
+    </div>
   );
 }

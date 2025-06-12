@@ -2,8 +2,7 @@
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { BarTapWrapper } from '@/components/unified-menu/BarTapWrapper';
-import { getCategories } from '@/lib/menu-data';
+import Menu from '@/components/menu/Menu';
 
 export const metadata: Metadata = {
   title: 'BarTap | Side Hustle',
@@ -26,11 +25,8 @@ export default async function BarTapPage({
   const tableParam = searchParamsObj?.table;
   const tableId = typeof tableParam === 'string' ? tableParam : undefined;
   
-  // Get categories for the menu display
-  const categories = await getCategories();
-  
   // Get cookies for authentication - properly handle the cookies API
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const tableCookie = cookieStore.get('table_id');
   const storedTableId = tableCookie?.value;
   
@@ -53,6 +49,6 @@ export default async function BarTapPage({
       });
   }
   
-  // Render with client component wrapper
-  return <BarTapWrapper initialCategories={categories} initialTableNumber={activeTableId} />;
+  // Render with Menu component
+  return <Menu />;
 }

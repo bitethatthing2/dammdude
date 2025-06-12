@@ -67,7 +67,7 @@ export function OrderManagement() {
         if (tablesError) throw tablesError;
         
         // Create a map of table IDs to names
-        const tableMap = tablesData.reduce((acc: Record<string, string>, table) => {
+        const tableMap = tablesData.reduce((acc: Record<string, string>, table: any) => {
           acc[table.id] = table.name;
           return acc;
         }, {});
@@ -108,7 +108,7 @@ export function OrderManagement() {
         event: '*', 
         schema: 'public', 
         table: 'orders'
-      }, (payload) => {
+      }, (payload: any) => {
         // Refresh orders when changes occur
         fetchOrders();
         
@@ -357,7 +357,7 @@ export function OrderManagement() {
                                     <ul className="ml-6 text-xs text-muted-foreground">
                                       {Object.entries(item.modifiers).map(([key, value]) => (
                                         <li key={key}>
-                                          {key}: {value}
+                                          {key}: {String(value)}
                                         </li>
                                       ))}
                                     </ul>

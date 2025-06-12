@@ -1,17 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { captureError } from '@/lib/utils/error-utils';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import {
   Dialog,
@@ -31,7 +27,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Form,
   FormControl,
   FormDescription,
   FormField,
@@ -41,53 +36,63 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Pencil, Plus, QrCode, Printer, Trash2 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-interface Table {
+// Table interface matching your Supabase schema
+interface TableRecord {
   id: string;
   name: string;
   section: string | null;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 interface TableManagementProps {
-  initialTables: Table[];
+  initialTables: TableRecord[];
 }
 
 // Form schema for table form validation
 const tableFormSchema = z.object({
-  name: z.string().min(1, 'Table name is required'),
-  section: z.string().nullable(),
+  name: z.string().min(1, 'Table name is required').max(50, 'Table name too long'),
+  section: z.string().max(50, 'Section name too long').nullable().transform(val => val || null),
 });
 
 type TableFormValues = z.infer<typeof tableFormSchema>;
+
+// Error type for Supabase errors
+interface SupabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
 
 /**
  * Component for managing tables and generating QR codes
  */
 export function TableManagement({ initialTables }: TableManagementProps) {
-  const [tables, setTables] = useState<Table[]>(initialTables);
+  const [tables, setTables] = useState<TableRecord[]>(initialTables);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
   
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
+  const supabase = createClient();
   
   // Set up the form for adding/editing tables
   const form = useForm<TableFormValues>({
     resolver: zodResolver(tableFormSchema),
     defaultValues: {
       name: '',
-      section: '',
+      section: null,
     },
   });
   
@@ -110,27 +115,42 @@ export function TableManagement({ initialTables }: TableManagementProps) {
         .from('tables')
         .insert({
           name: values.name,
-          section: values.section || null,
+          section: values.section,
+          is_active: true,
         })
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from insert operation');
+      }
       
       // Add the new table to the list
-      setTables([...tables, data as Table]);
+      setTables([...tables, data as TableRecord]);
       
       // Close the dialog and reset the form
       setIsAddDialogOpen(false);
       form.reset();
       
-      toast.success('Table added successfully');
+      toast({
+        title: "Success",
+        description: "Table added successfully",
+      });
+      
       router.refresh(); // Refresh server data
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding table:', error);
       
-      // Log error to our tracking system
-      captureError(new Error(error?.message || 'Error adding table'), {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (error as SupabaseError)?.message || 'Unknown error occurred';
+      
+      // Log error to tracking system
+      captureError(new Error(errorMessage), {
         source: 'TableManagement',
         context: { 
           action: 'addTable',
@@ -139,7 +159,11 @@ export function TableManagement({ initialTables }: TableManagementProps) {
         }
       });
       
-      toast.error('Failed to add table');
+      toast({
+        title: "Error",
+        description: `Failed to add table: ${errorMessage}`,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -152,16 +176,24 @@ export function TableManagement({ initialTables }: TableManagementProps) {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tables')
         .update({
           name: values.name,
-          section: values.section || null,
+          section: values.section,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', selectedTable.id);
+        .eq('id', selectedTable.id)
+        .select()
+        .single();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from update operation');
+      }
       
       // Update the table in the list
       setTables(tables.map(table => 
@@ -173,14 +205,23 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       // Close the dialog and reset the form
       setIsEditDialogOpen(false);
       form.reset();
+      setSelectedTable(null);
       
-      toast.success('Table updated successfully');
+      toast({
+        title: "Success",
+        description: "Table updated successfully",
+      });
+      
       router.refresh(); // Refresh server data
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating table:', error);
       
-      // Log error to our tracking system
-      captureError(new Error(error?.message || 'Error updating table'), {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (error as SupabaseError)?.message || 'Unknown error occurred';
+      
+      // Log error to tracking system
+      captureError(new Error(errorMessage), {
         source: 'TableManagement',
         context: { 
           action: 'editTable',
@@ -190,7 +231,11 @@ export function TableManagement({ initialTables }: TableManagementProps) {
         }
       });
       
-      toast.error('Failed to update table');
+      toast({
+        title: "Error",
+        description: `Failed to update table: ${errorMessage}`,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -198,7 +243,9 @@ export function TableManagement({ initialTables }: TableManagementProps) {
   
   // Handle deleting a table
   const handleDeleteTable = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this table? This action cannot be undone.')) {
+    const tableToDelete = tables.find(t => t.id === id);
+    
+    if (!confirm(`Are you sure you want to delete table "${tableToDelete?.name}"? This action cannot be undone.`)) {
       return;
     }
     
@@ -208,18 +255,28 @@ export function TableManagement({ initialTables }: TableManagementProps) {
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       // Remove the table from the list
       setTables(tables.filter(table => table.id !== id));
       
-      toast.success('Table deleted successfully');
+      toast({
+        title: "Success",
+        description: "Table deleted successfully",
+      });
+      
       router.refresh(); // Refresh server data
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting table:', error);
       
-      // Log error to our tracking system
-      captureError(new Error(error?.message || 'Error deleting table'), {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (error as SupabaseError)?.message || 'Unknown error occurred';
+      
+      // Log error to tracking system
+      captureError(new Error(errorMessage), {
         source: 'TableManagement',
         context: { 
           action: 'deleteTable',
@@ -228,7 +285,11 @@ export function TableManagement({ initialTables }: TableManagementProps) {
         }
       });
       
-      toast.error('Failed to delete table');
+      toast({
+        title: "Error",
+        description: `Failed to delete table: ${errorMessage}`,
+        variant: "destructive",
+      });
     }
   };
   
@@ -238,12 +299,28 @@ export function TableManagement({ initialTables }: TableManagementProps) {
     
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Please allow popups for this website');
+      toast({
+        title: "Pop-up Blocked",
+        description: "Please allow pop-ups for this website to print QR codes",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Get the QR code canvas element
+    const qrCanvas = document.getElementById(`qr-display-${selectedTable.id}`)?.querySelector('canvas');
+    if (!qrCanvas) {
+      toast({
+        title: "Error",
+        description: "Could not generate QR code for printing",
+        variant: "destructive",
+      });
+      printWindow.close();
       return;
     }
     
     // Generate the content for the print window
-    const qrCodeUrl = `${baseUrl}/table/${selectedTable.id}`;
+    const qrCodeDataUrl = qrCanvas.toDataURL();
     const tableName = selectedTable.name;
     const tableSection = selectedTable.section;
     
@@ -251,82 +328,112 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>QR Code for Table ${tableName}</title>
+          <title>QR Code - ${tableName}</title>
           <style>
             body {
-              font-family: sans-serif;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               text-align: center;
-              padding: 20px;
+              padding: 40px 20px;
+              margin: 0;
             }
             .qr-container {
               margin: 0 auto;
-              max-width: 300px;
+              max-width: 400px;
+              padding: 30px;
+              border: 2px solid #e5e5e5;
+              border-radius: 10px;
+            }
+            .qr-code {
+              margin: 0 auto 20px;
+              display: block;
             }
             .table-info {
-              margin-top: 10px;
-              font-size: 18px;
+              margin-top: 20px;
+              font-size: 24px;
               font-weight: bold;
+              color: #333;
             }
             .section-info {
               color: #666;
-              font-size: 14px;
+              font-size: 18px;
+              margin-top: 5px;
             }
             .instructions {
-              margin-top: 20px;
-              font-size: 12px;
+              margin-top: 30px;
+              font-size: 16px;
               color: #666;
+              line-height: 1.5;
               max-width: 300px;
               margin-left: auto;
               margin-right: auto;
             }
-            img {
-              max-width: 100%;
-              height: auto;
+            .logo {
+              margin-bottom: 20px;
+              font-size: 20px;
+              font-weight: bold;
+              color: #333;
             }
             @media print {
+              body {
+                padding: 20px;
+              }
               .no-print {
-                display: none;
+                display: none !important;
               }
             }
           </style>
         </head>
         <body>
           <div class="qr-container">
-            <img src="${document.getElementById(`qr-${selectedTable.id}`)?.querySelector('canvas')?.toDataURL()}" />
-            <div class="table-info">Table ${tableName}</div>
+            <div class="logo">BarTap</div>
+            <img src="${qrCodeDataUrl}" class="qr-code" width="250" height="250" />
+            <div class="table-info">${tableName}</div>
             ${tableSection ? `<div class="section-info">${tableSection}</div>` : ''}
             <div class="instructions">
-              Scan the QR code to place your order
+              Scan this QR code with your phone to view our menu and place your order
             </div>
           </div>
-          <div class="no-print" style="margin-top: 30px;">
-            <button onclick="window.print();" style="padding: 8px 16px;">Print QR Code</button>
+          <div class="no-print" style="margin-top: 40px;">
+            <button onclick="window.print();" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+              Print QR Code
+            </button>
+            <button onclick="window.close();" style="padding: 10px 20px; font-size: 16px; cursor: pointer; margin-left: 10px;">
+              Close
+            </button>
           </div>
         </body>
       </html>
     `);
     
     printWindow.document.close();
+    
+    // Auto-focus the print window
+    printWindow.focus();
   };
   
   // Open edit dialog and populate form
-  const openEditDialog = (table: Table) => {
+  const openEditDialog = (table: TableRecord) => {
     setSelectedTable(table);
     form.reset({
       name: table.name,
-      section: table.section || '',
+      section: table.section,
     });
     setIsEditDialogOpen(true);
   };
   
   // Open QR code dialog
-  const openQrDialog = (table: Table) => {
+  const openQrDialog = (table: TableRecord) => {
     try {
       setSelectedTable(table);
       setIsQrDialogOpen(true);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error opening QR dialog:', error);
-      captureError(new Error(error?.message || 'Error opening QR dialog'), {
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error occurred';
+      
+      captureError(new Error(errorMessage), {
         source: 'TableManagement',
         context: { 
           action: 'openQrDialog',
@@ -334,14 +441,34 @@ export function TableManagement({ initialTables }: TableManagementProps) {
           originalError: error
         }
       });
-      toast.error('Failed to open QR code dialog');
+      
+      toast({
+        title: "Error",
+        description: "Failed to open QR code dialog",
+        variant: "destructive",
+      });
     }
   };
+  
+  // Sort tables by section, then by name
+  const sortedTables = [...tables].sort((a, b) => {
+    if (a.section === b.section) {
+      return a.name.localeCompare(b.name);
+    }
+    if (!a.section) return 1;
+    if (!b.section) return -1;
+    return a.section.localeCompare(b.section);
+  });
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium">All Tables</h2>
+        <div>
+          <h2 className="text-lg font-medium">Table Management</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage your venue&#39;s tables and generate QR codes for ordering
+          </p>
+        </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -363,12 +490,16 @@ export function TableManagement({ initialTables }: TableManagementProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Table Name</FormLabel>
+                    <FormLabel>Table Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Table 1" {...field} />
+                      <Input 
+                        placeholder="e.g., Table 1, A1, Booth 3" 
+                        {...field} 
+                        autoComplete="off"
+                      />
                     </FormControl>
                     <FormDescription>
-                      The name that will be displayed to customers.
+                      A unique name to identify this table
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -380,17 +511,17 @@ export function TableManagement({ initialTables }: TableManagementProps) {
                 name="section"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Section (Optional)</FormLabel>
+                    <FormLabel>Section</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="e.g., Patio" 
+                        placeholder="e.g., Patio, Main Floor, VIP" 
                         {...field} 
                         value={field.value || ''} 
-                        onChange={(e) => field.onChange(e.target.value || null)}
+                        autoComplete="off"
                       />
                     </FormControl>
                     <FormDescription>
-                      Group tables by section for easier management.
+                      Optional: Group tables by area or section
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -398,6 +529,16 @@ export function TableManagement({ initialTables }: TableManagementProps) {
               />
               
               <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    form.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Adding...' : 'Add Table'}
                 </Button>
@@ -409,9 +550,13 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       
       <Card>
         <CardContent className="p-0">
-          {tables.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground">No tables found</p>
+          {sortedTables.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">No tables found</p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Table
+              </Button>
             </div>
           ) : (
             <Table>
@@ -424,33 +569,40 @@ export function TableManagement({ initialTables }: TableManagementProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tables.map(table => (
+                {sortedTables.map((table) => (
                   <TableRow key={table.id}>
                     <TableCell className="font-medium">{table.name}</TableCell>
-                    <TableCell>{table.section || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {table.section || '-'}
+                    </TableCell>
                     <TableCell>
-                      <div id={`qr-${table.id}`} className="hidden">
-                        <QRCodeSVG value={`${baseUrl}/table/${table.id}`} size={150} />
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => openQrDialog(table)}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openQrDialog(table)}
+                      >
                         <QrCode className="h-4 w-4 mr-2" />
                         View QR
                       </Button>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(table)}>
+                    <TableCell>
+                      <div className="flex justify-end space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => openEditDialog(table)}
+                        >
                           <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
+                          <span className="sr-only">Edit {table.name}</span>
                         </Button>
                         <Button
                           variant="ghost" 
                           size="sm"
-                          className="text-red-600"
                           onClick={() => handleDeleteTable(table.id)}
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
+                          <span className="sr-only">Delete {table.name}</span>
                         </Button>
                       </div>
                     </TableCell>
@@ -463,12 +615,18 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       </Card>
       
       {/* Edit Table Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          form.reset();
+          setSelectedTable(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Table</DialogTitle>
             <DialogDescription>
-              Update the details for this table.
+              Update the details for {selectedTable?.name}
             </DialogDescription>
           </DialogHeader>
           
@@ -478,12 +636,16 @@ export function TableManagement({ initialTables }: TableManagementProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Table Name</FormLabel>
+                  <FormLabel>Table Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Table 1" {...field} />
+                    <Input 
+                      placeholder="e.g., Table 1, A1, Booth 3" 
+                      {...field}
+                      autoComplete="off"
+                    />
                   </FormControl>
                   <FormDescription>
-                    The name that will be displayed to customers.
+                    A unique name to identify this table
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -495,17 +657,17 @@ export function TableManagement({ initialTables }: TableManagementProps) {
               name="section"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Section (Optional)</FormLabel>
+                  <FormLabel>Section</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="e.g., Patio" 
+                      placeholder="e.g., Patio, Main Floor, VIP" 
                       {...field} 
-                      value={field.value || ''} 
-                      onChange={(e) => field.onChange(e.target.value || null)}
+                      value={field.value || ''}
+                      autoComplete="off"
                     />
                   </FormControl>
                   <FormDescription>
-                    Group tables by section for easier management.
+                    Optional: Group tables by area or section
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -513,6 +675,17 @@ export function TableManagement({ initialTables }: TableManagementProps) {
             />
             
             <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  form.reset();
+                  setSelectedTable(null);
+                }}
+              >
+                Cancel
+              </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Updating...' : 'Update Table'}
               </Button>
@@ -522,33 +695,57 @@ export function TableManagement({ initialTables }: TableManagementProps) {
       </Dialog>
       
       {/* QR Code Dialog */}
-      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
-        <DialogContent>
+      <Dialog open={isQrDialogOpen} onOpenChange={(open) => {
+        setIsQrDialogOpen(open);
+        if (!open) {
+          setSelectedTable(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Table QR Code</DialogTitle>
             <DialogDescription>
-              Customers can scan this QR code to place orders at table {selectedTable?.name}.
+              Customers can scan this QR code to place orders at {selectedTable?.name}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex flex-col items-center py-4">
-            {selectedTable && (
+          <div className="flex flex-col items-center py-6">
+            {selectedTable && baseUrl && (
               <>
-                <QRCodeSVG 
-                  value={`${baseUrl}/table/${selectedTable.id}`} 
-                  size={200}
+                <div 
                   id={`qr-display-${selectedTable.id}`}
-                />
-                <p className="mt-4 font-medium">Table {selectedTable.name}</p>
-                {selectedTable.section && (
-                  <p className="text-sm text-muted-foreground">{selectedTable.section}</p>
-                )}
+                  className="p-4 bg-white rounded-lg shadow-sm"
+                >
+                  <QRCodeSVG 
+                    value={`${baseUrl}/table/${selectedTable.id}`} 
+                    size={250}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="font-semibold text-lg">{selectedTable.name}</p>
+                  {selectedTable.section && (
+                    <p className="text-sm text-muted-foreground">{selectedTable.section}</p>
+                  )}
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-muted-foreground max-w-xs">
+                    Place this QR code on the table for customers to scan and order
+                  </p>
+                </div>
               </>
             )}
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsQrDialogOpen(false)}>
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsQrDialogOpen(false);
+                setSelectedTable(null);
+              }}
+            >
               Close
             </Button>
             <Button onClick={handlePrintQRCode}>

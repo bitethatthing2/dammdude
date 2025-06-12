@@ -159,10 +159,7 @@ export async function submitOrder(
       .insert({
         table_id: orderData.table_id,
         status: 'pending',
-        total_amount: orderData.items.reduce((total, item) => {
-          // This calculation might need to be updated based on how prices are stored
-          return total + (item.price || 0) * item.quantity;
-        }, 0),
+        total_amount: 0, // Price calculation should be done server-side for security
         customer_notes: orderData.customer_notes || null,
         estimated_time: orderData.estimated_time || null,
       })
@@ -194,16 +191,16 @@ export async function submitOrder(
     }
     
     return { success: true, orderId };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[bar-tap] Order submission error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 /**
  * Fetches categories for menu display
  */
-export async function fetchCategories(): Promise<any[]> {
+export async function fetchCategories(): Promise<Database['public']['Tables']['menu_categories']['Row'][]> {
   try {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase

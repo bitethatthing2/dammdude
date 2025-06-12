@@ -78,7 +78,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 /**
  * Creates a dynamically imported client component that's only loaded on the client side
  */
-export function createClientComponent<T>(
+export function createClientComponent<T extends React.JSX.IntrinsicAttributes>(
   importFunc: () => Promise<{ default: React.ComponentType<T> }>,
   displayName: string,
   loadingComponent: ReactNode = <div>Loading {displayName}...</div>

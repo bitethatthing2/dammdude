@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -33,7 +32,6 @@ import { Input } from '@/components/ui/input';
 import { 
   Table, 
   TableBody, 
-  TableCaption, 
   TableCell, 
   TableHead, 
   TableHeader, 
@@ -48,11 +46,8 @@ import {
   Trash2, 
   Plus, 
   QrCode, 
-  Check, 
-  X, 
   Download 
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 // Define table interface
 interface Table {
@@ -64,11 +59,16 @@ interface Table {
   updated_at: string | null;
 }
 
+// Define error type
+interface ErrorWithMessage {
+  message?: string;
+}
+
 // Form schema
 const tableFormSchema = z.object({
   name: z.string().min(1, 'Table name is required'),
+  active: z.boolean(),
   section: z.string().optional(),
-  active: z.boolean().default(true),
 });
 
 type TableFormValues = z.infer<typeof tableFormSchema>;
@@ -88,7 +88,6 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const router = useRouter();
   const supabase = getSupabaseBrowserClient();
   
   // Setup react-hook-form
@@ -100,30 +99,6 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
       active: true,
     },
   });
-  
-  // Function to refresh tables
-  const refreshTables = async () => {
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('tables')
-        .select('*')
-        .order('name', { ascending: true });
-        
-      if (error) throw error;
-      
-      setTables(data || []);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load tables',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   // Open add dialog
   const openAddDialog = () => {
@@ -176,10 +151,11 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
         title: 'Success',
         description: `Table ${data.name} created successfully`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = (error as ErrorWithMessage).message || 'Failed to create table';
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create table',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -219,10 +195,11 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
         title: 'Success',
         description: `Table ${data.name} updated successfully`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = (error as ErrorWithMessage).message || 'Failed to update table';
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update table',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -251,10 +228,11 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
         title: 'Success',
         description: 'Table deleted successfully',
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = (error as ErrorWithMessage).message || 'Failed to delete table';
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete table',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -273,14 +251,33 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
   const downloadQrCode = () => {
     if (!selectedTable) return;
     
-    const canvas = document.getElementById('table-qr-canvas') as HTMLCanvasElement;
+    const svg = document.getElementById('table-qr-svg');
+    if (!svg) return;
     
-    if (canvas) {
+    // Convert SVG to Canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const data = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `table-${selectedTable.name.replace(/\s+/g, '-').toLowerCase()}-qr.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-    }
+    };
+    
+    img.src = url;
   };
   
   return (
@@ -319,7 +316,7 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
               {tables.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center">
-                    No tables configured. Click "Add Table" to create one.
+                    No tables configured. Click &quot;Add Table&quot; to create one.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -385,7 +382,7 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
+          <Form form={form}>
             <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
@@ -425,19 +422,25 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
                 control={form.control}
                 name="active"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
                       <input
                         type="checkbox"
+                        id="add-table-active-checkbox"
                         checked={field.value}
                         onChange={field.onChange}
                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        aria-describedby="add-table-active-description"
+                        title="Active"
+                        placeholder="Active"
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Active</FormLabel>
-                      <FormDescription>
-                        Inactive tables won't accept orders
+                      <FormLabel htmlFor="add-table-active-checkbox">
+                        Active
+                      </FormLabel>
+                      <FormDescription id="add-table-active-description">
+                        Inactive tables won&apos;t accept orders
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -472,7 +475,7 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
+          <Form form={form}>
             <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
@@ -506,19 +509,25 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
                 control={form.control}
                 name="active"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
                       <input
                         type="checkbox"
+                        id="edit-table-active-checkbox"
                         checked={field.value}
                         onChange={field.onChange}
                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        aria-describedby="edit-table-active-description"
+                        title="Active"
+                        placeholder="Active"
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Active</FormLabel>
-                      <FormDescription>
-                        Inactive tables won't accept orders
+                      <FormLabel htmlFor="edit-table-active-checkbox">
+                        Active
+                      </FormLabel>
+                      <FormDescription id="edit-table-active-description">
+                        Inactive tables won&apos;t accept orders
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -557,7 +566,7 @@ export function TableManagement({ initialTables = [] }: TableManagementProps) {
             <div className="flex flex-col items-center justify-center py-4">
               <div className="mb-4 p-4 bg-white rounded-lg shadow-sm">
                 <QRCodeSVG
-                  id="table-qr-canvas"
+                  id="table-qr-svg"
                   value={getTableQrLink(selectedTable.id)}
                   size={200}
                   level="M"

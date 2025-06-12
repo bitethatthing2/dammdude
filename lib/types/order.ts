@@ -1,81 +1,147 @@
-/**
- * Shared type definitions for orders across the application
- * Consolidated from multiple components for consistency
- * 
- * IMPORTANT: This is the single source of truth for order-related types.
- * All components should import these types rather than defining their own.
- */
+import { CartItem, CartItemModifier } from './menu'; // Add this line
+import { Database } from '../supabase'; // Update the path if your supabase types are in the parent directory
 
-/**
- * Order status enum to ensure consistency across components
- * All statuses supported by the system
- */
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled';
+// Base types from Supabase
+export type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
+export type OrderInsert = Database['public']['Tables']['bartender_orders']['Insert'];
+export type OrderUpdate = Database['public']['Tables']['bartender_orders']['Update'];
 
-/**
- * Order item definition - represents a single item in an order
- */
+// Order status enum for type safety
+export enum OrderStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  EXPIRED = 'expired'
+}
+
+// Order type enum
+export enum OrderType {
+  PICKUP = 'pickup',
+  DINE_IN = 'dine_in',
+  TABLE_SERVICE = 'table_service'
+}
+
+// Payment status enum
+export enum PaymentStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  REFUNDED = 'refunded',
+  FAILED = 'failed'
+}
+
+// Order item structure (parsed from JSON)
 export interface OrderItem {
-  id: string;                     // Unique identifier (UUID)
-  name: string;                   // Display name of the item
-  quantity: number;               // Number of this item ordered
-  price: number;                  // Price per item
-  order_id: string;               // Reference to parent order
-  menu_item_id: string;           // Reference to menu item
-  notes?: string;                 // Optional per-item notes
-  modifiers?: Record<string, any>; // Optional customization data
-}
-
-/**
- * Main Order interface - represents a customer order
- */
-export interface Order {
-  id: string;                     // Unique identifier (UUID)
-  table_id: string;               // Reference to the table
-  table_name?: string;            // For display purposes only
-  location?: string;              // Location identifier if multi-location
-  status: OrderStatus;            // Current order status
-  items: OrderItem[];             // Array of order items
-  
-  // Standard timestamp fields
-  created_at: string;             // When order was created (ISO string)
-  updated_at?: string;            // When order was last updated
-  completed_at?: string;          // When order was completed
-  
-  // Standard order fields
-  notes?: string;                 // General notes for the order
-  total_amount: number;           // Total price of the order
-  estimated_time?: number;        // Minutes to prepare/deliver
-  metadata?: Record<string, unknown>; // Additional flexible data
-}
-
-// Table interface for reference
-export interface Table {
   id: string;
+  item_id: string;
   name: string;
-  section?: string;
-  active: boolean;
+  quantity: number;
+  price: number;
+  notes?: string;
+  customizations?: {
+    modifiers?: Array<{
+      id: string;
+      name: string;
+      price_adjustment?: number;
+    }>;
+    special_instructions?: string;
+  };
 }
 
-// Order request payload for creating orders
-export interface OrderRequest {
-  table_id: string;
-  location?: string;
-  items: {
-    menu_item_id: string;
-    quantity: number;
-    notes?: string;
-    customizations?: Record<string, any>;
-  }[];
-  customer_notes?: string;
-  estimated_time?: number;
-  metadata?: Record<string, unknown>;
+// Extended order type with parsed items
+export interface OrderWithDetails extends Omit<BartenderOrder, 'items'> {
+  items: OrderItem[];
+  customer?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  };
+  bartender?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
-// Order update payload
-export interface OrderStatusUpdate {
+// Real-time update payload types
+export interface OrderRealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: BartenderOrder;
+  old: BartenderOrder;
+}
+
+// Order summary for dashboard/list views
+export interface OrderSummary {
   id: string;
-  status: OrderStatus;
-  estimated_time?: number;
-  metadata?: Record<string, unknown>;
+  order_number: number;
+  status: string | null;
+  total_amount: number;
+  created_at: string | null;
+  customer_name?: string;
+  item_count: number;
 }
+
+// Order filters for queries
+export interface OrderFilters {
+  status?: OrderStatus[];
+  order_type?: OrderType[];
+  date_from?: Date;
+  date_to?: Date;
+  customer_id?: string;
+  bartender_id?: string;
+  location_id?: string;
+}
+
+// Utility functions for order data
+export const parseOrderItems = (itemsJson: string | object): OrderItem[] => {
+  try {
+    if (typeof itemsJson === 'string') {
+      return JSON.parse(itemsJson);
+    }
+    return itemsJson as OrderItem[];
+  } catch {
+    return [];
+  }
+};
+
+export const calculateOrderTotal = (items: OrderItem[]): number => {
+  return items.reduce((total, item) => {
+    let itemTotal = item.price * item.quantity;
+    
+    // Add modifier prices
+    if (item.customizations?.modifiers) {
+      item.customizations.modifiers.forEach(modifier => {
+        if (modifier.price_adjustment) {
+          itemTotal += modifier.price_adjustment * item.quantity;
+        }
+      });
+    }
+    
+    return total + itemTotal;
+  }, 0);
+};
+
+export const getOrderStatusDisplay = (status: string | null): string => {
+  const displays: Record<string, string> = {
+    [OrderStatus.PENDING]: 'Waiting for confirmation',
+    [OrderStatus.ACCEPTED]: 'Order accepted',
+    [OrderStatus.PREPARING]: 'Being prepared',
+    [OrderStatus.READY]: 'Ready for pickup',
+    [OrderStatus.COMPLETED]: 'Order completed',
+    [OrderStatus.CANCELLED]: 'Order cancelled',
+    [OrderStatus.EXPIRED]: 'Order expired'
+  };
+  
+  return displays[status || ''] || 'Unknown status';
+};
+
+export const isOrderActive = (status: string | null): boolean => {
+  return ![OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.EXPIRED].includes(status as OrderStatus);
+};
+
+export const canCancelOrder = (status: string | null): boolean => {
+  return [OrderStatus.PENDING, OrderStatus.ACCEPTED].includes(status as OrderStatus);
+};

@@ -41,7 +41,7 @@ export interface NotificationPayload {
   sound?: string;
   dir?: 'auto' | 'ltr' | 'rtl';
   tag?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   requireInteraction?: boolean;
   renotify?: boolean;
   silent?: boolean;

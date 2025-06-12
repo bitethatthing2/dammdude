@@ -217,20 +217,13 @@ export function KitchenDisplay({ initialTab = 'pending' }: KitchenDisplayProps) 
                 <div className="flex-1">
                   <div className="font-medium">{item.quantity}x {item.name}</div>
                   
-                  {/* Item options/modifiers */}
-                  {item.options && item.options.length > 0 && (
+                  {/* Item modifiers */}
+                  {item.modifiers && typeof item.modifiers === 'object' && Object.keys(item.modifiers).length > 0 && (
                     <ul className="text-sm text-muted-foreground ml-5 list-disc">
-                      {item.options.map((option: any, optIndex: number) => (
-                        <li key={optIndex}>{option.name}</li>
+                      {Object.entries(item.modifiers).map(([key, value], optIndex: number) => (
+                        <li key={optIndex}>{key}: {String(value)}</li>
                       ))}
                     </ul>
-                  )}
-                  
-                  {/* Item notes */}
-                  {item.notes && (
-                    <div className="text-sm text-muted-foreground ml-5 italic">
-                      Note: {item.notes}
-                    </div>
                   )}
                 </div>
                 <div className="text-right">

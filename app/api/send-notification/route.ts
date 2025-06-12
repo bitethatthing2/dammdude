@@ -1,24 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SendNotificationRequest } from '@/lib/types/api';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
 import { initializeFirebaseAdmin, isFirebaseAdminInitialized, simulateNotificationResponse, getAdminMessaging } from '@/lib/firebase/admin';
+import type { BatchResponse, MulticastMessage } from 'firebase-admin/messaging';
 
-// Define a type for our Supabase client operations
-interface DatabaseClient {
-  from: (table: string) => {
-    delete: () => {
-      eq: (column: string, value: string) => Promise<{ error: Error | null }>;
-    };
-    select: (column: string) => {
-      order: (column: string, options: { ascending: boolean }) => {
-        limit: (count: number) => Promise<{ data: Array<{ token: string }> | null; error: Error | null }>;
-      };
-    };
-  };
+type SupabaseClient = ReturnType<typeof createClient>;
+
+// Define proper types for Firebase errors
+interface FirebaseError extends Error {
+  code?: string;
+  message: string;
+}
+
+// Define proper type for batch response items
+interface NotificationBatchResponse {
+  success: boolean;
+  messageId?: string;
+  error?: FirebaseError;
+}
+
+// Extended type for the request body that includes action
+interface ExtendedSendNotificationRequest extends Omit<SendNotificationRequest, 'action'> {
+  action?: "cleanup_tokens" | "send" | string;
+  notification?: Partial<SendNotificationRequest>;
+}
+
+// Type for the raw body with all possible fields
+interface RawNotificationBody extends ExtendedSendNotificationRequest {
+  imageUrl?: string;
+  imageLink?: string;
+  actionButtonUrl?: string;
+  actionButtonLabel?: string;
+}
+
+// Type for token data from Supabase
+interface TokenData {
+  token: string;
 }
 
 // Helper function to remove invalid tokens from the database
-async function removeInvalidToken(token: string, supabaseAdmin: DatabaseClient): Promise<boolean> {
+async function removeInvalidToken(token: string, supabaseAdmin: SupabaseClient): Promise<boolean> {
   if (!token) return false;
 
   console.log(`Removing invalid token: ${token.substring(0, 10)}...`);
@@ -57,10 +79,10 @@ async function removeInvalidToken(token: string, supabaseAdmin: DatabaseClient):
 /**
  * Check if the error is due to an invalid token
  */
-function isInvalidTokenError(error: any): boolean {
+function isInvalidTokenError(error: unknown): boolean {
   if (!error) return false;
   
-  const errorMessage = String(error);
+  const errorMessage = error instanceof Error ? error.message : String(error);
   return (
     errorMessage.includes('messaging/registration-token-not-registered') ||
     errorMessage.includes('messaging/invalid-registration-token') ||
@@ -72,7 +94,7 @@ function isInvalidTokenError(error: any): boolean {
 /**
  * Clean up invalid tokens in the database
  */
-async function cleanupInvalidTokens(supabaseAdmin: any): Promise<{ removed: number, total: number }> {
+async function cleanupInvalidTokens(supabaseAdmin: SupabaseClient): Promise<{ removed: number, total: number }> {
   // Skip token validation in development mode to avoid Firebase Admin errors
   if (process.env.NODE_ENV === 'development') {
     console.log('Skipping token validation in development mode');
@@ -91,7 +113,7 @@ async function cleanupInvalidTokens(supabaseAdmin: any): Promise<{ removed: numb
       return { removed: 0, total: 0 };
     }
     
-    const tokens = tokensData.map((t: { token: string }) => t.token);
+    const tokens = (tokensData as TokenData[]).map((t) => t.token);
     console.log(`Found ${tokens.length} tokens to validate`);
     
     // In production, we'll just check for obviously invalid tokens
@@ -146,19 +168,19 @@ export async function POST(request: NextRequest) {
     });
 
     // Assume the request body might have the notification nested or flat
-    const rawBody = await request.json();
+    const rawBody = await request.json() as RawNotificationBody;
     console.log('Raw notification request body:', JSON.stringify(rawBody, null, 2));
     
     const notificationData = rawBody.notification || rawBody; // Use nested or top-level
-    const body: SendNotificationRequest = {
+    const body: ExtendedSendNotificationRequest = {
       ...rawBody, // Keep other potential top-level fields like token, topic, sendToAll
-      title: notificationData.title, // Get title from notification object or top-level
-      body: notificationData.body,   // Get body from notification object or top-level
+      title: notificationData.title || '', // Get title from notification object or top-level
+      body: notificationData.body || '',   // Get body from notification object or top-level
       icon: notificationData.icon || '/icons/logo.png', // Default icon if not provided
-      image: notificationData.image || notificationData.imageUrl, // Support both image and imageUrl fields
-      link: notificationData.link || notificationData.imageLink, // Support both link and imageLink fields
-      actionButton: notificationData.actionButton || notificationData.actionButtonUrl, // Support both formats
-      actionButtonText: notificationData.actionButtonText || notificationData.actionButtonLabel, // Support both formats
+      image: notificationData.image || (rawBody as RawNotificationBody).imageUrl, // Support both image and imageUrl fields
+      link: notificationData.link || (rawBody as RawNotificationBody).imageLink, // Support both link and imageLink fields
+      actionButton: notificationData.actionButton || (rawBody as RawNotificationBody).actionButtonUrl, // Support both formats
+      actionButtonText: notificationData.actionButtonText || (rawBody as RawNotificationBody).actionButtonLabel, // Support both formats
       data: notificationData.data || {} // Ensure data object exists
     };
 
@@ -220,10 +242,6 @@ export async function POST(request: NextRequest) {
       supabaseServiceKey
     );
 
-    let messageIds: string[] = [];
-    let invalidTokensRemoved = 0;
-    let tokenCount = 0;
-
     // Default icons for different platforms
     const webIcon = body.icon || '/icons/logo.png';
     const androidIcon = '/icons/android-lil-icon-white.png';
@@ -244,6 +262,7 @@ export async function POST(request: NextRequest) {
     // Add icon information for the client to use
     dataPayload.icon = webIcon;
     dataPayload.androidIcon = androidIcon;
+    dataPayload.androidBigIcon = androidBigIcon;
     
     // Add action button if provided
     if (body.actionButton && body.actionButtonText) {
@@ -332,8 +351,8 @@ export async function POST(request: NextRequest) {
       }
       
       // Extract tokens and filter out obviously invalid ones
-      const tokens = tokensData
-        .map((t: { token: string }) => t.token)
+      const tokens = (tokensData as TokenData[])
+        .map((t) => t.token)
         .filter((token: string) => 
           token && 
           token.length > 100 && 
@@ -353,20 +372,22 @@ export async function POST(request: NextRequest) {
       
       // Send multicast message
       try {
-        // Use sendEachForMulticast instead of sendMulticast (which might not be available in this version)
-        const batchResponse = await messaging.sendEachForMulticast({
+        // Use sendEachForMulticast for better error handling
+        const multicastMessage: MulticastMessage = {
           tokens: tokens,
           data: dataPayload,
           webpush: webPushConfig,
           android: androidConfig,
           apns: apnsConfig
-        });
+        };
+        
+        const batchResponse: BatchResponse = await messaging.sendEachForMulticast(multicastMessage);
         
         console.log(`Multicast send results: { successCount: ${batchResponse.successCount}, failureCount: ${batchResponse.failureCount}, responses: ${batchResponse.responses.length} }`);
         
         // Handle failed tokens
         const failedTokens: string[] = [];
-        batchResponse.responses.forEach((resp: any, idx: number) => {
+        batchResponse.responses.forEach((resp, idx) => {
           if (!resp.success) {
             const failedToken = tokens[idx];
             console.log(`Failed to send to token: ${failedToken.substring(0, 10)}... Error: ${resp.error?.message || 'Unknown error'}`);
@@ -442,27 +463,15 @@ export async function POST(request: NextRequest) {
       try {
         // Validate token (skip in development mode)
         if (process.env.NODE_ENV !== 'development') {
-          try {
-            // Simple validation - if token is obviously invalid, don't try to send
-            if (!body.token || body.token.length < 100 || body.token === 'undefined' || body.token === 'null') {
-              console.error('Token validation failed: Token appears invalid');
-              await removeInvalidToken(body.token, supabaseAdmin);
-              return NextResponse.json({
-                success: false,
-                error: 'Invalid token',
-                tokenRemoved: true
-              });
-            }
-          } catch (validationError) {
-            if (isInvalidTokenError(validationError)) {
-              console.error('Token validation failed:', validationError);
-              await removeInvalidToken(body.token, supabaseAdmin);
-              return NextResponse.json({
-                success: false,
-                error: 'Invalid token',
-                tokenRemoved: true
-              });
-            }
+          // Simple validation - if token is obviously invalid, don't try to send
+          if (!body.token || body.token.length < 100 || body.token === 'undefined' || body.token === 'null') {
+            console.error('Token validation failed: Token appears invalid');
+            await removeInvalidToken(body.token, supabaseAdmin);
+            return NextResponse.json({
+              success: false,
+              error: 'Invalid token',
+              tokenRemoved: true
+            });
           }
         }
         

@@ -1,6 +1,7 @@
-// Barrel file for notification-related components
+"use client";
+
+import dynamic from 'next/dynamic';
 import React from 'react';
-import { createClientComponent } from '../ClientComponentWrapper';
 
 // Export the notification context hook
 export { useNotifications, UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
@@ -9,8 +10,9 @@ export { useNotifications, UnifiedNotificationProvider } from '@/lib/contexts/un
 export { NotificationIndicator } from './NotificationIndicator';
 
 // Export client components with dynamic imports
-export const NotificationPopover = createClientComponent(
-  () => import('./NotificationPopover'), 
-  'NotificationPopover',
-  <div className="h-10 w-10 animate-pulse bg-muted rounded-full"></div>
-);
+export const NotificationPopover = dynamic(() => import('./NotificationPopover'), {
+  loading: () => (
+    <div className="h-10 w-10 animate-pulse bg-muted rounded-full"></div>
+  ),
+  ssr: false
+});

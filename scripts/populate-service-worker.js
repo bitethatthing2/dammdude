@@ -1,67 +1,78 @@
-// eslint-disable-next-line no-console
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 
-const swPath = path.join(process.cwd(), 'public', 'firebase-messaging-sw.js');
+console.log('Populating service worker with environment variables...');
 
-// Check if the service worker file exists
+// Read environment variables
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+
+// Path to the service worker file
+const swPath = path.join(__dirname, '..', 'public', 'firebase-messaging-sw.js');
+
+// Check if service worker file exists
 if (!fs.existsSync(swPath)) {
-  console.warn('Service worker file not found:', swPath);
-  console.warn('Creating an empty service worker file for build process to continue.');
-  
-  // Create a basic service worker file to allow the build to continue
-  const basicServiceWorker = `
-// This is a placeholder service worker created during build
-// It will be replaced with the actual service worker during development
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
-});
-
-self.addEventListener('push', () => {
-  // Placeholder for push notification handling
-});
-
-self.addEventListener('notificationclick', () => {
-  // Placeholder for notification click handling
-});
-  `;
-  
-  fs.writeFileSync(swPath, basicServiceWorker);
-  console.log('Created placeholder service worker file');
-  process.exit(0);
+  console.error('Error: firebase-messaging-sw.js not found at', swPath);
+  process.exit(1);
 }
 
-let content = fs.readFileSync(swPath, 'utf8');
+// Read the service worker file
+let swContent = fs.readFileSync(swPath, 'utf8');
 
-const envKeys = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-  'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID',
-];
+// Firebase config values from environment variables
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ''
+};
 
-// Check if we're in a build environment that might not have all env variables
-const isBuildEnvironment = process.env.VERCEL || process.env.CI;
-
-envKeys.forEach((key) => {
-  let value = process.env[key] || '';
-  
-  // If we're in a build environment and don't have the value, use a placeholder
-  if (!value && isBuildEnvironment) {
-    value = `{{${key}}}`;  // Keep the placeholder for runtime replacement
-    console.warn(`Environment variable ${key} not found, using placeholder for build.`);
-  }
-  
-  const regex = new RegExp(`{{${key}}}`, 'g');
-  content = content.replace(regex, value);
+// Log the config being used (but mask sensitive values)
+console.log('Firebase config being applied:');
+console.log({
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'NOT SET',
+  authDomain: firebaseConfig.authDomain || 'NOT SET',
+  projectId: firebaseConfig.projectId || 'NOT SET', 
+  storageBucket: firebaseConfig.storageBucket || 'NOT SET',
+  messagingSenderId: firebaseConfig.messagingSenderId || 'NOT SET',
+  appId: firebaseConfig.appId ? `${firebaseConfig.appId.substring(0, 20)}...` : 'NOT SET',
+  measurementId: firebaseConfig.measurementId || 'NOT SET'
 });
 
-fs.writeFileSync(swPath, content);
-console.log('Firebase service worker processed successfully');
+// Replace the Firebase config in the service worker
+const configRegex = /const firebaseConfig = \{[\s\S]*?\}/;
+const newConfigString = `const firebaseConfig = {
+  apiKey: "${firebaseConfig.apiKey}",             // Replace with value from .env.local
+  authDomain: "${firebaseConfig.authDomain}",       // Replace with value from .env.local
+  projectId: "${firebaseConfig.projectId}",        // Replace with value from .env.local
+  storageBucket: "${firebaseConfig.storageBucket}",  // Replace with value from .env.local
+  messagingSenderId: "${firebaseConfig.messagingSenderId}", // Replace with value from .env.local
+  appId: "${firebaseConfig.appId}",              // Replace with value from .env.local
+  measurementId: "${firebaseConfig.measurementId}" // Optional, replace if you use it
+}`;
+
+if (!configRegex.test(swContent)) {
+  console.error('Error: Could not find Firebase config pattern in service worker file');
+  process.exit(1);
+}
+
+// Replace the config
+swContent = swContent.replace(configRegex, newConfigString);
+
+// Write the updated service worker file
+fs.writeFileSync(swPath, swContent, 'utf8');
+
+console.log('✅ Service worker successfully populated with environment variables');
+
+// Warn if any critical values are missing
+const missingValues = Object.entries(firebaseConfig)
+  .filter(([key, value]) => key !== 'measurementId' && !value)
+  .map(([key]) => key);
+
+if (missingValues.length > 0) {
+  console.warn('⚠️  Warning: Missing Firebase environment variables:', missingValues.join(', '));
+  console.warn('   Make sure these are set in your .env.local file');
+}

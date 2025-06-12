@@ -20,7 +20,7 @@ export default function RealtimeOrderList() {
         const { data, error: fetchError } = await supabase
           .from('orders')
           .select('*')
-          .order('inserted_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(20);
 
         if (fetchError) {
@@ -100,7 +100,7 @@ export default function RealtimeOrderList() {
             >
               <div className="flex justify-between text-sm font-medium">
                 <span>Table {o.table_id}</span>
-                <span>{new Date(o.inserted_at).toLocaleTimeString()}</span>
+                <span>{new Date(o.created_at).toLocaleTimeString()}</span>
               </div>
               <ul className="text-xs ml-2 list-disc">
                 {o.items.map((it, index) => (

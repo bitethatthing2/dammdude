@@ -1,7 +1,6 @@
 "use server";
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { cookies } from "next/headers";
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -12,8 +11,7 @@ export async function updateOrderStatus(
   newStatus: 'pending' | 'preparing' | 'ready' | 'completed'
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Update order status
     const { error: updateError } = await supabase
@@ -137,8 +135,7 @@ export async function notifyStaffOfNewOrder(
   orderDetails: string
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Find staff devices to notify (primary device first)
     const { data: staffDevices, error: deviceError } = await supabase

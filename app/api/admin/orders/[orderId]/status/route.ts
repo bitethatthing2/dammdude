@@ -1,9 +1,6 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { OrderStatus } from '@/lib/types/order';
-
 // Input validation schema
 const updateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'delivered', 'completed', 'cancelled']),
@@ -16,11 +13,11 @@ const updateOrderStatusSchema = z.object({
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     // Get order ID from params
-    const { orderId } = params;
+    const { orderId } = await params;
     
     if (!orderId) {
       return NextResponse.json({
@@ -44,8 +41,7 @@ export async function PATCH(
     const { status, notify } = validation.data;
     
     // Get cookie store and create Supabase client
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase
@@ -98,7 +94,7 @@ export async function PATCH(
         
         if (devices && devices.length > 0) {
           // Create notifications for each device
-          const notifications = devices.map(device => ({
+          const notifications = devices.map((device: { device_id: string }) => ({
             recipient_id: device.device_id,
             message: `Your order for ${table?.name || 'your table'} is ready for pickup!`,
             type: 'info',

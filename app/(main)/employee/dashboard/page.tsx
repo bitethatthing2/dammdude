@@ -84,7 +84,7 @@ export default function EmployeeDashboardPage() {
         </Button>
       </div>
       
-      <Tabs defaultValue="orders">
+      <Tabs defaultValue="bartender_orders">
         <TabsList className="mb-6">
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="menu">Menu Management</TabsTrigger>

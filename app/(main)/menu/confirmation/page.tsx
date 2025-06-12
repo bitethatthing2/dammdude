@@ -1,31 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Order, OrderItem } from '@/lib/database.types';
 
-export default function OrderConfirmationPage() {
+// Separate component that uses useSearchParams
+function OrderConfirmationContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
-  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [orderDetails, setOrderDetails] = useState<(Order & { order_items: OrderItem[] }) | null>(null);
   const [estimatedTime, setEstimatedTime] = useState(15); // 15 minute default
   const [countdown, setCountdown] = useState(15 * 60); // 15 minutes in seconds
   
-  // Get the order ID from URL query parameters
-  const orderId = searchParams.get('orderId');
+  // Get the order ID from URL - using dynamic import to avoid SSR issues
+  const [orderId, setOrderId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Only access URLSearchParams on client side
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('orderId');
+      setOrderId(id);
+      
+      if (!id) {
+        router.push('/menu');
+      }
+    }
+  }, [router]);
   
   // Fetch order details
   useEffect(() => {
     async function fetchOrderDetails() {
-      if (!orderId) {
-        router.push('/menu');
-        return;
-      }
+      if (!orderId) return;
       
       setIsLoading(true);
       const supabase = getSupabaseBrowserClient();
@@ -53,7 +63,7 @@ export default function OrderConfirmationPage() {
     }
     
     fetchOrderDetails();
-  }, [orderId, router]);
+  }, [orderId]);
   
   // Countdown timer
   useEffect(() => {
@@ -98,16 +108,16 @@ export default function OrderConfirmationPage() {
         schema: 'public', 
         table: 'orders',
         filter: `id=eq.${orderId}`
-      }, (payload: { new: any; old: any }) => {
+      }, (payload: { new: Order; old: Order }) => {
         // Update order details when changes occur
-        setOrderDetails((prev: any) => ({
+        setOrderDetails((prev) => prev ? ({
           ...prev,
           ...payload.new
-        }));
+        }) : null);
         
-        // If status changed to "ready", we could also show a notification
-        if (payload.new.status === 'ready') {
-          // Show notification
+        // If status changed to "ready", show a notification
+        if (payload.new.status === 'ready' && typeof window !== 'undefined') {
+          // Check if Notification API is available
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Your order is ready!', {
               body: 'Please come to the bar to pick up your order.'
@@ -118,18 +128,18 @@ export default function OrderConfirmationPage() {
       .subscribe();
       
     return () => {
-      supabase.channel(`order-${orderId}`).unsubscribe();
+      subscription.unsubscribe();
     };
   }, [orderId]);
   
   // Request notification permission
   useEffect(() => {
-    if ('Notification' in window && Notification.permission !== 'denied') {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'denied') {
       Notification.requestPermission();
     }
   }, []);
   
-  if (isLoading) {
+  if (isLoading || !orderId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
@@ -174,8 +184,8 @@ export default function OrderConfirmationPage() {
           </div>
           
           <div className="text-sm text-muted-foreground text-center">
-            <p>We'll notify you when your order is ready.</p>
-            <p>Remember there's a 15-minute time limit for each table.</p>
+            <p>We&apos;ll notify you when your order is ready.</p>
+            <p>Remember there&apos;s a 15-minute time limit for each table.</p>
           </div>
         </CardContent>
         
@@ -190,5 +200,19 @@ export default function OrderConfirmationPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+        <p className="text-center text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }

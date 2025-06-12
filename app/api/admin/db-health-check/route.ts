@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import type { Database } from '@/lib/database.types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -11,14 +10,13 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 export async function GET() {
   try {
     // Create server-side Supabase client with our custom function
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Test database connection and collect diagnostics
     const diagnostics = {
-      ordersTable: { success: false, error: null, latency: 0, count: 0 },
-      tablesTable: { success: false, error: null, latency: 0, count: 0 },
-      orderItemsTable: { success: false, error: null, latency: 0, count: 0 },
+      ordersTable: { success: false, error: null as any, latency: 0, count: 0 },
+      tablesTable: { success: false, error: null as any, latency: 0, count: 0 },
+      orderItemsTable: { success: false, error: null as any, latency: 0, count: 0 },
       environment: {
         nextVersion: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'unknown',
         nodeEnv: process.env.NODE_ENV || 'unknown'

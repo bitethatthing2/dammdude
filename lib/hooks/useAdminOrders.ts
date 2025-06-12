@@ -6,14 +6,30 @@ export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'can
 
 export interface AdminOrder {
   id: string;
+  order_number: number;
   table_id: string;
   table_name?: string;
   status: OrderStatus;
   created_at: string;
   total_amount: number;
-  items: any[];
+  items: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    modifiers?: Array<{
+      name: string;
+      price: number;
+    }>;
+  }>;
   notes?: string;
+  bartender_notes?: string;
   estimated_time?: number;
+  customer_id?: string;
+  bartender_id?: string;
+  order_type?: string;
+  ready_at?: string;
+  completed_at?: string;
 }
 
 interface UseAdminOrdersOptions {
@@ -31,7 +47,6 @@ interface UseAdminOrdersOptions {
 export function useAdminOrders({
   status = ['pending'],
   refreshInterval = 60000,
-  enableRealtime = true,
   onNewOrder,
   onOrderStatusChange
 }: UseAdminOrdersOptions = {}) {
@@ -40,9 +55,10 @@ export function useAdminOrders({
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  const [previousOrderIds, setPreviousOrderIds] = useState<Set<string>>(new Set());
 
   // Simplified fetch function
-  const fetchOrders = useCallback(async (forceRefresh = false) => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -60,7 +76,7 @@ export function useAdminOrders({
       // Handle HTTP errors
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `Server returned ${response.status}: ${response.statusText}`);
+        throw new Error(errorData.error || errorData.details || `Server returned ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -69,12 +85,30 @@ export function useAdminOrders({
         throw new Error('Invalid response format: missing orders array');
       }
       
-      setOrders(data.orders || []);
+      const newOrders = data.orders || [];
+      
+      // Detect new orders and trigger callback
+      if (onNewOrder && previousOrderIds.size > 0) {
+        const newOrdersDetected = newOrders.filter((order: AdminOrder) => 
+          !previousOrderIds.has(order.id)
+        );
+        
+        // Call onNewOrder for each newly detected order
+        newOrdersDetected.forEach((order: AdminOrder) => {
+          onNewOrder(order);
+        });
+      }
+      
+      // Update the set of previous order IDs for next comparison
+      setPreviousOrderIds(new Set(newOrders.map((order: AdminOrder) => order.id)));
+      
+      setOrders(newOrders);
       setLastFetchTime(new Date());
       setRetryCount(0); // Reset retry count on success
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching orders:', err);
-      setError(err.message || 'Failed to fetch orders');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch orders';
+      setError(errorMessage);
       
       // Implement exponential backoff for retries
       if (retryCount < 3) {
@@ -83,7 +117,7 @@ export function useAdminOrders({
         
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
-          fetchOrders(true);
+          fetchOrders();
         }, timeout);
       } else {
         // Show toast notification after multiple failures
@@ -93,7 +127,7 @@ export function useAdminOrders({
             label: 'Retry',
             onClick: () => {
               setRetryCount(0);
-              fetchOrders(true);
+              fetchOrders();
             }
           }
         });
@@ -101,7 +135,7 @@ export function useAdminOrders({
     } finally {
       setIsLoading(false);
     }
-  }, [status, retryCount]);
+  }, [status, retryCount, onNewOrder, previousOrderIds]);
   
   // Initial fetch and polling setup
   useEffect(() => {
@@ -111,7 +145,7 @@ export function useAdminOrders({
     let intervalId: NodeJS.Timeout | null = null;
     if (refreshInterval > 0) {
       intervalId = setInterval(() => {
-        fetchOrders(true);
+        fetchOrders();
       }, refreshInterval);
     }
     
@@ -132,9 +166,26 @@ export function useAdminOrders({
     try {
       const supabase = getSupabaseBrowserClient();
       
+      // Update status and set appropriate timestamp
+      const updateData: Partial<{
+        status: OrderStatus;
+        accepted_at: string;
+        ready_at: string;
+        completed_at: string;
+      }> = { status: newStatus };
+      
+      // Set timestamps based on status
+      if (newStatus === 'preparing') {
+        updateData.accepted_at = new Date().toISOString();
+      } else if (newStatus === 'ready') {
+        updateData.ready_at = new Date().toISOString();
+      } else if (newStatus === 'completed' || newStatus === 'delivered') {
+        updateData.completed_at = new Date().toISOString();
+      }
+      
       const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
+        .from('bartender_orders') // Fixed: using correct table name
+        .update(updateData)
         .eq('id', orderId);
       
       if (error) throw error;
@@ -144,7 +195,7 @@ export function useAdminOrders({
         const oldOrder = prevOrders.find(order => order.id === orderId);
         const updatedOrders = prevOrders.map(order => {
           if (order.id === orderId) {
-            const updatedOrder = { ...order, status: newStatus };
+            const updatedOrder = { ...order, status: newStatus, ...updateData };
             
             // Trigger callback if provided and status actually changed
             if (onOrderStatusChange && oldOrder && oldOrder.status !== newStatus) {
@@ -166,10 +217,13 @@ export function useAdminOrders({
       
       toast.success(`Order status updated to ${newStatus}`);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating order status:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update order status';
       
-      toast.error('Failed to update order status');
+      toast.error('Failed to update order status', {
+        description: errorMessage
+      });
       return false;
     }
   }, [status, onOrderStatusChange]);
@@ -179,9 +233,13 @@ export function useAdminOrders({
     try {
       const supabase = getSupabaseBrowserClient();
       
+      // Note: bartender_orders table doesn't have estimated_time column
+      // You might need to add this column or use a different approach
       const { error } = await supabase
-        .from('orders')
-        .update({ estimated_time: minutes })
+        .from('bartender_orders')
+        .update({ 
+          bartender_notes: `Estimated time: ${minutes} minutes`
+        })
         .eq('id', orderId);
       
       if (error) throw error;
@@ -198,10 +256,13 @@ export function useAdminOrders({
       
       toast.success(`Estimated time set to ${minutes} minutes`);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error setting estimated time:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to set estimated time';
       
-      toast.error('Failed to set estimated time');
+      toast.error('Failed to set estimated time', {
+        description: errorMessage
+      });
       return false;
     }
   }, []);

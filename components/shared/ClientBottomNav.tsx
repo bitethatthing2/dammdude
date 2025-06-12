@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { BottomNav } from './BottomNav';
-import { UnifiedNotificationProvider } from '@/components/unified/notifications';
+import { UnifiedNotificationProvider } from '@/components/unified'; // Fix this import
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 /**
  * Client-side wrapper for the BottomNav component
@@ -11,9 +12,44 @@ import { UnifiedNotificationProvider } from '@/components/unified/notifications'
  */
 const ClientBottomNav = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const [userId, setUserId] = useState<string | undefined>();
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Get the actual user ID
+    const fetchUser = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user?.id) {
+          setUserId(session.user.id);
+        }
+        
+        // Listen for auth state changes
+        const { data: { subscription } }: {
+          data: {
+            subscription: {
+              unsubscribe: () => void;
+            };
+          };
+        } = supabase.auth.onAuthStateChange(
+          (_event: string, session: { user?: { id: string } } | null) => {
+            setUserId(session?.user?.id);
+          }
+        );
+        
+        // Cleanup subscription
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+    
+    fetchUser();
   }, []);
 
   if (!isMounted) {
@@ -25,9 +61,9 @@ const ClientBottomNav = () => {
     );
   }
 
-  // Wrap BottomNav with UnifiedNotificationProvider to ensure notifications work
+  // Wrap BottomNav with UnifiedNotificationProvider using actual user ID
   return (
-    <UnifiedNotificationProvider recipientId='customer' role='customer'>
+    <UnifiedNotificationProvider recipientId={userId} role='customer'>
       <BottomNav />
     </UnifiedNotificationProvider>
   );

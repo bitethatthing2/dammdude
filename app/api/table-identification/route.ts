@@ -1,65 +1,62 @@
-import { cookies } from 'next/headers';
+// app/api/table-identification/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-/**
- * POST handler for manual table identification
- * Processes form submissions when users manually enter their table number
- */
-export async function POST(request: NextRequest) {
-  const formData = await request.formData();
-  const tableNumber = formData.get('tableNumber') as string;
-  
-  if (!tableNumber) {
-    return NextResponse.json(
-      { error: 'Table number is required' },
-      { status: 400 }
-    );
-  }
-  
-  // Create a server-side Supabase client
-  const cookieStore = cookies();
-  const supabase = await createSupabaseServerClient(cookieStore);
-  
-  // Find table by number/name
-  const { data: tableData, error } = await supabase
-    .from('tables')
-    .select('id, name, section')
-    .or(`name.eq.${tableNumber},id.eq.${tableNumber}`)
-    .single();
-  
-  if (error || !tableData) {
-    return NextResponse.json(
-      { error: 'Table not found' },
-      { status: 404 }
-    );
-  }
-  
-  // Store the table information in the session
-  await supabase
-    .from('active_sessions')
-    .upsert({
-      table_id: tableData.id,
-      created_at: new Date().toISOString(),
-      last_activity: new Date().toISOString(),
-    });
-  
-  // Set table ID cookie
+export async function GET(request: NextRequest) {
   try {
-    // Use await with cookies
-    await cookieStore.set({
-      name: 'table_id',
-      value: tableData.id,
-      path: '/',
-      maxAge: 60 * 60 * 24, // 24 hours
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: 'strict'
+    // Get table_id from cookies
+    const tableId = request.cookies.get('table_id')?.value;
+    
+    if (!tableId) {
+      return NextResponse.json({ 
+        error: 'No table ID found',
+        needsSetup: true 
+      }, { status: 404 });
+    }
+    
+    return NextResponse.json({ 
+      tableId,
+      success: true 
     });
+    
   } catch (error) {
-    console.warn('Could not set table_id cookie', error);
+    console.error('Error in table identification:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
-  
-  // Redirect to menu with the table context
-  return NextResponse.redirect(new URL(`/menu?table=${tableData.id}`, request.url));
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { tableId } = await request.json();
+    
+    if (!tableId) {
+      return NextResponse.json({ 
+        error: 'Table ID is required' 
+      }, { status: 400 });
+    }
+    
+    // Create response with cookie
+    const response = NextResponse.json({ 
+      success: true,
+      tableId 
+    });
+    
+    // Set cookie
+    response.cookies.set('table_id', tableId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/'
+    });
+    
+    return response;
+    
+  } catch (error) {
+    console.error('Error setting table ID:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { status: 500 });
+  }
 }

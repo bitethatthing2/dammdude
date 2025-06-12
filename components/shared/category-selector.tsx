@@ -33,31 +33,51 @@ export function CategorySelector({
     onChangeAction(value);
   }, [onChangeAction]);
 
-  // Map category names to icon names in lucide-react
+  // Map category names to icon names in lucide-react dynamically
   const getIconForCategory = (categoryName: string): React.ReactNode => {
-    // Map category names to Lucide icon component names
-    const iconNameMap: Record<string, keyof typeof LucideIcons> = {
-      'Birria Specialties': 'Taco',
-      'Small Bites': 'Cookie',
-      'Seafood': 'Fish',
-      'Breakfast': 'Egg',
-      'Wings': 'Drumstick',
-      'Main Dishes': 'Utensils',
-      'Boards': 'Cocktail',
-      'Flights': 'Wine',
-      'Towers': 'Beer',
-      'House Favorites': 'Star',
-      'Martinis': 'Martini',
-      'Margaritas': 'Cocktail',
-      'Malibu Buckets': 'Palmtree',
-      'Refreshers': 'GlassWater',
-      'Bottle Beer': 'Beer',
-      'Wine': 'Wine',
-      'Non-Alcoholic Beverages': 'Coffee',
-    };
+    const lowerName = categoryName.toLowerCase();
     
-    // Get the icon name for this category, or default to Utensils
-    const iconName = iconNameMap[categoryName] || 'Utensils';
+    // Dynamic mapping based on keywords in category names
+    let iconName: keyof typeof LucideIcons = 'Utensils'; // default
+    
+    // Food categories
+    if (lowerName.includes('birria') || lowerName.includes('taco')) {
+      iconName = 'Cookie'; // Using Cookie as closest to taco
+    } else if (lowerName.includes('bite') || lowerName.includes('appetizer')) {
+      iconName = 'Cookie';
+    } else if (lowerName.includes('seafood') || lowerName.includes('fish')) {
+      iconName = 'Fish';
+    } else if (lowerName.includes('breakfast')) {
+      iconName = 'Egg';
+    } else if (lowerName.includes('wing')) {
+      iconName = 'Drumstick';
+    } else if (lowerName.includes('main') || lowerName.includes('entree')) {
+      iconName = 'Utensils';
+    }
+    // Drink categories
+    else if (lowerName.includes('board')) {
+      iconName = 'Cocktail';
+    } else if (lowerName.includes('flight')) {
+      iconName = 'Wine';
+    } else if (lowerName.includes('tower')) {
+      iconName = 'Beer';
+    } else if (lowerName.includes('favorite') || lowerName.includes('special')) {
+      iconName = 'Star';
+    } else if (lowerName.includes('martini')) {
+      iconName = 'Martini';
+    } else if (lowerName.includes('margarita') || lowerName.includes('cocktail')) {
+      iconName = 'Cocktail';
+    } else if (lowerName.includes('bucket')) {
+      iconName = 'Palmtree';
+    } else if (lowerName.includes('refresh')) {
+      iconName = 'GlassWater';
+    } else if (lowerName.includes('beer')) {
+      iconName = 'Beer';
+    } else if (lowerName.includes('wine')) {
+      iconName = 'Wine';
+    } else if (lowerName.includes('non-alcoholic') || lowerName.includes('coffee') || lowerName.includes('soft')) {
+      iconName = 'Coffee';
+    }
     
     // Get the actual icon component
     const IconComponent = LucideIcons[iconName];

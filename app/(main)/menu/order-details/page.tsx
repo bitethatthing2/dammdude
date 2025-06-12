@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useCartState } from '@/lib/hooks/useCartState';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import type { CartItem } from '@/lib/types/menu';
 import { ShoppingCart } from 'lucide-react';
 import { Minus, Plus } from 'lucide-react';
 
@@ -17,7 +18,7 @@ export default function OrderDetailsPage() {
   const { items, updateQuantity, getTotalPrice, clearCart } = useCartState();
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
-  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryFee] = useState(0); // Delivery fee is fixed at 0 for now
   const [tableNumber, setTableNumber] = useState<string>('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -116,7 +117,7 @@ export default function OrderDetailsPage() {
           schema: 'public', 
           table: 'orders',
           filter: `id=eq.${order.id}`
-        }, (payload: { new: any; old: any }) => {
+        }, (payload: { new: { status: string; id: string }; old: { status: string; id: string } }) => {
           // This will be handled by the confirmation page
           console.log('Order status updated:', payload.new.status);
         })

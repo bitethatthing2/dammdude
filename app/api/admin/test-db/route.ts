@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -8,8 +7,7 @@ export async function GET() {
     console.log("[TEST API] Starting database test");
     
     // Use our custom server client that handles cookies correctly
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createSupabaseServerClient();
     
     // Test 1: Simple query to check basic connectivity
     console.log("[TEST API] Running simple query test");

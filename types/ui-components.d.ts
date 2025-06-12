@@ -29,7 +29,7 @@ declare module '@/components/ui/skeleton' {
 // Form components
 declare module '@/components/ui/form' {
   import { ReactNode, ComponentPropsWithoutRef } from 'react';
-  import { UseFormReturn, FieldPath, FieldValues, Controller } from 'react-hook-form';
+  import { UseFormReturn, FieldPath, FieldValues, ControllerRenderProps } from 'react-hook-form';
   
   export interface FormProps<TFieldValues extends FieldValues> 
     extends ComponentPropsWithoutRef<'form'> {
@@ -42,7 +42,7 @@ declare module '@/components/ui/form' {
   > {
     name: TName;
     control?: UseFormReturn<TFieldValues>['control'];
-    render: (props: { field: any }) => ReactNode;
+    render: (props: { field: ControllerRenderProps<TFieldValues, TName> }) => ReactNode;
   }
   
   export const Form: <TFieldValues extends FieldValues>(

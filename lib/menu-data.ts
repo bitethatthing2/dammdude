@@ -1,7 +1,6 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { createSupabaseServerClient } from './supabase/server';
-import type { Database } from './database.types';
-import { cookies } from 'next/headers'; // Import cookies
+import type { Database, MenuCategory } from './database.types';
 
 // Define type alias for convenience
 // Create a unified category type that works for both tables
@@ -10,28 +9,27 @@ type Category = {
   name: string;
   description: string | null;
   display_order: number | null;
+  image_url: string | null;
 };
 
 /**
  * Fetches all menu categories from Supabase.
  * Gets categories from the 'menu_categories' table which contains both food and drink categories.
  * Uses unstable_noStore to prevent caching on the server.
- * @returns {Promise<Category[]>} A promise that resolves to an array of categories.
+ * @returns {Promise<MenuCategory[]>} A promise that resolves to an array of categories.
  */
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(): Promise<MenuCategory[]> {
   // unstable_noStore() is used to prevent the response from being cached.
   // This is helpful for data that changes often.
   noStore();
 
   try {
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore); // Pass cookie store and await
+    const supabase = await createSupabaseServerClient(); // Pass cookie store and await
 
     // Fetch all categories from the menu_categories table
-    // Removing 'icon' from the query since it doesn't exist in the table
     const { data: categories, error } = await supabase
       .from('menu_categories')
-      .select('id, name, display_order')
+      .select('id, name, display_order, icon')
       .order('display_order', { ascending: true });
      
     if (error) {
@@ -44,12 +42,12 @@ export async function getCategories(): Promise<Category[]> {
       return [];
     }
 
-    // Format categories to match our unified Category type
-    const formattedCategories: Category[] = categories.map((cat: { id: string | number; name: string; display_order: number | null; }) => ({
-      id: typeof cat.id === 'number' ? cat.id.toString() : cat.id, // Handle both string and number IDs
+    // Format categories to match MenuCategory type
+    const formattedCategories: MenuCategory[] = categories.map((cat: any) => ({
+      id: typeof cat.id === 'number' ? cat.id.toString() : cat.id,
       name: cat.name,
-      description: null, // Since icon doesn't exist, set description to null
-      display_order: cat.display_order
+      display_order: cat.display_order,
+      icon: cat.icon
     }));
    
     return formattedCategories;
@@ -90,8 +88,7 @@ type MenuItemWithOptions = Database['public']['Tables']['menu_items']['Row'] & {
 export async function getMenuItemsByCategory(categoryId: string | number): Promise<MenuItemWithOptions[]> {
   noStore();
    
-  const cookieStore = cookies();
-  const supabase = await createSupabaseServerClient(cookieStore); // Pass cookie store and await
+  const supabase = await createSupabaseServerClient(); // Pass cookie store and await
    
   // Convert string ID to number if needed
   const numericCategoryId = typeof categoryId === 'string' ? parseInt(categoryId, 10) : categoryId;

@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Award, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { useLocationState } from "@/lib/hooks/useLocationState";
 
 interface StoryBlockProps {
   isPortland: boolean;
@@ -56,7 +54,7 @@ export function StoryBlock({ isPortland }: StoryBlockProps) {
                 and a menu that goes far beyond typical sports bar fare.
               </p>
               <p>
-                Through the years, we've become more than just a place to watch games - we're a community hub where 
+                Through the years, we&#39;ve become more than just a place to watch games - we&#39;re a community hub where 
                 friends gather, rivalries are celebrated, and memories are made.
               </p>
             </div>

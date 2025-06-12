@@ -58,9 +58,9 @@ export function useOrderManagement({
       
       setOrders(data.orders || []);
       setLastFetchTime(new Date());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching orders:', err);
-      setError(err instanceof Error ? err : new Error(err.toString()));
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +95,11 @@ export function useOrderManagement({
         event: '*',
         schema: 'public',
         table: 'orders'
-      }, (payload) => {
+      }, (payload: {
+        eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+        new?: Record<string, unknown>;
+        old?: Record<string, unknown>;
+      }) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         
         // Handle new orders
@@ -220,15 +224,16 @@ export function useOrderManagement({
       });
       
       return { success: true, ...result };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating order status:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update order status';
       toast({
         title: 'Error',
-        description: err.message || 'Failed to update order status',
+        description: errorMessage,
         variant: 'destructive'
       });
       
-      return { success: false, error: err.message || 'Unknown error' };
+      return { success: false, error: errorMessage };
     } finally {
       // Clear processing state
       setProcessingOrders(prev => ({ ...prev, [orderId]: false }));

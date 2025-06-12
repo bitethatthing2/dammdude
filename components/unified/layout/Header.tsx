@@ -15,7 +15,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { NotificationPopover } from '../notifications';
+import { NotificationPopover } from '../notifications/NotificationPopover';
 import Link from 'next/link';
 
 interface NavItem {

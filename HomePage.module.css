@@ -1,0 +1,143 @@
+/* HomePage.module.css */
+
+/* Container animations */
+.fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card hover effects */
+.quickLinkCard {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.quickLinkCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon animations */
+.iconPulse {
+  animation: iconPulse 2s infinite;
+}
+
+@keyframes iconPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Loading skeleton improvements */
+.skeletonShimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+  transform: translateX(-100%);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Responsive image container */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  max-width: 32rem; /* 512px */
+  margin: 0 auto;
+}
+
+.imageContainer img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Custom scrollbar for mobile */
+@media (max-width: 640px) {
+  .customScrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .customScrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .customScrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+
+  .customScrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Bottom navigation safe area */
+.bottomSafeArea {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Notification badge animation */
+.notificationBadge {
+  animation: badgeBounce 0.5s ease-in-out;
+}
+
+@keyframes badgeBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* Focus visible styles for accessibility */
+.focusVisible:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .darkModeAdjust {
+    filter: brightness(0.9);
+  }
+}
+
+/* Print styles */
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+  
+  .printOnly {
+    display: block !important;
+  }
+}

@@ -1,26 +1,33 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import type { Database } from '@/lib/database.types';
 
+/**
+ * Middleware for handling authentication and route protection
+ * Uses async cookie handling to avoid NextJS "cookies() should be awaited" issues
+ */
 export async function middleware(request: NextRequest) {
-  // Create a Supabase client configured to use cookies
+  // Create a response object
   const response = NextResponse.next();
   
-  // Create a Supabase client using the newer SSR package
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dzvvjgmnlcmgrsnyfqnw.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6dnZqZ21ubGNtZ3JzbnlmcW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MTU5OTQsImV4cCI6MjA1NDk5MTk5NH0.ECFbZk2XPcQ18Qf26i5AbDAjcmH4fHSrfLfv_ccaq-A',
+  // Set up Supabase client for middleware with proper cookie handling
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => {
+        get(name) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
           response.cookies.set({
             name,
             value,
             ...options,
           });
         },
-        remove: (name, options) => {
+        remove(name, options) {
           response.cookies.set({
             name,
             value: '',
@@ -31,15 +38,13 @@ export async function middleware(request: NextRequest) {
     }
   );
   
-  // Check if the request is for an admin route
+  // Check path types
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
   const isLoginRoute = request.nextUrl.pathname === '/admin/login';
-  const isDashboardRoute = request.nextUrl.pathname === '/admin/dashboard';
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
-  
-  // Check if the request is for the table route with no ID
   const isTableRoute = request.nextUrl.pathname === '/table';
   
+  // Log processing for debugging
   console.log(`Middleware: Processing ${request.nextUrl.pathname}`);
 
   // Skip authentication checks for API routes
@@ -47,26 +52,27 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // For direct /table requests, ensure they're handled correctly
+  // Handle table route requests
   if (isTableRoute) {
-    // If this is a page navigation, let it proceed
+    // For HTML requests (browser navigation), let it proceed
     const accept = request.headers.get('accept');
     if (accept && accept.includes('text/html')) {
       return response;
     }
     
-    // If it's an API request or resource fetch, redirect to the API endpoint
+    // For API/resource requests, redirect to proper endpoint
     console.log('Middleware: Redirecting /table resource request to proper endpoint');
     const url = new URL('/api/table-identification', request.url);
     return NextResponse.redirect(url);
   }
 
-  // For login route: if already logged in, redirect to dashboard
+  // Login route handling
   if (isLoginRoute) {
     try {
+      // Check if already logged in
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Skip admin check for now - if they're logged in, let dashboard handle it
+        // If already logged in, redirect to dashboard
         console.log('Middleware: Session found on login page, redirecting to dashboard');
         const url = new URL('/admin/dashboard', request.url);
         return NextResponse.redirect(url);
@@ -77,9 +83,10 @@ export async function middleware(request: NextRequest) {
     return response;
   }
   
-  // For all other admin routes: if not logged in, redirect to login
+  // Admin route protection
   if (isAdminRoute && !isLoginRoute) {
     try {
+      // Verify session exists
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log('Middleware: No session found, redirecting to login');
@@ -87,25 +94,27 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
       }
       
-      // Let the dashboard page handle admin validation
+      // Allow access to admin routes for logged-in users
+      // (Role-based checks happen at the page level)
       return response;
     } catch (error) {
       console.error('Middleware error checking admin route:', error);
+      // On error, redirect to login as a fallback
       const url = new URL('/admin/login', request.url);
       return NextResponse.redirect(url);
     }
   }
   
-  // For all other routes, just proceed
+  // Default: proceed with request
   return response;
 }
 
-// Update matcher to exclude API routes and include /table route
+// Define route matcher patterns
 export const config = {
   matcher: [
     '/admin/:path*', 
     '/table',
-    // Exclude API routes from authentication checks
+    // Exclude API routes and static assets from middleware processing
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

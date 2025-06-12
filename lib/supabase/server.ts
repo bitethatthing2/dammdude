@@ -14,33 +14,30 @@ export async function createSupabaseServerClient(cookieStore?: ReadonlyRequestCo
     throw new Error('Missing Supabase URL or Anon Key');
   }
   
-  // Use provided cookieStore or get a fresh one
-  const cookieJar = cookieStore || nextCookies();
+  // IMPORTANT: Await cookies() in Next.js 15
+  const cookieJar = cookieStore || await nextCookies();
   
-  // Create client with fully async cookie handling
+  // Create client with cookie handling
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      async get(name: string) {
+      get(name: string) {
         try {
-          // Use await to ensure all cookie operations are async
-          return (await cookieJar.get(name))?.value;
+          return cookieJar.get(name)?.value;
         } catch (error) {
           console.error('Error getting cookie:', name, error);
           return undefined;
         }
       },
-      async set(name: string, value: string, options: CookieOptions) {
+      set(name: string, value: string, options: CookieOptions) {
         try {
-          // Use await to ensure all cookie operations are async
-          await cookieJar.set({ name, value, ...options });
+          cookieJar.set({ name, value, ...options });
         } catch (error) {
           console.error('Error setting cookie:', name, error);
         }
       },
-      async remove(name: string, options: CookieOptions) {
+      remove(name: string, options: CookieOptions) {
         try {
-          // Use await to ensure all cookie operations are async
-          await cookieJar.set({ name, value: '', maxAge: 0, ...options });
+          cookieJar.set({ name, value: '', maxAge: 0, ...options });
         } catch (error) {
           console.error('Error removing cookie:', name, error);
         }

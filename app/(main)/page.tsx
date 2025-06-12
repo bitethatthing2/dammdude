@@ -15,7 +15,7 @@ import React, { Suspense } from 'react';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
-  () => import('@/components/unified/notifications').then(mod => mod.NotificationIndicator)
+  () => import('@/components/unified/notifications/NotificationIndicator').then(mod => ({ default: mod.NotificationIndicator }))
 );
 
 // Loading fallback component
@@ -137,7 +137,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex-shrink-0 mt-1 sm:mt-0">
                   <Suspense fallback={<NotificationIndicatorFallback />}>
-                    <NotificationIndicator variant="button" className="w-full sm:w-auto h-9 text-sm px-4" /> 
+                    <NotificationIndicator variant="outline" /> 
                   </Suspense>
                 </div>
               </div>
