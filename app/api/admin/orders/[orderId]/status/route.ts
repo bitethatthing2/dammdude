@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 // Input validation schema
 const updateOrderStatusSchema = z.object({
@@ -41,7 +41,7 @@ export async function PATCH(
     const { status, notify } = validation.data;
     
     // Get cookie store and create Supabase client
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createServerClient();
     
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase

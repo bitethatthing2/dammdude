@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { ThemeProvider } from '@/components/ui/theme-provider';
+import { BarTapProvider } from '@/lib/contexts/bartap-context';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -58,9 +59,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
-          <NuqsAdapter>
-            {children}
-          </NuqsAdapter>
+          <BarTapProvider>
+            <NuqsAdapter>
+              {children}
+            </NuqsAdapter>
+          </BarTapProvider>
         </ThemeProvider>
       </body>
     </html>

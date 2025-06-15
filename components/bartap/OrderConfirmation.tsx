@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ArrowRight, Bell, Clock, Home, ShoppingBag, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle, Bell, Clock, Home, ShoppingBag, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { useBarTap } from '@/lib/contexts/bartap-context';
@@ -61,6 +60,39 @@ interface RealtimePayload<T = unknown> {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
 }
 
+// Status configuration
+const STATUS_CONFIG: Record<OrderStatus, { label: string; className: string }> = {
+  pending: {
+    label: 'Order Received',
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  },
+  preparing: {
+    label: 'Preparing',
+    className: 'bg-blue-50 text-blue-700 border-blue-200'
+  },
+  ready: {
+    label: 'Ready for Pickup',
+    className: 'bg-green-50 text-green-700 border-green-200 animate-pulse'
+  },
+  completed: {
+    label: 'Completed',
+    className: 'bg-gray-50 text-gray-700 border-gray-200'
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-red-50 text-red-700 border-red-200'
+  }
+};
+
+// Estimated time configuration
+const ESTIMATED_TIME: Record<OrderStatus, number | null> = {
+  pending: 15,     // 15 minutes for new orders
+  preparing: 10,   // 10 minutes once preparing
+  ready: null,
+  completed: null,
+  cancelled: null
+};
+
 export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -71,7 +103,7 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
   // Get BarTap context and router
   const barTap = useBarTap();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabaseBrowserClient();
   
   // Track if we've already cleared the cart
   const hasCleared = useRef(false);
@@ -91,6 +123,49 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
     }
   }, []);
   
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 0.7;
+      audio.play().catch(() => {
+        // Silently fail if audio is blocked
+        console.log('Audio playback blocked by browser');
+      });
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
+  };
+  
+  // Show browser notification
+  const showBrowserNotification = () => {
+    try {
+      new Notification('Order Ready!', {
+        body: 'Your order is ready for pickup at the counter!',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-72x72.png',
+        requireInteraction: true,
+      });
+    } catch (error) {
+      console.error('Error showing notification:', error);
+    }
+  };
+  
+  // Handle order ready notification
+  const handleOrderReady = useCallback(() => {
+    toast({
+      title: '🎉 Order Ready!',
+      description: 'Your order is ready for pickup!',
+      duration: 10000,
+    });
+    
+    playNotificationSound();
+    
+    if (notificationPermission === 'granted') {
+      showBrowserNotification();
+    }
+  }, [notificationPermission]);
+  
   // Fetch order data
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -98,9 +173,9 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
         setIsLoading(true);
         setError(null);
         
-        // Fetch order details
+        // Fetch order details from bartender_orders table
         const { data: orderData, error: orderError } = await supabase
-          .from('orders')
+          .from('bartender_orders')
           .select('*')
           .eq('id', orderId)
           .single();
@@ -113,20 +188,44 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
           throw new Error('Order not found');
         }
         
-        setOrder(orderData);
+        // Map bartender_orders to our expected Order type
+        const mappedOrder = {
+          id: orderData.id,
+          table_id: orderData.table_location || 'N/A',
+          customer_id: orderData.customer_id,
+          status: orderData.status as OrderStatus,
+          customer_notes: orderData.customer_notes,
+          total_price: orderData.total_amount,
+          created_at: orderData.created_at,
+          updated_at: orderData.created_at // Using created_at as fallback
+        };
         
-        // Fetch order items
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', orderId)
-          .order('created_at', { ascending: true });
+        setOrder(mappedOrder);
         
-        if (itemsError) {
-          throw itemsError;
+        // Extract order items from JSON items column
+        interface BartenderOrderItem {
+          id: string;
+          name: string;
+          price: number;
+          quantity: number;
+          notes?: string;
+          customizations?: Record<string, unknown>;
         }
         
-        setOrderItems(itemsData || []);
+        const items = orderData.items as BartenderOrderItem[];
+        const mappedItems: OrderItem[] = items?.map((item, index) => ({
+          id: `${orderId}-${index}`,
+          order_id: orderId,
+          item_id: item.id || `item-${index}`,
+          item_name: item.name,
+          quantity: item.quantity || 1,
+          price_at_order: item.price || 0,
+          notes: item.notes || null,
+          customizations: item.customizations || null,
+          created_at: orderData.created_at
+        })) || [];
+        
+        setOrderItems(mappedItems);
         
       } catch (err) {
         console.error('Error fetching order:', err);
@@ -152,37 +251,45 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
   useEffect(() => {
     if (!orderId) return;
     
-    const channel = supabase
+    const subscription = supabase
       .channel(`order-${orderId}`)
       .on(
         'postgres_changes' as const,
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'orders',
+          table: 'bartender_orders',
           filter: `id=eq.${orderId}`,
         },
-        (payload: RealtimePayload<Order>) => {
+        (payload: RealtimePayload<{
+          id: string;
+          table_location: string | null;
+          customer_id: string | null;
+          status: string | null;
+          customer_notes: string | null;
+          total_amount: number;
+          created_at: string | null;
+        }>) => {
           if (payload.new) {
-            setOrder(payload.new);
+            // Map the bartender_orders data to our Order type
+            const updatedOrder = {
+              id: payload.new.id,
+              table_id: payload.new.table_location || 'N/A',
+              customer_id: payload.new.customer_id,
+              status: payload.new.status as OrderStatus,
+              customer_notes: payload.new.customer_notes,
+              total_price: payload.new.total_amount,
+              created_at: payload.new.created_at || new Date().toISOString(),
+              updated_at: payload.new.created_at || new Date().toISOString()
+            };
+            
+            setOrder(updatedOrder);
             
             // Show notification if order is ready
-            if (payload.new.status === 'ready' && payload.old && 
+            if (updatedOrder.status === 'ready' && payload.old && 
                 typeof payload.old === 'object' && 'status' in payload.old && 
                 payload.old.status !== 'ready') {
-              toast({
-                title: '🎉 Order Ready!',
-                description: 'Your order is ready for pickup!',
-                duration: 10000,
-              });
-              
-              // Play notification sound
-              playNotificationSound();
-              
-              // Show browser notification
-              if (notificationPermission === 'granted') {
-                showBrowserNotification();
-              }
+              handleOrderReady();
             }
           }
         }
@@ -190,36 +297,9 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
       .subscribe();
     
     return () => {
-      supabase.channel(`order-${orderId}`).unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [orderId, supabase, notificationPermission]);
-  
-  // Play notification sound
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.volume = 0.7;
-      audio.play().catch(() => {
-        // Silently fail if audio is blocked
-      });
-    } catch (error) {
-      console.error('Error playing sound:', error);
-    }
-  };
-  
-  // Show browser notification
-  const showBrowserNotification = () => {
-    try {
-      new Notification('Order Ready!', {
-        body: 'Your order is ready for pickup at the counter!',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
-        requireInteraction: true,
-      });
-    } catch (error) {
-      console.error('Error showing notification:', error);
-    }
-  };
+  }, [orderId, supabase, notificationPermission, handleOrderReady]);
   
   // Request notification permission
   const requestNotificationPermission = async () => {
@@ -265,30 +345,7 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
   
   // Get status badge
   const getStatusBadge = (status: OrderStatus) => {
-    const statusConfig: Record<OrderStatus, { label: string; className: string }> = {
-      pending: {
-        label: 'Order Received',
-        className: 'bg-yellow-50 text-yellow-700 border-yellow-200'
-      },
-      preparing: {
-        label: 'Preparing',
-        className: 'bg-blue-50 text-blue-700 border-blue-200'
-      },
-      ready: {
-        label: 'Ready for Pickup',
-        className: 'bg-green-50 text-green-700 border-green-200 animate-pulse'
-      },
-      completed: {
-        label: 'Completed',
-        className: 'bg-gray-50 text-gray-700 border-gray-200'
-      },
-      cancelled: {
-        label: 'Cancelled',
-        className: 'bg-red-50 text-red-700 border-red-200'
-      }
-    };
-    
-    const config = statusConfig[status];
+    const config = STATUS_CONFIG[status];
     
     return (
       <Badge variant="outline" className={config.className}>
@@ -297,22 +354,12 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
     );
   };
   
-  // Calculate estimated time based on status
-  const getEstimatedTime = (status: OrderStatus): number | null => {
-    switch (status) {
-      case 'pending':
-        return 15; // 15 minutes for new orders
-      case 'preparing':
-        return 10; // 10 minutes once preparing
-      case 'ready':
-      case 'completed':
-      case 'cancelled':
-        return null;
-      default:
-        return null;
-    }
+  // Calculate total price from items (as backup)
+  const calculateTotal = (): number => {
+    return orderItems.reduce((sum, item) => sum + (item.price_at_order * item.quantity), 0);
   };
   
+  // Render loading state
   if (isLoading) {
     return (
       <Card>
@@ -326,6 +373,7 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
     );
   }
   
+  // Render error state
   if (error || !order) {
     return (
       <Card>
@@ -354,7 +402,8 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
     );
   }
   
-  const estimatedTime = getEstimatedTime(order.status);
+  const estimatedTime = ESTIMATED_TIME[order.status];
+  const totalPrice = order.total_price || calculateTotal();
   
   return (
     <div className="space-y-6">
@@ -372,11 +421,12 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
         </CardHeader>
         
         <CardContent className="pt-6">
+          {/* Status Badge */}
           <div className="flex justify-center mb-6">
             {getStatusBadge(order.status)}
           </div>
           
-          {/* Notification Status */}
+          {/* Notification Settings */}
           <div className="bg-muted/30 rounded-lg p-4 mb-6">
             <h3 className="font-medium mb-2 flex items-center justify-center text-sm">
               <Bell className="h-4 w-4 mr-2 text-primary" />
@@ -436,6 +486,7 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
               </div>
             )}
             
+            {/* Order Items */}
             <div className="border-t pt-4">
               <h3 className="font-medium mb-3">Order Items</h3>
               <div className="space-y-2">
@@ -458,10 +509,11 @@ export function OrderConfirmation({ orderId, tableData }: OrderConfirmationProps
               </div>
             </div>
             
+            {/* Total */}
             <div className="border-t pt-3">
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{formatCurrency(order.total_price)}</span>
+                <span>{formatCurrency(totalPrice)}</span>
               </div>
             </div>
           </div>

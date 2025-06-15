@@ -1,6 +1,8 @@
 import { unstable_noStore as noStore } from 'next/cache';
-import { createSupabaseServerClient } from './supabase/server';
-import type { Database, MenuCategory } from './database.types';
+import { createServerClient } from './supabase/server';
+import type { Database } from '@/lib/database.types';
+
+type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row'];
 
 // Define type alias for convenience
 // Create a unified category type that works for both tables
@@ -24,11 +26,11 @@ export async function getCategories(): Promise<MenuCategory[]> {
   noStore();
 
   try {
-    const supabase = await createSupabaseServerClient(); // Pass cookie store and await
+    const supabase = await createServerClient(); // Pass cookie store and await
 
     // Fetch all categories from the menu_categories table
     const { data: categories, error } = await supabase
-      .from('menu_categories')
+      .from('food_drink_categories')
       .select('id, name, display_order, icon')
       .order('display_order', { ascending: true });
      
@@ -42,15 +44,8 @@ export async function getCategories(): Promise<MenuCategory[]> {
       return [];
     }
 
-    // Format categories to match MenuCategory type
-    const formattedCategories: MenuCategory[] = categories.map((cat: any) => ({
-      id: typeof cat.id === 'number' ? cat.id.toString() : cat.id,
-      name: cat.name,
-      display_order: cat.display_order,
-      icon: cat.icon
-    }));
-   
-    return formattedCategories;
+    // Return categories directly as they match the expected type
+    return categories;
   } catch (error) {
     console.error('Unexpected error fetching categories:', error);
     throw new Error(`Failed to fetch categories: ${error instanceof Error ? error.message : String(error)}`);
@@ -75,7 +70,7 @@ interface OptionGroup {
   options: Option[];
 }
 
-type MenuItemWithOptions = Database['public']['Tables']['menu_items']['Row'] & {
+type MenuItemWithOptions = Database['public']['Tables']['food_drink_items']['Row'] & {
   option_groups: OptionGroup[];
 };
 
@@ -88,14 +83,14 @@ type MenuItemWithOptions = Database['public']['Tables']['menu_items']['Row'] & {
 export async function getMenuItemsByCategory(categoryId: string | number): Promise<MenuItemWithOptions[]> {
   noStore();
    
-  const supabase = await createSupabaseServerClient(); // Pass cookie store and await
+  const supabase = await createServerClient(); // Pass cookie store and await
    
   // Convert string ID to number if needed
   const numericCategoryId = typeof categoryId === 'string' ? parseInt(categoryId, 10) : categoryId;
    
   try {
     const { data, error } = await supabase
-      .from('menu_items')
+      .from('food_drink_items')
       .select(`
         id, name, description, price, category_id, image_url,
         option_groups (

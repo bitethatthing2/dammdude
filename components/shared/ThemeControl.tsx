@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useTheme } from "next-themes";
-import { Check, Moon, Sun, Palette } from "lucide-react";
+import { Check, Moon, Sun } from "lucide-react";
 
 // Theme colors available in the application
 const themes = [

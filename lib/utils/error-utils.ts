@@ -1,6 +1,6 @@
 interface ErrorContext {
   source?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   componentStack?: string;
 }
 
@@ -9,7 +9,7 @@ interface ErrorLog {
   timestamp: string;
   source?: string;
   stack?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 // Array to store error logs
@@ -73,6 +73,23 @@ export function clearStoredErrors(): void {
 }
 
 /**
+ * Type guard to check if a value is an Error Response
+ */
+interface ErrorResponse {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+}
+
+function isErrorResponse(value: unknown): value is ErrorResponse {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    ('message' in value || 'error' in value)
+  );
+}
+
+/**
  * Helper to safely fetch data with error handling
  */
 export async function safeFetch<T>(url: string, options?: RequestInit): Promise<{
@@ -84,18 +101,25 @@ export async function safeFetch<T>(url: string, options?: RequestInit): Promise<
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      let errorData: any;
+      let errorData: ErrorResponse | string = errorText;
       
       try {
-        errorData = JSON.parse(errorText);
+        const parsed = JSON.parse(errorText);
+        if (isErrorResponse(parsed)) {
+          errorData = parsed;
+        }
       } catch {
-        errorData = { message: errorText };
+        // Keep errorData as string if parsing fails
       }
       
-      throw new Error(errorData.message || `HTTP error ${response.status}`);
+      const errorMessage = typeof errorData === 'string' 
+        ? errorData 
+        : errorData.message || errorData.error || `HTTP error ${response.status}`;
+      
+      throw new Error(errorMessage);
     }
     
-    const data = await response.json();
+    const data = await response.json() as T;
     return { data, error: null };
   } catch (err) {
     captureError(err instanceof Error ? err : new Error(String(err)), {

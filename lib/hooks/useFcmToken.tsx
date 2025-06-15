@@ -38,7 +38,6 @@ const storeTokenInDatabase = async (tokenToStore: string): Promise<boolean> => {
   if (!tokenToStore) return false;
   
   try {
-    console.log(`Storing FCM token in database: ${tokenToStore.substring(0, 10)}...`);
     const response = await fetch('/api/fcm-token', {
       method: 'POST',
       headers: {
@@ -52,7 +51,6 @@ const storeTokenInDatabase = async (tokenToStore: string): Promise<boolean> => {
     }
 
     const data = await response.json();
-    console.log('FCM token stored in database:', data);
     
     // Now try to subscribe to the all_devices topic
     await subscribeToTopic(tokenToStore, 'all_devices');
@@ -66,7 +64,6 @@ const storeTokenInDatabase = async (tokenToStore: string): Promise<boolean> => {
 // Helper to subscribe to a topic
 const subscribeToTopic = async (tokenToSubscribe: string, topic: string): Promise<boolean> => {
   try {
-    console.log(`Subscribing token to topic '${topic}'...`);
     const response = await fetch('/api/subscribe-to-topic', {
       method: 'POST',
       headers: {
@@ -81,7 +78,6 @@ const subscribeToTopic = async (tokenToSubscribe: string, topic: string): Promis
     }
 
     const data = await response.json();
-    console.log(`Successfully subscribed to topic '${topic}':`, data);
     return true;
   } catch (error) {
     console.error(`Error subscribing to topic '${topic}':`, error);
@@ -93,7 +89,6 @@ const subscribeToTopic = async (tokenToSubscribe: string, topic: string): Promis
 export async function getNotificationPermissionAndToken(): Promise<string | null> {
   // If registration is already in progress, return the existing promise
   if (isRegistrationInProgress && registrationPromise) {
-    console.log('Token registration already in progress, returning existing promise');
     return registrationPromise;
   }
   
@@ -111,14 +106,11 @@ export async function getNotificationPermissionAndToken(): Promise<string | null
       }
 
       // Then get token
-      console.log('Notification permission granted, fetching token...');
       const token = await fetchToken();
       if (!token) {
-        console.log('No FCM token received.');
         return null;
       }
 
-      console.log(`FCM token received: ${token.substring(0, 10)}...`);
       
       // Store token in database
       await storeTokenInDatabase(token);
@@ -155,7 +147,6 @@ export function useFcmToken() {
     const checkPermission = async () => {
       try {
         if (!('Notification' in window)) {
-          console.log('This browser does not support notifications.');
           setNotificationPermissionStatus('denied');
           return;
         }
@@ -163,7 +154,6 @@ export function useFcmToken() {
         // Get current permission state
         const permissionState = Notification.permission as NotificationPermission;
         setNotificationPermissionStatus(permissionState);
-        console.log(`Current notification permission status: ${permissionState}`);
       } catch (err) {
         console.error('Error checking notification permission:', err);
       }
@@ -186,7 +176,6 @@ export function useFcmToken() {
     // Set up foreground message handler
     const setupMessageHandler = async () => {
       try {
-        console.log('Setting up foreground message handler');
         const messaging = getMessagingInstance();
         if (!messaging) return;
         
@@ -230,7 +219,6 @@ export function useFcmToken() {
           );
         });
         
-        console.log('Foreground message handler set up successfully');
       } catch (error) {
         console.error('Error setting up foreground message handler:', error);
       }
@@ -245,7 +233,6 @@ export function useFcmToken() {
     // Cleanup on unmount
     return () => {
       if (messageHandlerRef.current) {
-        console.log('Cleaning up foreground message handler');
         messageHandlerRef.current();
         messageHandlerRef.current = null;
       }
@@ -276,7 +263,6 @@ export function useFcmToken() {
       
       if (permissionStatus !== 'granted') {
         // Permission denied
-        console.log('Notification permission denied');
         return null;
       }
       

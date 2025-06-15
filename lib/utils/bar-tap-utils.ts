@@ -4,8 +4,13 @@
  */
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { Order, OrderItem, OrderRequest } from '@/lib/types/order';
 import type { Database } from '@/lib/database.types';
+
+// Type definitions based on your actual database schema
+export type FoodDrinkCategory = Database['public']['Tables']['food_drink_categories']['Row'];
+export type FoodDrinkItem = Database['public']['Tables']['food_drink_items']['Row'];
+export type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
+export type BartenderOrderInsert = Database['public']['Tables']['bartender_orders']['Insert'];
 
 /**
  * Stores table ID in both localStorage and cookie for consistent access
@@ -57,14 +62,23 @@ export async function updateTableActivity(tableId: string): Promise<void> {
   try {
     const supabase = getSupabaseBrowserClient();
     
-    await supabase
-      .from('active_sessions')
-      .upsert({
-        table_id: tableId,
-        last_activity: new Date().toISOString(),
-      });
-      
-    console.log('[bar-tap] Table activity updated:', tableId);
+    // Get the table UUID from the name
+    const { data: tableData } = await supabase
+      .from('tables')
+      .select('id')
+      .eq('name', tableId)
+      .single();
+    
+    if (tableData) {
+      await supabase
+        .from('active_sessions')
+        .upsert({
+          table_id: tableData.id,
+          last_activity: new Date().toISOString(),
+        });
+        
+      console.log('[bar-tap] Table activity updated:', tableId);
+    }
   } catch (error) {
     console.error('[bar-tap] Failed to update table activity:', error);
   }
@@ -72,7 +86,7 @@ export async function updateTableActivity(tableId: string): Promise<void> {
 
 /**
  * Determines category based on item name
- * Consolidates the category determination logic used in multiple components
+ * Maps to actual category types in your database
  */
 export function determineCategory(
   name: string, 
@@ -81,89 +95,101 @@ export function determineCategory(
   const lowerName = name.toLowerCase();
   
   if (type === 'drink') {
-    // House Favorites category
-    if (lowerName.includes('house favorite') || 
-        lowerName.includes('iced margatira') || 
-        lowerName.includes('cantarito') || 
-        lowerName.includes('paloma') || 
-        lowerName.includes('pineapple paradise') || 
-        lowerName.includes('michelada')) {
-      return 'house-favorites';
-    }
-    // Beer category
-    else if (lowerName.includes('beer') || lowerName.includes('corona') || 
-             lowerName.includes('modelo') || lowerName.includes('heineken')) {
+    // Map drink categories
+    if (lowerName.includes('beer') || lowerName.includes('corona') || 
+        lowerName.includes('modelo') || lowerName.includes('heineken')) {
       return 'beer';
     } 
-    // Wine category
     else if (lowerName.includes('wine') || lowerName.includes('cabernet') || 
              lowerName.includes('merlot') || lowerName.includes('chardonnay')) {
       return 'wine';
     } 
-    // Martini category
-    else if (lowerName.includes('martini')) {
-      return 'martini';
-    } 
-    // Margarita category
     else if (lowerName.includes('margarita') || lowerName.includes('rita')) {
       return 'margarita';
     } 
-    // Non-alcoholic category
+    else if (lowerName.includes('cocktail') || lowerName.includes('martini')) {
+      return 'cocktail';
+    }
     else if (lowerName.includes('soda') || lowerName.includes('coffee') || 
              lowerName.includes('tea') || lowerName.includes('water')) {
       return 'non-alcoholic';
     } 
     else {
-      return 'all-drinks';
+      return 'drink'; // default drink category
     }
   } else {
-    // Small Bites category
-    if (lowerName.includes('small bites') || lowerName.includes('chips & guac')) {
-      return 'small-bites';
+    // Map food categories
+    if (lowerName.includes('appetizer') || lowerName.includes('chips') || 
+        lowerName.includes('guac') || lowerName.includes('small')) {
+      return 'appetizer';
     } 
-    // Main dishes category
-    else if (lowerName.includes('main') || lowerName.includes('tacos')) {
-      return 'main';
+    else if (lowerName.includes('taco')) {
+      return 'tacos';
     }
-    // Breakfast category
     else if (lowerName.includes('breakfast')) {
       return 'breakfast';
     }
-    // Wings category
     else if (lowerName.includes('wings')) {
       return 'wings';
     }
-    // Seafood category
     else if (lowerName.includes('seafood') || lowerName.includes('fish')) {
       return 'seafood';
     }
-    // Default to main if no other category matches
     else {
-      return 'all-food';
+      return 'food'; // default food category
     }
   }
 }
 
 /**
- * Submits an order to the database
+ * Interface for order items in bartender_orders JSONB
+ */
+export interface OrderItemJson {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+  customizations?: {
+    meatType?: string;
+    extras?: string[];
+    preferences?: string[];
+  };
+}
+
+/**
+ * Submits an order to the bartender_orders table
  */
 export async function submitOrder(
-  orderData: OrderRequest
-): Promise<{ success: boolean; orderId?: string; error?: string }> {
+  orderData: {
+    table_location: string;
+    items: OrderItemJson[];
+    customer_notes?: string;
+    customer_id?: string;
+    location_id: string;
+    order_type: 'pickup' | 'table_delivery';
+  }
+): Promise<{ success: boolean; orderNumber?: number; error?: string }> {
   try {
     const supabase = getSupabaseBrowserClient();
     
-    // Insert order first
+    // Calculate total
+    const total_amount = orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Insert order to bartender_orders table
     const { data: orderInsert, error: orderError } = await supabase
-      .from('orders')
+      .from('bartender_orders')
       .insert({
-        table_id: orderData.table_id,
+        customer_id: orderData.customer_id || null,
+        location_id: orderData.location_id,
         status: 'pending',
-        total_amount: 0, // Price calculation should be done server-side for security
-        customer_notes: orderData.customer_notes || null,
-        estimated_time: orderData.estimated_time || null,
-      })
-      .select('id')
+        order_type: orderData.order_type,
+        table_location: orderData.table_location,
+        items: orderData.items as any, // JSONB column
+        total_amount: total_amount,
+        customer_notes: orderData.customer_notes || null
+      } as BartenderOrderInsert)
+      .select('order_number')
       .single();
     
     if (orderError) {
@@ -171,26 +197,7 @@ export async function submitOrder(
       return { success: false, error: orderError.message };
     }
     
-    // Insert order items
-    const orderId = orderInsert.id;
-    const orderItems = orderData.items.map(item => ({
-      order_id: orderId,
-      menu_item_id: item.menu_item_id,
-      quantity: item.quantity,
-      notes: item.notes || null,
-      customizations: item.customizations || null,
-    }));
-    
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-    
-    if (itemsError) {
-      console.error('[bar-tap] Order items insert error:', itemsError);
-      return { success: false, error: itemsError.message };
-    }
-    
-    return { success: true, orderId };
+    return { success: true, orderNumber: orderInsert.order_number };
   } catch (error: unknown) {
     console.error('[bar-tap] Order submission error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -200,14 +207,15 @@ export async function submitOrder(
 /**
  * Fetches categories for menu display
  */
-export async function fetchCategories(): Promise<Database['public']['Tables']['menu_categories']['Row'][]> {
+export async function fetchCategories(): Promise<FoodDrinkCategory[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
-      .from('menu_categories')
+      .from('food_drink_categories')
       .select('*')
+      .eq('is_active', true)
       .order('display_order');
-      
+    
     if (error) {
       console.error('[bar-tap] Error fetching categories:', error);
       return [];
@@ -216,6 +224,36 @@ export async function fetchCategories(): Promise<Database['public']['Tables']['m
     return data || [];
   } catch (error) {
     console.error('[bar-tap] Error fetching categories:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches menu items for a specific category
+ */
+export async function fetchMenuItems(categoryId?: string): Promise<FoodDrinkItem[]> {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    let query = supabase
+      .from('food_drink_items')
+      .select('*')
+      .eq('is_available', true);
+    
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+    
+    const { data, error } = await query.order('display_order');
+    
+    if (error) {
+      console.error('[bar-tap] Error fetching menu items:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('[bar-tap] Error fetching menu items:', error);
     return [];
   }
 }

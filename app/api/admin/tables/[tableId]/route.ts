@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 /**
  * API endpoint for fetching a single table by ID
@@ -19,7 +19,7 @@ export async function GET(
     }
     
     // Create server-side Supabase client using our custom function
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createServerClient();
     
     // Fetch table data
     const { data, error } = await supabase

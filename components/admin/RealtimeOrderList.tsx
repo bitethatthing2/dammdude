@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { Order } from '@/lib/types/order';
+import type { BartenderOrder, OrderItem } from '@/lib/types/order';
+import { parseOrderItems } from '@/lib/types/order';
 import type { OrderRealtimePayload, ApiResponse } from '@/lib/types/api';
 
 export default function RealtimeOrderList() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<BartenderOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +19,7 @@ export default function RealtimeOrderList() {
       setError(null);
       try {
         const { data, error: fetchError } = await supabase
-          .from('orders')
+          .from('bartender_orders')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(20);
@@ -43,14 +44,14 @@ export default function RealtimeOrderList() {
     fetchOrders();
 
     const channel = supabase
-      .channel('orders-stream')
+      .channel('bartender-orders-stream')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
+        { event: '*', schema: 'public', table: 'bartender_orders' },
         (payload: OrderRealtimePayload) => {
           console.log('Realtime Change received:', payload);
           if (payload.eventType === 'INSERT') {
-            setOrders((prev) => [payload.new as Order, ...prev]);
+            setOrders((prev) => [payload.new as BartenderOrder, ...prev]);
           }
         }
       )
@@ -86,7 +87,7 @@ export default function RealtimeOrderList() {
         <div className="p-4 border border-destructive/20 rounded-md bg-destructive/10">
           <p className="text-sm text-destructive">{error}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Please ensure your database is properly set up with an 'orders' table.
+            Please ensure your database is properly set up with an &apos;orders&apos; table.
           </p>
         </div>
       ) : orders.length === 0 ? (
@@ -99,11 +100,11 @@ export default function RealtimeOrderList() {
               className="border rounded p-2 bg-background flex flex-col"
             >
               <div className="flex justify-between text-sm font-medium">
-                <span>Table {o.table_id}</span>
-                <span>{new Date(o.created_at).toLocaleTimeString()}</span>
+                <span>Table {o.tab_id || o.table_location || 'N/A'}</span>
+                <span>{o.created_at ? new Date(o.created_at).toLocaleTimeString() : 'Unknown time'}</span>
               </div>
               <ul className="text-xs ml-2 list-disc">
-                {o.items.map((it, index) => (
+                {parseOrderItems(o.items).map((it: OrderItem, index: number) => (
                   <li key={it.id || `${o.id}-item-${index}`}>
                     {it.quantity}x {it.name} {it.price ? `($${it.price.toFixed(2)})` : ''}
                   </li>

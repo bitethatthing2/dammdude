@@ -1,0 +1,81 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Version control
+.git/
+.gitignore
+
+# IDE/editor settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.crt
+
+# Temporary and cache files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Test and debug artifacts
+test/
+tests/
+debug/
+
+# Documentation and markdown
+*.md
+README*
+
+# Project-specific and config
+.clinerules/
+.eslintignore
+.eslintrc.json
+.npmrc
+
+# Supabase local/dev artifacts
+supabase/.branches/
+supabase/.temp/
+
+# Ignore scripts not needed in container
+scripts/
+
+# Ignore local config and backup files
+*.bak
+*.local
+local/
+
+# Ignore other VCS
+.svn/
+.hg/
+
+# Ignore public files not needed for build (if any)
+# (Commented out, as public/ is often needed for static assets)
+# public/*.md
+# public/*.psd
+
+# Ignore database migrations and backups (if not needed)
+# supabase/migrations/
+
+# Ignore Deno lock/config files (if not needed)
+supabase/functions/deno.lock
+supabase/functions/deno.json
+
+# Ignore miscellaneous
+.DS_Store
+Thumbs.db

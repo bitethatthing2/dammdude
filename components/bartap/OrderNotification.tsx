@@ -1,115 +1,340 @@
-"use client";
+import React, { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client'; // Use your centralized client
+import { Database } from '@/types/supabase'; // Use the generated types from your local DB
 
-import { useEffect } from 'react';
-import { toast } from '@/components/ui/use-toast';
-import { useRouter } from 'next/navigation';
-import { Bell, CheckCircle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { formatTimeDistance } from '@/lib/utils/date-utils';
+// Type definitions based on your actual database schema
+type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
+type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled';
 
-interface OrderNotificationProps {
-  orderId: string;
-  status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-  createdAt: string;
-  estimatedTime?: number | null;
+// Since items is JSONB in the database, it's already parsed
+type OrderItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+  customizations?: Record<string, unknown>;
+};
+
+// Extended order type with typed items
+interface OrderWithDetails extends Omit<BartenderOrder, 'items'> {
+  items: OrderItem[];
 }
 
-/**
- * Component to display order notifications with appropriate styling and actions
- */
-export function OrderNotification({
-  orderId,
-  status,
-  createdAt,
-  estimatedTime
-}: OrderNotificationProps) {
-  const router = useRouter();
-  const shortOrderId = orderId.slice(-6).toUpperCase();
+// Props interface for the component
+interface CustomerOrderStatusProps {
+  customerId: string;
+  onOrderUpdate?: (order: OrderWithDetails) => void;
+}
+
+// Status display configuration
+const STATUS_CONFIG: Record<OrderStatus, {
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: string;
+}> = {
+  pending: {
+    label: 'Pending',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-100',
+    icon: '⏳'
+  },
+  accepted: {
+    label: 'Accepted',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    icon: '✅'
+  },
+  preparing: {
+    label: 'Preparing',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+    icon: '👨‍🍳'
+  },
+  ready: {
+    label: 'Ready',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    icon: '🎉'
+  },
+  delivered: {
+    label: 'Delivered',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+    icon: '✨'
+  },
+  completed: {
+    label: 'Completed',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100',
+    icon: '✔️'
+  },
+  cancelled: {
+    label: 'Cancelled',
+    color: 'text-red-600',
+    bgColor: 'bg-red-100',
+    icon: '❌'
+  }
+};
+
+// Define the realtime payload structure
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: BartenderOrder;
+  old: BartenderOrder;
+  errors: string[] | null;
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+}
+
+export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({ 
+  customerId, 
+  onOrderUpdate 
+}) => {
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Navigate to order details
-  const viewOrderDetails = () => {
-    router.push(`/orders/${orderId}`);
-  };
-  
-  // Get appropriate icon based on order status
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'ready':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'preparing':
-        return <Clock className="h-5 w-5 text-amber-500" />;
-      case 'cancelled':
-        return <Bell className="h-5 w-5 text-red-500" />;
-      default:
-        return <Bell className="h-5 w-5 text-primary" />;
+  // Get the Supabase client
+  const supabase = createClient();
+
+  const handleRealtimeUpdate = useCallback((payload: RealtimePayload) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    switch (eventType) {
+      case 'INSERT':
+        if (newRecord) {
+          const newOrder: OrderWithDetails = {
+            ...newRecord,
+            items: (newRecord.items as OrderItem[]) || []
+          };
+          setOrders(prev => [newOrder, ...prev]);
+          onOrderUpdate?.(newOrder);
+        }
+        break;
+
+      case 'UPDATE':
+        if (newRecord) {
+          const updatedOrder: OrderWithDetails = {
+            ...newRecord,
+            items: (newRecord.items as OrderItem[]) || []
+          };
+          setOrders(prev => 
+            prev.map((order: OrderWithDetails) => 
+              order.id === newRecord.id ? updatedOrder : order
+            )
+          );
+          onOrderUpdate?.(updatedOrder);
+        }
+        break;
+
+      case 'DELETE':
+        if (oldRecord) {
+          setOrders(prev => prev.filter(order => order.id !== oldRecord.id));
+        }
+        break;
     }
-  };
-  
-  // Get appropriate title based on order status
-  const getStatusTitle = () => {
-    switch (status) {
-      case 'ready':
-        return 'Order Ready for Pickup!';
-      case 'preparing':
-        return 'Order Being Prepared';
-      case 'cancelled':
-        return 'Order Cancelled';
-      case 'delivered':
-        return 'Order Delivered';
-      default:
-        return 'Order Received';
+  }, [onOrderUpdate]);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bartender_orders')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Since items is JSONB, it's already parsed - just ensure it's typed correctly
+      const ordersWithTypedItems: OrderWithDetails[] = (data || []).map((order: BartenderOrder) => ({
+        ...order,
+        items: (order.items as OrderItem[]) || []
+      }));
+
+      setOrders(ordersWithTypedItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
     }
+  }, [customerId, supabase]);
+
+  useEffect(() => {
+    // Fetch initial orders
+    fetchOrders();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('customer-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bartender_orders',
+          filter: `customer_id=eq.${customerId}`
+        },
+        (payload: RealtimePayload) => {
+          handleRealtimeUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [customerId, fetchOrders, handleRealtimeUpdate, supabase]);
+
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
   };
-  
-  // Get appropriate description based on order status
-  const getStatusDescription = () => {
-    switch (status) {
-      case 'ready':
-        return `Your order #${shortOrderId} is ready for pickup!`;
-      case 'preparing':
-        return `Your order #${shortOrderId} is being prepared. ${
-          estimatedTime ? `Estimated time: ${estimatedTime} minutes` : ''
-        }`;
-      case 'cancelled':
-        return `Your order #${shortOrderId} has been cancelled.`;
-      case 'delivered':
-        return `Your order #${shortOrderId} has been delivered.`;
-      default:
-        return `Your order #${shortOrderId} has been received and will be prepared soon.`;
-    }
+
+  const calculateProgress = (status: OrderStatus | null): number => {
+    const progressMap: Record<OrderStatus, number> = {
+      'pending': 20,
+      'accepted': 35,
+      'preparing': 50,
+      'ready': 75,
+      'delivered': 90,
+      'completed': 100,
+      'cancelled': 0
+    };
+    return progressMap[status as OrderStatus] || 0;
   };
-  
-  return (
-    <div className="flex flex-col space-y-2 w-full">
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          "flex-shrink-0 rounded-full p-2",
-          status === 'ready' ? "bg-green-100" : 
-          status === 'preparing' ? "bg-amber-100" : 
-          status === 'cancelled' ? "bg-red-100" : 
-          "bg-primary/10"
-        )}>
-          {getStatusIcon()}
-        </div>
-        
-        <div className="flex-1 space-y-1">
-          <p className="font-medium text-sm">{getStatusTitle()}</p>
-          <p className="text-xs text-muted-foreground">{getStatusDescription()}</p>
-          <p className="text-xs text-muted-foreground/70">
-            {formatTimeDistance(createdAt)}
-          </p>
-        </div>
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full text-xs" 
-        onClick={viewOrderDetails}
-      >
-        View Order Details
-      </Button>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-600">Error: {error}</p>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="text-center p-8 text-gray-500">
+        No active orders
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {orders.map((order: OrderWithDetails) => {
+        const currentStatus = (order.status || 'pending') as OrderStatus;
+        const statusConfig = STATUS_CONFIG[currentStatus];
+        const progress = calculateProgress(currentStatus);
+
+        return (
+          <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
+            {/* Order Header */}
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Order #{order.order_number}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {order.order_type === 'pickup' ? '🛍️ Pickup' : '🪑 Table Service'}
+                  {order.table_location && ` - ${order.table_location}`}
+                </p>
+              </div>
+              <div className={`px-3 py-1 rounded-full ${statusConfig.bgColor}`}>
+                <span className={`text-sm font-medium ${statusConfig.color}`}>
+                  {statusConfig.icon} {statusConfig.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className="mb-4">
+              <h4 className="font-medium mb-2">Items:</h4>
+              <ul className="space-y-1">
+                {order.items?.map((item, index) => (
+                  <li key={index} className="text-sm text-gray-600">
+                    {item.quantity}x {item.name} 
+                    {item.notes && <span className="italic"> - {item.notes}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Timeline */}
+            <div className="text-sm text-gray-500 space-y-1">
+              {order.created_at && (
+                <div>Ordered: {formatTime(order.created_at)}</div>
+              )}
+              {order.accepted_at && (
+                <div>Accepted: {formatTime(order.accepted_at)}</div>
+              )}
+              {order.ready_at && (
+                <div>Ready: {formatTime(order.ready_at)}</div>
+              )}
+              {order.completed_at && (
+                <div>Completed: {formatTime(order.completed_at)}</div>
+              )}
+            </div>
+
+            {/* Total and Payment Status */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Total:</span>
+                <span className="text-lg font-semibold">
+                  ${Number(order.total_amount).toFixed(2)}
+                </span>
+              </div>
+              {order.payment_status && order.payment_status !== 'pending' && (
+                <div className="text-sm text-gray-500 mt-1">
+                  Payment: {order.payment_status === 'paid_at_bar' ? 'Paid at Bar' : 'Added to Tab'}
+                </div>
+              )}
+            </div>
+
+            {/* Customer Notes */}
+            {order.customer_notes && (
+              <div className="mt-3 p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Note:</span> {order.customer_notes}
+                </p>
+              </div>
+            )}
+
+            {/* Bartender Notes (if any) */}
+            {order.bartender_notes && (
+              <div className="mt-3 p-3 bg-blue-50 rounded">
+                <p className="text-sm text-blue-600">
+                  <span className="font-medium">From Bartender:</span> {order.bartender_notes}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
-}
+};

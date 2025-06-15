@@ -1,7 +1,8 @@
 // Import types from menu-item-types
-import { CartItem, BartenderOrder, BartenderTab } from './menu-item-types';
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '../database.types';
+import type { CartItem } from './menu-item-types';
+import type { BartenderOrder } from './order';
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from '@/lib/database.types';
 
 // Define the Supabase client type using the Database generic
 type SupabaseClient = ReturnType<typeof createBrowserClient<Database>>;
@@ -256,7 +257,7 @@ export interface CreateOrderResponse {
 
 // Helper Functions for Checkout
 export const calculateOrderTotals = (items: CartItem[], tipAmount = 0): OrderTotals => {
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * 0.0825; // Example: 8.25% tax rate
   const total = subtotal + tax + tipAmount;
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
@@ -466,7 +467,7 @@ export interface OrderStatusUpdate {
   message?: string;
 }
 
-export const ORDER_STATUS_MESSAGES: Record<BartenderOrder['status'], string> = {
+export const ORDER_STATUS_MESSAGES: Record<NonNullable<BartenderOrder['status']>, string> = {
   pending: 'Your order has been received',
   accepted: 'Your order has been accepted by the bartender',
   preparing: 'Your order is being prepared',

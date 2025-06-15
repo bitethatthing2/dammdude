@@ -77,7 +77,7 @@ export const MerchCategoryNav = ({
 
         <div 
           ref={scrollContainerRef} 
-          className="flex space-x-1 py-2 px-6 overflow-x-auto scrollbar-hide"
+          className="flex space-x-1 py-2 px-6 overflow-x-auto menu-scrollbar-hide"
         >
           {categories.map((category) => {
             const icon = CATEGORY_ICONS[category.id] || CATEGORY_ICONS.default;

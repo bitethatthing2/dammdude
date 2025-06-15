@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Check, Clock, Coffee, AlertTriangle, Loader2, X, FileText, Search, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Check, Clock, Coffee, Loader2, X, FileText, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useOrderManagement } from '@/lib/hooks/useOrderManagement';
 import { formatDistanceToNow } from 'date-fns';
-import { OrderStatus, Order, OrderItem } from '@/lib/types/order';
+import { OrderStatus, BartenderOrder as Order, OrderItem, parseOrderItems, isValidOrderStatus } from '@/lib/types/order';
 import { StatusBadge } from './ui/StatusBadge';
 import { toast } from '@/components/ui/use-toast';
 
@@ -43,12 +43,12 @@ export default function OrderManagement() {
     onNewOrder: (order) => {
       toast({
         title: "New Order",
-        description: `New order from Table ${order.table_name || order.table_id}`,
+        description: `New order from Table ${order.tab_id || order.table_location || 'N/A'}`,
         variant: "default"
       });
     },
     onOrderStatusChange: (order, previousStatus) => {
-      if (previousStatus === 'preparing' && order.status === 'ready') {
+      if (previousStatus === 'preparing' && order.status && isValidOrderStatus(order.status) && order.status === 'ready') {
         // Play notification sound for ready orders
         try {
           const audio = new Audio('/sounds/status-change.mp3');
@@ -67,7 +67,7 @@ export default function OrderManagement() {
       refreshButton.classList.add('animate-spin');
     }
     
-    await fetchOrders(true);
+    await fetchOrders();
     
     setTimeout(() => {
       if (refreshButton) {
@@ -103,8 +103,8 @@ export default function OrderManagement() {
       const lowerFilter = filterText.toLowerCase();
       return filteredOrders.filter(order =>
         order.id.toLowerCase().includes(lowerFilter) ||
-        (order.table_name?.toLowerCase() || '').includes(lowerFilter) ||
-        (order.table_id?.toLowerCase() || '').includes(lowerFilter)
+        (order.table_location?.toLowerCase() || '').includes(lowerFilter) ||
+        (order.tab_id?.toLowerCase() || '').includes(lowerFilter)
       );
     }
     
@@ -118,7 +118,7 @@ export default function OrderManagement() {
   };
   
   // Format time display
-  const formatTime = (dateString?: string) => {
+  const formatTime = (dateString?: string | null) => {
     if (!dateString) return 'Unknown time';
     
     try {
@@ -130,7 +130,9 @@ export default function OrderManagement() {
   };
   
   // Get next status based on current status
-  const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
+  const getNextStatus = (currentStatus: OrderStatus | string | null): OrderStatus => {
+    if (!currentStatus || !isValidOrderStatus(currentStatus)) return 'pending';
+    
     switch (currentStatus) {
       case 'pending':
         return 'preparing';
@@ -265,7 +267,7 @@ export default function OrderManagement() {
                         <div className="flex justify-between items-center">
                           <div className="flex flex-col">
                             <div className="font-medium flex items-center">
-                              Table {order.table_name || order.table_id}
+                              Table {order.tab_id || order.table_location || 'N/A'}
                               <Badge variant="outline" className="ml-2 text-xs">
                                 #{order.id.substring(0, 6)}
                               </Badge>
@@ -275,17 +277,17 @@ export default function OrderManagement() {
                               {formatTime(order.created_at)}
                             </div>
                           </div>
-                          <StatusBadge status={order.status} />
+                          <StatusBadge status={order.status && isValidOrderStatus(order.status) ? order.status : 'pending'} />
                         </div>
                       </CardHeader>
                       
                       <CardFooter className="py-3 px-4 flex justify-between items-center border-t">
                         <div>
                           <span className="font-medium">
-                            ${order.total_amount?.toFixed(2) || calculateOrderTotal(order.items).toFixed(2) || '0.00'}
+                            ${order.total_amount?.toFixed(2) || calculateOrderTotal(parseOrderItems(order.items)).toFixed(2) || '0.00'}
                           </span>
                           <span className="text-sm text-muted-foreground ml-2">
-                            {order.items?.length || 0} items
+                            {parseOrderItems(order.items).length || 0} items
                           </span>
                         </div>
                         
@@ -295,7 +297,8 @@ export default function OrderManagement() {
                           disabled={processingOrders[order.id] || order.status === 'completed' || order.status === 'cancelled'}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStatusUpdate(order.id, getNextStatus(order.status));
+                            const validStatus = order.status && isValidOrderStatus(order.status) ? order.status : 'pending';
+                            handleStatusUpdate(order.id, getNextStatus(validStatus));
                           }}
                         >
                           {processingOrders[order.id] ? (
@@ -340,7 +343,7 @@ export default function OrderManagement() {
                   <div className="text-sm text-muted-foreground">
                     {formatTime(selectedOrderDetails.created_at)}
                   </div>
-                  <StatusBadge status={selectedOrderDetails.status} />
+                  <StatusBadge status={selectedOrderDetails.status && isValidOrderStatus(selectedOrderDetails.status) ? selectedOrderDetails.status : 'pending'} />
                 </div>
               </CardHeader>
               
@@ -349,14 +352,14 @@ export default function OrderManagement() {
                   <h3 className="font-medium text-muted-foreground mb-2">Items</h3>
                   <ScrollArea className="h-[300px]">
                     <div className="space-y-3">
-                      {selectedOrderDetails.items?.map((item) => (
-                        <div key={item.id || `${selectedOrderDetails.id}-${item.name}-${Math.random()}`} className="flex justify-between pb-3 border-b last:border-0 last:pb-0">
+                      {parseOrderItems(selectedOrderDetails.items).map((item: OrderItem, index: number) => (
+                        <div key={item.id || `${selectedOrderDetails.id}-${item.name}-${index}`} className="flex justify-between pb-3 border-b last:border-0 last:pb-0">
                           <div>
                             <div className="font-medium">{item.name}</div>
                             <div className="text-sm">Qty: {item.quantity}</div>
                             {item.notes && (
                               <div className="text-xs text-muted-foreground mt-1 italic">
-                                "{item.notes}"
+                                &quot;{item.notes}&quot;
                               </div>
                             )}
                           </div>
@@ -372,10 +375,10 @@ export default function OrderManagement() {
                   </ScrollArea>
                 </div>
                 
-                {selectedOrderDetails.notes && (
+                {selectedOrderDetails.customer_notes && (
                   <div className="mb-4 p-3 bg-muted rounded-md">
                     <h3 className="font-medium text-sm mb-1">Order Notes:</h3>
-                    <p className="text-sm">{selectedOrderDetails.notes}</p>
+                    <p className="text-sm">{selectedOrderDetails.customer_notes}</p>
                   </div>
                 )}
                 
@@ -383,7 +386,7 @@ export default function OrderManagement() {
                   <span>Total Amount</span>
                   <span>
                     ${selectedOrderDetails.total_amount?.toFixed(2) || 
-                      calculateOrderTotal(selectedOrderDetails.items).toFixed(2) || 
+                      calculateOrderTotal(parseOrderItems(selectedOrderDetails.items)).toFixed(2) || 
                       '0.00'}
                   </span>
                 </div>
@@ -394,10 +397,10 @@ export default function OrderManagement() {
                   <Button
                     className="flex-1"
                     disabled={processingOrders[selectedOrderDetails.id]}
-                    onClick={() => handleStatusUpdate(
-                      selectedOrderDetails.id, 
-                      getNextStatus(selectedOrderDetails.status)
-                    )}
+                    onClick={() => {
+                      const validStatus = selectedOrderDetails.status && isValidOrderStatus(selectedOrderDetails.status) ? selectedOrderDetails.status : 'pending';
+                      handleStatusUpdate(selectedOrderDetails.id, getNextStatus(validStatus));
+                    }}
                   >
                     {processingOrders[selectedOrderDetails.id] ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

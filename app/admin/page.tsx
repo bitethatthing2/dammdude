@@ -1,5 +1,8 @@
 "use client";
 
+// Disable prerendering for admin pages since they require authentication
+export const dynamic = 'force-dynamic';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';

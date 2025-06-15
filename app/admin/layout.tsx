@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { UnifiedNotificationProvider } from '@/components/unified';
 
 /**
@@ -14,7 +14,7 @@ export default async function UnifiedAdminLayout({
   children: React.ReactNode
 }) {
   // Get the session from cookies
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createServerClient();
   
   // Get authenticated user
   const { data } = await supabase.auth.getSession();

@@ -6,7 +6,7 @@ import { CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Order, OrderItem } from '@/lib/database.types';
+import type { Order, OrderItem } from '@/lib/database-types-export';
 
 // Separate component that uses useSearchParams
 function OrderConfirmationContent() {
@@ -110,7 +110,7 @@ function OrderConfirmationContent() {
         filter: `id=eq.${orderId}`
       }, (payload: { new: Order; old: Order }) => {
         // Update order details when changes occur
-        setOrderDetails((prev) => prev ? ({
+        setOrderDetails((prev: (Order & { order_items: OrderItem[] }) | null) => prev ? ({
           ...prev,
           ...payload.new
         }) : null);
@@ -179,7 +179,7 @@ function OrderConfirmationContent() {
           <div className="border border-border rounded-lg p-4">
             <h2 className="font-medium mb-2 text-center">Table Number</h2>
             <div className="text-2xl font-bold text-center">
-              {orderDetails?.table_id || 'Not specified'}
+              {orderDetails?.table_location || 'Not specified'}
             </div>
           </div>
           

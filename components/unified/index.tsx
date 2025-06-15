@@ -27,12 +27,6 @@ export { StatusBadge } from './ui/StatusBadge';
 // Export drop-in replacement components
 export { OrdersManagement } from './OrdersManagement';
 
-// Export menu components
-// TODO: Create menu index.tsx file
-// export {
-//   MenuItem,
-//   MenuGrid
-// } from './menu';
 
 // Export notification components
 export { NotificationIndicator } from './notifications/NotificationIndicator';

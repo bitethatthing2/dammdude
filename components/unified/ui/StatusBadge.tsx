@@ -16,6 +16,10 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
       text: 'Pending',
       className: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
     },
+    accepted: {
+      text: 'Accepted',
+      className: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800'
+    },
     preparing: {
       text: 'Preparing',
       className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'

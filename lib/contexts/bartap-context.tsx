@@ -51,16 +51,22 @@ export function BarTapProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  // Initialize state from localStorage if available
-  const [tableId, setTableIdState] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('table_id');
-    }
-    return null;
-  });
-  
+  // Initialize state properly for SSR
+  const [tableId, setTableIdState] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<BarTapCartItem[]>([]);
   const [flowStep, setFlowStep] = useState<BarTapFlowStep>('table');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Initialize from localStorage after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedTableId = localStorage.getItem('table_id');
+      if (storedTableId) {
+        setTableIdState(storedTableId);
+      }
+      setIsHydrated(true);
+    }
+  }, []);
   
   // Sync tableId with localStorage and cookie whenever it changes
   useEffect(() => {

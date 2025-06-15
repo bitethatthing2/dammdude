@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell, MoreHorizontal } from 'lucide-react';
+import { ShoppingCart, Bell, MoreHorizontal } from 'lucide-react';
 import { NotificationIndicator } from '@/components/unified';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
@@ -51,10 +51,11 @@ export const BottomNav = () => {
     { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
     { 
       href: '/table', 
-      icon: <QrCode className="h-5 w-5" />, 
-      label: 'BarTap',
+      icon: <ShoppingCart className="h-5 w-5" />, 
+      label: 'Bar Tab',
       onClick: handleBarTapClick
     },
+    { href: '/chat', iconName: 'MessageCircle', label: 'Chat' },
   ];
 
   // Secondary navigation items - shown on larger screens or in a "more" menu

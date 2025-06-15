@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 /**
  * Enhanced database health check API endpoint
@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 export async function GET() {
   try {
     // Create server-side Supabase client with our custom function
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createServerClient();
     
     // Test database connection and collect diagnostics
     const diagnostics = {

@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr';
 import type { Database } from '../database.types';
 import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
 import { cookies as nextCookies } from 'next/headers';
@@ -6,7 +6,7 @@ import { cookies as nextCookies } from 'next/headers';
 /**
  * Creates a Supabase server client with proper async cookie handling
  */
-export async function createSupabaseServerClient(cookieStore?: ReadonlyRequestCookies) {
+export async function createServerClient(cookieStore?: ReadonlyRequestCookies) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
@@ -18,7 +18,7 @@ export async function createSupabaseServerClient(cookieStore?: ReadonlyRequestCo
   const cookieJar = cookieStore || await nextCookies();
   
   // Create client with cookie handling
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         try {
@@ -47,4 +47,4 @@ export async function createSupabaseServerClient(cookieStore?: ReadonlyRequestCo
 }
 
 // For backward compatibility
-export const createClient = createSupabaseServerClient;
+export const createClient = createServerClient;

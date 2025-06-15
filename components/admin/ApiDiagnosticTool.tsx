@@ -14,7 +14,11 @@ interface ApiTestResult {
   error?: string;
 }
 
-export function ApiDiagnosticTool() {
+interface ApiDiagnosticToolProps {
+  compact?: boolean;
+}
+
+export function ApiDiagnosticTool({ compact = false }: ApiDiagnosticToolProps) {
   const [results, setResults] = useState<Record<string, ApiTestResult>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [dbRelationshipStatus, setDbRelationshipStatus] = useState<'unknown' | 'checking' | 'ok' | 'error'>('unknown');

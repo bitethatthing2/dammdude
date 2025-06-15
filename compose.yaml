@@ -1,0 +1,19 @@
+services:
+  typescript-app:
+    build:
+      context: .
+    container_name: typescript-app
+    restart: unless-stopped
+    init: true
+    ports:
+      - "3000:3000" # Expose Next.js app on port 3000
+    env_file:
+      - ./.env
+      - ./.env.local
+    # If you add a database or other services, add 'depends_on' here
+    # networks: [default]  # Uncomment if you add more services/networks
+
+    # No external services (e.g., database, cache) detected in documentation or codebase.
+    # If you add a database (e.g., PostgreSQL for Supabase), add it here and configure networking and persistence accordingly.
+
+    # No volumes section included, as there are no persistent data requirements for this service.

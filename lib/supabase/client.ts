@@ -1,19 +1,28 @@
+// lib/supabase/client.ts
 import { createBrowserClient } from '@supabase/ssr';
+
+export { createBrowserClient };
+
+
 import type { Database } from '../database.types';
 
-// Fallback values (consider removing or adjusting logging if ENV vars are reliably set)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dzvvjgmnlcmgrsnyfqnw.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6dnZqZ21ubGNtZ3JzbnlmcW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MTU5OTQsImV4cCI6MjA1NDk5MTk5NH0.ECFbZk2XPcQ18Qf26i5AbDAjcmH4fHSrfLfv_ccaq-A';
+// Always use production
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tvnpgbjypnezoasbhbwx.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2bnBnYmp5cG5lem9hc2JoYnd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzOTM0MDMsImV4cCI6MjA2Mzk2OTQwM30.5u3YkO5BvdJ3eabOzNhEuKDF2IvugTFE_EAvB-V7Y9c';
 
-// Keep the warning for debugging purposes (optional)
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn('Supabase environment variables (URL or Anon Key) are missing. Check Vercel environment variables and .env.local for client-side usage. Using fallback values.');
+// Log which environment we're using
+if (typeof window !== 'undefined') {
+  console.log(`🚀 Supabase Client: Using PRODUCTION environment`);
+  console.log(`📍 URL: ${supabaseUrl}`);
 }
 
-// Use a singleton pattern to avoid creating multiple clients
-let clientInstance: ReturnType<typeof createBrowserClient<Database>> | undefined;
+// Define the Supabase client type using the Database generic
+type SupabaseClient = ReturnType<typeof createBrowserClient<Database>>;
 
-export function getSupabaseBrowserClient() {
+// Use a singleton pattern to avoid creating multiple clients
+let clientInstance: SupabaseClient | undefined;
+
+export function getSupabaseBrowserClient(): SupabaseClient {
   // Guard against SSR execution
   if (typeof window === 'undefined') {
     console.warn('getSupabaseBrowserClient was called during server rendering, which should be avoided');
@@ -23,40 +32,40 @@ export function getSupabaseBrowserClient() {
         getUser: () => Promise.resolve({ data: { user: null }, error: null }),
         getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       },
-      // Add additional stubs as needed
-    } as any;
+      from: () => ({
+        select: () => Promise.resolve({ data: null, error: null }),
+        insert: () => Promise.resolve({ data: null, error: null }),
+        update: () => Promise.resolve({ data: null, error: null }),
+        delete: () => Promise.resolve({ data: null, error: null }),
+      }),
+    } as unknown as SupabaseClient;
   }
 
   if (!clientInstance) {
     try {
-      // Use the Database type generic
       clientInstance = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
     } catch (err) {
       console.error('Failed to create Supabase browser client:', err);
-      // Return a minimal mock client if creation fails
-      return {
-        auth: {
-          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-        },
-        // Add additional stubs as needed
-      } as any;
+      throw err;
     }
   }
   return clientInstance;
 }
 
-// Define the Supabase client type using the Database generic
-type SupabaseClient = ReturnType<typeof createBrowserClient<Database>>;
-
 // Export a createClient function for backward compatibility
 export const createClient = getSupabaseBrowserClient;
+
+// Define error type
+interface QueryError {
+  message: string;
+  details?: string;
+}
 
 // Utility for safer queries with proper error handling
 export async function safeSupabaseQuery<T>(
   supabase: SupabaseClient,
-  queryFn: (client: SupabaseClient) => Promise<{ data: T | null; error: any }>
-): Promise<{ data: T | null; error: any }> {
+  queryFn: (client: SupabaseClient) => Promise<{ data: T | null; error: QueryError | null }>
+): Promise<{ data: T | null; error: QueryError | null }> {
   try {
     return await queryFn(supabase);
   } catch (error: unknown) {

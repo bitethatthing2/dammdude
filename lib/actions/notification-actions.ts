@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -34,7 +34,7 @@ export async function createNotification(
     
     // Get Supabase client
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Check if user exists
     const { data: userData, error: userError } = await supabase
@@ -89,7 +89,7 @@ export async function createBulkNotifications(
     
     // Get Supabase client
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Prepare notification records
     const notifications = userIds.map(userId => ({
@@ -132,7 +132,7 @@ export async function dismissNotification(
     
     // Get Supabase client
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -172,7 +172,7 @@ export async function dismissAllNotifications() {
   try {
     // Get Supabase client
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -213,7 +213,7 @@ export async function cleanupExpiredNotifications() {
   try {
     // Get Supabase client with service role
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Delete expired notifications
     const { data, error } = await supabase
@@ -249,7 +249,7 @@ export async function sendOrderNotificationToStaff(
 ) {
   try {
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Find staff devices to notify (primary device first)
     const { data: staffDevices, error: deviceError } = await supabase
@@ -284,7 +284,7 @@ export async function sendOrderNotificationToStaff(
     const notifications = staffDevices.map((device: { device_id: string }) => ({
       recipient_id: device.device_id,
       message: `New order from Table ${tableData.name}: ${orderDetails}`,
-      type: "order_new" as Database["public"]["Enums"]["notification_type"],
+      type: "order_new" as const,
       status: "unread"
     }));
     
@@ -316,7 +316,7 @@ export async function sendOrderReadyNotification(
 ) {
   try {
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     // Find customer devices for this table
     const { data: customerDevices, error: deviceError } = await supabase
@@ -351,7 +351,7 @@ export async function sendOrderReadyNotification(
     const notifications = customerDevices.map((device: { device_id: string }) => ({
       recipient_id: device.device_id,
       message: `Your order for Table ${tableData.name} is ready for pickup!`,
-      type: "order_ready" as Database["public"]["Enums"]["notification_type"],
+      type: "order_ready" as const,
       status: "unread"
     }));
     
@@ -391,7 +391,7 @@ export async function sendOrderReadyNotification(
 export async function markNotificationAsRead(notificationId: string) {
   try {
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createServerClient(cookieStore);
     
     const { error } = await supabase
       .from("notifications")

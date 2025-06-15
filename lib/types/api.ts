@@ -1,5 +1,5 @@
-import { Order, OrderItem } from './order';
-import { MenuItem, MenuCategory } from './menu';
+import { BartenderOrder as Order, OrderItem } from './order';
+import { MenuItem, MenuCategory } from './menu-item-types';
 
 // Generic API response types
 export interface ApiResponse<T> {
@@ -77,7 +77,7 @@ export interface SendNotificationRequest {
   badge?: number | string;
   
   // Custom data payload
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   
   // Platform-specific configurations
   androidConfig?: {

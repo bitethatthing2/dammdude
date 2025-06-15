@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import type { Order, Table } from '@/lib/database.types';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import type { Database } from '@/lib/database.types';
+
+type Order = Database['public']['Tables']['bartender_orders']['Row'];
+type Table = Database['public']['Tables']['tables']['Row'];
+import { createServerClient } from '@/lib/supabase/server';
 import { OrderStatus } from '@/lib/types/order';
 
 // Type for the selected order fields from our query
-type OrderQueryResult = Pick<Order, 'id' | 'table_id' | 'status' | 'created_at'> & {
-  total_price: number | null;
-  user_notes: string | null;
-};
+type OrderQueryResult = Pick<Order, 'id' | 'status' | 'created_at' | 'total_amount' | 'customer_notes' | 'table_location'>;
 
 // Type for table query result
 type TableQueryResult = Pick<Table, 'id' | 'name'>;
@@ -30,18 +30,17 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
     
     // Get cookie store and create Supabase client with fixed async cookie handling
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createServerClient();
     
-    // SIMPLIFIED QUERY - Avoiding table joins until migration is applied
-    // Using a simpler query structure for now to avoid foreign key errors
-    let query = supabase.from('orders')
+    // Query bartender_orders table with correct column names
+    let query = supabase.from('bartender_orders')
       .select(`
-        id, 
-        table_id,
+        id,
         status, 
         created_at,
-        total_price,
-        user_notes
+        total_amount,
+        customer_notes,
+        table_location
       `);
     
     // Add status filter if provided
@@ -69,39 +68,15 @@ export async function GET(request: Request) {
       }, { status: 500 });
     }
     
-    // Fetch table names separately to avoid join issues
-    let tableNamesMap: Record<string, string> = {};
-    if (data && data.length > 0) {
-      const tableIds = Array.from(new Set(data.map((order: OrderQueryResult) => order.table_id)));
-      
-      try {
-        const { data: tableData } = await supabase
-          .from('tables')
-          .select('id, name')
-          .in('id', tableIds);
-          
-        if (tableData) {
-          tableNamesMap = tableData.reduce((acc: Record<string, string>, table: TableQueryResult) => {
-            acc[table.id] = table.name;
-            return acc;
-          }, {});
-        }
-      } catch (tableError) {
-        console.error('Error fetching table names:', tableError);
-        // Continue without table names if there's an error
-      }
-    }
-
-    // Format orders with table name (from map or fallback) and empty items array for now
+    // Format orders using actual column names from bartender_orders table
     const formattedOrders = data?.map((order: OrderQueryResult) => ({
       id: order.id,
-      table_id: order.table_id,
-      table_name: tableNamesMap[order.table_id] || `Table ${order.table_id}`,
+      table_location: order.table_location,
       status: order.status,
       created_at: order.created_at,
       updated_at: order.created_at, // Use created_at since updated_at isn't selected
-      total_amount: order.total_price,
-      notes: order.user_notes,
+      total_amount: order.total_amount,
+      notes: order.customer_notes,
       items: [] // Simplified until order_items relationship is fixed
     })) || [];
     

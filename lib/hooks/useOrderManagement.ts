@@ -2,8 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderItem, OrderStatus } from '@/lib/types/order';
+import { BartenderOrder as Order, OrderStatus, isValidOrderStatus } from '@/lib/types/order';
 import { toast } from '@/components/ui/use-toast';
+// Define the payload type inline since RealtimePostgresChangesPayload might not be exported
+interface PostgresChangesPayload<T> {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: T | null;
+  old: T | null;
+  commit_timestamp?: string;
+  errors?: string[] | null;
+  schema: string;
+  table: string;
+}
 
 interface UseOrderManagementOptions {
   status?: OrderStatus[];
@@ -11,6 +21,18 @@ interface UseOrderManagementOptions {
   enableRealtime?: boolean;
   onNewOrder?: (order: Order) => void;
   onOrderStatusChange?: (order: Order, previousStatus: OrderStatus) => void;
+}
+
+interface OrdersApiResponse {
+  orders: Order[];
+  error?: {
+    message: string;
+  };
+}
+
+interface UpdateStatusResponse {
+  success: boolean;
+  error?: string;
 }
 
 /**
@@ -31,7 +53,7 @@ export function useOrderManagement({
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   
   // Fetch orders from API
-  const fetchOrders = useCallback(async (forceRefresh = false) => {
+  const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -46,11 +68,11 @@ export function useOrderManagement({
       const response = await fetch(`/api/admin/orders?${queryParams.toString()}`);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ error: { message: `Server returned ${response.status}: ${response.statusText}` } }));
         throw new Error(errorData.error?.message || `Server returned ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const data: OrdersApiResponse = await response.json();
       
       if (!data.orders) {
         throw new Error('Invalid response format: missing orders array');
@@ -58,7 +80,7 @@ export function useOrderManagement({
       
       setOrders(data.orders || []);
       setLastFetchTime(new Date());
-    } catch (err: unknown) {
+    } catch (err) {
       console.error('Error fetching orders:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -74,7 +96,7 @@ export function useOrderManagement({
     let intervalId: NodeJS.Timeout | null = null;
     if (refreshInterval > 0) {
       intervalId = setInterval(() => {
-        fetchOrders(true);
+        fetchOrders();
       }, refreshInterval);
     }
     
@@ -90,88 +112,94 @@ export function useOrderManagement({
     const supabase = getSupabaseBrowserClient();
     
     // Create channel for orders table changes
-    const channel = supabase.channel('orders-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'orders'
-      }, (payload: {
-        eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-        new?: Record<string, unknown>;
-        old?: Record<string, unknown>;
-      }) => {
-        const { eventType, new: newRecord, old: oldRecord } = payload;
-        
-        // Handle new orders
-        if (eventType === 'INSERT') {
-          const newOrder = newRecord as unknown as Order;
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bartender_orders'
+        },
+        (payload: PostgresChangesPayload<Order>) => {
+          const { eventType, new: newRecord, old: oldRecord } = payload;
           
-          // Only add if status matches our filter
-          if (status.includes(newOrder.status)) {
-            setOrders(prev => [newOrder, ...prev]);
+          // Handle new orders
+          if (eventType === 'INSERT' && newRecord) {
+            const newOrder = newRecord as Order;
             
-            // Call onNewOrder callback if provided
-            if (onNewOrder) {
-              onNewOrder(newOrder);
-            }
-            
-            // Play notification sound
-            try {
-              const audio = new Audio('/sounds/new-order.mp3');
-              audio.play().catch(err => console.error('Error playing sound:', err));
-            } catch (err) {
-              console.error('Error with notification sound:', err);
+            // Only add if status matches our filter
+            if (newOrder.status && isValidOrderStatus(newOrder.status) && status.includes(newOrder.status)) {
+              setOrders(prev => [newOrder, ...prev]);
+              
+              // Call onNewOrder callback if provided
+              if (onNewOrder) {
+                onNewOrder(newOrder);
+              }
+              
+              // Play notification sound
+              try {
+                const audio = new Audio('/sounds/new-order.mp3');
+                audio.play().catch(err => console.error('Error playing sound:', err));
+              } catch (err) {
+                console.error('Error with notification sound:', err);
+              }
             }
           }
-        }
-        
-        // Handle order updates
-        else if (eventType === 'UPDATE') {
-          const updatedOrder = newRecord as unknown as Order;
-          const oldOrder = oldRecord as unknown as Order;
           
-          setOrders(prev => {
-            // Order not in our list but status now matches our filter - add it
-            if (!prev.some(o => o.id === updatedOrder.id) && status.includes(updatedOrder.status)) {
-              return [updatedOrder, ...prev];
-            }
+          // Handle order updates
+          else if (eventType === 'UPDATE' && newRecord && oldRecord) {
+            const updatedOrder = newRecord as Order;
+            const oldOrder = oldRecord as Order;
             
-            // Order in our list but status no longer matches - remove it
-            if (!status.includes(updatedOrder.status)) {
-              return prev.filter(o => o.id !== updatedOrder.id);
-            }
-            
-            // Order status changed but still in our filter - update it
-            return prev.map(o => {
-              if (o.id === updatedOrder.id) {
-                // Call status change callback if provided
-                if (onOrderStatusChange && o.status !== updatedOrder.status) {
-                  onOrderStatusChange(updatedOrder, o.status);
-                }
-                
-                return { ...o, ...updatedOrder };
+            setOrders(prev => {
+              // Order not in our list but status now matches our filter - add it
+              if (!prev.some(o => o.id === updatedOrder.id) && 
+                  updatedOrder.status && isValidOrderStatus(updatedOrder.status) && 
+                  status.includes(updatedOrder.status)) {
+                return [updatedOrder, ...prev];
               }
-              return o;
+              
+              // Order in our list but status no longer matches - remove it
+              if (!updatedOrder.status || !isValidOrderStatus(updatedOrder.status) || !status.includes(updatedOrder.status)) {
+                return prev.filter(o => o.id !== updatedOrder.id);
+              }
+              
+              // Order status changed but still in our filter - update it
+              return prev.map(o => {
+                if (o.id === updatedOrder.id) {
+                  // Call status change callback if provided
+                  if (onOrderStatusChange && 
+                      oldOrder.status && isValidOrderStatus(oldOrder.status) && 
+                      updatedOrder.status && isValidOrderStatus(updatedOrder.status) && 
+                      oldOrder.status !== updatedOrder.status) {
+                    onOrderStatusChange(updatedOrder, oldOrder.status);
+                  }
+                  
+                  return { ...o, ...updatedOrder };
+                }
+                return o;
+              });
             });
-          });
+          }
+          
+          // Handle order deletions
+          else if (eventType === 'DELETE' && oldRecord) {
+            const deletedOrder = oldRecord as Order;
+            setOrders(prev => prev.filter(o => o.id !== deletedOrder.id));
+          }
         }
-        
-        // Handle order deletions
-        else if (eventType === 'DELETE') {
-          const deletedOrder = oldRecord as unknown as Order;
-          setOrders(prev => prev.filter(o => o.id !== deletedOrder.id));
-        }
-      })
+      )
       .subscribe();
     
     // Cleanup subscription
     return () => {
-      supabase.channel('orders-changes').unsubscribe();
+      channel.unsubscribe();
     };
   }, [enableRealtime, status, onNewOrder, onOrderStatusChange]);
   
   // Update order status
-  const updateOrderStatus = useCallback(async (orderId: string, newStatus: OrderStatus) => {
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: OrderStatus): Promise<UpdateStatusResponse> => {
     try {
       // Mark as processing
       setProcessingOrders(prev => ({ ...prev, [orderId]: true }));
@@ -186,7 +214,7 @@ export function useOrderManagement({
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ error: { message: `Server returned ${response.status}: ${response.statusText}` } }));
         throw new Error(errorData.error?.message || `Server returned ${response.status}: ${response.statusText}`);
       }
       
@@ -207,7 +235,7 @@ export function useOrderManagement({
             const updatedOrder = { ...o, status: newStatus };
             
             // Call status change callback if provided
-            if (onOrderStatusChange && prevStatus !== newStatus) {
+            if (onOrderStatusChange && prevStatus && isValidOrderStatus(prevStatus) && prevStatus !== newStatus) {
               onOrderStatusChange(updatedOrder, prevStatus);
             }
             
@@ -224,7 +252,7 @@ export function useOrderManagement({
       });
       
       return { success: true, ...result };
-    } catch (err: unknown) {
+    } catch (err) {
       console.error('Error updating order status:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update order status';
       toast({

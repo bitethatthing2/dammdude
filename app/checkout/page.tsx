@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { CheckoutForm } from '@/components/bartap/CheckoutForm';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: 'BarTap - Checkout',
@@ -28,20 +28,14 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   const tableCookie = cookieStore.get('table_id');
   const tableId = tableIdFromParam || tableCookie?.value;
   
-  console.log('[CheckoutPage] searchParams:', JSON.stringify(searchParamsObj));
-  console.log('[CheckoutPage] tableIdFromParam:', tableIdFromParam);
-  const logCookie = cookieStore.get('table_id');
-  console.log('[CheckoutPage] cookie table_id:', logCookie?.value);
-  console.log('[CheckoutPage] final tableId:', tableId);
   
   // If no table ID, redirect to table identification
   if (!tableId) {
-    console.log('[CheckoutPage] No tableId found, redirecting to /table');
-    redirect('/table');
+      redirect('/table');
   }
   
   // Create Supabase client
-  const supabase = await createSupabaseServerClient(cookieStore);
+  const supabase = await createServerClient(cookieStore);
   
   // Verify the table exists
   const { data: tableData, error } = await supabase
@@ -50,13 +44,10 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     .eq('id', tableId)
     .single();
   
-  console.log('[CheckoutPage] tableData:', JSON.stringify(tableData));
-  console.log('[CheckoutPage] table query error:', error?.message);
   
   // If table doesn't exist, redirect to table identification
   if (error || !tableData) {
-    console.log('[CheckoutPage] Table not found or error, redirecting to /table');
-    cookieStore.delete('table_id');
+      cookieStore.delete('table_id');
     redirect('/table');
   }
   

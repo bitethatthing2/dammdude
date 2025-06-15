@@ -10,7 +10,7 @@ import * as LucideIcons from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
 // Define the category type from database schema
-type MenuCategory = Database['public']['Tables']['menu_categories']['Row'];
+type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row'];
 
 interface CategorySelectorProps {
   categories: MenuCategory[];

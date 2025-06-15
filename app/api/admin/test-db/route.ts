@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { Database } from '@/lib/database.types';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
     console.log("[TEST API] Starting database test");
     
     // Use our custom server client that handles cookies correctly
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createServerClient();
     
     // Test 1: Simple query to check basic connectivity
     console.log("[TEST API] Running simple query test");

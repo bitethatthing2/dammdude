@@ -1,28 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase'; // Adjust path to your generated types
+import React, { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client'; // Use your centralized client
+import { Database } from '@/types/supabase'; // Use the generated types from your local DB
 
-// Initialize Supabase client with proper typing
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-// Type definitions based on your database schema
+// Type definitions based on your actual database schema
 type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
-type OrderStatus = BartenderOrder['status'];
+type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled';
 
-// Extended order type with items details
-interface OrderWithDetails extends BartenderOrder {
-  // Parse the JSON items field for better type safety
-  parsedItems?: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-    notes?: string;
-    customizations?: Record<string, any>;
-  }>;
+// Since items is JSONB in the database, it's already parsed
+type OrderItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+  customizations?: Record<string, unknown>;
+};
+
+// Extended order type with typed items
+interface OrderWithDetails extends Omit<BartenderOrder, 'items'> {
+  items: OrderItem[];
 }
 
 // Props interface for the component
@@ -32,7 +28,7 @@ interface CustomerOrderStatusProps {
 }
 
 // Status display configuration
-const STATUS_CONFIG: Record<string, {
+const STATUS_CONFIG: Record<OrderStatus, {
   label: string;
   color: string;
   bgColor: string;
@@ -62,6 +58,12 @@ const STATUS_CONFIG: Record<string, {
     bgColor: 'bg-green-100',
     icon: '🎉'
   },
+  delivered: {
+    label: 'Delivered',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+    icon: '✨'
+  },
   completed: {
     label: 'Completed',
     color: 'text-gray-600',
@@ -73,14 +75,19 @@ const STATUS_CONFIG: Record<string, {
     color: 'text-red-600',
     bgColor: 'bg-red-100',
     icon: '❌'
-  },
-  expired: {
-    label: 'Expired',
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-100',
-    icon: '⏰'
   }
 };
+
+// Define the realtime payload structure
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: BartenderOrder;
+  old: BartenderOrder;
+  errors: string[] | null;
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+}
 
 export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({ 
   customerId, 
@@ -89,6 +96,72 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get the Supabase client
+  const supabase = createClient();
+
+  const handleRealtimeUpdate = useCallback((payload: RealtimePayload) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    switch (eventType) {
+      case 'INSERT':
+        if (newRecord) {
+          const newOrder: OrderWithDetails = {
+            ...newRecord,
+            items: (newRecord.items as OrderItem[]) || []
+          };
+          setOrders(prev => [newOrder, ...prev]);
+          onOrderUpdate?.(newOrder);
+        }
+        break;
+
+      case 'UPDATE':
+        if (newRecord) {
+          const updatedOrder: OrderWithDetails = {
+            ...newRecord,
+            items: (newRecord.items as OrderItem[]) || []
+          };
+          setOrders(prev => 
+            prev.map((order: OrderWithDetails) => 
+              order.id === newRecord.id ? updatedOrder : order
+            )
+          );
+          onOrderUpdate?.(updatedOrder);
+        }
+        break;
+
+      case 'DELETE':
+        if (oldRecord) {
+          setOrders(prev => prev.filter(order => order.id !== oldRecord.id));
+        }
+        break;
+    }
+  }, [onOrderUpdate]);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bartender_orders')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Since items is JSONB, it's already parsed - just ensure it's typed correctly
+      const ordersWithTypedItems: OrderWithDetails[] = (data || []).map((order: BartenderOrder) => ({
+        ...order,
+        items: (order.items as OrderItem[]) || []
+      }));
+
+      setOrders(ordersWithTypedItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  }, [customerId, supabase]);
 
   useEffect(() => {
     // Fetch initial orders
@@ -105,7 +178,7 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
           table: 'bartender_orders',
           filter: `customer_id=eq.${customerId}`
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           handleRealtimeUpdate(payload);
         }
       )
@@ -114,64 +187,7 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [customerId]);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('bartender_orders')
-        .select('*')
-        .eq('customer_id', customerId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Parse items JSON for each order
-      const ordersWithParsedItems: OrderWithDetails[] = (data || []).map(order => ({
-        ...order,
-        parsedItems: order.items ? JSON.parse(order.items as string) : []
-      }));
-
-      setOrders(ordersWithParsedItems);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRealtimeUpdate = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-
-    switch (eventType) {
-      case 'INSERT':
-        const newOrder: OrderWithDetails = {
-          ...newRecord,
-          parsedItems: newRecord.items ? JSON.parse(newRecord.items) : []
-        };
-        setOrders(prev => [newOrder, ...prev]);
-        onOrderUpdate?.(newOrder);
-        break;
-
-      case 'UPDATE':
-        const updatedOrder: OrderWithDetails = {
-          ...newRecord,
-          parsedItems: newRecord.items ? JSON.parse(newRecord.items) : []
-        };
-        setOrders(prev => 
-          prev.map(order => 
-            order.id === newRecord.id ? updatedOrder : order
-          )
-        );
-        onOrderUpdate?.(updatedOrder);
-        break;
-
-      case 'DELETE':
-        setOrders(prev => prev.filter(order => order.id !== oldRecord.id));
-        break;
-    }
-  };
+  }, [customerId, fetchOrders, handleRealtimeUpdate, supabase]);
 
   const formatTime = (dateString: string | null) => {
     if (!dateString) return '';
@@ -181,17 +197,28 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
     });
   };
 
-  const calculateProgress = (status: string | null): number => {
-    const progressMap: Record<string, number> = {
+  const calculateProgress = (status: OrderStatus | null): number => {
+    const progressMap: Record<OrderStatus, number> = {
       'pending': 20,
-      'accepted': 40,
-      'preparing': 60,
-      'ready': 80,
+      'accepted': 35,
+      'preparing': 50,
+      'ready': 75,
+      'delivered': 90,
       'completed': 100,
-      'cancelled': 0,
-      'expired': 0
+      'cancelled': 0
     };
-    return progressMap[status || 'pending'] || 0;
+    return progressMap[status as OrderStatus] || 0;
+  };
+
+  // Progress bar width classes
+  const getProgressClass = (progress: number): string => {
+    if (progress === 0) return 'w-0';
+    if (progress <= 20) return 'w-1/5';
+    if (progress <= 35) return 'w-1/3';
+    if (progress <= 50) return 'w-1/2';
+    if (progress <= 75) return 'w-3/4';
+    if (progress <= 90) return 'w-11/12';
+    return 'w-full';
   };
 
   if (loading) {
@@ -220,9 +247,11 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
 
   return (
     <div className="space-y-4">
-      {orders.map((order) => {
-        const statusConfig = STATUS_CONFIG[order.status || 'pending'];
-        const progress = calculateProgress(order.status);
+      {orders.map((order: OrderWithDetails) => {
+        const currentStatus = (order.status || 'pending') as OrderStatus;
+        const statusConfig = STATUS_CONFIG[currentStatus];
+        const progress = calculateProgress(currentStatus);
+        const progressClass = getProgressClass(progress);
 
         return (
           <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
@@ -246,10 +275,9 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
 
             {/* Progress Bar */}
             <div className="mb-4">
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
+                  className={`bg-blue-600 h-2 rounded-full transition-all duration-500 ${progressClass}`}
                 />
               </div>
             </div>
@@ -258,7 +286,7 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
             <div className="mb-4">
               <h4 className="font-medium mb-2">Items:</h4>
               <ul className="space-y-1">
-                {order.parsedItems?.map((item, index) => (
+                {order.items?.map((item, index) => (
                   <li key={index} className="text-sm text-gray-600">
                     {item.quantity}x {item.name} 
                     {item.notes && <span className="italic"> - {item.notes}</span>}
@@ -283,14 +311,19 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
               )}
             </div>
 
-            {/* Total */}
+            {/* Total and Payment Status */}
             <div className="mt-4 pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-medium">Total:</span>
                 <span className="text-lg font-semibold">
-                  ${order.total_amount.toFixed(2)}
+                  ${Number(order.total_amount).toFixed(2)}
                 </span>
               </div>
+              {order.payment_status && order.payment_status !== 'pending' && (
+                <div className="text-sm text-gray-500 mt-1">
+                  Payment: {order.payment_status === 'paid_at_bar' ? 'Paid at Bar' : 'Added to Tab'}
+                </div>
+              )}
             </div>
 
             {/* Customer Notes */}
@@ -298,6 +331,15 @@ export const CustomerOrderStatus: React.FC<CustomerOrderStatusProps> = ({
               <div className="mt-3 p-3 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Note:</span> {order.customer_notes}
+                </p>
+              </div>
+            )}
+
+            {/* Bartender Notes (if any) */}
+            {order.bartender_notes && (
+              <div className="mt-3 p-3 bg-blue-50 rounded">
+                <p className="text-sm text-blue-600">
+                  <span className="font-medium">From Bartender:</span> {order.bartender_notes}
                 </p>
               </div>
             )}

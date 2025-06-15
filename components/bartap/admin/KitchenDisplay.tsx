@@ -17,7 +17,7 @@ import { useAdminOrders, AdminOrder, OrderStatus } from '@/lib/hooks/useAdminOrd
 import { setupGlobalErrorHandlers, captureError, getStoredErrors, clearStoredErrors } from '@/lib/utils/error-utils';
 import { setupErrorMonitoring } from '@/lib/utils/error-monitoring';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
-import { ApiDiagnostics } from './ApiDiagnostics';
+import { ApiDiagnosticTool as ApiDiagnostics } from '@/components/admin/ApiDiagnosticTool';
 
 // Order statuses we care about in the kitchen
 type KitchenOrderStatus = 'pending' | 'preparing' | 'ready';
