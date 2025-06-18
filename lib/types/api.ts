@@ -1,5 +1,5 @@
 import { BartenderOrder as Order, OrderItem } from './order';
-import { MenuItem, MenuCategory } from './menu-item-types';
+import { MenuItem, MenuCategory } from './menu';
 
 // Generic API response types
 export interface ApiResponse<T> {

@@ -136,18 +136,43 @@ export function UnifiedNotificationProvider({
   // Play notification sound
   const playNotificationSound = (soundType: 'notification' | 'new-order' | 'status-change' = 'notification') => {
     try {
+      // Only try to play sounds in browser environment
+      if (typeof window === 'undefined') {
+        return;
+      }
+      
       const soundMap = {
         'notification': '/sounds/notification.mp3',
         'new-order': '/sounds/new-order.mp3',
         'status-change': '/sounds/status-change.mp3'
       };
       
-      const audio = new Audio(soundMap[soundType]);
-      audio.play().catch(err => {
-        console.error(`Error playing ${soundType} sound:`, err);
+      const soundUrl = soundMap[soundType];
+      
+      // Check if audio is supported
+      if (!window.Audio) {
+        console.warn('Audio not supported in this browser');
+        return;
+      }
+      
+      const audio = new Audio(soundUrl);
+      
+      // Set up error handling before attempting to play
+      audio.addEventListener('error', (err) => {
+        console.warn(`Could not load sound file: ${soundUrl}`, err);
       });
+      
+      // Attempt to play with proper error handling
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // This is normal - browsers often block autoplay
+          console.debug(`Sound play blocked or failed for ${soundType}:`, err.name);
+        });
+      }
     } catch (err) {
-      console.error('Error with notification sound:', err);
+      console.warn('Error setting up notification sound:', err);
     }
   };
   
@@ -286,4 +311,13 @@ export function useNotifications() {
   }
   
   return context;
+}
+
+/**
+ * Safe hook to use the notification context
+ * Returns null if context is not available instead of throwing an error
+ */
+export function useSafeNotifications(): NotificationContextType | null {
+  const context = useContext(NotificationContext);
+  return context || null;
 }

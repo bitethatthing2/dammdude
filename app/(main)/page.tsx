@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import { LocationToggle } from '@/components/shared/LocationToggle';
 import Link from 'next/link';
@@ -11,6 +10,7 @@ import { Utensils, CalendarDays, BookOpen, ShoppingBag, Download, Lock, Bell, St
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
+import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
 import React, { Suspense } from 'react';
 
 // Dynamically import components that use browser APIs
@@ -45,7 +45,6 @@ const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode;
 
 export default function HomePage() {
   const { location } = useLocationState();
-  const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
   // Wait for component to mount to ensure client-side rendering
@@ -53,15 +52,28 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
-  // Determine image source based on theme
-  const wolfIconSrc = mounted && resolvedTheme === 'dark' 
-    ? '/icons/wolf-icon-main-page.png' 
-    : '/icons/wolf-icon-main-page-light-screen.png';
+  // Use light mode images only
+  const wolfIconSrc = '/icons/wolf-icon-main-page-light-screen.png';
+  const sideHustleFontSrc = '/icons/sidehustle-font-lightscreen.png';
 
   return (
-    <div className="flex flex-col items-center pb-24 sm:pb-4 pt-2"> 
+    <div className="flex flex-col items-center pb-24 sm:pb-4 pt-2 relative"> 
 
-      {/* Theme-aware Wolf Icon - Takes full width with minimal side padding */}
+
+      {/* Side Hustle Font Logo - Positioned in upper left */}
+      <div className="absolute top-4 left-4 z-10"> 
+        {mounted ? (
+          <img 
+            src={sideHustleFontSrc} 
+            alt="Side Hustle" 
+            className="h-12 w-auto md:h-14 lg:h-16" 
+          />
+        ) : (
+          <div className="h-12 w-28 md:h-14 md:w-32 lg:h-16 lg:w-36 bg-muted animate-pulse" />
+        )}
+      </div>
+
+      {/* Wolf Icon - Takes full width with minimal side padding */}
       <div className="mb-0 w-full px-2"> 
         {mounted ? (
           <img 
@@ -137,9 +149,11 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex-shrink-0 mt-1 sm:mt-0">
-                  <Suspense fallback={<NotificationIndicatorFallback />}>
-                    <NotificationIndicator variant="outline" /> 
-                  </Suspense>
+                  <NotificationErrorBoundary fallback={<NotificationIndicatorFallback />}>
+                    <Suspense fallback={<NotificationIndicatorFallback />}>
+                      <NotificationIndicator variant="outline" /> 
+                    </Suspense>
+                  </NotificationErrorBoundary>
                 </div>
               </div>
             </div>

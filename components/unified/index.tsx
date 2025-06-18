@@ -31,7 +31,7 @@ export { OrdersManagement } from './OrdersManagement';
 // Export notification components
 export { NotificationIndicator } from './notifications/NotificationIndicator';
 export { NotificationPopover } from './notifications/NotificationPopover';
-export { useNotifications, UnifiedNotificationProvider } from './notifications/index';
+export { useNotifications, useSafeNotifications, UnifiedNotificationProvider } from './notifications/index';
 
 // Export layout components
 export {

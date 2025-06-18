@@ -3,7 +3,7 @@
 import { Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useNotifications } from '@/lib/contexts/unified-notification-context';
+import { useSafeNotifications } from '@/lib/contexts/unified-notification-context';
 
 interface NotificationIndicatorProps {
   variant?: 'default' | 'outline' | 'subtle';
@@ -20,7 +20,9 @@ export function NotificationIndicator({
   size = 'md',
   onClick,
 }: NotificationIndicatorProps) {
-  const { unreadCount } = useNotifications();
+  // Safely get notifications context - returns null if not available
+  const context = useSafeNotifications();
+  const unreadCount = context?.unreadCount || 0;
   
   // Size configurations
   const sizeConfig = {

@@ -3,40 +3,41 @@ import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
-    // Get the category ID from query params
+    // Get the category ID from query params (optional)
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
     
-    if (!categoryId) {
-      return NextResponse.json(
-        { error: 'Category ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Parse category ID to number
-    const categoryIdNum = parseInt(categoryId, 10);
-    if (isNaN(categoryIdNum)) {
-      return NextResponse.json(
-        { error: 'Invalid category ID' },
-        { status: 400 }
-      );
-    }
-    
     const supabase = await createServerClient();
     
-    // Get menu items for the specified category
-    const { data, error } = await supabase
-      .from('menu_items')
+    let query = supabase
+      .from('food_drink_items')
       .select(`
         *,
-        option_groups:option_groups (
-          *,
-          options:options (*)
-        )
+        images:image_id (
+          id,
+          url,
+          storage_path,
+          metadata
+        ),
+        category:food_drink_categories(name, type)
       `)
-      .eq('category_id', categoryIdNum)
+      .eq('is_available', true)
       .order('display_order', { ascending: true });
+
+    // If categoryId is provided, filter by it
+    if (categoryId) {
+      const categoryIdNum = parseInt(categoryId, 10);
+      if (isNaN(categoryIdNum)) {
+        return NextResponse.json(
+          { error: 'Invalid category ID' },
+          { status: 400 }
+        );
+      }
+      query = query.eq('category_id', categoryIdNum);
+    }
+    
+    // Get menu items
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error fetching menu items:', error);

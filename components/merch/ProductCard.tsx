@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ExternalLink, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import type { MerchItem } from '@/lib/types/merch';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

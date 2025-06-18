@@ -1,5 +1,5 @@
 // Export all types from the module
-export * from './menu-item-types';
+export * from './menu';
 export * from './order';
 export type { BartenderOrder } from './order';
 export { isValidOrderStatus, isValidPaymentStatus } from './order';

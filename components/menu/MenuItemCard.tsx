@@ -18,6 +18,12 @@ interface MenuItem {
   is_available: boolean;
   display_order: number;
   image_url?: string | null;
+  images?: {
+    id: string;
+    url: string;
+    storage_path: string;
+    metadata: Record<string, unknown>;
+  } | null;
   category?: {
     name: string;
     type?: string;
@@ -256,8 +262,8 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const IconComponent = getItemIcon(item.name, item.category?.name);
   const themeColor = getCategoryTheme(item.category?.name);
   
-  // Get the food image URL for this item
-  const foodImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '');
+  // Get the food image URL for this item - prioritize database images
+  const foodImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
   
   const isSpicy = item.name.toLowerCase().includes('spicy');
   const isVegetarian = item.name.toLowerCase().includes('vegetarian') || 
@@ -382,8 +388,8 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [imageError, setImageError] = useState(false);
   const themeColor = getCategoryTheme(item.category?.name);
   
-  // Get the food image URL for this item
-  const foodImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '');
+  // Get the food image URL for this item - prioritize database images
+  const foodImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
   
   // Handler for add button - either open modal or add directly
   const handleAddClick = () => {

@@ -1,0 +1,243 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { Loader2 } from 'lucide-react';
+import MenuItemCard from './MenuItemCard';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { toast } from '@/components/ui/use-toast';
+
+// Type definitions
+interface MenuItem {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  is_available: boolean;
+  display_order: number;
+  image_url?: string | null;
+  category?: {
+    id: string;
+    name: string;
+    type?: string;
+  };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string | null;
+  emoji?: string | null;
+  display_order: number;
+  color_class?: string;
+}
+
+interface CartOrderData {
+  item: {
+    id: string;
+    name: string;
+    price: number;
+  };
+  modifiers: {
+    meat: {
+      id: string;
+      name: string;
+      price_adjustment: number;
+    } | null;
+    sauces: Array<{
+      id: string;
+      name: string;
+      price_adjustment: number;
+    }>;
+  };
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface MenuGridProps {
+  selectedCategoryId?: string | null;
+  onAddToCart: (orderData: CartOrderData) => void;
+}
+
+export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridProps) {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId || null);
+  
+  const supabase = getSupabaseBrowserClient();
+
+  // Fetch categories
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const { data, error } = await supabase
+          .from('food_drink_categories')
+          .select('*')
+          .order('display_order', { ascending: true });
+
+        if (error) throw error;
+        setCategories(data || []);
+        
+        // Set first category as active if none selected
+        if (!activeCategory && data && data.length > 0) {
+          setActiveCategory(data[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load categories",
+          variant: "destructive"
+        });
+      }
+    }
+
+    fetchCategories();
+  }, [activeCategory, supabase]);
+
+  // Fetch menu items
+  useEffect(() => {
+    async function fetchMenuItems() {
+      try {
+        setLoading(true);
+        
+        let query = supabase
+          .from('food_drink_items')
+          .select(`
+            *,
+            category:food_drink_categories(
+              id,
+              name,
+              type
+            )
+          `)
+          .order('display_order', { ascending: true });
+
+        // Filter by category if one is selected
+        if (activeCategory) {
+          query = query.eq('category_id', activeCategory);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        setMenuItems(data || []);
+      } catch (error) {
+        console.error('Error fetching menu items:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load menu items",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMenuItems();
+  }, [activeCategory, supabase]);
+
+  // Filter items by availability
+  const availableItems = useMemo(() => {
+    return menuItems.filter(item => item.is_available);
+  }, [menuItems]);
+
+  const unavailableItems = useMemo(() => {
+    return menuItems.filter(item => !item.is_available);
+  }, [menuItems]);
+
+  // Combine items with available first
+  const sortedItems = [...availableItems, ...unavailableItems];
+
+  return (
+    <div className="w-full">
+      {/* Category Navigation */}
+      <div className="wolfpack-category-nav sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="wolfpack-category-scroll">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setActiveCategory(category.id)}
+              className={`wolfpack-category-card ${
+                activeCategory === category.id ? 'wolfpack-category-active' : ''
+              } ${category.color_class || 'menu-category-orange'}`}
+            >
+              {category.emoji && (
+                <span className="wolfpack-category-emoji">{category.emoji}</span>
+              )}
+              <h3 className="wolfpack-category-name">{category.name}</h3>
+              <span className="wolfpack-category-count">
+                {menuItems.filter(item => item.category_id === category.id).length} items
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Menu Items Grid */}
+      <div className="p-4">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+              <p className="mt-4 text-lg text-muted-foreground">Loading delicious food...</p>
+            </div>
+          </div>
+        ) : sortedItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-muted-foreground">No items found in this category.</p>
+          </div>
+        ) : (
+          <div className="wolfpack-menu-grid">
+            {sortedItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                onAddToCart={onAddToCart}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Example usage in a page component:
+/*
+// app/menu/page.tsx or pages/menu.tsx
+
+'use client';
+
+import { useState } from 'react';
+import MenuGrid from '@/components/MenuGrid';
+import { toast } from '@/components/ui/use-toast';
+
+export default function MenuPage() {
+  const [cart, setCart] = useState<any[]>([]);
+
+  const handleAddToCart = (orderData: any) => {
+    setCart(prev => [...prev, orderData]);
+    toast({
+      title: "Added to cart!",
+      description: `${orderData.item.name} has been added to your cart.`,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-3xl font-bold">Our Menu</h1>
+        </div>
+      </header>
+      
+      <main>
+        <MenuGrid onAddToCart={handleAddToCart} />
+      </main>
+    </div>
+  );
+}
+*/

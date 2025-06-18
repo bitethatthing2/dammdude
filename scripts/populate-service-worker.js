@@ -4,8 +4,19 @@ const path = require('path');
 
 console.log('Populating service worker with environment variables...');
 
-// Read environment variables
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+// Try to load .env.local if it exists and dotenv is available, but don't fail if it doesn't
+try {
+  const dotenv = require('dotenv');
+  const envPath = path.join(__dirname, '..', '.env.local');
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log('✅ Loaded .env.local file');
+  } else {
+    console.log('ℹ️  No .env.local file found, using environment variables');
+  }
+} catch (e) {
+  console.log('ℹ️  dotenv not available, using environment variables directly');
+}
 
 // Path to the service worker file
 const swPath = path.join(__dirname, '..', 'public', 'firebase-messaging-sw.js');

@@ -4,16 +4,6 @@ import type { Database } from '@/lib/database.types';
 
 type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row'];
 
-// Define type alias for convenience
-// Create a unified category type that works for both tables
-type Category = {
-  id: string;
-  name: string;
-  description: string | null;
-  display_order: number | null;
-  image_url: string | null;
-};
-
 /**
  * Fetches all menu categories from Supabase.
  * Gets categories from the 'menu_categories' table which contains both food and drink categories.

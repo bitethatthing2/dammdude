@@ -1,5 +1,5 @@
 // Import types from menu-item-types
-import type { CartItem } from './menu-item-types';
+import type { CartItem } from './menu';
 import type { BartenderOrder } from './order';
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from '@/lib/database.types';

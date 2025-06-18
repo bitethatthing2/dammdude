@@ -1,9 +1,11 @@
 import '@/app/globals.css';
 import type { ReactNode } from 'react';
 import { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { ThemeProvider } from '@/components/ui/theme-provider';
 import { BarTapProvider } from '@/lib/contexts/bartap-context';
+import { UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
+import { BottomNav } from '@/components/shared/BottomNav';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -39,6 +41,29 @@ export const metadata: Metadata = {
     "msapplication-TileImage": "/icons/favicon-for-public/web-app-manifest-192x192.png",
     "msapplication-TileColor": "#000000"
   },
+  // Open Graph tags for better sharing
+  openGraph: {
+    title: 'Side Hustle',
+    description: 'Order food and drinks at Side Hustle',
+    url: 'https://yourdomain.com',
+    siteName: 'Side Hustle',
+    images: [
+      {
+        url: '/icons/og-image.png',
+        width: 1200,
+        height: 630,
+      }
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  // Twitter Card tags
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Side Hustle',
+    description: 'Order food and drinks at Side Hustle',
+    images: ['/icons/og-image.png'],
+  },
 };
 
 // Define viewport configuration separately as recommended by Next.js
@@ -48,23 +73,175 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: '#000000',
+  viewportFit: 'cover', // For iPhone X+ notch support
 };
 
 interface RootLayoutProps {
   children: ReactNode;
 }
 
+// Service Worker registration script
+const ServiceWorkerScript = () => (
+  <Script
+    id="service-worker"
+    strategy="afterInteractive"
+    dangerouslySetInnerHTML={{
+      __html: `
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(
+              function(registration) {
+                console.log('ServiceWorker registration successful');
+              },
+              function(err) {
+                console.log('ServiceWorker registration failed: ', err);
+              }
+            );
+          });
+        }
+
+        // Register Firebase messaging service worker if needed
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            .then(function(registration) {
+              console.log('Firebase SW registered');
+            })
+            .catch(function(error) {
+              console.log('Firebase SW registration failed:', error);
+            });
+        }
+
+        // Performance monitoring
+        if ('PerformanceObserver' in window) {
+          try {
+            const observer = new PerformanceObserver((list) => {
+              const entries = list.getEntries();
+              entries.forEach((entry) => {
+                // Log to console or send to analytics
+                if (entry.entryType === 'largest-contentful-paint') {
+                  console.log('LCP:', entry.startTime);
+                }
+                if (entry.entryType === 'first-input') {
+                  console.log('FID:', entry.processingStart - entry.startTime);
+                }
+                if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
+                  console.log('CLS:', entry.value);
+                }
+              });
+            });
+            
+            observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+          } catch (e) {
+            console.log('Performance monitoring not supported');
+          }
+        }
+      `,
+    }}
+  />
+);
+
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Preconnect to external domains */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* DNS Prefetch for performance */}
+        <link rel="dns-prefetch" href="https://your-supabase-url.supabase.co" />
+        
+        {/* Preload critical fonts - Removed inter-var.woff2 as file doesn't exist */}
+        
+        {/* PWA splash screens for iOS */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-2048-2732.jpg"
+          media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1668-2388.jpg"
+          media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1536-2048.jpg"
+          media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1125-2436.jpg"
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1242-2688.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-828-1792.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1170-2532.jpg"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-1080-1920.jpg"
+          media="(device-width: 360px) and (device-height: 640px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-750-1334.jpg"
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/icons/apple-splash-640-1136.jpg"
+          media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <ThemeProvider>
-          <BarTapProvider>
+        <BarTapProvider>
+          <UnifiedNotificationProvider>
             <NuqsAdapter>
               {children}
+              <BottomNav />
             </NuqsAdapter>
-          </BarTapProvider>
-        </ThemeProvider>
+          </UnifiedNotificationProvider>
+        </BarTapProvider>
+        
+        {/* Service Worker Registration */}
+        <ServiceWorkerScript />
+        
+        {/* Structured Data for SEO */}
+        <Script
+          id="structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Restaurant",
+              "name": "Side Hustle",
+              "description": "Mexican food and drinks",
+              "servesCuisine": "Mexican",
+              "priceRange": "$$",
+              "acceptsReservations": "False",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Your Street Address",
+                "addressLocality": "Your City",
+                "addressRegion": "Your State",
+                "postalCode": "Your Zip",
+                "addressCountry": "US"
+              }
+            })
+          }}
+        />
       </body>
     </html>
   );

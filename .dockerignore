@@ -88,8 +88,14 @@ supabase/.temp/
 .clinerules/workflows/
 AUDIT_REPORT.md
 
-# Ignore scripts not needed in container
-scripts/
+# Temporarily allow all scripts for postbuild to work
+# scripts/check-imports.js
+# scripts/docker-rebuild.bat
+# scripts/docker-rebuild.sh
+# scripts/fix-all-type-errors.js
+# scripts/fix-imports.js
+# scripts/fix-menu-modal.js
+# scripts/match-food-images.js
 
 # Ignore migration files (if not needed in container)
 supabase/migrations/

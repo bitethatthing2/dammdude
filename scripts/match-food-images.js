@@ -2,8 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// Available food images
+// Available food images - UPDATE THIS LIST WITH YOUR ACTUAL IMAGE FILES
 const availableImages = [
+  // Existing images
   '3-tacos-beans-rice.png',
   '3-tacos.png', 
   'basket-of-fries.png',
@@ -14,7 +15,6 @@ const availableImages = [
   'burrito.png',
   'chefa-sauce.png',
   'CHILAQUILES.PNG',
-  'chips-guac-salsa.png',
   'chips-guac-salsa.png',
   'empanadas.png',
   'fish-tacos.png',
@@ -28,13 +28,29 @@ const availableImages = [
   'rice.png',
   'taco-salad.png',
   'tacos.png',
-  'torta.png'
+  'torta.png',
+  
+  // ADD THESE NEW IMAGES (you need to add the actual image files)
+  'pork-chop-platter.png',
+  'wings.png',
+  'birria-pizza.png',
+  'birria-ramen-bowl.png',
+  'birria-flautas.png',
+  'chicken-waffles.png',
+  'asada-bacon.png',
+  'monchi-pancakes.png',
+  'chilaquiles-green.png',
+  'chilaquiles-red.png',
+  'ham-potato-burrito.png',
+  'chorizo-potato-burrito.png'
 ];
 
 // Create mapping between likely menu items and images
 const itemImageMapping = {
   // Exact or very close matches
   'chilaquiles': 'CHILAQUILES.PNG',
+  'chilaquiles green': 'chilaquiles-green.png',
+  'chilaquiles red': 'chilaquiles-red.png',
   'burrito': 'burrito.png',
   'quesadilla': 'quesadilla.png',
   'empanadas': 'empanadas.png',
@@ -42,6 +58,32 @@ const itemImageMapping = {
   'torta': 'torta.png',
   'pancakes': 'pancakes.jpg',
   'margarita': 'margarita.png',
+  
+  // MISSING ITEMS - ADD THESE MAPPINGS
+  'pork chop platter': 'pork-chop-platter.png',
+  'pork chops': 'pork-chop-platter.png',
+  'wings': 'wings.png',
+  'chicken wings': 'wings.png',
+  'buffalo wings': 'wings.png',
+  'birria pizza': 'birria-pizza.png',
+  'pizza birria': 'birria-pizza.png',
+  'birria ramen bowl': 'birria-ramen-bowl.png',
+  'birria ramen': 'birria-ramen-bowl.png',
+  'ramen bowl': 'birria-ramen-bowl.png',
+  'birria flautas': 'birria-flautas.png',
+  'chicken & waffles': 'chicken-waffles.png',
+  'chicken and waffles': 'chicken-waffles.png',
+  'chicken waffles': 'chicken-waffles.png',
+  'asada & bacon': 'asada-bacon.png',
+  'asada and bacon': 'asada-bacon.png',
+  'carne asada bacon': 'asada-bacon.png',
+  'monchi pancakes': 'monchi-pancakes.png',
+  'ham & potato burrito': 'ham-potato-burrito.png',
+  'ham and potato burrito': 'ham-potato-burrito.png',
+  'ham potato burrito': 'ham-potato-burrito.png',
+  'chorizo & potato burrito': 'chorizo-potato-burrito.png',
+  'chorizo and potato burrito': 'chorizo-potato-burrito.png',
+  'chorizo potato burrito': 'chorizo-potato-burrito.png',
   
   // Tacos variations
   'fish tacos': 'fish-tacos.png',
@@ -56,9 +98,9 @@ const itemImageMapping = {
   'taco dinner': '3-tacos-beans-rice.png',
 
   // Sides and additions
-  'beans and rice': 'beans-and-rice.png',
-  'rice and beans': 'beans-and-rice.png',
-  'side of beans and rice': 'beans-and-rice.png',
+  'beans and rice': 'beans-rice.png',
+  'rice and beans': 'beans-rice.png',
+  'side of beans and rice': 'beans-rice.png',
   'beans': 'beans.png',
   'rice': 'rice.png',
   'spanish rice': 'rice.png',
@@ -132,6 +174,12 @@ function findImageForMenuItem(itemName, description = '') {
   if (searchText.includes('quesadilla')) {
     return 'quesadilla.png';
   }
+  if (searchText.includes('wings')) {
+    return 'wings.png';
+  }
+  if (searchText.includes('pancake')) {
+    return 'pancakes.jpg';
+  }
   
   return null; // No match found
 }
@@ -139,7 +187,7 @@ function findImageForMenuItem(itemName, description = '') {
 // Generate SQL for creating image records and updating menu items
 function generateImageInsertSQL() {
   const imageInserts = availableImages.map(imageName => {
-    const imagePath = `/food-menu-images/${imageName}`;
+    const imagePath = `/-images/${imageName}`;
     const name = imageName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' '); // Remove extension and replace dashes/underscores
     
     return `-- Insert image for ${imageName}
@@ -171,17 +219,22 @@ console.log('=== Food Image Mapping Analysis ===\n');
 console.log('Available Images:');
 availableImages.forEach(img => console.log(`  - ${img}`));
 
-console.log('\n=== Sample Mappings ===');
+console.log('\n=== Sample Mappings (Including Missing Items) ===');
 const sampleItems = [
+  'Pork Chop Platter',
+  'Wings',
+  'Birria Pizza',
+  'Birria Ramen Bowl',
+  'Birria Flautas',
+  'Chicken & Waffles',
+  'Asada & Bacon',
+  'Monchi Pancakes',
+  'Chilaquiles Green',
+  'Chilaquiles Red',
+  'Ham & Potato Burrito',
+  'Chorizo & Potato Burrito',
   'Fish Tacos',
-  'Carne Asada Burrito', 
-  'Chicken Quesadilla',
-  'Chips and Salsa',
   'Loaded Nachos',
-  'Taco Salad',
-  '3 Tacos Beans Rice',
-  'Birria Consommé',
-  'Chilaquiles',
   'French Fries'
 ];
 

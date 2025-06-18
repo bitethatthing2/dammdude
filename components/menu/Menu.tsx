@@ -41,6 +41,12 @@ interface MenuItem {
   is_available: boolean;
   display_order: number;
   image_url?: string | null;
+  images?: {
+    id: string;
+    url: string;
+    storage_path: string;
+    metadata: Record<string, unknown>;
+  } | null;
   category?: {
     name: string;
     type?: string;
@@ -111,7 +117,7 @@ export default function Menu() {
       setLoading(true);
       setError(null);
 
-      // Fetch categories
+      // Fetch categories using direct Supabase query
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('food_drink_categories')
         .select('*')
@@ -120,17 +126,12 @@ export default function Menu() {
 
       if (categoriesError) throw categoriesError;
 
-      // Fetch items with category info including type
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('food_drink_items')
-        .select(`
-          *,
-          category:food_drink_categories(name, type)
-        `)
-        .eq('is_available', true)
-        .order('display_order', { ascending: true });
-
-      if (itemsError) throw itemsError;
+      // Fetch items using our corrected API route (with database images)
+      const itemsResponse = await fetch('/api/menu-items');
+      if (!itemsResponse.ok) {
+        throw new Error(`API Error: ${itemsResponse.status}`);
+      }
+      const itemsData: MenuItem[] = await itemsResponse.json();
 
       // Count items per category
       const categoriesWithCount: MenuCategoryWithCount[] = (categoriesData || []).map((cat: MenuCategory) => ({

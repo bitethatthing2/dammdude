@@ -3,15 +3,21 @@ export interface MenuItem {
   id: string;
   name: string;
   description: string | null;
-  menu_category_id: string | null; // Database field name
+  category_id?: string | null; // For component compatibility
+  menu_category_id?: string | null; // Database field name (legacy)
   price: number;
-  available: boolean; // Database field name
-  image_id: string | null;
+  available?: boolean; // Database field name (legacy)
+  is_available?: boolean; // For component compatibility
+  image_id?: string | null;
   image_url?: string | null; // For backward compatibility
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
   display_order: number;
+  category?: {
+    name: string;
+    type?: string;
+  };
 }
 
 // Menu Item Modifier from menu_item_modifiers table

@@ -4,7 +4,6 @@ import { ChevronLeft, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { NotificationIndicator } from '@/components/unified/notifications/NotificationIndicator';
 import { Button } from '@/components/ui/button';
-import { ThemeControl } from './ThemeControl';
 
 interface FoodMenuHeaderProps {
   title?: string;
@@ -52,7 +51,6 @@ export function FoodMenuHeader({
       </div>
       <div className="flex items-center gap-3">
         {actions}
-        <ThemeControl />
         <NotificationIndicator />
       </div>
     </div>

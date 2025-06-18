@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Bell, Check, CheckCheck, Trash2, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useNotifications } from '@/lib/contexts/unified-notification-context';
+import { useSafeNotifications, type Notification } from '@/lib/contexts/unified-notification-context';
 import { NotificationIndicator } from './NotificationIndicator';
 
 /**
@@ -22,14 +22,15 @@ export function NotificationPopover() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('unread');
   
-  const {
-    notifications,
-    unreadCount,
-    dismissNotification,
-    dismissAllNotifications,
-    refreshNotifications,
-    isLoading
-  } = useNotifications();
+  // Safely get notifications context - returns null if not available
+  const context = useSafeNotifications();
+  
+  const notifications = context?.notifications || [];
+  const unreadCount = context?.unreadCount || 0;
+  const dismissNotification = context?.dismissNotification || (async (id: string) => {});
+  const dismissAllNotifications = context?.dismissAllNotifications || (async () => {});
+  const refreshNotifications = context?.refreshNotifications || (async () => {});
+  const isLoading = context?.isLoading || false;
   
   // Get unread notifications
   const unreadNotifications = notifications.filter(

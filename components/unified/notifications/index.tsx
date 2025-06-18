@@ -3,8 +3,8 @@
 import dynamic from 'next/dynamic';
 import React from 'react';
 
-// Export the notification context hook
-export { useNotifications, UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
+// Export the notification context hooks
+export { useNotifications, useSafeNotifications, UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
 
 // Export basic components
 export { NotificationIndicator } from './NotificationIndicator';

@@ -1,6 +1,6 @@
 // lib/types/order.ts
 
-import { Database, Json } from '@/types/supabase';
+import { Database, Json } from '@/lib/database.types';
 
 // Base types from Supabase
 export type BartenderOrder = Database['public']['Tables']['bartender_orders']['Row'];
@@ -275,4 +275,4 @@ export function isOrder(order: unknown): order is Order {
 }
 
 // Re-export types that might be used elsewhere
-export type { Json } from '@/types/supabase';
+export type { Json } from '@/lib/database.types';
