@@ -1,7 +1,7 @@
 // sw-cache.js - Enhanced caching strategy for Side Hustle PWA
 // This integrates with your existing Firebase service worker
 
-const CACHE_VERSION = '1.0.10';
+const CACHE_VERSION = '1.0.11';
 const CACHE_PREFIX = 'side-hustle-';
 
 // Cache names
@@ -34,9 +34,29 @@ self.sideHustleCache = {
   getStrategy(request) {
     const url = new URL(request.url);
     
-    // Menu images - cache first with network fallback
+    // Menu images - use network first if cache-busting params are present
     if (url.pathname.includes('/food-menu-images/') || 
         url.pathname.includes('/menu-images/')) {
+      
+      // If cache-busting parameters are present (like ?v=timestamp), bypass cache
+      const hasCacheBustingParams = url.searchParams.has('v') || 
+                                  url.searchParams.has('t') || 
+                                  url.searchParams.has('_');
+      
+      if (hasCacheBustingParams) {
+        return {
+          strategy: this.networkFirst.bind(this),
+          options: {
+            request,
+            cacheName: MENU_CACHE_NAME,
+            networkTimeoutSeconds: 10,
+            maxAge: 1, // Very short cache for cache-busted images
+            maxEntries: CACHE_LIMITS.menu
+          }
+        };
+      }
+      
+      // Normal cache-first for regular menu images
       return {
         strategy: this.cacheFirst.bind(this),
         options: {

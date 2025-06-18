@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { BarTapProvider } from '@/lib/contexts/bartap-context';
 import { UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { BottomNav } from '@/components/shared/BottomNav';
 
@@ -206,14 +205,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
         />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <BarTapProvider>
-          <UnifiedNotificationProvider>
-            <NuqsAdapter>
-              {children}
-              <BottomNav />
-            </NuqsAdapter>
-          </UnifiedNotificationProvider>
-        </BarTapProvider>
+        <UnifiedNotificationProvider>
+          <NuqsAdapter>
+            {children}
+            <BottomNav />
+          </NuqsAdapter>
+        </UnifiedNotificationProvider>
         
         {/* Service Worker Registration */}
         <ServiceWorkerScript />

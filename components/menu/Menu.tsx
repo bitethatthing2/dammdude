@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { useBarTap } from '@/lib/contexts/bartap-context';
 import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
 
@@ -94,8 +93,6 @@ export default function Menu() {
   // Get the Supabase client
   const supabase = getSupabaseBrowserClient();
 
-  // Get BarTap context for cart functionality
-  const { addToCart, totalItems, totalPrice, proceedToCheckout } = useBarTap();
 
   // Initialize client-side state
   useEffect(() => {
@@ -187,42 +184,13 @@ export default function Menu() {
     }
   }, [activeTab, categories, activeCategory]);
 
-  // Handle add to cart using BarTap context
+  // Handle view-only menu - direct users to Wolf Pack for ordering
   const handleAddToCart = useCallback((orderData: CartOrderData) => {
-    try {
-      // Convert CartOrderData to BarTapCartItem
-      const cartItem = {
-        id: orderData.item.id,
-        name: orderData.item.name,
-        price: orderData.item.price,
-        description: null,
-        image_url: null,
-        category_id: null,
-        available: true,
-        customizations: {
-          meatType: orderData.modifiers.meat?.name,
-          extras: orderData.modifiers.sauces?.map(sauce => sauce.name) || []
-        }
-      };
-
-      // Add item to cart using BarTap context (it will handle quantity)
-      for (let i = 0; i < orderData.quantity; i++) {
-        addToCart(cartItem);
-      }
-
-      toast({
-        title: "Added to Cart",
-        description: `${orderData.quantity}x ${orderData.item.name} added to your cart`,
-      });
-    } catch (error) {
-      console.error('Failed to add item to cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart. Please try again.",
-        variant: "destructive"
-      });
-    }
-  }, [addToCart]);
+    toast({
+      title: "Join the Wolf Pack to Order!",
+      description: "Visit the bar and join the Wolf Pack to place orders and connect with other patrons.",
+    });
+  }, []);
 
   // Mobile-first loading skeleton
   const LoadingSkeleton = () => (
@@ -274,7 +242,7 @@ export default function Menu() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile-First Header with Cart */}
+      {/* Mobile-First Header */}
       <header className="sticky top-0 z-40 bg-background border-b">
         <div className="flex items-center justify-between p-4">
           <Button
@@ -291,44 +259,20 @@ export default function Menu() {
           </Button>
           <h1 className="text-xl font-bold">Menu</h1>
           
-          {/* Cart Button */}
+          {/* Wolf Pack CTA */}
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={totalItems > 0 ? proceedToCheckout : undefined}
-            disabled={totalItems === 0}
-            className="h-10 w-10 relative"
+            variant="default"
+            size="sm"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/wolfpack/join';
+              }
+            }}
+            className="text-xs"
           >
-            <ShoppingCart className="w-5 h-5" />
-            {totalItems > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
-              >
-                {totalItems}
-              </Badge>
-            )}
+            Join Pack
           </Button>
         </div>
-        
-        {/* Cart Summary Bar */}
-        {totalItems > 0 && (
-          <div className="bg-primary text-primary-foreground px-4 py-2 border-t">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                {totalItems} {totalItems === 1 ? 'item' : 'items'} • ${totalPrice.toFixed(2)}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={proceedToCheckout}
-                className="text-xs h-8"
-              >
-                Checkout
-              </Button>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* Main Tabs - Full width on mobile */}

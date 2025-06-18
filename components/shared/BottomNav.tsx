@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { useState, useEffect, useRef } from 'react';
 import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
-import { useBarTap } from '@/lib/contexts/bartap-context';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -18,7 +17,6 @@ export const BottomNav = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const { resetFlow } = useBarTap();
 
   // Close more menu when clicking outside
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
@@ -37,23 +35,14 @@ export const BottomNav = () => {
     onClick?: () => void;
   }
 
-  // Handle BarTap navigation
-  const handleBarTapClick = () => {
-    // Reset the BarTap flow and navigate to table entry
-    resetFlow();
-    router.push('/table');
-    return false; // Prevent default Link behavior
-  };
-
   // Core navigation items - always visible
   const coreNavItems: NavItem[] = [
     { href: '/', iconName: 'Home', label: 'Home' },
     { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
     { 
-      href: '/table', 
+      href: '/wolfpack/join', 
       icon: <ShoppingCart className="h-5 w-5" />, 
-      label: 'Bar Tab',
-      onClick: handleBarTapClick
+      label: 'Wolf Pack'
     },
     { href: '/chat', iconName: 'MessageCircle', label: 'Chat' },
   ];
