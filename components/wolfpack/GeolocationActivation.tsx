@@ -1,22 +1,23 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { MapPin, Shield, AlertTriangle, Check, X } from 'lucide-react';
+import { MapPin, Shield, AlertTriangle, Check, X, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 
-interface BarLocation {
+interface Location {
   id: string;
   name: string;
   latitude: number;
   longitude: number;
   address: string;
-  geofence_radius: number;
+  radius_miles: number;
 }
 
 interface GeolocationState {
@@ -28,12 +29,13 @@ interface GeolocationState {
 
 interface WolfPackInvitation {
   show: boolean;
-  barLocation: BarLocation | null;
+  location: Location | null;
   distance: number;
 }
 
 export function GeolocationActivation() {
-  const { user } = useAuth();
+  const { user, loading: userLoading } = useUser();
+  const router = useRouter();
   const [geoState, setGeoState] = useState<GeolocationState>({
     permission: 'prompt',
     position: null,
@@ -42,36 +44,48 @@ export function GeolocationActivation() {
   });
   const [invitation, setInvitation] = useState<WolfPackInvitation>({
     show: false,
-    barLocation: null,
+    location: null,
     distance: 0
   });
   const [isWolfPackMember, setIsWolfPackMember] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [watchId, setWatchId] = useState<number | null>(null);
 
   const supabase = getSupabaseBrowserClient();
 
-  // Check if user is already a WolfPack member
+  // Check if user is already an active WolfPack member
   useEffect(() => {
     async function checkMembershipStatus() {
       if (!user) return;
 
       try {
         const { data, error } = await supabase
-          .from('user_profiles')
-          .select('is_wolfpack_member')
+          .from('wolf_pack_members')
+          .select(`
+            id,
+            location_id,
+            locations!inner(name)
+          `)
           .eq('user_id', user.id)
+          .eq('status', 'active')
           .single();
 
         if (!error && data) {
-          setIsWolfPackMember(data.is_wolfpack_member || false);
+          setIsWolfPackMember(true);
+          setCurrentLocation(data.locations.name);
+        } else {
+          setIsWolfPackMember(false);
+          setCurrentLocation(null);
         }
       } catch (error) {
         console.error('Error checking WolfPack membership:', error);
       }
     }
 
-    checkMembershipStatus();
-  }, [user, supabase]);
+    if (!userLoading) {
+      checkMembershipStatus();
+    }
+  }, [user, userLoading, supabase]);
 
   // Request location permission
   const requestLocationPermission = async () => {
@@ -156,39 +170,46 @@ export function GeolocationActivation() {
     }
   };
 
-  // Check proximity to bar locations
+  // Check proximity to Side Hustle locations
   const checkProximityToBar = async (position: GeolocationPosition) => {
     try {
-      const { data: barLocations, error } = await supabase
-        .from('bar_locations')
-        .select('*')
-        .eq('is_active', true);
+      // Check if wolfpack is available (11 AM - 2:30 AM)
+      const now = new Date();
+      const hour = now.getHours();
+      const isWolfpackActive = hour >= 11 || hour < 2 || (hour === 2 && now.getMinutes() < 30);
+      
+      if (!isWolfpackActive) return;
 
-      if (error || !barLocations) return;
+      const { data: locations, error } = await supabase
+        .from('locations')
+        .select('*');
+
+      if (error || !locations) return;
 
       const userLat = position.coords.latitude;
       const userLng = position.coords.longitude;
 
-      for (const bar of barLocations) {
-        const distance = calculateDistance(userLat, userLng, bar.latitude, bar.longitude);
+      for (const location of locations) {
+        const distance = calculateDistance(userLat, userLng, location.latitude, location.longitude);
+        const radiusInMeters = location.radius_miles * 1609.34; // Convert miles to meters
         
-        // Check if user is within geofence (distance in meters)
-        if (distance <= bar.geofence_radius && !isWolfPackMember) {
+        // Check if user is within geofence and not already a member
+        if (distance <= radiusInMeters && !isWolfPackMember) {
           setInvitation({
             show: true,
-            barLocation: bar,
+            location: location,
             distance: Math.round(distance)
           });
           
           // Show notification
-          toast.info(`You're near ${bar.name}!`, {
+          toast.info(`You're near ${location.name}!`, {
             description: 'Join the WolfPack to unlock exclusive features'
           });
           break;
         }
       }
     } catch (error) {
-      console.error('Error checking bar proximity:', error);
+      console.error('Error checking location proximity:', error);
     }
   };
 
@@ -210,29 +231,48 @@ export function GeolocationActivation() {
 
   // Join WolfPack from geolocation invitation
   const joinWolfPackFromLocation = async () => {
-    if (!user || !invitation.barLocation) return;
+    if (!user || !invitation.location) return;
 
     try {
-      const { error } = await supabase
-        .from('user_profiles')
+      // First create or update wolf profile
+      const { error: profileError } = await supabase
+        .from('wolf_profiles')
         .upsert({
           user_id: user.id,
-          is_wolfpack_member: true,
-          wolfpack_joined_at: new Date().toISOString(),
-          location_permissions_granted: true,
-          joined_from_location: invitation.barLocation.id
+          display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
+          wolf_emoji: '🐺',
+          vibe_status: "Ready to party! 🎉",
+          is_visible: true
         }, {
           onConflict: 'user_id'
         });
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Join the wolf pack for this location
+      const { error: memberError } = await supabase
+        .from('wolf_pack_members')
+        .insert({
+          user_id: user.id,
+          location_id: invitation.location.id,
+          joined_at: new Date().toISOString(),
+          status: 'active',
+          latitude: geoState.position?.coords.latitude || null,
+          longitude: geoState.position?.coords.longitude || null
+        });
+
+      if (memberError) throw memberError;
 
       setIsWolfPackMember(true);
-      setInvitation({ show: false, barLocation: null, distance: 0 });
+      setCurrentLocation(invitation.location.name);
+      setInvitation({ show: false, location: null, distance: 0 });
       
       toast.success('Welcome to the WolfPack!', {
-        description: `You've joined from ${invitation.barLocation.name}`
+        description: `You've joined the ${invitation.location.name} pack`
       });
+
+      // Navigate to welcome page
+      router.push('/wolfpack/welcome');
 
     } catch (error) {
       console.error('Error joining WolfPack:', error);
@@ -331,7 +371,7 @@ export function GeolocationActivation() {
       </Card>
 
       {/* WolfPack Invitation */}
-      {invitation.show && invitation.barLocation && (
+      {invitation.show && invitation.location && (
         <Card className="border-primary/50 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -339,7 +379,7 @@ export function GeolocationActivation() {
               WolfPack Invitation
             </CardTitle>
             <CardDescription>
-              You&apos;re {invitation.distance}m from {invitation.barLocation.name}
+              You&apos;re {invitation.distance}m from {invitation.location.name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -353,7 +393,7 @@ export function GeolocationActivation() {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => setInvitation({ show: false, barLocation: null, distance: 0 })}
+                onClick={() => setInvitation({ show: false, location: null, distance: 0 })}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -363,17 +403,26 @@ export function GeolocationActivation() {
       )}
 
       {/* WolfPack Status */}
-      {isWolfPackMember && (
+      {isWolfPackMember && currentLocation && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-600" />
-              <span className="font-medium">You&apos;re a WolfPack member!</span>
+              <span className="font-medium">You&apos;re in the {currentLocation} WolfPack!</span>
               <Badge variant="secondary">Active</Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              Enjoying exclusive benefits and automatic bar access
+              Enjoying exclusive features: chat, profile, and menu access
             </p>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" onClick={() => router.push('/chat')}>
+                <Users className="mr-2 h-3 w-3" />
+                Open Chat
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => router.push('/wolfpack/profile')}>
+                Edit Profile
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

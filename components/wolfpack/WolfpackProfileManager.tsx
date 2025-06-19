@@ -144,7 +144,7 @@ export function WolfpackProfileManager() {
         // Create default profile
         const defaultProfile: Partial<WolfProfile> = {
           user_id: user.id,
-          display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
+          display_name: (user.user_metadata?.first_name as string) || user.email?.split('@')[0] || 'Wolf',
           bio: null,
           favorite_drink: null,
           favorite_song: null,
@@ -465,6 +465,7 @@ export function WolfpackProfileManager() {
                   value={formData.gender}
                   onChange={(e) => handleInputChange('gender', e.target.value)}
                   className="w-full p-2 border border-input rounded-md bg-background"
+                  title="Select your gender"
                 >
                   <option value="">Select...</option>
                   {GENDER_OPTIONS.map(option => (
@@ -538,6 +539,7 @@ export function WolfpackProfileManager() {
                 value={formData.vibe_status}
                 onChange={(e) => handleInputChange('vibe_status', e.target.value)}
                 className="w-full p-2 border border-input rounded-md bg-background"
+                title="Select your current vibe"
               >
                 <option value="">Select your vibe...</option>
                 {VIBE_OPTIONS.map(option => (
@@ -553,6 +555,7 @@ export function WolfpackProfileManager() {
                 value={formData.looking_for}
                 onChange={(e) => handleInputChange('looking_for', e.target.value)}
                 className="w-full p-2 border border-input rounded-md bg-background"
+                title="What are you looking for"
               >
                 <option value="">What are you looking for?</option>
                 {LOOKING_FOR_OPTIONS.map(option => (
@@ -648,6 +651,7 @@ export function WolfpackProfileManager() {
                       checked={formData.is_visible}
                       onChange={(e) => handleInputChange('is_visible', e.target.checked)}
                       className="rounded"
+                      aria-label="Toggle profile visibility"
                     />
                   </div>
                 </div>
