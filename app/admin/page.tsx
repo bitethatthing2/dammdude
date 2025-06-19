@@ -23,13 +23,13 @@ export default function AdminRedirect() {
           // User is authenticated, redirect to dashboard
           router.replace('/admin/dashboard');
         } else {
-          // User is not authenticated, redirect to login
-          router.replace('/admin/login');
+          // User is not authenticated, redirect to unified login
+          router.replace('/login');
         }
       } catch (error) {
         console.error('Error checking auth:', error);
-        // On error, redirect to login
-        router.replace('/admin/login');
+        // On error, redirect to unified login
+        router.replace('/login');
       } finally {
         setIsLoading(false);
       }

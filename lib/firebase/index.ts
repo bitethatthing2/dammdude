@@ -4,13 +4,13 @@ import { FirebaseConfig, FcmMessagePayload } from '@/lib/types/firebase';
 
 // Add fallback values to ensure Firebase works even if environment variables are missing
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyB0Nxf3pvW32KBc0D1o2-K6qIeKovhGWfg',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'new1-f04b3.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'new1-f04b3',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'new1-f04b3.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '802463638703',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:802463638703:web:bd0bbdaf3407d784d5205a',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-3RZEW537LN'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyAUWCAf5xHLMitmAgI5gfy8d2o48pnjXeo',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'sidehustle-22a6a.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'sidehustle-22a6a',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'sidehustle-22a6a.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '993911155207',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:993911155207:web:610f19ac354d69540bd8a2',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-RHT2310KWW'
   // clientId and clientSecret removed - should not be exposed in client config
 };
 
@@ -377,7 +377,7 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             const link = 
               dataObject.link || 
               payload.fcmOptions?.link || 
-              (payload.notification as any)?.clickAction || 
+              (payload.notification as { clickAction?: string })?.clickAction || 
               '/';
             
             // Create notification options
@@ -391,7 +391,7 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             
             // Add image if available (supported in modern browsers)
             if (image) {
-              // @ts-ignore - image is valid in modern browsers
+              // @ts-expect-error - image is valid in modern browsers
               options.image = image;
             }
             

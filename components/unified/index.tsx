@@ -39,6 +39,4 @@ export {
 } from './layout';
 
 // Export table components
-export {
-  TableManagement
-} from './tables';
+// Note: Table management components integrated into WolfPack system

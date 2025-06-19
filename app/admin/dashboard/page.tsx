@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 export const dynamic = 'force-dynamic';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LogOut, Bell, Send, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -48,7 +48,7 @@ export default function AdminDashboard() {
         duration: 3000,
       });
       
-      router.push('/admin/login');
+      router.push('/login');
     } catch (error) {
       console.error('Error signing out:', error);
       toast({

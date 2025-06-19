@@ -38,18 +38,30 @@ export function useWolfpackStatus(): WolfpackStatus {
           return;
         }
 
-        // Check if user is a Wolfpack member
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('is_wolfpack_member')
+        // Check if user is a Wolfpack member by checking the users table and wolf_pack_members
+        const { data: userData, error: userDataError } = await supabase
+          .from('users')
+          .select('wolfpack_status')
+          .eq('id', user.id)
+          .single();
+
+        if (userDataError && userDataError.code !== 'PGRST116') {
+          throw userDataError;
+        }
+
+        // Also check if user is currently in a wolf pack
+        const { data: packMember, error: packError } = await supabase
+          .from('wolf_pack_members')
+          .select('user_id')
           .eq('user_id', user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          throw profileError;
+        if (packError && packError.code !== 'PGRST116') {
+          // Log but don't throw - this is expected if user is not in pack
+          console.log('User not in wolf pack:', packError.message);
         }
 
-        const isWolfpackMember = profile?.is_wolfpack_member || false;
+        const isWolfpackMember = userData?.wolfpack_status === 'active' || !!packMember;
         const isLocationVerified = isWolfpackMember || localStorage.getItem('location_verified') === 'true';
 
         setStatus({

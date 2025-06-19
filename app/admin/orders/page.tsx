@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import { OrdersManagement } from '@/components/unified/OrdersManagement';
 
 export const metadata: Metadata = {
-  title: 'BarTap Admin - Orders',
+  title: 'Side Hustle Admin - Orders',
   description: 'Manage customer orders'
 };
 

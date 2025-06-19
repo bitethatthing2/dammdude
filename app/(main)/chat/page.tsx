@@ -170,9 +170,9 @@ export default function ChatPage() {
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto" 
-                onClick={() => router.push('/wolfpack/join')}
+                onClick={() => router.push('/login')}
               >
-                Join Wolfpack
+                Login to Access
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <p className="text-xs text-muted-foreground mt-2">

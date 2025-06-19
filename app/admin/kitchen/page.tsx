@@ -1,7 +1,7 @@
-import { KitchenDisplay } from "@/components/bartap/admin/KitchenDisplay";
+import RealtimeOrderList from "@/components/admin/RealtimeOrderList";
 
 export const metadata = {
-  title: "Kitchen Display - BarTap Admin",
+  title: "Kitchen Display - Wolf Pack Admin",
   description: "Kitchen display system for order management",
 };
 
@@ -15,7 +15,7 @@ export default function KitchenPage() {
         </p>
       </div>
       
-      <KitchenDisplay />
+      <RealtimeOrderList />
     </div>
   );
 }

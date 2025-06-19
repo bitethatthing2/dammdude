@@ -109,7 +109,7 @@ export function DisabledFeatureWrapper({
 
   const handleJoinWolfpack = () => {
     setIsDialogOpen(false);
-    router.push('/wolfpack/join');
+    router.push('/login');
   };
 
   const getDialogContent = () => {

@@ -33,8 +33,8 @@ export type VerificationResult = {
 };
 
 // Constants
-const TABLE_SESSION_COOKIE_NAME = 'bartap_table_id';
-const TABLE_SESSION_STORAGE_KEY = 'bartap_table_id';
+const TABLE_SESSION_COOKIE_NAME = 'wolfpack_table_id';
+const TABLE_SESSION_STORAGE_KEY = 'wolfpack_table_id';
 const SESSION_DURATION_SECONDS = 60 * 60 * 24; // 24 hours
 
 /**

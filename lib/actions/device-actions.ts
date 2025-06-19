@@ -33,8 +33,7 @@ interface RegisterDeviceResult {
  * @returns Object indicating success or failure, with error details if applicable.
  */
 export async function registerDevice(params: RegisterDeviceParams): Promise<RegisterDeviceResult> {
-  const cookieStore = await cookies();
-  const supabase = await createClient(cookieStore);
+  const supabase = await createClient();
 
   const { deviceId, type, staffId, tableId, isPrimary } = params;
 
@@ -217,8 +216,7 @@ export async function registerDevice(params: RegisterDeviceParams): Promise<Regi
  * @returns Object indicating success or failure.
  */
 export async function unregisterDevice(deviceId: string): Promise<RegisterDeviceResult> {
-  const cookieStore = await cookies();
-  const supabase = await createClient(cookieStore);
+  const supabase = await createClient();
 
   if (!deviceId) {
     return {
@@ -257,8 +255,7 @@ export async function unregisterDevice(deviceId: string): Promise<RegisterDevice
  * @returns The device registration data or error.
  */
 export async function getDeviceRegistration(deviceId: string): Promise<RegisterDeviceResult> {
-  const cookieStore = await cookies();
-  const supabase = await createClient(cookieStore);
+  const supabase = await createClient();
 
   if (!deviceId) {
     return {

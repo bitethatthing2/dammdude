@@ -8,7 +8,6 @@ const errorFiles = [
   'app/(main)/chat/page.tsx',
   'app/(main)/menu/confirmation/page.tsx',
   'app/api/admin/orders/route.ts',
-  'components/bartap/CheckoutForm.tsx',
   'components/menu/MenuItemModal.tsx',
   'components/shared/category-selector.tsx',
   'components/shared/DisabledFeatureWrapper.tsx',

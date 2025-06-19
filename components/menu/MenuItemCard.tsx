@@ -58,9 +58,6 @@ interface MenuItemCardProps {
   onAddToCart: (orderData: CartOrderData) => void;
 }
 
-// Mexican Restaurant Food Icons (fallback for items without matched images)
-
-
 // Get theme color based on category
 const getCategoryTheme = (categoryName?: string) => {
   const name = categoryName?.toLowerCase() || '';
@@ -194,9 +191,8 @@ const findImageForMenuItem = (itemName: string, itemDescription: string): string
   }
   
   // Third pass: Look for specific multi-word matches (prioritize longer phrases)
-  // Sort by length DESC to match longer phrases first (prevents "beans and rice" matching before "3 tacos beans and rice")
   const sortedMappings = Object.entries(itemImageMapping)
-    .filter(([keyword]) => keyword.includes(' ')) // Multi-word phrases first
+    .filter(([keyword]) => keyword.includes(' '))
     .sort((a, b) => b[0].length - a[0].length);
     
   for (const [keyword, imageName] of sortedMappings) {
@@ -219,6 +215,26 @@ const findImageForMenuItem = (itemName: string, itemDescription: string): string
   return null; // No match found
 };
 
+// Placeholder image while loading
+const shimmer = (w: number, h: number) => `
+<svg width="${w}" height="${h}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="g">
+      <stop stop-color="#e5e7eb" offset="20%" />
+      <stop stop-color="#f3f4f6" offset="50%" />
+      <stop stop-color="#e5e7eb" offset="70%" />
+    </linearGradient>
+  </defs>
+  <rect width="${w}" height="${h}" fill="#e5e7eb" />
+  <rect id="r" width="${w}" height="${h}" fill="url(#g)" />
+  <animate xlink:href="#r" attributeName="x" from="-${w}" to="${w}" dur="1s" repeatCount="indefinite"  />
+</svg>`;
+
+const toBase64 = (str: string) =>
+  typeof window === 'undefined'
+    ? Buffer.from(str).toString('base64')
+    : window.btoa(str);
+
 export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -226,7 +242,6 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  // Add cache busting for local food menu images to prevent browser caching issues
   const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
   const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') 
     ? `${baseImageUrl}?v=${Date.now()}` 
@@ -242,10 +257,8 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (!item.is_available) return;
 
     if (needsCustomization(item)) {
-      // Open modal for items that need customization
       setShowModal(true);
     } else {
-      // Add simple items directly to cart
       const orderData: CartOrderData = {
         item: {
           id: item.id,
@@ -275,14 +288,18 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
       <Card>
         <CardContent className="p-3">
           <div className="md:flex gap-4">
-            {/* Image */}
+            {/* Image with proper sizes and lazy loading */}
             {foodImageUrl && !imageError ? (
               <div className="w-32 h-24 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
                 <Image
                   src={foodImageUrl}
                   alt={item.name}
                   fill
+                  sizes="(max-width: 768px) 128px, 128px"
                   className="object-cover"
+                  loading="lazy"
+                  placeholder="blur"
+                  blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(128, 96))}`}
                   onError={() => setImageError(true)}
                 />
               </div>
@@ -356,7 +373,6 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  // Add cache busting for local food menu images to prevent browser caching issues
   const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
   const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') 
     ? `${baseImageUrl}?v=${Date.now()}` 
@@ -367,10 +383,8 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (!item.is_available) return;
 
     if (needsCustomization(item)) {
-      // Open modal for items that need customization
       setShowModal(true);
     } else {
-      // Add simple items directly to cart
       const orderData: CartOrderData = {
         item: {
           id: item.id,
@@ -398,15 +412,16 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   return (
     <>
       <div className="menu-item-compact flex items-center gap-3 p-2">
-        {/* Small image/color indicator */}
+        {/* Small image/color indicator with fixed dimensions */}
         {foodImageUrl && !imageError ? (
-          <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+          <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
             <Image
               src={foodImageUrl}
               alt={item.name}
               width={48}
               height={48}
-              className="w-full h-full object-cover"
+              className="object-cover"
+              loading="lazy"
               onError={() => setImageError(true)}
             />
           </div>

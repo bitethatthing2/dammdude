@@ -126,7 +126,7 @@ export default function WolfpackWelcomePage() {
                 <div>
                   <h3 className="font-semibold">Member Benefits</h3>
                   <p className="text-sm text-muted-foreground">
-                    Priority service and exclusive member pricing
+                    Priority service and exclusive member perks
                   </p>
                 </div>
               </div>

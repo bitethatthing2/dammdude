@@ -4,6 +4,7 @@ import { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
+import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { BottomNav } from '@/components/shared/BottomNav';
 
 // Define metadata for the app, including PWA-related tags
@@ -205,12 +206,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
         />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <UnifiedNotificationProvider>
-          <NuqsAdapter>
-            {children}
-            <BottomNav />
-          </NuqsAdapter>
-        </UnifiedNotificationProvider>
+        <AuthProvider>
+          <UnifiedNotificationProvider>
+            <NuqsAdapter>
+              {children}
+              <BottomNav />
+            </NuqsAdapter>
+          </UnifiedNotificationProvider>
+        </AuthProvider>
         
         {/* Service Worker Registration */}
         <ServiceWorkerScript />

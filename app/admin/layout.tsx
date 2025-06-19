@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { UnifiedNotificationProvider } from '@/components/unified';
 
@@ -13,17 +12,16 @@ export default async function UnifiedAdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Get the session from cookies
-  const supabase = await createServerClient();
-  
-  // Get authenticated user
-  const { data } = await supabase.auth.getSession();
-  const session = data?.session;
-  const userId = session?.user?.id;
-  
-  // Redirect to login if not authenticated
-  if (!session) {
-    redirect('/admin/login');
+  // Try to get the user session, but don't redirect on failure
+  // Let the middleware handle authentication redirects
+  let userId = null;
+  try {
+    const supabase = await createServerClient();
+    const { data } = await supabase.auth.getSession();
+    userId = data?.session?.user?.id;
+  } catch (error) {
+    // If there's an error getting the session, just render without user context
+    console.log('Layout: Error getting session, proceeding without user context');
   }
   
   return (

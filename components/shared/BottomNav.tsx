@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as LucideIcons from 'lucide-react';
-import { ShoppingCart, Bell, MoreHorizontal } from 'lucide-react';
+import { Bell, MoreHorizontal } from 'lucide-react';
 import { NotificationIndicator } from '@/components/unified';
 import { cn } from '@/lib/utils';
 import { useFcmContext } from '@/lib/hooks/useFcmToken';
@@ -39,11 +39,6 @@ export const BottomNav = () => {
   const coreNavItems: NavItem[] = [
     { href: '/', iconName: 'Home', label: 'Home' },
     { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
-    { 
-      href: '/wolfpack/join', 
-      icon: <ShoppingCart className="h-5 w-5" />, 
-      label: 'Wolf Pack'
-    },
     { href: '/chat', iconName: 'MessageCircle', label: 'Chat' },
   ];
 
@@ -132,7 +127,7 @@ export const BottomNav = () => {
               </div>
             ))}
             <div className="w-full border-t pt-1 mt-1">
-              {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
+              {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
             </div>
           </div>
         </div>
@@ -143,7 +138,7 @@ export const BottomNav = () => {
   // Render the Login item separately for large screens
   const renderLoginItem = () => (
     <div className="w-full flex justify-center">
-      {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' })}
+      {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' })}
     </div>
   );
 

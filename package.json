@@ -1,5 +1,5 @@
 {
-  "name": "sports-bar-pwa",
+  "name": "side-hustle-bar-pwa",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -53,8 +53,6 @@
     "@radix-ui/react-tabs": "^1.1.9",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.2.4",
-    "@splinetool/react-spline": "^4.0.0",
-    "@splinetool/runtime": "^1.9.87",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
@@ -96,11 +94,13 @@
   "devDependencies": {
     "@babel/runtime": "^7.27.0",
     "@next/bundle-analyzer": "^15.3.3",
-    "critters": "^0.0.24",
+    "@types/eslint": "^9.6.1",
     "@types/lodash": "^4.17.16",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
+    "@types/webpack-sources": "^3.2.3",
+    "critters": "^0.0.24",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "eslint": "8.56.0",

@@ -50,7 +50,7 @@ export function WolfpackSignupForm() {
       
       if (authError || !user) {
         toast.error('Please log in first to join the Wolfpack');
-        router.push('/admin/login');
+        router.push('/login');
         return;
       }
 
@@ -97,7 +97,7 @@ export function WolfpackSignupForm() {
           Join the Pack
         </CardTitle>
         <CardDescription>
-          Fill out your information to become a Wolfpack member - it&apos;s completely free!
+          Fill out your information to become a Wolfpack member
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -223,14 +223,13 @@ export function WolfpackSignupForm() {
             ) : (
               <>
                 <Shield className="mr-2 h-4 w-4" />
-                Join the Wolfpack (Free)
+                Join the Wolfpack
               </>
             )}
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            By joining, you&apos;ll get instant access to all Wolfpack benefits. 
-            Membership is completely free with no hidden charges.
+            By joining, you&apos;ll get instant access to all Wolfpack benefits and become part of an exclusive community.
           </p>
         </form>
       </CardContent>

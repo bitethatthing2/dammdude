@@ -88,24 +88,32 @@ a,
    UTILITY CLASSES (Standardized)
    ======================================== */
 
-/* Scrollbar Hiding - Single Implementation */
+/* Scrollbar Hiding - Cross-browser compatible */
 .menu-scrollbar-hide {
   /* Enable scrolling */
   overflow-x: auto;
   overflow-y: hidden;
   
-  /* Hide scrollbar for IE and Edge */
+  /* Hide scrollbar for IE and Edge Legacy */
   -ms-overflow-style: none;
   
-  /* Hide scrollbar for Firefox */
+  /* Hide scrollbar for Firefox 64+ */
   scrollbar-width: none;
 }
 
+/* Webkit browsers (Chrome, Safari, Edge) */
 .menu-scrollbar-hide::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
   background: transparent;
+}
+
+/* Legacy Firefox support */
+@-moz-document url-prefix() {
+  .menu-scrollbar-hide {
+    overflow: -moz-scrollbars-none;
+  }
 }
 
 /* Touch manipulation */
@@ -120,13 +128,18 @@ a,
   transform: translateZ(0);
   will-change: transform;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Safe area support */
 .menu-safe-area {
+  padding-top: 1rem;
   padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: 1rem;
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: 1rem;
   padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: 1rem;
   padding-right: max(1rem, env(safe-area-inset-right));
 }
 
@@ -197,8 +210,8 @@ a,
   z-index: var(--z-header);
   background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  -webkit-overflow-scrolling: touch;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Tab system */
@@ -226,17 +239,22 @@ a,
   gap: var(--mobile-spacing-sm);
   padding: 0.75rem var(--mobile-spacing-base);
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
-  /* Use our standardized scrollbar hiding */
+  
+  /* Cross-browser scrolling */
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+  
+  /* Hide scrollbars cross-browser */
   -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
+/* Webkit scrollbar hiding */
 .menu-category-scroll::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Category button base styles */
@@ -272,6 +290,7 @@ a,
 
 /* Touch feedback */
 .menu-category-button:active {
+  -webkit-transform: scale(0.97);
   transform: scale(0.97);
   transition: transform 0.1s ease;
 }
@@ -398,6 +417,7 @@ a,
 .menu-main-tab-food:hover {
   background-color: rgb(var(--food-button-hover)) !important;
   border-color: rgb(var(--food-button-hover)) !important;
+  -webkit-transform: translateY(-2px);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px -2px rgb(var(--food-button) / 0.4) !important;
 }
@@ -415,6 +435,7 @@ a,
 .menu-main-tab-drinks:hover {
   background-color: rgb(var(--drinks-button-hover)) !important;
   border-color: rgb(var(--drinks-button-hover)) !important;
+  -webkit-transform: translateY(-2px);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px -2px rgb(var(--drinks-button) / 0.4) !important;
 }
@@ -434,10 +455,12 @@ a,
   /* Performance optimization */
   will-change: transform;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Touch feedback for cards */
 .menu-item-card:active {
+  -webkit-transform: scale(0.98);
   transform: scale(0.98);
   transition: transform 0.1s ease;
 }
@@ -445,6 +468,7 @@ a,
 /* Desktop hover effects */
 @media (min-width: 1024px) {
   .menu-item-card:hover {
+    -webkit-transform: translateY(-2px);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
@@ -474,7 +498,8 @@ a,
 .menu-modal-content {
   border-radius: 0.75rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  -ms-scroll-chaining: none;
   overscroll-behavior: contain;
 }
 
@@ -534,6 +559,7 @@ a,
 @media (hover: none) and (pointer: coarse) {
   .menu-item-card:hover,
   .menu-category-button:hover {
+    -webkit-transform: none;
     transform: none;
     box-shadow: none;
   }

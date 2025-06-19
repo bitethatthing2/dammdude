@@ -20,11 +20,6 @@
     "noEmit": true,
     "jsx": "preserve",
     "incremental": true,
-    "types": [
-      "@types/node",
-      "@types/react",
-      "@types/react-dom"
-    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [

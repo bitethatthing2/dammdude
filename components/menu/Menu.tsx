@@ -19,6 +19,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
+import Cart, { useCart } from '@/components/cart/Cart';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 interface MenuCategory {
   id: string;
@@ -89,9 +91,14 @@ export default function Menu() {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [useCompactView, setUseCompactView] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Get the Supabase client
   const supabase = getSupabaseBrowserClient();
+  
+  // Cart management
+  const { cartCount, addToCart } = useCart();
+  const { user } = useAuth();
 
 
   // Initialize client-side state
@@ -184,13 +191,65 @@ export default function Menu() {
     }
   }, [activeTab, categories, activeCategory]);
 
-  // Handle view-only menu - direct users to Wolf Pack for ordering
+  // Handle add to cart
   const handleAddToCart = useCallback((orderData: CartOrderData) => {
-    toast({
-      title: "Join the Wolf Pack to Order!",
-      description: "Visit the bar and join the Wolf Pack to place orders and connect with other patrons.",
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to add items to your cart.",
+      });
+      return;
+    }
+
+    // Convert orderData to cart item format
+    const cartItem = {
+      id: orderData.item.id,
+      name: orderData.item.name,
+      price: orderData.unitPrice,
+      quantity: orderData.quantity,
+      image_url: items.find(item => item.id === orderData.item.id)?.image_url || undefined,
+      modifiers: orderData.modifiers
+    };
+
+    addToCart(cartItem);
+  }, [user, addToCart, items]);
+
+  // Handle checkout
+  const handleCheckout = useCallback(async (cartItems: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    image_url?: string;
+    notes?: string;
+    modifiers?: {
+      meat?: { id: string; name: string; price_adjustment: number } | null;
+      sauces?: Array<{ id: string; name: string; price_adjustment: number }>;
+    };
+  }>, notes: string, total: number) => {
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        items: cartItems,
+        notes,
+        total
+      })
     });
-  }, []);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to place order');
+    }
+
+    return response.json();
+  }, [user]);
 
   // Mobile-first loading skeleton
   const LoadingSkeleton = () => (
@@ -259,19 +318,38 @@ export default function Menu() {
           </Button>
           <h1 className="text-xl font-bold">Menu</h1>
           
-          {/* Wolf Pack CTA */}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.location.href = '/wolfpack/join';
-              }
-            }}
-            className="text-xs"
-          >
-            Join Pack
-          </Button>
+          {/* Cart Button or Login CTA */}
+          {user ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCartOpen(true)}
+              className="h-10 w-10 relative"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  {cartCount}
+                </Badge>
+              )}
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/login';
+                }
+              }}
+              className="text-xs"
+            >
+              Login
+            </Button>
+          )}
         </div>
       </header>
 
@@ -380,6 +458,13 @@ export default function Menu() {
           </div>
         )}
       </main>
+
+      {/* Cart Modal */}
+      <Cart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        onCheckout={handleCheckout}
+      />
     </div>
   );
 }
