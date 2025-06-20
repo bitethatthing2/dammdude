@@ -234,7 +234,27 @@ export function GeolocationActivation() {
     if (!user || !invitation.location) return;
 
     try {
-      // First create or update wolf profile
+      // First check if user is already in a wolfpack and remove them
+      const { data: existingMembership } = await supabase
+        .from('wolf_pack_members')
+        .select('id, location_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (existingMembership) {
+        const { error: leaveError } = await supabase
+          .from('wolf_pack_members')
+          .update({ status: 'inactive' })
+          .eq('id', existingMembership.id);
+
+        if (leaveError) {
+          console.error('Error leaving previous wolfpack:', leaveError);
+          throw new Error('Failed to leave previous wolfpack');
+        }
+      }
+
+      // Create or update wolf profile
       const { error: profileError } = await supabase
         .from('wolf_profiles')
         .upsert({
@@ -247,7 +267,10 @@ export function GeolocationActivation() {
           onConflict: 'user_id'
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error(`Failed to create profile: ${profileError.message || 'Unknown error'}`);
+      }
 
       // Join the wolf pack for this location
       const { error: memberError } = await supabase
@@ -261,7 +284,10 @@ export function GeolocationActivation() {
           longitude: geoState.position?.coords.longitude || null
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Membership creation error:', memberError);
+        throw new Error(`Failed to join wolfpack: ${memberError.message || 'Database constraint violation'}`);
+      }
 
       setIsWolfPackMember(true);
       setCurrentLocation(invitation.location.name);
@@ -276,7 +302,13 @@ export function GeolocationActivation() {
 
     } catch (error) {
       console.error('Error joining WolfPack:', error);
-      toast.error('Failed to join WolfPack');
+      
+      // Provide more specific error messages
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred while joining the WolfPack';
+        
+      toast.error(errorMessage);
     }
   };
 
