@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { 
-  TShirt, Coffee, ShoppingBag, Hat, Watch,
+  ShoppingBag,
   ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { MerchCategory } from '@/lib/types/merch';

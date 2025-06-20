@@ -10,6 +10,27 @@ import {
   getPendingSyncItems,
   registerPeriodicSync
 } from '@/lib/utils/offlineManager';
+import type { Database } from '@/lib/database.types';
+
+// Type definitions for offline data
+type OrderData = Database['public']['Tables']['bartender_orders']['Insert'];
+type ProfileData = Database['public']['Tables']['users']['Update'];
+
+interface FeedbackData {
+  rating: number;
+  comment: string;
+  category: string;
+  user_id?: string;
+  order_id?: string;
+  location_id?: string;
+}
+
+interface SyncItem {
+  id: string;
+  type: 'order' | 'profile' | 'feedback';
+  data: unknown;
+  timestamp: number;
+}
 
 interface UseOfflineOptions {
   autoInit?: boolean;
@@ -21,10 +42,10 @@ interface UseOfflineReturn {
   lastOnline: number | null;
   syncPending: boolean;
   syncItems: number;
-  createOrder: (orderData: any) => Promise<string>;
-  updateProfile: (profileData: any) => Promise<string>;
-  submitFeedback: (feedbackData: any) => Promise<string>;
-  getPendingItems: () => Promise<any[]>;
+  createOrder: (orderData: OrderData) => Promise<string>;
+  updateProfile: (profileData: ProfileData) => Promise<string>;
+  submitFeedback: (feedbackData: FeedbackData) => Promise<string>;
+  getPendingItems: () => Promise<SyncItem[]>;
   registerPeriodicUpdate: () => Promise<boolean>;
 }
 
@@ -93,22 +114,22 @@ export function useOffline(options: UseOfflineOptions = {}): UseOfflineReturn {
   }, [autoInit, enablePeriodicSync]);
   
   // Create an order that works offline
-  const createOrder = useCallback(async (orderData: any): Promise<string> => {
+  const createOrder = useCallback(async (orderData: OrderData): Promise<string> => {
     return createOfflineOrder(orderData);
   }, []);
   
   // Update user profile that works offline
-  const updateProfile = useCallback(async (profileData: any): Promise<string> => {
+  const updateProfile = useCallback(async (profileData: ProfileData): Promise<string> => {
     return updateOfflineProfile(profileData);
   }, []);
   
   // Submit feedback that works offline
-  const submitFeedback = useCallback(async (feedbackData: any): Promise<string> => {
+  const submitFeedback = useCallback(async (feedbackData: FeedbackData): Promise<string> => {
     return submitOfflineFeedback(feedbackData);
   }, []);
   
   // Get pending sync items
-  const getPendingItems = useCallback(async (): Promise<any[]> => {
+  const getPendingItems = useCallback(async (): Promise<SyncItem[]> => {
     return getPendingSyncItems();
   }, []);
   

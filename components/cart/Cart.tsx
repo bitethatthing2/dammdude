@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ShoppingCart, Plus, Minus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -211,9 +212,11 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex gap-3 pb-4 border-b last:border-0">
                       {item.image_url && (
-                        <img
+                        <Image
                           src={item.image_url}
                           alt={item.name}
+                          width={64}
+                          height={64}
                           className="w-16 h-16 object-cover rounded-md"
                         />
                       )}

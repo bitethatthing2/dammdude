@@ -355,8 +355,8 @@ export async function sendOrderReadyNotification(
     }
     
     // Update order status to ready
-    const { error: orderError } = await supabase
-      .from("orders")
+    const { data: orderData, error: orderError } = await supabase
+      .from("bartender_orders")
       .update({ status: "ready" })
       .eq("id", orderId);
     

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 import { 
   Camera, 
-  Upload, 
   Save, 
   User, 
   Heart, 
@@ -179,7 +176,7 @@ export function WolfpackProfileManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, supabase, user?.first_name, user?.email]);
+  }, [user?.id, supabase, user?.user_metadata?.first_name, user?.email]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -212,7 +209,7 @@ export function WolfpackProfileManager() {
       const filePath = `avatars/${fileName}`;
 
       // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -492,6 +489,8 @@ export function WolfpackProfileManager() {
                 checked={formData.is_visible}
                 onChange={(e) => handleInputChange('is_visible', e.target.checked)}
                 className="rounded"
+                title="Make profile visible to other wolves"
+                placeholder="Make profile visible to other wolves"
               />
               <Label htmlFor="is-visible" className="flex items-center gap-2">
                 <Eye className="h-4 w-4" />
@@ -509,7 +508,7 @@ export function WolfpackProfileManager() {
               Personality & Vibe
             </CardTitle>
             <CardDescription>
-              Express your personality and what you're looking for
+              Express your personality and what you&apos;re looking for
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

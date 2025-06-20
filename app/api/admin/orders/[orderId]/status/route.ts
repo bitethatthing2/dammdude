@@ -45,7 +45,7 @@ export async function PATCH(
     
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase
-      .from('orders')
+      .from('bartender_orders')
       .select('id, status, table_id')
       .eq('id', orderId)
       .single();
@@ -59,7 +59,7 @@ export async function PATCH(
     
     // Update order status
     const { error: updateError } = await supabase
-      .from('orders')
+      .from('bartender_orders')
       .update({ 
         status,
         updated_at: new Date().toISOString()

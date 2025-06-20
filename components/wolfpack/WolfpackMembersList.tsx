@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Users, 
@@ -16,7 +15,6 @@ import {
   Star,
   Eye,
   MessageCircle,
-  Heart,
   Loader2,
   AlertTriangle
 } from 'lucide-react';

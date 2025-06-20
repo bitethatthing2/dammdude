@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import type { Database } from '@/lib/database.types';
 import { createServerClient } from '@/lib/supabase/server';
 
 export async function GET() {
@@ -12,7 +11,7 @@ export async function GET() {
     // Test 1: Simple query to check basic connectivity
     console.log("[TEST API] Running simple query test");
     const { data: testData, error: testError } = await supabase
-      .from('orders')
+      .from('bartender_orders')
       .select('id, status, updated_at')  // Using updated_at instead of created_at
       .limit(1);
     

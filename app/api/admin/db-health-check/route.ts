@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
-import type { Database } from '@/lib/database.types';
 import { createServerClient } from '@/lib/supabase/server';
+
+interface DiagnosticError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+interface TableDiagnostic {
+  success: boolean;
+  error: DiagnosticError | null;
+  latency: number;
+  count: number;
+}
 
 /**
  * Enhanced database health check API endpoint
@@ -14,9 +26,9 @@ export async function GET() {
     
     // Test database connection and collect diagnostics
     const diagnostics = {
-      ordersTable: { success: false, error: null as any, latency: 0, count: 0 },
-      tablesTable: { success: false, error: null as any, latency: 0, count: 0 },
-      orderItemsTable: { success: false, error: null as any, latency: 0, count: 0 },
+      ordersTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
+      tablesTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
+      orderItemsTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
       environment: {
         nextVersion: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'unknown',
         nodeEnv: process.env.NODE_ENV || 'unknown'
@@ -28,7 +40,7 @@ export async function GET() {
     let ordersResult;
     try {
       ordersResult = await supabase
-        .from('orders')
+        .from('bartender_orders')
         .select('count')
         .limit(1);
     } catch (err) {
@@ -120,14 +132,17 @@ export async function GET() {
       }
     }, { status });
     
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Server error during health check:', err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    
     return NextResponse.json({
       healthy: false,
-      error: err.message,
+      error: errorMessage,
       errorType: 'SERVER_ERROR',
       details: 'Unexpected server error during database health check',
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
     }, { status: 500 });
   }
 }

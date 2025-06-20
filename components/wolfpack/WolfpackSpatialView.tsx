@@ -9,12 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { 
   MessageCircle, 
   Heart, 
-  X, 
   Shield, 
-  AlertTriangle,
-  UserX,
-  Volume2,
-  Crown
+  UserX
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
@@ -55,6 +51,8 @@ interface WolfpackSpatialViewProps {
   locationId: string;
   currentUserId: string;
 }
+
+import './WolfpackSpatialView.css';
 
 export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpatialViewProps) {
   const { user } = useUser();
@@ -103,7 +101,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
         if (memberError) throw memberError;
 
         // Assign random positions for spatial layout if not set
-        const membersWithPositions = (memberData || []).map((member: any, index: number) => ({
+        const membersWithPositions = (memberData || []).map((member: WolfPackMember, index: number) => ({
           ...member,
           position_x: member.position_x || getRandomPosition(index, 'x'),
           position_y: member.position_y || getRandomPosition(index, 'y')
@@ -118,7 +116,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           .eq('sender_id', currentUserId)
           .eq('interaction_type', 'block');
 
-        setBlockedUsers(blockData?.map((b: any) => b.receiver_id) || []);
+        setBlockedUsers(blockData?.map((b: { receiver_id: string }) => b.receiver_id) || []);
 
       } catch (error) {
         console.error('Error loading wolfpack data:', error);
@@ -285,17 +283,16 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               const isCurrentUser = member.user_id === currentUserId;
               const icon = getMemberIcon(member);
               const colorClass = getMemberColor(member);
-              
               return (
                 <div
                   key={member.id}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all hover:scale-110 ${
+                  className={`wolfpack-member-icon absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all hover:scale-110 ${
                     isCurrentUser ? 'animate-pulse' : ''
                   }`}
                   style={{
-                    left: `${member.position_x}%`,
-                    top: `${member.position_y}%`
-                  }}
+                    '--member-x': `${member.position_x}%`,
+                    '--member-y': `${member.position_y}%`
+                  } as React.CSSProperties}
                   onClick={() => setSelectedMember(member)}
                 >
                   <div className="flex flex-col items-center group">

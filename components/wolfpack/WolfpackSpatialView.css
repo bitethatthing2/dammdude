@@ -1,0 +1,4 @@
+.wolfpack-member-icon {
+  left: var(--member-x);
+  top: var(--member-y);
+}

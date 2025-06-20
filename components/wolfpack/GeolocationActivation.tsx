@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,7 +131,7 @@ export function GeolocationActivation() {
           isLoading: false 
         }));
       }
-    } catch (error) {
+    } catch {
       setGeoState(prev => ({ 
         ...prev, 
         error: 'Failed to request location permission',
@@ -163,12 +163,12 @@ export function GeolocationActivation() {
   };
 
   // Stop location monitoring
-  const stopLocationMonitoring = () => {
+  const stopLocationMonitoring = useCallback(() => {
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
     }
-  };
+  }, [watchId]);
 
   // Check proximity to Side Hustle locations
   const checkProximityToBar = async (position: GeolocationPosition) => {
@@ -285,7 +285,7 @@ export function GeolocationActivation() {
     return () => {
       stopLocationMonitoring();
     };
-  }, []);
+  }, [stopLocationMonitoring]);
 
   return (
     <div className="space-y-4">
