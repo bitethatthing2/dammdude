@@ -37,7 +37,7 @@ const Alert = React.forwardRef<
 ))
 Alert.displayName = "Alert"
 
-interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+type AlertTitleProps = React.HTMLAttributes<HTMLHeadingElement>
 
 const AlertTitle = React.forwardRef<
   HTMLHeadingElement,
@@ -51,7 +51,7 @@ const AlertTitle = React.forwardRef<
 ))
 AlertTitle.displayName = "AlertTitle"
 
-interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+type AlertDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,

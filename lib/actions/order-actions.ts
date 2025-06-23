@@ -1,7 +1,6 @@
 "use server";
 
 import { createServerClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/database.types';
 
 /**
  * Updates an order status and sends notifications if needed

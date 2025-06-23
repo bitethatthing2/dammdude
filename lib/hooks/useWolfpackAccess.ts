@@ -132,7 +132,7 @@ export function useWolfpackAccess(): UseWolfpackAccessReturn & WolfpackStatus {
       if ('geolocation' in navigator) {
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
-            async (position) => {
+            async () => {
               // Update user's location permissions in database
               const { error } = await supabase
                 .from('users')

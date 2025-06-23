@@ -14,11 +14,7 @@ export default function HeaderLogo() {
         alt="Side Hustle Logo"
         width={150}
         height={24}
-        style={{
-          width: 'auto',
-          height: 'auto',
-          maxWidth: '150px'
-        }}
+        className="w-auto h-auto max-w-[150px]"
         priority // Prioritize loading the logo
       />
     </div>

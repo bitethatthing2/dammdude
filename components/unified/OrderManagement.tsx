@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { useOrderManagement } from '@/lib/hooks/useOrderManagement';
+import { useOrderManagement } from '@/lib/hooks/useUnifiedOrders';
 import { formatDistanceToNow } from 'date-fns';
-import { OrderStatus, BartenderOrder as Order, OrderItem, parseOrderItems, isValidOrderStatus } from '@/lib/types/order';
 import { StatusBadge } from './ui/StatusBadge';
 import { toast } from '@/components/ui/use-toast';
+import type { OrderStatus, UnifiedOrder as Order, OrderItem } from '@/lib/hooks/useUnifiedOrders';
 
 /**
  * Unified Order Management Component
@@ -48,7 +48,7 @@ export default function OrderManagement() {
       });
     },
     onOrderStatusChange: (order, previousStatus) => {
-      if (previousStatus === 'preparing' && order.status && isValidOrderStatus(order.status) && order.status === 'ready') {
+      if (previousStatus === 'preparing' && order.status === 'ready') {
         // Play notification sound for ready orders
         try {
           const audio = new Audio('/sounds/status-change.mp3');
@@ -130,9 +130,7 @@ export default function OrderManagement() {
   };
   
   // Get next status based on current status
-  const getNextStatus = (currentStatus: OrderStatus | string | null): OrderStatus => {
-    if (!currentStatus || !isValidOrderStatus(currentStatus)) return 'pending';
-    
+  const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
     switch (currentStatus) {
       case 'pending':
         return 'preparing';
@@ -140,8 +138,11 @@ export default function OrderManagement() {
         return 'ready';
       case 'ready':
         return 'completed';
-      default:
+      case 'completed':
+      case 'cancelled':
         return currentStatus;
+      default:
+        return 'pending';
     }
   };
   
@@ -277,17 +278,17 @@ export default function OrderManagement() {
                               {formatTime(order.created_at)}
                             </div>
                           </div>
-                          <StatusBadge status={order.status && isValidOrderStatus(order.status) ? order.status : 'pending'} />
+                          <StatusBadge status={order.status} />
                         </div>
                       </CardHeader>
                       
                       <CardFooter className="py-3 px-4 flex justify-between items-center border-t">
                         <div>
                           <span className="font-medium">
-                            ${order.total_amount?.toFixed(2) || calculateOrderTotal(parseOrderItems(order.items)).toFixed(2) || '0.00'}
+                            ${order.total_amount?.toFixed(2) || calculateOrderTotal(order.items).toFixed(2) || '0.00'}
                           </span>
                           <span className="text-sm text-muted-foreground ml-2">
-                            {parseOrderItems(order.items).length || 0} items
+                            {order.items?.length || 0} items
                           </span>
                         </div>
                         
@@ -297,8 +298,7 @@ export default function OrderManagement() {
                           disabled={processingOrders[order.id] || order.status === 'completed' || order.status === 'cancelled'}
                           onClick={(e) => {
                             e.stopPropagation();
-                            const validStatus = order.status && isValidOrderStatus(order.status) ? order.status : 'pending';
-                            handleStatusUpdate(order.id, getNextStatus(validStatus));
+                            handleStatusUpdate(order.id, getNextStatus(order.status));
                           }}
                         >
                           {processingOrders[order.id] ? (
@@ -343,7 +343,7 @@ export default function OrderManagement() {
                   <div className="text-sm text-muted-foreground">
                     {formatTime(selectedOrderDetails.created_at)}
                   </div>
-                  <StatusBadge status={selectedOrderDetails.status && isValidOrderStatus(selectedOrderDetails.status) ? selectedOrderDetails.status : 'pending'} />
+                  <StatusBadge status={selectedOrderDetails.status} />
                 </div>
               </CardHeader>
               
@@ -352,7 +352,7 @@ export default function OrderManagement() {
                   <h3 className="font-medium text-muted-foreground mb-2">Items</h3>
                   <ScrollArea className="h-[300px]">
                     <div className="space-y-3">
-                      {parseOrderItems(selectedOrderDetails.items).map((item: OrderItem, index: number) => (
+                      {(selectedOrderDetails.items || []).map((item: OrderItem, index: number) => (
                         <div key={item.id || `${selectedOrderDetails.id}-${item.name}-${index}`} className="flex justify-between pb-3 border-b last:border-0 last:pb-0">
                           <div>
                             <div className="font-medium">{item.name}</div>
@@ -386,7 +386,7 @@ export default function OrderManagement() {
                   <span>Total Amount</span>
                   <span>
                     ${selectedOrderDetails.total_amount?.toFixed(2) || 
-                      calculateOrderTotal(parseOrderItems(selectedOrderDetails.items)).toFixed(2) || 
+                      calculateOrderTotal(selectedOrderDetails.items).toFixed(2) || 
                       '0.00'}
                   </span>
                 </div>
@@ -398,8 +398,7 @@ export default function OrderManagement() {
                     className="flex-1"
                     disabled={processingOrders[selectedOrderDetails.id]}
                     onClick={() => {
-                      const validStatus = selectedOrderDetails.status && isValidOrderStatus(selectedOrderDetails.status) ? selectedOrderDetails.status : 'pending';
-                      handleStatusUpdate(selectedOrderDetails.id, getNextStatus(validStatus));
+                      handleStatusUpdate(selectedOrderDetails.id, getNextStatus(selectedOrderDetails.status));
                     }}
                   >
                     {processingOrders[selectedOrderDetails.id] ? (

@@ -51,7 +51,7 @@ export const NotificationSender = () => {
       } else {
         setCustomData({});
       }
-    } catch (e) {
+    } catch (_e) {
       // Invalid JSON, keep the previous value
       console.warn('Invalid JSON in custom data field');
     }

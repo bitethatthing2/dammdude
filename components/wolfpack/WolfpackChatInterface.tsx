@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BackButton } from '@/components/shared/BackButton';
 import { WolfpackSpatialView } from '@/components/wolfpack/WolfpackSpatialView';
 import { WolfpackRealTimeChat } from '@/components/wolfpack/WolfpackRealTimeChat';
+import { LiveEventsDisplay } from '@/components/wolfpack/LiveEventsDisplay';
 import { MessageCircle, Users, Shield, Settings } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -75,7 +76,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
   const sessionId = locationId ? `location_${locationId}` : null;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="container mx-auto px-4 py-6 max-w-6xl bottom-nav-safe">
       <div className="flex items-center gap-3 mb-6">
         <BackButton fallbackHref="/" className="mr-2" />
         <div className="p-2 bg-primary/10 rounded-lg">
@@ -129,10 +130,14 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
 
       {/* Main Chat Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             Pack Chat
+          </TabsTrigger>
+          <TabsTrigger value="events" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Live Events
           </TabsTrigger>
           <TabsTrigger value="members" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -156,6 +161,17 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
             
             {sessionId && (
               <WolfpackRealTimeChat sessionId={sessionId} />
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="events" className="mt-6">
+          <div className="space-y-4">
+            {locationId && (
+              <LiveEventsDisplay 
+                locationId={locationId}
+                userId={userId}
+              />
             )}
           </div>
         </TabsContent>

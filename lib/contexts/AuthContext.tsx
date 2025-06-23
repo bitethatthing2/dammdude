@@ -3,8 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
-// Define types manually based on Supabase returns
-interface SupabaseUser {
+// Define basic user type based on what Supabase auth returns
+interface AuthUser {
   id: string
   email?: string
   created_at?: string
@@ -14,17 +14,33 @@ interface SupabaseUser {
   role?: string
 }
 
-interface SupabaseSession {
-  user: SupabaseUser
-  access_token: string
-  refresh_token: string
+// Define session type for Supabase
+interface AuthSession {
+  user: AuthUser | null
+  access_token?: string
+  refresh_token?: string
   expires_at?: number
   expires_in?: number
   token_type?: string
 }
 
+// Define auth error type
+interface AuthError {
+  message: string
+  status?: number
+  code?: string
+}
+
+// Define auth session result type
+interface AuthSessionResult {
+  data: {
+    session: AuthSession | null
+  }
+  error: AuthError | null
+}
+
 interface AuthContextType {
-  user: SupabaseUser | null
+  user: AuthUser | null
   loading: boolean
   error: Error | null
 }
@@ -35,8 +51,12 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
 })
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
+interface AuthProviderProps {
+  children: React.ReactNode
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -44,14 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseBrowserClient()
     
     // Get initial session
-    supabase.auth.getSession().then((result: {
-      data: { session: SupabaseSession | null }
-      error: Error | null
-    }) => {
+    supabase.auth.getSession().then((result: AuthSessionResult) => {
       const { data: { session }, error } = result
       if (error) {
         console.error('Auth session error:', error)
-        setError(error)
+        setError(new Error(error.message))
       } else {
         setUser(session?.user ?? null)
       }
@@ -60,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: string, session: SupabaseSession | null) => {
+      (_event: string, session: AuthSession | null) => {
         setUser(session?.user ?? null)
         setError(null)
       }

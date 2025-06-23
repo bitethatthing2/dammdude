@@ -13,7 +13,6 @@ function OrderConfirmationContent() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [orderDetails, setOrderDetails] = useState<(Order & { order_items: OrderItem[] }) | null>(null);
-  const [estimatedTime, setEstimatedTime] = useState(15); // 15 minute default
   const [countdown, setCountdown] = useState(15 * 60); // 15 minutes in seconds
   
   // Get the order ID from URL - using dynamic import to avoid SSR issues
@@ -52,7 +51,6 @@ function OrderConfirmationContent() {
         
         setOrderDetails(data);
         if (data.estimated_time) {
-          setEstimatedTime(data.estimated_time);
           setCountdown(data.estimated_time * 60);
         }
       } catch (error) {

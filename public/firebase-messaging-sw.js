@@ -110,35 +110,116 @@ self.addEventListener('activate', event => {
 
 // Fetch event - handle network requests with appropriate caching strategies
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  // Skip React Server Component requests (_rsc parameter)
+  if (url.searchParams.has('_rsc')) {
+    return; // Let Next.js handle RSC requests directly
+  }
+  
   // Skip Next.js development server requests (HMR, static files, etc.)
-  if (event.request.url.includes('/_next/')) {
+  if (event.request.url.includes('/_next/') || 
+      event.request.url.includes('__nextjs') ||
+      event.request.url.includes('_buildManifest') ||
+      event.request.url.includes('webpack-hmr') ||
+      event.request.url.includes('hot-update') ||
+      event.request.url.includes('__webpack') ||
+      event.request.url.includes('_devPagesManifest')) {
     return; // Let Next.js handle these directly
   }
 
-  // Skip cross-origin requests
+  // Skip cross-origin requests except for specific trusted domains
   if (!event.request.url.startsWith(self.location.origin) && 
       !event.request.url.includes('googleapis.com') && 
       !event.request.url.includes('gstatic.com') &&
-      !event.request.url.startsWith('http://') &&
-      !event.request.url.startsWith('https://')) {
+      !event.request.url.includes('supabase.co')) {
     return;
   }
   
   // Skip Firebase messaging requests
-  if (event.request.url.includes('firebase-messaging')) {
+  if (event.request.url.includes('firebase-messaging') ||
+      event.request.url.includes('fcm/send')) {
     return;
   }
   
-  // Skip POST requests - they can't be cached
-  if (event.request.method !== 'GET') {
+  // Skip POST, PUT, DELETE requests - they can't be cached
+  if (!['GET', 'HEAD'].includes(event.request.method)) {
+    return;
+  }
+
+  // Skip requests with cache-control: no-cache
+  if (event.request.headers.get('cache-control') === 'no-cache') {
+    return;
+  }
+
+  // Only handle requests if we have the cache utility loaded
+  if (!self.sideHustleCache) {
     return;
   }
   
-  // Get the appropriate caching strategy for this request
-  const { strategy, options } = self.sideHustleCache.getStrategy(event.request);
-  
-  // Apply the strategy
-  event.respondWith(strategy(options));
+  // Handle requests with proper error responses
+  event.respondWith(
+    (async () => {
+      try {
+        // Get the appropriate caching strategy for this request
+        const { strategy, options } = self.sideHustleCache.getStrategy(event.request);
+        
+        // Apply the strategy with timeout
+        const response = await Promise.race([
+          strategy(options),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Service worker timeout')), 30000)
+          )
+        ]);
+        
+        return response;
+      } catch (error) {
+        console.error('[Service Worker] Error in fetch handler:', error);
+        
+        // Return proper error response instead of throwing
+        if (event.request.mode === 'navigate') {
+          // For navigation requests, try to return cached offline page
+          try {
+            const offlineResponse = await caches.match('/offline.html');
+            if (offlineResponse) {
+              return offlineResponse;
+            }
+          } catch (offlineError) {
+            console.warn('[Service Worker] Offline page not available:', offlineError);
+          }
+          
+          // Return basic offline HTML if no cached page
+          return new Response(
+            `<!DOCTYPE html>
+            <html>
+            <head><title>Offline</title></head>
+            <body><h1>You're offline</h1><p>Please check your internet connection.</p></body>
+            </html>`,
+            {
+              status: 200,
+              statusText: 'OK',
+              headers: { 'Content-Type': 'text/html' }
+            }
+          );
+        }
+        
+        // For other requests, try to fetch normally as fallback
+        try {
+          return await fetch(event.request);
+        } catch (fetchError) {
+          // Return appropriate error response
+          return new Response(
+            JSON.stringify({ error: 'Service unavailable' }),
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        }
+      }
+    })()
+  );
 });
 
 // Background Sync

@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-import crypto from 'crypto';
 
 const nextConfig = {
   reactStrictMode: true,
@@ -153,58 +152,27 @@ const nextConfig = {
     ];
   },
   
-  // Webpack optimization
-  webpack: (config, { isServer }) => {
-    // Optimize bundle size
-    if (!isServer) {
+  // Webpack optimization - simplified for stability
+  webpack: (config, { isServer, dev }) => {
+    // Only apply optimizations in production
+    if (!isServer && !dev) {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
           cacheGroups: {
-            default: false,
-            vendors: false,
             framework: {
               name: 'framework',
               chunks: 'all',
-              test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types)[\\/]/,
               priority: 40,
               enforce: true,
-            },
-            lib: {
-              test(module) {
-                return module.size() > 160000 &&
-                  /node_modules[/\\]/.test(module.identifier());
-              },
-              name(module) {
-                const hash = crypto.createHash('sha1');
-                if (module.identifier) {
-                  hash.update(module.identifier());
-                }
-                return hash.digest('hex').substring(0, 8);
-              },
-              priority: 30,
-              minChunks: 1,
-              reuseExistingChunk: true,
             },
             commons: {
               name: 'commons',
               chunks: 'all',
               minChunks: 2,
               priority: 20,
-            },
-            shared: {
-              name(module, chunks) {
-                const chunkNames = chunks.reduce((acc, chunk) => acc + chunk.name, '');
-                return crypto
-                  .createHash('sha1')
-                  .update(chunkNames)
-                  .digest('hex')
-                  .substring(0, 8) + (isServer ? '-server' : '');
-              },
-              priority: 10,
-              minChunks: 2,
-              reuseExistingChunk: true,
             },
           },
         },

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   content: [
@@ -133,10 +134,10 @@ const config: Config = {
         'xs': '475px',
       },
     },
-  },
   plugins: [
-    require('tailwindcss-animate'),
+    tailwindcssAnimate,
   ],
+}
 }
 
 export default config;

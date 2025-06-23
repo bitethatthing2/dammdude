@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Info, AlertTriangle, XCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { Database } from '@/lib/database.types';
 
 // Define notification type
 interface Notification {
@@ -73,27 +75,14 @@ function NotificationList(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   
-  // Safely get the Supabase client
-  const getSupabaseBrowserClient = (): any => {
-    try {
-      // Dynamic import to avoid SSR issues
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs');
-      return createClientComponentClient();
-    } catch (err: any) {
-      console.error("Error creating Supabase client:", err);
-      setError("Failed to connect to notification service");
-      return null;
-    }
-  };
+  // Create Supabase client with proper typing
+  const supabase = createClientComponentClient<Database>();
   
   // Fetch notifications directly
   useEffect(() => {
     async function fetchNotifications(): Promise<void> {
       try {
         setIsLoading(true);
-        
-        const supabase = getSupabaseBrowserClient();
-        if (!supabase) return;
         
         // Get current user
         const { data: userData } = await supabase.auth.getUser();
@@ -116,7 +105,7 @@ function NotificationList(): ReactElement {
         
         setNotifications(data || []);
         setUnreadCount(data?.filter((n: Notification) => !n.dismissed).length || 0);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching notifications:", err);
         setError("Failed to load notifications");
       } finally {
@@ -125,18 +114,17 @@ function NotificationList(): ReactElement {
     }
     
     fetchNotifications();
-  }, []);
+  }, [supabase]);
   
   // Dismiss notification function
   const dismissNotification = async (id: number): Promise<void> => {
     try {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) return;
-      
-      await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
         .update({ dismissed: true })
         .eq('id', id);
+      
+      if (updateError) throw updateError;
       
       // Update local state
       setNotifications((prev: Notification[]) => 
@@ -144,7 +132,7 @@ function NotificationList(): ReactElement {
       );
       
       setUnreadCount((prev: number) => Math.max(0, prev - 1));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error dismissing notification:", err);
     }
   };
@@ -152,19 +140,18 @@ function NotificationList(): ReactElement {
   // Dismiss all notifications
   const dismissAllNotifications = async (): Promise<void> => {
     try {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) return;
-      
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       
       if (!userId) return;
       
-      await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
         .update({ dismissed: true })
         .eq('user_id', userId)
         .eq('dismissed', false);
+      
+      if (updateError) throw updateError;
       
       // Update local state
       setNotifications((prev: Notification[]) => 
@@ -172,7 +159,7 @@ function NotificationList(): ReactElement {
       );
       
       setUnreadCount(0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error dismissing all notifications:", err);
     }
   };
@@ -210,7 +197,7 @@ function NotificationList(): ReactElement {
       
       // Otherwise show the date
       return format(date, "MMM d, yyyy");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error formatting date:", err);
       return "Unknown date";
     }
@@ -252,7 +239,7 @@ function NotificationList(): ReactElement {
         <CheckCircle className="mb-2 h-8 w-8 text-muted-foreground/50" />
         <p className="text-sm font-medium">No notifications</p>
         <p className="text-xs text-muted-foreground">
-          You're all caught up!
+          You&apos;re all caught up!
         </p>
       </div>
     );

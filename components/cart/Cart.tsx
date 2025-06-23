@@ -2,29 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ShoppingCart, Plus, Minus, Trash2, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Shield, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useCartAccess } from '@/hooks/useCartAccess';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image_url?: string;
-  notes?: string;
-  modifiers?: {
-    meat?: { id: string; name: string; price_adjustment: number } | null;
-    sauces?: Array<{ id: string; name: string; price_adjustment: number }>;
-  };
-}
+import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  CartItem, 
+  calculateItemTotal, 
+  calculateOrderTotal 
+} from '@/types/wolfpack-unified';
 
 interface CartProps {
   isOpen: boolean;
@@ -36,8 +29,8 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderNotes, setOrderNotes] = useState('');
   const [isChecking, setIsChecking] = useState(false);
-  const { canAccess, isLoading, reason } = useCartAccess();
   const { user } = useAuth();
+  const { isActive: isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackMembership();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -61,23 +54,8 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
     }
   }, [cartItems, user]);
 
-  // Calculate item total including modifiers
-  const calculateItemTotal = (item: CartItem): number => {
-    let total = item.price;
-    
-    if (item.modifiers?.meat?.price_adjustment) {
-      total += item.modifiers.meat.price_adjustment;
-    }
-    
-    if (item.modifiers?.sauces) {
-      total += item.modifiers.sauces.reduce((sum, sauce) => sum + (sauce.price_adjustment || 0), 0);
-    }
-    
-    return total * item.quantity;
-  };
-
-  // Calculate cart total
-  const cartTotal = cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  // Calculate cart total using unified function
+  const cartTotal = calculateOrderTotal(cartItems);
 
   // Update item quantity
   const updateQuantity = (itemId: string, newQuantity: number) => {
@@ -115,14 +93,29 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
     });
   };
 
+  // Handle join wolf pack
+  const handleJoinWolfPack = () => {
+    onClose();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/wolfpack';
+    }
+  };
+
   // Handle checkout
   const handleCheckout = async () => {
-    if (!canAccess) {
+    if (!user) {
       toast({
-        title: "Cannot Checkout",
-        description: reason === 'not-member' 
-          ? "You must join the WolfPack to place orders" 
-          : "Location access is required to place orders",
+        title: "Login Required",
+        description: "Please login to place orders",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isWolfpackMember) {
+      toast({
+        title: "Wolf Pack Membership Required",
+        description: "You must join the Wolf Pack to place orders. Click 'Join Wolf Pack' to get started!",
         variant: "destructive"
       });
       return;
@@ -147,34 +140,41 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
       onClose();
       
       toast({
-        title: "Order Placed!",
-        description: "Your order has been sent to the kitchen. You'll be notified when it's ready!",
+        title: "Order Placed! 🐺",
+        description: "Your order has been sent to the bartender. You'll be notified when it's ready!",
       });
     } catch (error) {
       console.error('Checkout error:', error);
-      toast({
-        title: "Checkout Failed",
-        description: "Failed to place your order. Please try again.",
-        variant: "destructive"
-      });
+      
+      // Handle specific WolfPack membership error
+      if (error instanceof Error && error.message.includes('Must be a WolfPack member')) {
+        toast({
+          title: "Wolf Pack Membership Required",
+          description: "You must join the Wolf Pack to place orders. Please join and try again.",
+          variant: "destructive",
+          action: (
+            <Button variant="outline" size="sm" onClick={handleJoinWolfPack}>
+              Join Wolf Pack
+            </Button>
+          )
+        });
+      } else {
+        toast({
+          title: "Checkout Failed",
+          description: error instanceof Error ? error.message : "Failed to place your order. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsChecking(false);
     }
   };
 
-  // Get access status message
-  const getAccessMessage = () => {
-    if (isLoading) return "Checking access...";
-    if (reason === 'not-member') return "Join the WolfPack to place orders";
-    if (reason === 'not-at-location') return "You must be at the bar to place orders";
-    return null;
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] sm:max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4 pb-20">
+      <Card className="w-full max-w-lg max-h-[calc(100vh-8rem)] flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
@@ -189,14 +189,6 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
         </CardHeader>
 
         <CardContent className="flex-1 overflow-hidden">
-          {!canAccess && (
-            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                {getAccessMessage()}
-              </p>
-            </div>
-          )}
-
           {cartItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
@@ -207,6 +199,25 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* WolfPack Membership Alert */}
+              {user && !isCheckingMembership && !isWolfpackMember && (
+                <Alert variant="destructive">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription className="flex flex-col gap-2">
+                    <span>You must join the Wolf Pack to place orders.</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleJoinWolfPack}
+                      className="w-fit"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Join Wolf Pack
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <ScrollArea className="flex-1 max-h-[300px]">
                 <div className="space-y-4">
                   {cartItems.map((item) => (
@@ -224,15 +235,15 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
                       <div className="flex-1">
                         <h4 className="font-medium">{item.name}</h4>
                         
-                        {/* Modifiers */}
-                        {item.modifiers?.meat && (
+                        {/* Customizations */}
+                        {item.customizations?.meat && (
                           <p className="text-xs text-muted-foreground">
-                            Meat: {item.modifiers.meat.name}
+                            Meat: {item.customizations.meat.name}
                           </p>
                         )}
-                        {item.modifiers?.sauces && item.modifiers.sauces.length > 0 && (
+                        {item.customizations?.sauces && item.customizations.sauces.length > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            Sauces: {item.modifiers.sauces.map(s => s.name).join(', ')}
+                            Sauces: {item.customizations.sauces.map(s => s.name).join(', ')}
                           </p>
                         )}
                         
@@ -317,13 +328,39 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
               >
                 Clear Cart
               </Button>
-              <Button
-                onClick={handleCheckout}
-                disabled={!canAccess || isChecking}
-                className="flex-1"
-              >
-                {isChecking ? "Placing Order..." : "Checkout"}
-              </Button>
+              
+              {/* Conditional checkout/join button */}
+              {!user ? (
+                <Button
+                  onClick={() => {
+                    onClose();
+                    if (typeof window !== 'undefined') {
+                      window.location.href = '/login';
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  Login to Order
+                </Button>
+              ) : !isWolfpackMember && !isCheckingMembership ? (
+                <Button
+                  onClick={handleJoinWolfPack}
+                  className="flex-1"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Join Wolf Pack
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleCheckout}
+                  disabled={!user || !isWolfpackMember || isChecking || isCheckingMembership}
+                  className="flex-1"
+                >
+                  {isChecking ? "Placing Order..." : 
+                   isCheckingMembership ? "Checking..." : 
+                   "Checkout"}
+                </Button>
+              )}
             </div>
           </CardFooter>
         )}
@@ -362,7 +399,7 @@ export function useCart() {
   // Add item to cart
   const addToCart = (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     const quantity = item.quantity || 1;
-    const itemId = `${item.id}_${JSON.stringify(item.modifiers || {})}`;
+    const itemId = `${item.id}_${JSON.stringify(item.customizations || {})}`;
 
     setCartItems(prev => {
       const existingItem = prev.find(cartItem => cartItem.id === itemId);
@@ -387,20 +424,8 @@ export function useCart() {
   // Get cart item count
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Calculate cart total
-  const cartTotal = cartItems.reduce((sum, item) => {
-    let itemTotal = item.price;
-    
-    if (item.modifiers?.meat?.price_adjustment) {
-      itemTotal += item.modifiers.meat.price_adjustment;
-    }
-    
-    if (item.modifiers?.sauces) {
-      itemTotal += item.modifiers.sauces.reduce((sauceSum, sauce) => sauceSum + (sauce.price_adjustment || 0), 0);
-    }
-    
-    return sum + (itemTotal * item.quantity);
-  }, 0);
+  // Calculate cart total using unified function
+  const cartTotal = calculateOrderTotal(cartItems);
 
   return {
     cartItems,

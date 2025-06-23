@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
  */
 interface ClientComponentWrapperProps {
   children: ReactNode;
-  fallback?: ReactNode;
 }
 
 /**
@@ -17,8 +16,7 @@ interface ClientComponentWrapperProps {
  * and only loaded on the client side
  */
 export function ClientComponentWrapper({
-  children,
-  fallback = <div>Loading...</div>
+  children
 }: ClientComponentWrapperProps) {
   return (
     <ErrorBoundary>
@@ -90,7 +88,7 @@ export function createClientComponent<T extends React.JSX.IntrinsicAttributes>(
 
   // Create a wrapper that includes the error boundary
   const WrappedComponent = (props: T) => (
-    <ClientComponentWrapper fallback={loadingComponent}>
+    <ClientComponentWrapper>
       <Component {...props} />
     </ClientComponentWrapper>
   );

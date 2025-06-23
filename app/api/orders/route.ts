@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { notifyStaffOfNewOrder } from '@/lib/actions/order-actions';
-import type { Database } from '@/lib/database.types';
-
-interface OrderItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image_url?: string;
-  notes?: string;
-  modifiers?: {
-    meat?: { id: string; name: string; price_adjustment: number } | null;
-    sauces?: Array<{ id: string; name: string; price_adjustment: number }>;
-  };
-}
+import { CartItem } from '@/types/wolfpack-unified';
 
 interface CreateOrderRequest {
-  items: OrderItem[];
+  items: CartItem[];
   notes?: string;
   total: number;
 }
@@ -69,15 +56,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create order items array for database storage
+    // Create order items array for database storage using unified structure
     const orderItems = items.map(item => ({
       id: item.id,
+      item_id: item.item_id,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
       notes: item.notes || null,
-      modifiers: item.modifiers || null,
-      image_url: item.image_url || null
+      customizations: item.customizations || null,
+      image_url: item.image_url || null,
+      subtotal: item.subtotal
     }));
 
     // Create the order
@@ -140,7 +129,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createServerClient();
     

@@ -15,7 +15,7 @@ export default function MerchPage() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-4">Merch Store Coming Soon</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            We're currently setting up our merchandise store. Check back soon to 
+            We&apos;re currently setting up our merchandise store. Check back soon to 
             purchase Side Hustle branded apparel and accessories!
           </p>
         </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Loader2, Check, X, AlertTriangle, Database, RefreshCw } from 'lucide-react';
+import { Loader2, Check, X, AlertTriangle, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 /**
@@ -98,7 +98,7 @@ export function DatabaseDebugger() {
       let responseData;
       try {
         responseData = await response.json();
-      } catch (e) {
+      } catch (_e) {
         responseData = { error: 'Failed to parse response as JSON' };
       }
       

@@ -13,7 +13,7 @@ export interface SendNotificationParams {
   topic?: string;
   link?: string;
   image?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 /**

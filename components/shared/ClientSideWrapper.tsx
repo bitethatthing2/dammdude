@@ -127,7 +127,7 @@ export default function ClientSideWrapper({ children }: ClientSideWrapperProps):
   return (
     <PwaInstallContext.Provider value={{ deferredPrompt, setDeferredPrompt }}>
       <TooltipProvider>
-        <UnifiedNotificationProvider recipientId={userId} role='customer'>
+        <UnifiedNotificationProvider recipientId={userId}>
           <FirebaseInitializer>
             {children}
             <ServiceWorkerRegister />

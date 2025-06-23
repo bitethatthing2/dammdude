@@ -1,7 +1,6 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { Database } from '@/lib/database.types';
 
 // Type definitions
 export type NotificationType = "info" | "warning" | "error";
@@ -30,7 +29,7 @@ export async function createNotification(
     const validated = createNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Check if user exists
     const { data: userData, error: userError } = await supabase
@@ -84,7 +83,7 @@ export async function createBulkNotifications(
     }
     
     // Get Supabase client
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Prepare notification records
     const notifications = userIds.map(userId => ({
@@ -126,7 +125,7 @@ export async function dismissNotification(
     const validated = dismissNotificationSchema.parse(data);
     
     // Get Supabase client
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -165,7 +164,7 @@ export async function dismissNotification(
 export async function dismissAllNotifications() {
   try {
     // Get Supabase client
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -205,7 +204,7 @@ export async function dismissAllNotifications() {
 export async function cleanupExpiredNotifications() {
   try {
     // Get Supabase client with service role
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Delete expired notifications
     const { data, error } = await supabase
@@ -240,7 +239,7 @@ export async function sendOrderNotificationToStaff(
   orderDetails: string
 ) {
   try {
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Find staff devices to notify (primary device first)
     const { data: staffDevices, error: deviceError } = await supabase
@@ -306,7 +305,7 @@ export async function sendOrderReadyNotification(
   tableId: string
 ) {
   try {
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // Find customer devices for this table
     const { data: customerDevices, error: deviceError } = await supabase
@@ -355,7 +354,7 @@ export async function sendOrderReadyNotification(
     }
     
     // Update order status to ready
-    const { data: orderData, error: orderError } = await supabase
+    const { error: orderError } = await supabase
       .from("bartender_orders")
       .update({ status: "ready" })
       .eq("id", orderId);
@@ -380,7 +379,7 @@ export async function sendOrderReadyNotification(
  */
 export async function markNotificationAsRead(notificationId: string) {
   try {
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     const { error } = await supabase
       .from("notifications")

@@ -114,7 +114,7 @@ const needsCustomization = (item: MenuItem): boolean => {
   
   // Food items that typically need customization (meat, sauces)
   const foodItemsNeedingCustomization = [
-    'taco', 'burrito', 'quesadilla', 'torta', 'nacho'
+    'taco', 'burrito', 'quesadilla', 'torta', 'nacho', 'wings'
   ];
   
   for (const foodType of foodItemsNeedingCustomization) {

@@ -238,16 +238,38 @@ self.sideHustleCache = {
   // Fetch with timeout
   async fetchWithTimeout(request, timeoutSeconds = 10) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
+    let timeoutId;
     
     try {
-      const response = await fetch(request.clone(), {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Request timeout after ${timeoutSeconds} seconds`));
+        }, timeoutSeconds * 1000);
+      });
+      
+      // Create fetch promise
+      const fetchPromise = fetch(request.clone(), {
         signal: controller.signal
       });
-      clearTimeout(timeoutId);
+      
+      // Race between fetch and timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      // Clear timeout if fetch succeeds
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
       return response;
     } catch (error) {
-      clearTimeout(timeoutId);
+      // Clear timeout on any error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Re-throw the error
       throw error;
     }
   },

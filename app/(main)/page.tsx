@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import { LocationToggle } from '@/components/shared/LocationToggle';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Utensils, CalendarDays, BookOpen, ShoppingBag, Download, Lock, Bell, Star } from "lucide-react";
+import { Utensils, CalendarDays, BookOpen, Download, Bell, Star, Users } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
-import { useFcmContext } from '@/lib/hooks/useFcmToken';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
 import React, { Suspense } from 'react';
 
@@ -43,10 +43,10 @@ const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode;
   );
 };
 
-export default function HomePage() {
-  const { location } = useLocationState();
+export default function Page() {
   const [mounted, setMounted] = useState(false);
-  
+  const { location } = useLocationState();
+
   // Wait for component to mount to ensure client-side rendering
   useEffect(() => {
     setMounted(true);
@@ -57,16 +57,22 @@ export default function HomePage() {
   const sideHustleFontSrc = '/icons/sidehustle-font-lightscreen.png';
 
   return (
-    <div className="flex flex-col items-center pb-24 sm:pb-4 pt-2 relative"> 
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      <div className="container mx-auto px-4 py-6 space-y-6 bottom-nav-safe">
+      {/* Original Home Page Content */}
+      <div className="flex flex-col items-center pt-2 relative">
 
 
       {/* Side Hustle Font Logo - Positioned in upper left */}
       <div className="absolute top-4 left-4 z-10"> 
         {mounted ? (
-          <img 
+          <Image 
             src={sideHustleFontSrc} 
             alt="Side Hustle" 
+            width={144} // Adjust based on your image dimensions
+            height={64}  // Adjust based on your image dimensions
             className="h-12 w-auto md:h-14 lg:h-16" 
+            priority
           />
         ) : (
           <div className="h-12 w-28 md:h-14 md:w-32 lg:h-16 lg:w-36 bg-muted animate-pulse" />
@@ -76,10 +82,13 @@ export default function HomePage() {
       {/* Wolf Icon - Takes full width with minimal side padding */}
       <div className="mb-0 w-full px-2"> 
         {mounted ? (
-          <img 
+          <Image 
             src={wolfIconSrc} 
             alt="Side Hustle Wolf Icon" 
+            width={512} // Adjust based on your image dimensions
+            height={512} // Adjust based on your image dimensions
             className="mx-auto h-auto w-full md:max-w-lg" 
+            priority
           />
         ) : (
           <div className="mx-auto h-64 w-full md:max-w-lg bg-muted animate-pulse" />
@@ -98,6 +107,12 @@ export default function HomePage() {
             <h2 className="text-lg font-semibold tracking-tight"> 
               High Energy Sports Bar
             </h2>
+            {/* Location Display */}
+            {location && (
+              <p className="text-sm text-muted-foreground">
+                📍 {location}
+              </p>
+            )}
             {/* Chef Section with Stars */}
             <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground"> 
               <span>Featuring</span>
@@ -106,7 +121,7 @@ export default function HomePage() {
             </div>
             {/* Tacos Section */}
             <p className="text-sm font-medium text-primary"> 
-              🔥 Home of the Best Tacos in Salem! 🔥
+              🔥 Home of the Best Tacos in {location || 'Salem'}! 🔥
             </p>
           </CardContent>
         </Card>
@@ -162,13 +177,13 @@ export default function HomePage() {
       </div>
 
       {/* Quick Links Section */}
-      <div className="w-full max-w-md px-4 mt-6 mb-4">
+      <div className="w-full max-w-md px-4 mt-6 mb-24">
         <h2 className="text-lg font-semibold mb-4 text-center">Quick Links</h2>
         <div className="grid grid-cols-2 gap-4">
           <QuickLink 
-            href="/menu" 
-            icon={<BookOpen className="h-6 w-6 text-primary" />} 
-            label="View Menu" 
+            href="/wolfpack" 
+            icon={<Users className="h-6 w-6 text-primary" />} 
+            label="Join Wolf Pack" 
           />
           <QuickLink 
             href="/table" 
@@ -198,6 +213,8 @@ export default function HomePage() {
         ))}
       </div> 
       */}
+      </div>
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@
 interface SyncItem {
   id: string;
   type: 'order' | 'profile' | 'feedback';
-  data: any;
+  data: Order | { profile: unknown } | { feedback: unknown };
   timestamp: number;
 }
 
@@ -40,7 +40,10 @@ function generateSyncId(): string {
 /**
  * Add an item to the sync queue for background processing
  */
-export async function queueForSync(type: 'order' | 'profile' | 'feedback', data: any): Promise<string> {
+export async function queueForSync(
+  type: 'order' | 'profile' | 'feedback',
+  data: Order | { profile: unknown } | { feedback: unknown }
+): Promise<string> {
   // Create a sync item
   const syncItem: SyncItem = {
     id: generateSyncId(),
@@ -196,15 +199,29 @@ export async function registerBackgroundSync(): Promise<void> {
 /**
  * Register for periodic background sync
  */
+interface NavigatorWithPeriodicSync extends Navigator {
+  serviceWorker: Navigator['serviceWorker'] & {
+    periodicSync?: PeriodicSyncManager;
+  };
+}
+
+interface PeriodicSyncManager {
+  register(tag: string, options: { minInterval: number }): Promise<void>;
+  unregister(tag: string): Promise<void>;
+  getTags(): Promise<string[]>;
+  permissionState(): Promise<'granted' | 'denied' | 'prompt'>;
+}
+
 export async function registerPeriodicSync(minInterval = 24 * 60 * 60 * 1000): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('periodicSync' in (navigator as any).serviceWorker)) {
+  const nav = navigator as NavigatorWithPeriodicSync;
+  if (!('serviceWorker' in nav) || !nav.serviceWorker.periodicSync) {
     console.warn('Periodic background sync not supported');
     return false;
   }
   
   try {
-    const registration = await navigator.serviceWorker.ready;
-    const periodicSyncManager = (registration as any).periodicSync;
+    const registration = await nav.serviceWorker.ready;
+    const periodicSyncManager = (registration as ServiceWorkerRegistration & { periodicSync?: PeriodicSyncManager }).periodicSync as PeriodicSyncManager;
     
     // Check permission
     const status = await periodicSyncManager.permissionState();
@@ -215,9 +232,8 @@ export async function registerPeriodicSync(minInterval = 24 * 60 * 60 * 1000): P
     
     // Register for periodic sync
     await periodicSyncManager.register('update-content', {
-      minInterval // Default: once per day
+      minInterval
     });
-    
     console.log('Periodic background sync registered');
     return true;
   } catch (error) {
@@ -230,13 +246,14 @@ export async function registerPeriodicSync(minInterval = 24 * 60 * 60 * 1000): P
  * Unregister periodic background sync
  */
 export async function unregisterPeriodicSync(): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('periodicSync' in (navigator as any).serviceWorker)) {
+  const nav = navigator as NavigatorWithPeriodicSync;
+  if (!('serviceWorker' in nav) || !nav.serviceWorker.periodicSync) {
     return false;
   }
   
   try {
-    const registration = await navigator.serviceWorker.ready;
-    const periodicSyncManager = (registration as any).periodicSync;
+    const registration = await nav.serviceWorker.ready;
+    const periodicSyncManager = (registration as ServiceWorkerRegistration & { periodicSync?: PeriodicSyncManager }).periodicSync as PeriodicSyncManager;
     
     await periodicSyncManager.unregister('update-content');
     console.log('Periodic background sync unregistered');
@@ -312,18 +329,31 @@ export function initOfflineManager(): void {
 }
 
 /**
+ * Order interface for offline order creation
+ */
+export interface Order {
+  // Define the properties of an order here
+  // Example:
+  id: string;
+  items: Array<{ productId: string; quantity: number }>;
+  total: number;
+  customerId: string;
+  [key: string]: unknown;
+}
+
+/**
  * Create an order that works offline
  * This is a specialized version of queueForSync for orders
  */
-export async function createOfflineOrder(orderData: any): Promise<string> {
-  return queueForSync('order', { order: orderData });
+export async function createOfflineOrder(orderData: Order): Promise<string> {
+  return queueForSync('order', orderData);
 }
 
 /**
  * Update user profile that works offline
  * This is a specialized version of queueForSync for profile updates
  */
-export async function updateOfflineProfile(profileData: any): Promise<string> {
+export async function updateOfflineProfile(profileData: unknown): Promise<string> {
   return queueForSync('profile', { profile: profileData });
 }
 
@@ -331,6 +361,6 @@ export async function updateOfflineProfile(profileData: any): Promise<string> {
  * Submit feedback that works offline
  * This is a specialized version of queueForSync for feedback
  */
-export async function submitOfflineFeedback(feedbackData: any): Promise<string> {
+export async function submitOfflineFeedback(feedbackData: unknown): Promise<string> {
   return queueForSync('feedback', { feedback: feedbackData });
 }

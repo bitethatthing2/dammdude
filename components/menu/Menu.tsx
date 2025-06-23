@@ -21,6 +21,7 @@ import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
 import Cart, { useCart } from '@/components/cart/Cart';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
 
 interface MenuCategory {
   id: string;
@@ -90,7 +91,6 @@ export default function Menu() {
   const [error, setError] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [useCompactView, setUseCompactView] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Get the Supabase client
@@ -103,8 +103,6 @@ export default function Menu() {
 
   // Initialize client-side state
   useEffect(() => {
-    setIsClient(true);
-    
     // Check if mobile device (mobile-first approach)
     const checkMobile = () => {
       setUseCompactView(window.innerWidth < 640);
@@ -114,7 +112,6 @@ export default function Menu() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
   // Fetch menu data function
   const fetchMenuData = useCallback(async () => {
     try {
@@ -201,15 +198,26 @@ export default function Menu() {
       return;
     }
 
-    // Convert orderData to cart item format
-    const cartItem = {
-      id: orderData.item.id,
-      name: orderData.item.name,
-      price: orderData.unitPrice,
-      quantity: orderData.quantity,
-      image_url: items.find(item => item.id === orderData.item.id)?.image_url || undefined,
-      modifiers: orderData.modifiers
+    // Find the menu item to get image_url
+    const menuItem = items.find(item => item.id === orderData.item.id);
+    
+    // Convert legacy modifiers to unified customizations structure
+    const customizations: ItemCustomization = {
+      meat: orderData.modifiers.meat,
+      sauces: orderData.modifiers.sauces
     };
+
+    // Create cart item using unified utility function
+    const cartItem = createCartItem(
+      {
+        id: orderData.item.id,
+        name: orderData.item.name,
+        price: orderData.item.price,
+        image_url: menuItem?.image_url || undefined
+      },
+      orderData.quantity,
+      customizations
+    );
 
     addToCart(cartItem);
   }, [user, addToCart, items]);
@@ -417,7 +425,7 @@ export default function Menu() {
       </div>
 
       {/* Menu Items - Mobile optimized */}
-      <main className="pb-20">
+      <main className="bottom-nav-safe">
         {loading ? (
           <div className="p-4">
             <LoadingSkeleton />

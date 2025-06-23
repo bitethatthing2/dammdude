@@ -44,7 +44,6 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 interface NotificationProviderProps {
   children: ReactNode;
   recipientId?: string;
-  role?: string;
 }
 
 /**
@@ -53,8 +52,7 @@ interface NotificationProviderProps {
  */
 export function UnifiedNotificationProvider({
   children,
-  recipientId,
-  role
+  recipientId
 }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);

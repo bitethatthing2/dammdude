@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import './WolfpackSpatialView.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,7 +12,8 @@ import {
   MessageCircle, 
   Heart, 
   Shield, 
-  UserX
+  UserX,
+  Users
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
@@ -52,8 +55,6 @@ interface WolfpackSpatialViewProps {
   currentUserId: string;
 }
 
-import './WolfpackSpatialView.css';
-
 export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpatialViewProps) {
   const { user } = useUser();
   const router = useRouter();
@@ -63,6 +64,11 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
   const supabase = getSupabaseBrowserClient();
+
+  // Click handler for wolf interactions
+  const handleWolfClick = useCallback((member: WolfPackMember) => {
+    setSelectedMember(member);
+  }, []);
 
   // Load wolfpack members and blocked users
   useEffect(() => {
@@ -100,14 +106,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
         if (memberError) throw memberError;
 
-        // Assign random positions for spatial layout if not set
-        const membersWithPositions = (memberData || []).map((member: WolfPackMember, index: number) => ({
-          ...member,
-          position_x: member.position_x || getRandomPosition(index, 'x'),
-          position_y: member.position_y || getRandomPosition(index, 'y')
-        }));
-
-        setMembers(membersWithPositions);
+        setMembers(memberData || []);
 
         // Load blocked users
         const { data: blockData } = await supabase
@@ -151,19 +150,6 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
     }
   }, [locationId, currentUserId, supabase]);
 
-  // Generate random but consistent positions for members
-  const getRandomPosition = (index: number, axis: 'x' | 'y') => {
-    const seed = index + (axis === 'x' ? 1 : 2);
-    const random = Math.sin(seed) * 10000;
-    const normalized = random - Math.floor(random);
-    
-    if (axis === 'x') {
-      return Math.floor(normalized * 70) + 15; // 15% to 85% width
-    } else {
-      return Math.floor(normalized * 60) + 20; // 20% to 80% height
-    }
-  };
-
   // Get member icon based on role
   const getMemberIcon = (member: WolfPackMember) => {
     const role = member.users?.role;
@@ -198,7 +184,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
         if (error) throw error;
         
-        setBlockedUsers(prev => [...prev, targetUserId]);
+        setBlockedUsers((prev: string[]) => [...prev, targetUserId]);
         toast.success('User blocked');
         setSelectedMember(null);
       } else if (type === 'wink') {
@@ -215,7 +201,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
         if (error) throw error;
         toast.success('Wink sent! 😉');
       } else if (type === 'message') {
-        router.push(`/wolfpack/chat/private/${targetUserId}?name=${encodeURIComponent(selectedMember?.wolf_profiles?.display_name || 'Wolf')}`);
+        router.push(`/chat`);
       }
     } catch (error) {
       console.error('Error sending interaction:', error);
@@ -250,12 +236,15 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
   if (isLoading) {
     return (
-      <Card className="h-[600px]">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">WOLFPACK VIEW</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-6 w-6" />
+            Wolf Pack View
+          </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </CardContent>
       </Card>
     );
@@ -263,83 +252,199 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
   return (
     <div className="space-y-4">
-      {/* Main Spatial View */}
-      <Card className="h-[600px] relative overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-center text-3xl font-bold tracking-wide">
-            WOLFPACK VIEW
-          </CardTitle>
-          <div className="text-center text-sm text-muted-foreground">
-            {visibleMembers.length} members at the bar
-          </div>
-        </CardHeader>
-        
-        <CardContent className="relative h-full p-4">
-          {/* Bar Layout Background */}
-          <div className="absolute inset-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-dashed border-amber-200">
+      {/* Animated Live Bar Map */}
+      <div className="wolfpack-spatial-container">
+        <motion.svg 
+          viewBox="0 0 800 600" 
+          className="spatial-view-svg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Bar Background */}
+          <defs>
+            <linearGradient id="barGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: '#1a1a2e', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: '#16213e', stopOpacity: 1 }} />
+            </linearGradient>
+          </defs>
+          
+          {/* Bar Layout */}
+          <rect width="800" height="600" fill="url(#barGradient)" rx="12" />
+          
+          {/* Bar Counter */}
+          <rect x="50" y="150" width="700" height="80" fill="#2a2a3e" rx="8" stroke="#444" strokeWidth="2" />
+          <text x="400" y="195" textAnchor="middle" fill="#888" fontSize="14" fontFamily="system-ui">
+            Bar Counter
+          </text>
+          
+          {/* Tables */}
+          <g>
+            {/* Table 1 */}
+            <circle cx="150" cy="350" r="30" fill="#2a2a3e" stroke="#444" strokeWidth="2" />
+            <text x="150" y="355" textAnchor="middle" fill="#888" fontSize="10">Table 1</text>
             
-            {/* Member Icons Positioned Spatially */}
-            {visibleMembers.map((member) => {
+            {/* Table 2 */}
+            <circle cx="400" cy="350" r="30" fill="#2a2a3e" stroke="#444" strokeWidth="2" />
+            <text x="400" y="355" textAnchor="middle" fill="#888" fontSize="10">Table 2</text>
+            
+            {/* Table 3 */}
+            <circle cx="650" cy="350" r="30" fill="#2a2a3e" stroke="#444" strokeWidth="2" />
+            <text x="650" y="355" textAnchor="middle" fill="#888" fontSize="10">Table 3</text>
+            
+            {/* High Tables */}
+            <rect x="100" y="450" width="40" height="40" fill="#2a2a3e" stroke="#444" strokeWidth="2" rx="4" />
+            <text x="120" y="473" textAnchor="middle" fill="#888" fontSize="8">High 1</text>
+            
+            <rect x="660" y="450" width="40" height="40" fill="#2a2a3e" stroke="#444" strokeWidth="2" rx="4" />
+            <text x="680" y="473" textAnchor="middle" fill="#888" fontSize="8">High 2</text>
+          </g>
+          
+          {/* DJ Booth */}
+          <rect x="300" y="50" width="200" height="60" fill="#4a1a4a" stroke="#6a2a6a" strokeWidth="2" rx="8" />
+          <text x="400" y="85" textAnchor="middle" fill="#9a6a9a" fontSize="12" fontFamily="system-ui">
+            DJ Booth 🎵
+          </text>
+          
+          {/* Wolf Pack Members */}
+          <AnimatePresence>
+            {visibleMembers.map((member, index) => {
               const isCurrentUser = member.user_id === currentUserId;
               const icon = getMemberIcon(member);
-              const colorClass = getMemberColor(member);
+              
+              // Calculate position based on table_location or use default positions
+              let x = 400, y = 300; // Default center position
+              
+              if (member.table_location) {
+                if (member.table_location.includes('Table 1')) { x = 150; y = 300; }
+                else if (member.table_location.includes('Table 2')) { x = 400; y = 300; }
+                else if (member.table_location.includes('Table 3')) { x = 650; y = 300; }
+                else if (member.table_location.includes('High 1')) { x = 120; y = 420; }
+                else if (member.table_location.includes('High 2')) { x = 680; y = 420; }
+                else if (member.table_location.includes('Bar')) { x = 200 + (index * 80); y = 120; }
+              } else {
+                // Distribute members around the space if no specific table
+                const angle = (index / visibleMembers.length) * 2 * Math.PI;
+                x = 400 + Math.cos(angle) * 150;
+                y = 350 + Math.sin(angle) * 100;
+              }
+              
               return (
-                <div
+                <motion.g
                   key={member.id}
-                  className={`wolfpack-member-icon absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all hover:scale-110 ${
-                    isCurrentUser ? 'animate-pulse' : ''
-                  }`}
-                  style={{
-                    '--member-x': `${member.position_x}%`,
-                    '--member-y': `${member.position_y}%`
-                  } as React.CSSProperties}
-                  onClick={() => setSelectedMember(member)}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleWolfClick(member)}
+                  style={{ cursor: 'pointer' }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <div className="flex flex-col items-center group">
-                    <div className={`text-4xl ${colorClass} drop-shadow-lg group-hover:drop-shadow-xl transition-all`}>
-                      {icon}
-                    </div>
-                    <div className={`text-xs font-semibold mt-1 px-2 py-1 bg-white/80 rounded shadow-sm ${
-                      isCurrentUser ? 'bg-primary/20 border border-primary' : ''
-                    }`}>
-                      {member.wolf_profiles?.display_name || member.users?.first_name || 'Wolf'}
-                      {isCurrentUser && (
-                        <Badge variant="outline" className="ml-1 text-xs">You</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  {/* Wolf Avatar Background */}
+                  <circle 
+                    cx={x} 
+                    cy={y} 
+                    r="20" 
+                    fill={isCurrentUser ? "#3b82f6" : "#6366f1"} 
+                    stroke={isCurrentUser ? "#1d4ed8" : "#4f46e5"} 
+                    strokeWidth="2"
+                    className="wolf-avatar"
+                  />
+                  
+                  {/* Wolf Icon */}
+                  <text 
+                    x={x} 
+                    y={y + 5} 
+                    textAnchor="middle" 
+                    fill="white" 
+                    fontSize="20"
+                    style={{ userSelect: 'none' }}
+                  >
+                    {icon}
+                  </text>
+                  
+                  {/* Name Label */}
+                  <text 
+                    x={x} 
+                    y={y - 30} 
+                    textAnchor="middle" 
+                    fill="#e2e8f0" 
+                    fontSize="12" 
+                    fontFamily="system-ui"
+                    style={{ userSelect: 'none' }}
+                  >
+                    {member.wolf_profiles?.display_name || member.users?.first_name || 'Wolf'}
+                  </text>
+                  
+                  {/* Current User Indicator */}
+                  {isCurrentUser && (
+                    <circle 
+                      cx={x + 15} 
+                      cy={y - 15} 
+                      r="6" 
+                      fill="#10b981" 
+                      stroke="#065f46" 
+                      strokeWidth="1"
+                    />
+                  )}
+                  
+                  {/* Activity Pulse for Active Users */}
+                  <motion.circle
+                    cx={x}
+                    cy={y}
+                    r="20"
+                    fill="transparent"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                    initial={{ scale: 1, opacity: 0.6 }}
+                    animate={{ scale: 1.5, opacity: 0 }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity, 
+                      ease: "easeOut" 
+                    }}
+                  />
+                </motion.g>
               );
             })}
-
-            {/* Legend */}
-            <div className="absolute bottom-4 left-4 bg-white/90 p-3 rounded-lg shadow-sm">
-              <div className="text-xs font-semibold mb-2">LEGEND</div>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-purple-600">⭐</span>
-                  <span>DJ</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-orange-600">🐺</span>
-                  <span>BARTENDER</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-600">🐾</span>
-                  <span>PACK MEMBER</span>
-                </div>
-              </div>
+          </AnimatePresence>
+          
+          {/* Empty State */}
+          {visibleMembers.length === 0 && (
+            <motion.g
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <text x="400" y="300" textAnchor="middle" fill="#64748b" fontSize="18" fontFamily="system-ui">
+                No pack members online right now
+              </text>
+              <text x="400" y="325" textAnchor="middle" fill="#64748b" fontSize="14" fontFamily="system-ui">
+                Be the first to join the pack! 🐺
+              </text>
+            </motion.g>
+          )}
+        </motion.svg>
+        
+        {/* Legend */}
+        <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>You</span>
             </div>
-
-            {/* Instructions */}
-            <div className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-lg shadow-sm max-w-xs">
-              <div className="text-xs text-muted-foreground">
-                Click on any wolf icon to interact, send messages, or view profiles
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <span>Other Wolves</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>Online</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Member Profile Dialog */}
       {selectedMember && (

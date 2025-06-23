@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Bell, Check, CheckCheck, Trash2, Clock } from 'lucide-react';
+import { Bell, Check, CheckCheck, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useSafeNotifications, type Notification } from '@/lib/contexts/unified-notification-context';
 import { NotificationIndicator } from './NotificationIndicator';

@@ -72,7 +72,7 @@ function validateBookingRequest(data: any): { valid: boolean; error?: string } {
     if (date < today) {
       return { valid: false, error: "Cannot book dates in the past" };
     }
-  } catch (e) {
+  } catch (_e) {
     return { valid: false, error: "Invalid date format" };
   }
   

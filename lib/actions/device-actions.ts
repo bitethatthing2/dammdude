@@ -1,11 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
 
 type DeviceRegistrationInsert = Database['public']['Tables']['device_registrations']['Insert'];
-type DeviceRegistrationUpdate = Database['public']['Tables']['device_registrations']['Update'];
 
 interface RegisterDeviceParams {
   deviceId: string;

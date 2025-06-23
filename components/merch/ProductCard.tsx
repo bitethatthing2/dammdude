@@ -5,7 +5,7 @@ import { ShoppingBag } from "lucide-react";
 import type { MerchItem } from '@/lib/types/merch';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCardProps {

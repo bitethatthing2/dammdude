@@ -1,528 +1,471 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SendNotificationRequest } from '@/lib/types/api';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
-import { initializeFirebaseAdmin, isFirebaseAdminInitialized, simulateNotificationResponse, getAdminMessaging } from '@/lib/firebase/admin';
-import type { BatchResponse, MulticastMessage } from 'firebase-admin/messaging';
+import { createServerClient } from '@/lib/supabase/server';
+import { initializeFirebaseAdmin, getAdminMessaging, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
+import { NOTIFICATION_TOPICS } from '@/lib/types/firebase';
+import type { NotificationTopicKey, FcmResponse, BulkNotificationResult } from '@/lib/types/firebase';
+import type { TopicMessage, MulticastMessage } from 'firebase-admin/messaging';
 
-type SupabaseClient = ReturnType<typeof createClient>;
-
-// Define proper types for Firebase errors
-interface FirebaseError extends Error {
-  code?: string;
-  message: string;
-}
-
-// Define proper type for batch response items
-interface NotificationBatchResponse {
-  success: boolean;
-  messageId?: string;
-  error?: FirebaseError;
-}
-
-// Extended type for the request body that includes action
-interface ExtendedSendNotificationRequest extends Omit<SendNotificationRequest, 'action'> {
-  action?: "cleanup_tokens" | "send" | string;
-  notification?: Partial<SendNotificationRequest>;
-}
-
-// Type for the raw body with all possible fields
-interface RawNotificationBody extends ExtendedSendNotificationRequest {
-  imageUrl?: string;
-  imageLink?: string;
-  actionButtonUrl?: string;
-  actionButtonLabel?: string;
-}
-
-// Type for token data from Supabase
-interface TokenData {
-  token: string;
-}
-
-// Helper function to remove invalid tokens from the database
-async function removeInvalidToken(token: string, supabaseAdmin: SupabaseClient): Promise<boolean> {
-  if (!token) return false;
-
-  console.log(`Removing invalid token: ${token.substring(0, 10)}...`);
+// Define the structure for notification requests
+interface NotificationRequestBody {
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+  image?: string;
+  link?: string;
   
-  try {
-    // Remove from fcm_tokens table
-    const { error: tokenError } = await supabaseAdmin
-      .from('fcm_tokens')
-      .delete()
-      .eq('token', token);
-      
-    if (tokenError) {
-      console.error(`Error removing token from fcm_tokens: ${tokenError.message}`);
-      return false;
-    }
-    
-    // Remove from topic_subscriptions table
-    const { error: subscriptionError } = await supabaseAdmin
-      .from('topic_subscriptions')
-      .delete()
-      .eq('token', token);
-      
-    if (subscriptionError) {
-      console.error(`Error removing token from topic_subscriptions: ${subscriptionError.message}`);
-      return false;
-    }
-    
-    console.log(`Successfully removed invalid token: ${token.substring(0, 10)}...`);
-    return true;
-  } catch (error) {
-    console.error(`Error removing invalid token: ${error instanceof Error ? error.message : String(error)}`);
-    return false;
+  // Target options (only one should be specified)
+  topic?: NotificationTopicKey | string;
+  userId?: string;
+  tokens?: string[];
+  
+  // Optional settings
+  requireInteraction?: boolean;
+  silent?: boolean;
+  badge?: string;
+  icon?: string;
+  tag?: string;
+}
+
+/**
+ * Validate that only one target type is specified
+ */
+function validateTargetOptions(body: NotificationRequestBody): string | null {
+  const targets = [body.topic, body.userId, body.tokens].filter(Boolean);
+  
+  if (targets.length === 0) {
+    return 'Must specify one target: topic, userId, or tokens';
   }
-}
-
-/**
- * Check if the error is due to an invalid token
- */
-function isInvalidTokenError(error: unknown): boolean {
-  if (!error) return false;
   
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  return (
-    errorMessage.includes('messaging/registration-token-not-registered') ||
-    errorMessage.includes('messaging/invalid-registration-token') ||
-    errorMessage.includes('messaging/invalid-argument') ||
-    errorMessage.includes('Requested entity was not found')
-  );
+  if (targets.length > 1) {
+    return 'Only one target type allowed: topic, userId, or tokens';
+  }
+  
+  return null;
 }
 
 /**
- * Clean up invalid tokens in the database
+ * Get device tokens for a specific user
  */
-async function cleanupInvalidTokens(supabaseAdmin: SupabaseClient): Promise<{ removed: number, total: number }> {
-  // Skip token validation in development mode to avoid Firebase Admin errors
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Skipping token validation in development mode');
-    return { removed: 0, total: 0 };
+async function getUserTokens(userId: string, supabase: Awaited<ReturnType<typeof createServerClient>>): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('device_tokens')
+    .select('token')
+    .eq('user_id', userId)
+    .eq('is_active', true);
+  
+  if (error) {
+    console.error('Error fetching user tokens:', error);
+    return [];
+  }
+  
+  return data?.map((row: { token: string }) => row.token) || [];
+}
+
+/**
+ * Send notification to a topic
+ */
+async function sendToTopic(
+  topic: string,
+  title: string,
+  body: string,
+  data?: Record<string, string>,
+  options?: {
+    image?: string;
+    icon?: string;
+    badge?: string;
+    link?: string;
+    requireInteraction?: boolean;
+    silent?: boolean;
+    tag?: string;
+  }
+): Promise<FcmResponse> {
+  const messaging = getAdminMessaging();
+  if (!messaging) {
+    return {
+      success: false,
+      error: {
+        code: 'messaging-unavailable',
+        message: 'Firebase messaging not available'
+      }
+    };
   }
   
   try {
-    // Get all tokens
-    const { data: tokensData, error } = await supabaseAdmin
-      .from('fcm_tokens')
-      .select('token')
-      .order('created_at', { ascending: false });
+    // Build the message payload for Firebase Admin SDK
+    const message: TopicMessage = {
+      topic,
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        title,
+        body,
+        timestamp: new Date().toISOString(),
+        ...(data || {})
+      },
+      webpush: {
+        headers: {},
+        notification: {
+          title,
+          body,
+          icon: options?.icon || '/icons/android-big-icon.png',
+          badge: options?.badge || '/icons/android-lil-icon-white.png',
+          requireInteraction: options?.requireInteraction || false,
+          silent: options?.silent || false,
+          tag: options?.tag,
+          image: options?.image,
+          data: {
+            url: options?.link || '/',
+            ...(data || {})
+          }
+        },
+        fcmOptions: {
+          link: options?.link || '/'
+        }
+      }
+    };
     
-    if (error || !tokensData) {
-      console.error('Error fetching tokens for cleanup:', error);
-      return { removed: 0, total: 0 };
-    }
+    const response = await messaging.send(message);
     
-    const tokens = (tokensData as TokenData[]).map((t) => t.token);
-    console.log(`Found ${tokens.length} tokens to validate`);
-    
-    // In production, we'll just check for obviously invalid tokens
-    // This avoids issues with Firebase Admin SDK validation
-    const invalidTokens: string[] = tokens.filter((token: string) => 
-      !token || 
-      token.length < 100 || 
-      token === 'undefined' || 
-      token === 'null'
-    );
-    
-    console.log(`Found ${invalidTokens.length} obviously invalid tokens`);
-    
-    // Remove invalid tokens
-    let removedCount = 0;
-    for (const token of invalidTokens) {
-      const removed = await removeInvalidToken(token, supabaseAdmin);
-      if (removed) removedCount++;
-    }
-    
-    return { removed: removedCount, total: tokens.length };
+    return {
+      success: true,
+      messageId: response
+    };
   } catch (error) {
-    console.error('Error cleaning up invalid tokens:', error);
-    return { removed: 0, total: 0 };
+    console.error('Error sending to topic:', error);
+    return {
+      success: false,
+      error: {
+        code: 'send-failed',
+        message: error instanceof Error ? error.message : String(error)
+      }
+    };
   }
 }
 
 /**
- * API route to send push notifications using Firebase Admin SDK
+ * Send notification to multiple tokens
+ */
+async function sendToTokens(
+  tokens: string[],
+  title: string,
+  body: string,
+  data?: Record<string, string>,
+  options?: {
+    image?: string;
+    icon?: string;
+    badge?: string;
+    link?: string;
+    requireInteraction?: boolean;
+    silent?: boolean;
+    tag?: string;
+  }
+): Promise<BulkNotificationResult> {
+  const messaging = getAdminMessaging();
+  if (!messaging) {
+    return {
+      successCount: 0,
+      failureCount: tokens.length,
+      responses: tokens.map(() => ({
+        success: false,
+        error: {
+          code: 'messaging-unavailable',
+          message: 'Firebase messaging not available'
+        }
+      })),
+      invalidTokens: []
+    };
+  }
+  
+  if (tokens.length === 0) {
+    return {
+      successCount: 0,
+      failureCount: 0,
+      responses: [],
+      invalidTokens: []
+    };
+  }
+  
+  try {
+    // Build the message payload
+    const baseMessage = {
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        title,
+        body,
+        timestamp: new Date().toISOString(),
+        ...(data || {})
+      },
+      webpush: {
+        headers: {},
+        notification: {
+          title,
+          body,
+          icon: options?.icon || '/icons/android-big-icon.png',
+          badge: options?.badge || '/icons/android-lil-icon-white.png',
+          requireInteraction: options?.requireInteraction || false,
+          silent: options?.silent || false,
+          tag: options?.tag,
+          image: options?.image,
+          data: {
+            url: options?.link || '/',
+            ...(data || {})
+          }
+        },
+        fcmOptions: {
+          link: options?.link || '/'
+        }
+      }
+    };
+    
+    // Send to multiple tokens
+    const multicastMessage: MulticastMessage = {
+      tokens,
+      ...baseMessage
+    };
+    
+    const response = await messaging.sendEachForMulticast(multicastMessage);
+    
+    // Process results
+    const responses: FcmResponse[] = [];
+    const invalidTokens: string[] = [];
+    
+    response.responses.forEach((result, index) => {
+      if (result.success) {
+        responses.push({
+          success: true,
+          messageId: result.messageId
+        });
+      } else {
+        responses.push({
+          success: false,
+          error: {
+            code: result.error?.code || 'unknown',
+            message: result.error?.message || 'Unknown error'
+          }
+        });
+        
+        // Check if token is invalid
+        const errorCode = result.error?.code;
+        if (
+          errorCode === 'messaging/registration-token-not-registered' ||
+          errorCode === 'messaging/invalid-registration-token'
+        ) {
+          invalidTokens.push(tokens[index]);
+        }
+      }
+    });
+    
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      responses,
+      invalidTokens
+    };
+  } catch (error) {
+    console.error('Error sending to tokens:', error);
+    
+    // Return error for all tokens
+    return {
+      successCount: 0,
+      failureCount: tokens.length,
+      responses: tokens.map(() => ({
+        success: false,
+        error: {
+          code: 'send-failed',
+          message: error instanceof Error ? error.message : String(error)
+        }
+      })),
+      invalidTokens: []
+    };
+  }
+}
+
+/**
+ * Log notification to database
+ */
+async function logNotification(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  title: string,
+  body: string,
+  data: Record<string, string> | undefined,
+  target: {
+    topic?: string;
+    userId?: string;
+    tokenCount?: number;
+  },
+  result: FcmResponse | BulkNotificationResult
+): Promise<void> {
+  try {
+    const logEntry = {
+      title,
+      body,
+      data: data ? JSON.stringify(data) : null,
+      topic: target.topic || null,
+      user_id: target.userId || null,
+      status: 'success' in result && result.success ? 'sent' : 
+              'successCount' in result && result.successCount > 0 ? 'partial' : 'failed',
+      sent_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const { error } = await supabase
+      .from('push_notifications')
+      .insert([logEntry]);
+    
+    if (error) {
+      console.error('Error logging notification:', error);
+    }
+  } catch (error) {
+    console.error('Error in logNotification:', error);
+  }
+}
+
+/**
+ * Clean up invalid tokens from database
+ */
+async function cleanupInvalidTokens(supabase: Awaited<ReturnType<typeof createServerClient>>, invalidTokens: string[]): Promise<void> {
+  if (invalidTokens.length === 0) return;
+  
+  try {
+    const { error } = await supabase
+      .from('device_tokens')
+      .update({
+        is_active: false,
+        last_error: 'Token invalid or unregistered',
+        error_count: supabase.raw('error_count + 1'),
+        updated_at: new Date().toISOString()
+      })
+      .in('token', invalidTokens);
+    
+    if (error) {
+      console.error('Error cleaning up invalid tokens:', error);
+    } else {
+      console.log(`Marked ${invalidTokens.length} tokens as inactive`);
+    }
+  } catch (error) {
+    console.error('Error in cleanupInvalidTokens:', error);
+  }
+}
+
+/**
+ * API route to send push notifications
  */
 export async function POST(request: NextRequest) {
   try {
     console.log('Send notification API called');
     
-    // Initialize Firebase Admin SDK
-    const adminApp = initializeFirebaseAdmin();
-    
-    // Ensure Firebase Admin is properly initialized
-    if (!adminApp) {
-      console.error('Firebase Admin failed to initialize');
-      return NextResponse.json(
-        { error: 'Firebase Admin failed to initialize' },
-        { status: 500 }
-      );
+    // Initialize Firebase Admin
+    if (!isFirebaseAdminInitialized()) {
+      console.log('Initializing Firebase Admin in send notification API');
+      initializeFirebaseAdmin();
     }
     
-    // Log initialization status for debugging
-    console.log('Firebase Admin initialization status:', {
-      initialized: isFirebaseAdminInitialized(),
-      hasApp: !!adminApp,
-      environment: process.env.NODE_ENV
-    });
-
-    // Assume the request body might have the notification nested or flat
-    const rawBody = await request.json() as RawNotificationBody;
-    console.log('Raw notification request body:', JSON.stringify(rawBody, null, 2));
+    // Parse request body
+    const body: NotificationRequestBody = await request.json();
+    const { title, body: messageBody, data, topic, userId, tokens, ...options } = body;
     
-    const notificationData = rawBody.notification || rawBody; // Use nested or top-level
-    const body: ExtendedSendNotificationRequest = {
-      ...rawBody, // Keep other potential top-level fields like token, topic, sendToAll
-      title: notificationData.title || '', // Get title from notification object or top-level
-      body: notificationData.body || '',   // Get body from notification object or top-level
-      icon: notificationData.icon || '/icons/logo.png', // Default icon if not provided
-      image: notificationData.image || (rawBody as RawNotificationBody).imageUrl, // Support both image and imageUrl fields
-      link: notificationData.link || (rawBody as RawNotificationBody).imageLink, // Support both link and imageLink fields
-      actionButton: notificationData.actionButton || (rawBody as RawNotificationBody).actionButtonUrl, // Support both formats
-      actionButtonText: notificationData.actionButtonText || (rawBody as RawNotificationBody).actionButtonLabel, // Support both formats
-      data: notificationData.data || {} // Ensure data object exists
-    };
-
-    console.log('Send notification API called with parsed data:', {
-      title: body.title,
-      body: body.body,
-      hasToken: !!body.token,
-      hasTopic: !!body.topic,
-      sendToAll: !!body.sendToAll
-    });
-
-    // Validate required fields using the correctly parsed values
-    if (!body.title || !body.body) {
-      console.error('Missing required fields: title or body');
+    // Validate required fields
+    if (!title || !messageBody) {
       return NextResponse.json(
         { error: 'Missing required fields: title and body' },
         { status: 400 }
       );
     }
-
-    // Modified validation: if token or topic is provided, they should be valid
-    if (body.token === '' || body.topic === '') {
+    
+    // Validate target options
+    const targetError = validateTargetOptions(body);
+    if (targetError) {
       return NextResponse.json(
-        { error: 'Token or topic must not be empty if provided' },
+        { error: targetError },
         { status: 400 }
       );
     }
-
-    // Check if we should simulate success (development mode or failed initialization)
-    const shouldSimulate = process.env.NODE_ENV === 'development' || !isFirebaseAdminInitialized();
     
-    // In development mode or if Firebase failed to initialize, return a simulated success response
-    if (shouldSimulate) {
-      console.log(`Simulating notification delivery (${!isFirebaseAdminInitialized() ? 'failed initialization' : 'development mode'})`);
+    // Initialize Supabase
+    const supabase = await createServerClient();
+    
+    let result: FcmResponse | BulkNotificationResult;
+    let targetInfo: { topic?: string; userId?: string; tokenCount?: number };
+    
+    // Handle different target types
+    if (topic) {
+      // Send to topic
+      console.log(`Sending notification to topic: ${topic}`);
+      result = await sendToTopic(topic, title, messageBody, data, options);
+      targetInfo = { topic };
       
-      // Use our simulation helper
-      const target = body.token ? 'device token' : body.topic ? `topic: ${body.topic}` : body.sendToAll ? 'all devices' : 'unknown';
-      return NextResponse.json(simulateNotificationResponse(body.title, body.body, target));
-    }
-
-    // Get messaging service - if null, simulate response
-    const messaging = getAdminMessaging();
-    if (!messaging) {
-      console.error('Failed to get messaging service, simulating success response');
-      return NextResponse.json(simulateNotificationResponse(body.title, body.body, 'fallback'));
-    }
-
-    // Connect to Supabase Admin to manage tokens
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials for token management');
-      // Continue without token management capabilities
-    }
-    
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      supabaseServiceKey
-    );
-
-    // Default icons for different platforms
-    const webIcon = body.icon || '/icons/logo.png';
-    const androidIcon = '/icons/android-lil-icon-white.png';
-    const androidBigIcon = '/icons/android-big-icon.png';
-    
-    // Create the data payload with all notification information
-    // This allows the app's message handler to create the notification
-    const dataPayload: Record<string, string> = {
-      title: body.title,
-      body: body.body,
-      click_action: "FLUTTER_NOTIFICATION_CLICK"
-    };
-    
-    // Add optional fields to data payload
-    if (body.link) dataPayload.link = body.link;
-    if (body.image && body.image.startsWith('http')) dataPayload.image = body.image;
-    
-    // Add icon information for the client to use
-    dataPayload.icon = webIcon;
-    dataPayload.androidIcon = androidIcon;
-    dataPayload.androidBigIcon = androidBigIcon;
-    
-    // Add action button if provided
-    if (body.actionButton && body.actionButtonText) {
-      dataPayload.actionButton = body.actionButton;
-      dataPayload.actionButtonText = body.actionButtonText;
-    }
-    
-    // Add any custom data fields
-    if (body.data) {
-      Object.entries(body.data).forEach(([key, value]) => {
-        dataPayload[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      });
-    }
-    
-    console.log('Data payload for notification:', JSON.stringify(dataPayload, null, 2));
-
-    // Create the webpush configuration for desktop browsers
-    const webPushConfig = {
-      fcmOptions: {
-        link: body.link || '/'
-      },
-      headers: {
-        TTL: '86400' // 24 hours in seconds
-      }
-    };
-    
-    // Create APNS configuration for iOS
-    const apnsConfig = {
-      payload: {
-        aps: {
-          'content-available': 1,
-          'mutable-content': 1,
-          sound: 'default'
-        },
-        data: dataPayload
-      }
-    };
-    
-    // Create Android specific configuration with proper Firebase typing
-    const androidConfig: {
-      priority: 'high' | 'normal';
-      ttl?: number;
-      restrictedPackageName?: string;
-    } = {
-      priority: 'high',
-      ttl: 86400000 // 24 hours in milliseconds
-    };
-
-    // Special case: if this is a cleanup request, run token cleanup
-    if (body.action === 'cleanup_tokens') {
-      console.log('Running token cleanup operation');
+    } else if (userId) {
+      // Send to specific user
+      console.log(`Sending notification to user: ${userId}`);
+      const userTokens = await getUserTokens(userId, supabase);
       
-      const cleanupResult = await cleanupInvalidTokens(supabaseAdmin);
-      
-      return NextResponse.json({
-        success: true,
-        action: 'cleanup_tokens',
-        removed: cleanupResult.removed,
-        total: cleanupResult.total
-      });
-    }
-
-    // Handle different targeting options
-    if (body.sendToAll) {
-      console.log('Sending to all devices (querying database for tokens)');
-      
-      // Get all tokens from the database
-      const { data: tokensData, error: tokensError } = await supabaseAdmin
-        .from('fcm_tokens')
-        .select('token')
-        .order('created_at', { ascending: false });
-      
-      if (tokensError) {
-        console.error('Error fetching tokens:', tokensError);
-        return NextResponse.json(
-          { error: 'Failed to fetch tokens', details: tokensError.message },
-          { status: 500 }
-        );
-      }
-      
-      if (!tokensData || tokensData.length === 0) {
-        console.log('No tokens found in database');
-        return NextResponse.json(
-          { success: true, recipients: 0, message: 'No devices registered for notifications' }
-        );
-      }
-      
-      // Extract tokens and filter out obviously invalid ones
-      const tokens = (tokensData as TokenData[])
-        .map((t) => t.token)
-        .filter((token: string) => 
-          token && 
-          token.length > 100 && 
-          token !== 'undefined' && 
-          token !== 'null'
-        );
-      
-      console.log(`Sending to ${tokens.length} devices`);
-      
-      // If no valid tokens, return early
-      if (tokens.length === 0) {
-        console.log('No valid tokens found after filtering');
-        return NextResponse.json(
-          { success: true, recipients: 0, message: 'No valid devices registered for notifications' }
-        );
-      }
-      
-      // Send multicast message
-      try {
-        // Use sendEachForMulticast for better error handling
-        const multicastMessage: MulticastMessage = {
-          tokens: tokens,
-          data: dataPayload,
-          webpush: webPushConfig,
-          android: androidConfig,
-          apns: apnsConfig
-        };
-        
-        const batchResponse: BatchResponse = await messaging.sendEachForMulticast(multicastMessage);
-        
-        console.log(`Multicast send results: { successCount: ${batchResponse.successCount}, failureCount: ${batchResponse.failureCount}, responses: ${batchResponse.responses.length} }`);
-        
-        // Handle failed tokens
-        const failedTokens: string[] = [];
-        batchResponse.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            const failedToken = tokens[idx];
-            console.log(`Failed to send to token: ${failedToken.substring(0, 10)}... Error: ${resp.error?.message || 'Unknown error'}`);
-            
-            // Check if token is invalid and should be removed
-            if (resp.error && isInvalidTokenError(resp.error)) {
-              failedTokens.push(failedToken);
-            }
-          }
-        });
-        
-        // Remove invalid tokens
-        let removedCount = 0;
-        if (failedTokens.length > 0) {
-          console.log(`Removing ${failedTokens.length} invalid tokens`);
-          
-          for (const token of failedTokens) {
-            const removed = await removeInvalidToken(token, supabaseAdmin);
-            if (removed) removedCount++;
-          }
-          
-          console.log(`Removed ${removedCount} invalid tokens`);
-        }
-        
+      if (userTokens.length === 0) {
         return NextResponse.json({
-          success: true,
-          successCount: batchResponse.successCount,
-          failureCount: batchResponse.failureCount,
-          invalidTokensRemoved: removedCount
+          success: false,
+          error: 'No active tokens found for user'
         });
-      } catch (error) {
-        console.error('Error sending multicast message:', error);
-        return NextResponse.json(
-          { 
-            error: 'Failed to send multicast message',
-            errorDetails: error instanceof Error ? error.message : String(error)
-          },
-          { status: 500 }
-        );
       }
-    } else if (body.topic) {
-      console.log(`Sending to topic: ${body.topic}`);
-
-      try {
-        // Send to topic
-        const response = await messaging.send({
-          topic: body.topic,
-          data: dataPayload,
-          webpush: webPushConfig,
-          android: androidConfig,
-          apns: apnsConfig
-        });
-
-        console.log(`Successfully sent message to topic: ${response}`);
-        return NextResponse.json({
-          success: true,
-          messageIds: [response],
-          topic: body.topic
-        });
-      } catch (error) {
-        console.error(`Error sending to topic ${body.topic}:`, error);
-        return NextResponse.json(
-          { 
-            error: `Failed to send to topic: ${body.topic}`,
-            errorDetails: error instanceof Error ? error.message : String(error)
-          },
-          { status: 500 }
-        );
-      }
-    } else if (body.token) {
-      console.log(`Sending to individual token: ${body.token.substring(0, 10)}...`);
-
-      try {
-        // Validate token (skip in development mode)
-        if (process.env.NODE_ENV !== 'development') {
-          // Simple validation - if token is obviously invalid, don't try to send
-          if (!body.token || body.token.length < 100 || body.token === 'undefined' || body.token === 'null') {
-            console.error('Token validation failed: Token appears invalid');
-            await removeInvalidToken(body.token, supabaseAdmin);
-            return NextResponse.json({
-              success: false,
-              error: 'Invalid token',
-              tokenRemoved: true
-            });
-          }
-        }
-        
-        // Send to a specific device
-        const response = await messaging.send({
-          token: body.token,
-          data: dataPayload,
-          webpush: webPushConfig,
-          android: androidConfig,
-          apns: apnsConfig
-        });
-        
-        console.log(`Successfully sent message to token: ${response}`);
-        
-        return NextResponse.json({
-          success: true,
-          messageIds: [response],
-          recipients: 1
-        });
-      } catch (error) {
-        console.error('Error sending to individual token:', error);
-        
-        // Check if token is invalid and should be removed
-        let tokenRemoved = false;
-        if (isInvalidTokenError(error)) {
-          tokenRemoved = await removeInvalidToken(body.token, supabaseAdmin);
-        }
-        
-        return NextResponse.json(
-          { 
-            error: 'Failed to send notification',
-            errorDetails: error instanceof Error ? error.message : String(error),
-            tokenRemoved
-          }, 
-          { status: 500 }
-        );
-      }
+      
+      result = await sendToTokens(userTokens, title, messageBody, data, options);
+      targetInfo = { userId, tokenCount: userTokens.length };
+      
+    } else if (tokens && tokens.length > 0) {
+      // Send to specific tokens
+      console.log(`Sending notification to ${tokens.length} tokens`);
+      result = await sendToTokens(tokens, title, messageBody, data, options);
+      targetInfo = { tokenCount: tokens.length };
+      
     } else {
       return NextResponse.json(
-        { error: 'Invalid request: Must specify token, topic, or sendToAll' },
+        { error: 'No valid target specified' },
         { status: 400 }
       );
     }
+    
+    // Log notification
+    await logNotification(supabase, title, messageBody, data, targetInfo, result);
+    
+    // Clean up invalid tokens if any
+    if ('invalidTokens' in result && result.invalidTokens.length > 0) {
+      await cleanupInvalidTokens(supabase, result.invalidTokens);
+    }
+    
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      result,
+      target: targetInfo
+    });
+    
   } catch (error) {
-    console.error('Unexpected error in send notification API:', error);
+    console.error('Error in send notification API:', error);
+    
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        errorDetails: error instanceof Error ? error.message : String(error)
-      }, 
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Handle GET requests - return available topics and basic info
+ */
+export async function GET() {
+  return NextResponse.json({
+    availableTopics: Object.values(NOTIFICATION_TOPICS),
+    info: {
+      supportedTargets: ['topic', 'userId', 'tokens'],
+      requiredFields: ['title', 'body'],
+      optionalFields: ['data', 'image', 'link', 'requireInteraction', 'silent', 'badge', 'icon', 'tag']
+    }
+  });
 }

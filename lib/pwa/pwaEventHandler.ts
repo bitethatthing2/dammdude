@@ -12,6 +12,16 @@ export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+// Define window extensions for PWA
+interface PWAWindow extends Window {
+  deferredPromptEvent?: BeforeInstallPromptEvent | null;
+}
+
+// Define navigator extensions
+interface StandaloneNavigator extends Navigator {
+  standalone?: boolean;
+}
+
 // Global module state
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let isAppInstalled = false;
@@ -21,7 +31,7 @@ let hasProcessedPrompt = false; // Flag to track if we've already processed a pr
 // Hack: To fix PWA installation on Chrome, we need to expose the
 // deferredPrompt to the window object
 if (typeof window !== 'undefined') {
-  (window as any).deferredPromptEvent = null;
+  (window as PWAWindow).deferredPromptEvent = null;
 }
 
 /**
@@ -40,8 +50,9 @@ export function initPwaEventListeners() {
   hasInitialized = true;
   
   // Check if the app is already installed
+  const standaloneNavigator = window.navigator as StandaloneNavigator;
   if (
-    ('standalone' in window.navigator && (window.navigator as any).standalone === true) || 
+    ('standalone' in standaloneNavigator && standaloneNavigator.standalone === true) || 
     (window.matchMedia && (
       window.matchMedia('(display-mode: standalone)').matches || 
       window.matchMedia('(display-mode: window-controls-overlay)').matches
@@ -68,7 +79,7 @@ export function initPwaEventListeners() {
     deferredPrompt = e as BeforeInstallPromptEvent;
     
     // HACK: Store on window to ensure it's globally accessible
-    (window as any).deferredPromptEvent = deferredPrompt;
+    (window as PWAWindow).deferredPromptEvent = deferredPrompt;
     
     console.log('[PWA] beforeinstallprompt event captured!', deferredPrompt);
     
@@ -81,7 +92,7 @@ export function initPwaEventListeners() {
     console.log('[PWA] App was installed');
     isAppInstalled = true;
     deferredPrompt = null;
-    (window as any).deferredPromptEvent = null;
+    (window as PWAWindow).deferredPromptEvent = null;
     
     // Notify all callbacks
     fireAppInstalledCallbacks();
@@ -127,9 +138,12 @@ export function onBeforeInstallPrompt(callback: (event: BeforeInstallPromptEvent
   // If we already have a deferred prompt, call the callback immediately
   if (deferredPrompt) {
     callback(deferredPrompt);
-  } else if ((window as any).deferredPromptEvent) {
+  } else {
     // Check the window object as a fallback
-    callback((window as any).deferredPromptEvent);
+    const windowPrompt = (window as PWAWindow).deferredPromptEvent;
+    if (windowPrompt) {
+      callback(windowPrompt);
+    }
   }
   
   // Return a function to unregister the callback
@@ -167,7 +181,8 @@ export function isInstalled(): boolean {
  * Check if an installation prompt is available
  */
 export function isPromptAvailable(): boolean {
-  return !!deferredPrompt || !!(window as any).deferredPromptEvent;
+  const windowPrompt = (window as PWAWindow).deferredPromptEvent;
+  return !!deferredPrompt || !!windowPrompt;
 }
 
 /**
@@ -175,7 +190,8 @@ export function isPromptAvailable(): boolean {
  */
 export function getPrompt(): BeforeInstallPromptEvent | null {
   // Check both the module and window object
-  return deferredPrompt || (window as any).deferredPromptEvent || null;
+  const windowPrompt = (window as PWAWindow).deferredPromptEvent;
+  return deferredPrompt || windowPrompt || null;
 }
 
 /**
@@ -183,7 +199,8 @@ export function getPrompt(): BeforeInstallPromptEvent | null {
  */
 export async function showInstallPrompt(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
   // Check both the module and window object
-  const prompt = deferredPrompt || (window as any).deferredPromptEvent;
+  const windowPrompt = (window as PWAWindow).deferredPromptEvent;
+  const prompt = deferredPrompt || windowPrompt;
   
   if (!prompt) {
     console.log('[PWA] No installation prompt available');

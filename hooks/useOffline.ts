@@ -115,7 +115,30 @@ export function useOffline(options: UseOfflineOptions = {}): UseOfflineReturn {
   
   // Create an order that works offline
   const createOrder = useCallback(async (orderData: OrderData): Promise<string> => {
-    return createOfflineOrder(orderData);
+    // Transform items from Json to the expected array format
+    // Handle Json type which can be null, array, or other JSON values
+    let transformedItems: Array<{ productId: string; quantity: number }> = [];
+    
+    if (Array.isArray(orderData.items)) {
+      transformedItems = orderData.items
+        .filter((item) => item !== null && typeof item === 'object')
+        .map((item) => {
+          const itemObj = item as Record<string, unknown>;
+          return {
+            productId: (itemObj.productId as string) || (itemObj.product_id as string) || '',
+            quantity: (itemObj.quantity as number) || 1
+          };
+        });
+    }
+
+    // Add required fields that are missing from Insert type
+    const completeOrderData = {
+      id: orderData.id || crypto.randomUUID(),
+      items: transformedItems,
+      total: orderData.total_amount || 0,
+      customerId: orderData.customer_id || 'anonymous'
+    };
+    return createOfflineOrder(completeOrderData);
   }, []);
   
   // Update user profile that works offline

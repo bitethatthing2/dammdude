@@ -3,20 +3,17 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import { DownloadIcon } from 'lucide-react';
+import { DownloadIcon, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToastAction } from '@/components/ui/toast';
-import { usePwaInstall } from '@/components/shared/ClientSideWrapper';
-
-// BeforeInstallPromptEvent type definition
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
+import { 
+  initPwaEventListeners, 
+  showInstallPrompt, 
+  isInstalled, 
+  isPromptAvailable,
+  onBeforeInstallPrompt,
+  onAppInstalled
+} from '@/lib/pwa/pwaEventHandler';
 
 interface PwaInstallGuideProps {
   className?: string;
@@ -24,52 +21,75 @@ interface PwaInstallGuideProps {
 }
 
 export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGuideProps) {
-  const { deferredPrompt } = usePwaInstall();
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [appInstalled, setAppInstalled] = useState(false);
+  const [promptAvailable, setPromptAvailable] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   // Handle installation button click
   const handleInstallClick = async () => {
-    console.log('Install button clicked, prompt available:', !!deferredPrompt);
+    console.log('[PWA Install] Install button clicked');
     
-    if (deferredPrompt) {
-      try {
-        // Show the installation prompt
-        await deferredPrompt.prompt();
-        
-        // Wait for the user's choice
-        const choiceResult = await deferredPrompt.userChoice;
-        
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the installation prompt');
+    if (isInstalling) return; // Prevent double clicks
+    
+    setIsInstalling(true);
+    
+    try {
+      const result = await showInstallPrompt();
+      
+      console.log('[PWA Install] Installation result:', result);
+      
+      if (result === 'accepted') {
+        toast({
+          title: "🎉 Installation Started!",
+          description: "The app is being installed to your device",
+          duration: 3000,
+        });
+      } else if (result === 'dismissed') {
+        toast({
+          title: "Installation Cancelled",
+          description: "You can install the app anytime by clicking this button again",
+          duration: 3000,
+        });
+      } else if (result === 'unavailable') {
+        if (isIOS) {
+          // For iOS devices, show Add to Home Screen instructions
+          toast({
+            title: "Install on iOS",
+            description: "Tap the Share icon (⎋), then 'Add to Home Screen'",
+            duration: 8000,
+            action: <ToastAction altText="Dismiss">Got it</ToastAction>,
+          });
         } else {
-          console.log('User dismissed the installation prompt');
+          toast({
+            title: "Installation Not Available",
+            description: "Try refreshing the page or check back later. Some browsers require you to visit the site multiple times first.",
+            variant: "destructive",
+            duration: 6000,
+          });
         }
-      } catch (error) {
-        console.error('Error showing installation prompt:', error);
       }
-    } else if (isIOS) {
-      // For iOS devices, show Add to Home Screen instructions
+    } catch (error) {
+      console.error('[PWA Install] Error during installation:', error);
       toast({
-        title: "Install on iOS",
-        description: "Tap the Share icon, then 'Add to Home Screen'",
-        duration: 5000,
-        action: <ToastAction altText="Dismiss">Got it</ToastAction>,
-      });
-    } else {
-      // If no prompt and not iOS, inform the user
-      toast({
-        title: "Installation Unavailable",
-        description: "Your browser may not support PWA installation, or the prompt is not yet ready. Please try again shortly.",
+        title: "Installation Failed",
+        description: "There was an error installing the app. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
+    } finally {
+      setIsInstalling(false);
     }
   };
 
-  // Check if app is already installed or can be installed
+  // Initialize PWA functionality and check status
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    console.log('[PWA Install] Initializing PWA functionality');
+    
+    // Initialize PWA event listeners
+    initPwaEventListeners();
     
     // Detect iOS devices
     const ua = window.navigator.userAgent.toLowerCase();
@@ -78,17 +98,36 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
     setIsIOS(isIOSDevice);
     
     // Check if already installed
-    if (
-      ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-      window.matchMedia('(display-mode: standalone)').matches
-    ) {
-      setIsInstalled(true);
-      return;
-    }
+    setAppInstalled(isInstalled());
+    
+    // Check if prompt is available
+    setPromptAvailable(isPromptAvailable());
+    
+    // Register for PWA events
+    const unregisterPrompt = onBeforeInstallPrompt((event) => {
+      console.log('[PWA Install] Install prompt became available');
+      setPromptAvailable(true);
+    });
+    
+    const unregisterInstalled = onAppInstalled(() => {
+      console.log('[PWA Install] App was installed');
+      setAppInstalled(true);
+      toast({
+        title: "🎉 App Installed Successfully!",
+        description: "You can now access Side Hustle from your home screen",
+        duration: 5000,
+        action: <ToastAction altText="Awesome">Awesome!</ToastAction>,
+      });
+    });
+    
+    return () => {
+      unregisterPrompt();
+      unregisterInstalled();
+    };
   }, []);
 
   // Don't show the button if the app is already installed
-  if (isInstalled) {
+  if (appInstalled) {
     return null;
   }
 
@@ -98,9 +137,19 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
       size={fullButton ? "default" : "sm"}
       className={cn("gap-2", fullButton ? "w-full" : "", className)}
       onClick={handleInstallClick}
+      disabled={isInstalling}
     >
-      <DownloadIcon className="h-4 w-4" />
-      Install App
+      {isInstalling ? (
+        <>
+          <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+          Installing...
+        </>
+      ) : (
+        <>
+          {isIOS ? <Smartphone className="h-4 w-4" /> : <DownloadIcon className="h-4 w-4" />}
+          Install App
+        </>
+      )}
     </Button>
   );
 }

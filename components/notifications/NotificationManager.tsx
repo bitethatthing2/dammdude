@@ -171,8 +171,8 @@ export default function NotificationManager({
         )}
 
         {showSettings && fcmToken && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4 pb-20">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[calc(100vh-8rem)] overflow-auto">
               <div className="flex justify-between items-center p-4 border-b">
                 <h3 className="text-lg font-semibold">Notification Settings</h3>
                 <Button

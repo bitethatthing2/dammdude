@@ -27,7 +27,7 @@ export function BackButton({
   isCloseButton = false
 }: BackButtonProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  // // const pathname = usePathname() // TODO: Remove if not needed // Unused;
 
   const handleBack = () => {
     if (onBack) {

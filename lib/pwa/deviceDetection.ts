@@ -3,6 +3,13 @@
  */
 
 /**
+ * Extended Navigator interface to include iOS-specific standalone property
+ */
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+/**
  * Check if the current device is running iOS
  */
 export function isIOS(): boolean {
@@ -31,7 +38,7 @@ export function isStandalone(): boolean {
   
   return (
     // iOS standalone mode
-    ('standalone' in window.navigator && (window.navigator as any).standalone === true) ||
+    ('standalone' in window.navigator && (window.navigator as NavigatorStandalone).standalone === true) ||
     // Modern PWA standalone mode
     (window.matchMedia && (
       window.matchMedia('(display-mode: standalone)').matches ||

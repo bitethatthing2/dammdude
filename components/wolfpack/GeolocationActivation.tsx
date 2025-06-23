@@ -33,6 +33,235 @@ interface WolfPackInvitation {
   distance: number;
 }
 
+// Fixed joinWolfPackFromLocation with proper error handling
+const joinWolfPackFromLocation = async (
+  locationId: string, 
+  user: { id: string; first_name?: string; email?: string }, 
+  supabase: ReturnType<typeof getSupabaseBrowserClient>
+) => {
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  try {
+    // Step 1: Check if profile already exists
+    console.log('Step 1: Checking for existing profile for user:', user.id);
+    
+    const { error: checkError } = await supabase
+      .from('wolf_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Handle 409 conflict by updating instead of creating
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing profile:', checkError);
+    }
+
+    // Step 2: Prepare profile data
+    const profileData = {
+      user_id: user.id,
+      display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
+      wolf_emoji: '🐺',
+      vibe_status: 'Ready to party! 🎉',
+      is_visible: true,
+      looking_for: 'New friends',
+      bio: null,
+      favorite_drink: null,
+      favorite_song: null,
+      instagram_handle: null,
+      gender: null,
+      pronouns: null,
+      profile_pic_url: null,
+      custom_avatar_id: null
+    };
+
+    console.log('Step 2: Profile data prepared');
+
+    // Step 3: Upsert profile (insert or update)
+    const { data: profileResult, error: profileError } = await supabase
+      .from('wolf_profiles')
+      .upsert(profileData, { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false 
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      console.error('Profile upsert error:', profileError);
+      throw new Error(`Failed to save profile: ${profileError.message}`);
+    }
+
+    console.log('Profile saved successfully:', profileResult);
+
+    // Step 4: Check if already a pack member
+    const { data: existingMember, error: memberCheckError } = await supabase
+      .from('wolf_pack_members')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('location_id', locationId)
+      .maybeSingle();
+
+    if (memberCheckError && memberCheckError.code !== 'PGRST116') {
+      console.error('Error checking pack membership:', memberCheckError);
+    }
+
+    // Step 5: Create or update pack membership
+    if (!existingMember) {
+      const memberData = {
+        user_id: user.id,
+        location_id: locationId,
+        is_active: true,
+        joined_at: new Date().toISOString(),
+        last_activity: new Date().toISOString()
+      };
+
+      const { data: memberEntry, error: memberError } = await supabase
+        .from('wolf_pack_members')
+        .insert(memberData)
+        .select()
+        .single();
+
+      if (memberError) {
+        console.error('Wolf pack member creation error:', memberError);
+        // Don't throw - profile was created successfully
+      } else {
+        console.log('Successfully joined wolf pack:', memberEntry);
+      }
+    } else {
+      // Update existing membership
+      const { error: updateError } = await supabase
+        .from('wolf_pack_members')
+        .update({ 
+          is_active: true, 
+          last_activity: new Date().toISOString() 
+        })
+        .eq('id', existingMember.id);
+
+      if (updateError) {
+        console.error('Error updating pack membership:', updateError);
+      }
+    }
+
+    return { success: true };
+
+  } catch (error) {
+    console.error('Unexpected error in joinWolfPackFromLocation:', error);
+    throw error;
+  }
+};
+
+// Fixed query functions to use correct column names
+export async function checkWolfPackStatus(userId: string) {
+  const supabase = getSupabaseBrowserClient();
+  
+  try {
+    // Fix 1: Query wolfpack_status from users table correctly
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('wolfpack_status, wolfpack_joined_at')
+      .eq('id', userId)
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Error checking user wolfpack status:', userError);
+    }
+
+    // Fix 2: Query wolf_pack_members with correct columns
+    const { data: memberData, error: memberError } = await supabase
+      .from('wolf_pack_members')
+      .select(`
+        id,
+        user_id,
+        location_id,
+        is_active,
+        joined_at,
+        last_activity
+      `)
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (memberError) {
+      console.error('Error checking pack membership:', memberError);
+    }
+
+    return {
+      isWolfpackMember: userData?.wolfpack_status === 'active' || (memberData && memberData.length > 0),
+      memberData: memberData || [],
+      userStatus: userData?.wolfpack_status
+    };
+  } catch (error) {
+    console.error('Error in checkWolfPackStatus:', error);
+    return {
+      isWolfpackMember: false,
+      memberData: [],
+      userStatus: null
+    };
+  }
+}
+
+// Fixed location query with proper join syntax
+export async function getWolfPackLocations(userId: string) {
+  const supabase = getSupabaseBrowserClient();
+  
+  try {
+    // Fix 3: Correct join syntax for locations
+    const { data, error } = await supabase
+      .from('wolf_pack_members')
+      .select(`
+        id,
+        location_id,
+        is_active,
+        joined_at,
+        locations (
+          id,
+          name,
+          address,
+          city,
+          state
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error fetching wolfpack locations:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getWolfPackLocations:', error);
+    return [];
+  }
+}
+
+// Add this to your auth configuration to fix cookie issues
+export function clearCorruptedAuthCookies() {
+  // Clear all Supabase cookies
+  document.cookie.split(";").forEach(function(c) { 
+    if (c.trim().startsWith('sb-') || c.includes('supabase')) {
+      const eqPos = c.indexOf('=');
+      const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
+    }
+  });
+  
+  console.log('Cleared corrupted auth cookies');
+}
+
+// Call this when you detect cookie errors
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    if (event.message?.includes('Failed to parse cookie')) {
+      clearCorruptedAuthCookies();
+      window.location.reload();
+    }
+  });
+}
+
 export function GeolocationActivation() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
@@ -67,18 +296,20 @@ export function GeolocationActivation() {
             locations!inner(name)
           `)
           .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single();
+          .eq('is_active', true)
+          .maybeSingle();
 
         if (!error && data) {
           setIsWolfPackMember(true);
-          setCurrentLocation(data.locations.name);
+          setCurrentLocation(data.locations?.name || null);
         } else {
           setIsWolfPackMember(false);
           setCurrentLocation(null);
         }
       } catch (error) {
         console.error('Error checking WolfPack membership:', error);
+        setIsWolfPackMember(false);
+        setCurrentLocation(null);
       }
     }
 
@@ -230,65 +461,16 @@ export function GeolocationActivation() {
   };
 
   // Join WolfPack from geolocation invitation
-  const joinWolfPackFromLocation = async () => {
-    if (!user || !invitation.location) return;
+  const handleJoinWolfPack = async () => {
+    if (!user || !invitation.location) {
+      toast.error('Authentication error');
+      return;
+    }
 
     try {
-      // First check if user is already in a wolfpack and remove them
-      const { data: existingMembership } = await supabase
-        .from('wolf_pack_members')
-        .select('id, location_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-
-      if (existingMembership) {
-        const { error: leaveError } = await supabase
-          .from('wolf_pack_members')
-          .update({ status: 'inactive' })
-          .eq('id', existingMembership.id);
-
-        if (leaveError) {
-          console.error('Error leaving previous wolfpack:', leaveError);
-          throw new Error('Failed to leave previous wolfpack');
-        }
-      }
-
-      // Create or update wolf profile
-      const { error: profileError } = await supabase
-        .from('wolf_profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
-          wolf_emoji: '🐺',
-          vibe_status: "Ready to party! 🎉",
-          is_visible: true
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw new Error(`Failed to create profile: ${profileError.message || 'Unknown error'}`);
-      }
-
-      // Join the wolf pack for this location
-      const { error: memberError } = await supabase
-        .from('wolf_pack_members')
-        .insert({
-          user_id: user.id,
-          location_id: invitation.location.id,
-          joined_at: new Date().toISOString(),
-          status: 'active',
-          latitude: geoState.position?.coords.latitude || null,
-          longitude: geoState.position?.coords.longitude || null
-        });
-
-      if (memberError) {
-        console.error('Membership creation error:', memberError);
-        throw new Error(`Failed to join wolfpack: ${memberError.message || 'Database constraint violation'}`);
-      }
-
+      await joinWolfPackFromLocation(invitation.location.id, user, supabase);
+      
+      // Update local state
       setIsWolfPackMember(true);
       setCurrentLocation(invitation.location.name);
       setInvitation({ show: false, location: null, distance: 0 });
@@ -299,15 +481,20 @@ export function GeolocationActivation() {
 
       // Navigate to welcome page
       router.push('/wolfpack/welcome');
-
     } catch (error) {
-      console.error('Error joining WolfPack:', error);
+      console.error('Error joining wolf pack:', error);
       
-      // Provide more specific error messages
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'An unexpected error occurred while joining the WolfPack';
-        
+      let errorMessage = 'Failed to join WolfPack';
+      if (error instanceof Error) {
+        if (error.message.includes('Permission denied')) {
+          errorMessage = 'Permission error. Please try logging out and back in.';
+        } else if (error.message.includes('Invalid user reference')) {
+          errorMessage = 'Authentication error. Please try logging out and back in.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast.error(errorMessage);
     }
   };
@@ -419,7 +606,7 @@ export function GeolocationActivation() {
               Join the WolfPack to unlock exclusive features while you&apos;re here!
             </p>
             <div className="flex gap-2">
-              <Button onClick={joinWolfPackFromLocation} className="flex-1">
+              <Button onClick={handleJoinWolfPack} className="flex-1">
                 <Shield className="mr-2 h-4 w-4" />
                 Join WolfPack
               </Button>

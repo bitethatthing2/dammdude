@@ -1,16 +1,13 @@
 // Enhanced MenuItemModal.tsx - Improved with animations, better UX, and fixes
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Minus, ImageOff, ArrowLeft, Check, Loader2, Sparkles, ShoppingCart, Star, Flame, AlertCircle } from 'lucide-react';
+import { Plus, Minus, ArrowLeft, Check, Loader2, Sparkles, ShoppingCart, Star, Flame, X } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpackStatus } from '@/hooks/useWolfpackStatus';
 import { cn } from '@/lib/utils';
 import { MenuItem } from '@/lib/types/menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,28 +102,46 @@ export default function MenuItemModal({
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
   const supabase = getSupabaseBrowserClient();
-  const wolfpackStatus = useWolfpackStatus();
 
-  // Enhanced meat selection requirements with more keywords
+  // Precise meat selection requirements based on exact item names
   const requiresMeatSelection = useMemo(() => {
     const meatModGroup = modifierGroups.find(g => g.modifier_type === 'meat');
     if (meatModGroup?.is_required) return true;
     
-    const desc = (item.description || '').toLowerCase();
-    const name = item.name.toLowerCase();
+    const name = item.name.toUpperCase();
     
-    const meatKeywords = [
-      'choice of meat', 'choose meat', 'select meat', 'pick your protein',
-      'tacos', 'burritos', 'quesadillas', 'loaded fries', 
-      'loaded nacho', 'tortas', 'mulitas', 'hustle bowl', 
-      'taco salad', 'empanadas', 'chilaquiles', 'enchiladas', 
-      'flautas', 'wet burrito', 'chimichanga', 'fajitas',
-      'protein choice', 'meat option'
+    // Items that SHOULD show meat selection
+    const itemsWithMeatChoice = [
+      'TACOS',
+      'QUESO TACOS', 
+      'BURRITO',
+      'QUESADILLA',
+      'MULITAS',
+      'VAMPIROS',
+      'TORTA',
+      'EMPANADAS',
+      'HUSTLE BOWL',
+      'TACO SALAD',
+      'LOADED FRIES',
+      'LOADED NACHO'
     ];
     
-    return meatKeywords.some(keyword => 
-      desc.includes(keyword) || name.includes(keyword)
-    );
+    // Items that should NOT show meat selection (explicit exclusions)
+    const itemsWithoutMeatChoice = [
+      'FLAUTAS',
+      'CHIPS & GUAC',
+      'BASKET OF FRIES',
+      'BASKET OF TOTS',
+      'CHIPS AND GUAC'
+    ];
+    
+    // First check exclusions
+    if (itemsWithoutMeatChoice.some(excluded => name.includes(excluded))) {
+      return false;
+    }
+    
+    // Then check inclusions
+    return itemsWithMeatChoice.some(included => name.includes(included));
   }, [item, modifierGroups]);
 
   // Reset function
@@ -203,25 +218,46 @@ export default function MenuItemModal({
     }
   }, [open, item.id, fetchModifiersForItem]);
 
-  // Process modifiers with enhanced filtering
+  // Check item type for sauce filtering
+  const isWingsItem = item.name.toLowerCase().includes('wings');
+  const isSmallBitesItem = item.name.toLowerCase().includes('small bites') || 
+                          (item.description && item.description.toLowerCase().includes('small bites'));
+
+  // Process modifiers with enhanced filtering based on item type
   const { meatOptions, sauceOptions } = useMemo(() => {
     const meats = modifiers.filter(mod => mod.modifier_type === 'meat');
-    const sauces = modifiers.filter(mod => 
-      mod.modifier_type === 'sauce' || 
-      mod.modifier_type === 'wing_sauce' ||
-      mod.modifier_type === 'salsa'
-    );
+    
+    // Filter sauces based on item type and sauce names
+    let sauces: MenuItemModifier[] = [];
+    
+    if (isSmallBitesItem) {
+      // Small Bites: No sauce options
+      sauces = [];
+    } else if (isWingsItem) {
+      // Wing Items: Show only wing flavors
+      const wingFlavors = ['Korean BBQ', 'Mango Habanero', 'Sweet Teriyaki', 'Garlic Buffalo', 'Buffalo', 'Garlic Parmesan', 'BBQ'];
+      sauces = modifiers.filter(mod => 
+        mod.modifier_type === 'sauce' && 
+        wingFlavors.includes(mod.name)
+      );
+    } else {
+      // All Other Items: Show CHEFA SAUCE options
+      const chefaSauces = ['GUAC', 'TOMATILLO', 'RANCHERA', 'CHILE DE ARBOL', 'HABANERO'];
+      sauces = modifiers.filter(mod => 
+        mod.modifier_type === 'sauce' && 
+        chefaSauces.includes(mod.name)
+      );
+    }
+    
     return { meatOptions: meats, sauceOptions: sauces };
-  }, [modifiers]);
-
+  }, [modifiers, isWingsItem, isSmallBitesItem]);
+  
   const meatGroup = modifierGroups.find(g => g.modifier_type === 'meat');
   const sauceGroup = modifierGroups.find(g => 
     g.modifier_type === 'sauce' || 
-    g.modifier_type === 'wing_sauce' ||
+    (isWingsItem && g.modifier_type === 'wing_sauce') ||
     g.modifier_type === 'salsa'
   );
-
-  const isWingsItem = item.name.toLowerCase().includes('wings');
   const maxSauceSelections = sauceGroup?.max_selections || 3;
   const minSauceSelections = sauceGroup?.min_selections || (isWingsItem ? 1 : 0);
 
@@ -309,20 +345,6 @@ export default function MenuItemModal({
 
   // Enhanced add to cart with special instructions
   const handleAddToCart = async () => {
-    if (!wolfpackStatus.isWolfpackMember && !wolfpackStatus.isLocationVerified) {
-      toast({
-        title: "Wolfpack Access Required",
-        description: "Join the pack or verify your location to add items to cart.",
-        variant: "destructive",
-        action: (
-          <Button variant="outline" size="sm" onClick={() => window.location.href = '/login'}>
-            Sign In
-          </Button>
-        )
-      });
-      return;
-    }
-
     setIsCheckingAccess(true);
 
     try {
@@ -378,15 +400,14 @@ export default function MenuItemModal({
     }
   };
 
-  const imageUrl = item.image_url || 
-    (item.image_id ? `/api/images/${item.image_id}` : null);
-
   // Screen titles with emojis
   const getScreenTitle = () => {
     switch (currentScreen) {
       case 'item-details': return `🍽️ ${item.name}`;
       case 'meat-choice': return '🥩 Choose Your Protein';
-      case 'sauce-choice': return isWingsItem ? '🔥 Choose Your Wing Sauce' : '🌶️ Choose Your Sauces';
+      case 'sauce-choice': 
+        if (isWingsItem) return '🔥 Choose Your Wing Flavors';
+        return '🌶️ Choose Your CHEFA SAUCE';
       case 'review': return '📋 Review Your Order';
       default: return item.name;
     }
@@ -410,36 +431,48 @@ export default function MenuItemModal({
     );
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4 pb-20 menu-modal-overlay">
+      <div className="w-full max-w-sm max-h-[calc(100vh-8rem)] flex flex-col bg-background rounded-lg shadow-lg">
         {/* Header */}
-        <DialogHeader className="space-y-4">
-          <div className="flex items-center gap-4">
-            {currentScreen !== 'item-details' && (
+        <div className="p-6 space-y-4 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {currentScreen !== 'item-details' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  className="p-2 hover:bg-accent rounded-full transition-all"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              )}
+              <h2 className="text-xl font-bold flex-1">
+                {getScreenTitle()}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-6 h-6 opacity-80 animate-pulse" />
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBack}
-                className="p-3 hover:bg-white/20 rounded-full transition-all"
+                onClick={onClose}
+                className="p-2 hover:bg-accent rounded-full transition-all"
               >
-                <ArrowLeft className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </Button>
-            )}
-            <DialogTitle className="wolfpack-modal-title flex-1">
-              {getScreenTitle()}
-            </DialogTitle>
-            <Sparkles className="w-8 h-8 opacity-80 animate-pulse" />
+            </div>
           </div>
           
           {/* Progress indicator */}
           {progress.total > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
+            <div className="flex items-center justify-center gap-2">
               {progress.steps.map((step, index) => (
                 <div key={step} className="flex items-center">
-                  <motion.div
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
+                  <div
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
                       index < progress.currentIndex ? "bg-green-500 text-white" :
@@ -452,7 +485,7 @@ export default function MenuItemModal({
                     ) : (
                       index + 1
                     )}
-                  </motion.div>
+                  </div>
                   {index < progress.steps.length - 1 && (
                     <div className={cn(
                       "w-8 h-0.5 mx-2 transition-all",
@@ -463,9 +496,9 @@ export default function MenuItemModal({
               ))}
             </div>
           )}
-        </DialogHeader>
+        </div>
 
-        <div className="space-y-6">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -483,26 +516,7 @@ export default function MenuItemModal({
               >
                 {/* Item Details Screen */}
                 {currentScreen === 'item-details' && (
-                  <div className="space-y-8">
-                    {/* Item Image */}
-                    <div className="relative h-64 rounded-lg overflow-hidden bg-muted">
-                      {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                          priority
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
-                          <ImageOff className="w-16 h-16 text-muted-foreground" />
-                          <span className="text-lg text-muted-foreground mt-4">No image available</span>
-                        </div>
-                      )}
-                    </div>
-
+                  <div className="space-y-6">
                     {/* Description */}
                     {item.description && (
                       <p className="text-lg text-muted-foreground leading-relaxed">{item.description}</p>
@@ -553,13 +567,7 @@ export default function MenuItemModal({
                 {currentScreen === 'meat-choice' && (
                   <div className="space-y-6">
                     <div className="text-center space-y-2">
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="text-4xl"
-                      >
-                        🥩
-                      </motion.div>
+                      <div className="text-4xl">🥩</div>
                       <h3 className="text-xl font-bold">{meatGroup?.group_name || 'Choose Your Protein'}</h3>
                       {meatGroup?.description && (
                         <p className="text-sm text-muted-foreground">{meatGroup.description}</p>
@@ -570,12 +578,9 @@ export default function MenuItemModal({
                     </div>
                     
                     <RadioGroup value={selectedMeat} onValueChange={setSelectedMeat} className="space-y-4">
-                      {meatOptions.map((meat, index) => (
-                        <motion.div
+                      {meatOptions.map((meat) => (
+                        <div
                           key={meat.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
                           className={cn(
                             "flex items-center space-x-4 p-4 rounded-lg border transition-all",
                             selectedMeat === meat.id ? "border-primary bg-primary/10 shadow-md" : "border-muted hover:border-primary/50"
@@ -604,7 +609,7 @@ export default function MenuItemModal({
                               </span>
                             )}
                           </Label>
-                        </motion.div>
+                        </div>
                       ))}
                     </RadioGroup>
                   </div>
@@ -614,19 +619,18 @@ export default function MenuItemModal({
                 {currentScreen === 'sauce-choice' && (
                   <div className="space-y-6">
                     <div className="text-center space-y-2">
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="text-4xl"
-                      >
+                      <div className="text-4xl">
                         {isWingsItem ? '🔥' : '🌶️'}
-                      </motion.div>
+                      </div>
                       <h3 className="text-xl font-bold">
-                        {sauceGroup?.group_name || `Choose ${isWingsItem ? 'Wing' : 'Your'} Sauces`}
+                        {isWingsItem ? 'Choose Your Wing Flavors' : 'Choose Your CHEFA SAUCE'}
                       </h3>
-                      {sauceGroup?.description && (
-                        <p className="text-sm text-muted-foreground">{sauceGroup.description}</p>
-                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {isWingsItem 
+                          ? 'Select from our signature wing sauce collection'
+                          : 'House-made sauces crafted fresh daily'
+                        }
+                      </p>
                       <Badge 
                         variant={minSauceSelections > 0 ? "destructive" : "secondary"}
                         className="text-sm"
@@ -643,12 +647,9 @@ export default function MenuItemModal({
                     </div>
                     
                     <div className="space-y-4">
-                      {sauceOptions.map((sauce, index) => (
-                        <motion.div
+                      {sauceOptions.map((sauce) => (
+                        <div
                           key={sauce.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
                           className={cn(
                             "flex items-center space-x-4 p-4 rounded-lg border transition-all",
                             selectedSauces.includes(sauce.id) ? "border-primary bg-primary/10 shadow-md" : "border-muted hover:border-primary/50"
@@ -700,7 +701,7 @@ export default function MenuItemModal({
                               </span>
                             )}
                           </Label>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -710,13 +711,7 @@ export default function MenuItemModal({
                 {currentScreen === 'review' && (
                   <div className="space-y-6">
                     <div className="text-center space-y-2">
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="text-4xl"
-                      >
-                        📋
-                      </motion.div>
+                      <div className="text-4xl">📋</div>
                       <h3 className="text-xl font-bold">Order Summary</h3>
                       <p className="text-sm text-muted-foreground">
                         Review your selections before adding to cart
@@ -725,11 +720,7 @@ export default function MenuItemModal({
                     
                     <div className="space-y-4">
                       {/* Main item */}
-                      <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex justify-between items-center p-4 bg-card rounded-lg border shadow-sm"
-                      >
+                      <div className="flex justify-between items-center p-4 bg-card rounded-lg border shadow-sm">
                         <div>
                           <span className="text-lg font-bold">{item.name}</span>
                           <p className="text-sm text-muted-foreground">Base price</p>
@@ -737,100 +728,89 @@ export default function MenuItemModal({
                         <span className="text-lg font-bold text-primary">
                           ${Number(item.price).toFixed(2)}
                         </span>
-                      </motion.div>
+                      </div>
                       
                       {/* Selected modifiers */}
                       {selectedMeat && (
-                        <motion.div 
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="flex justify-between items-center text-base p-3 bg-muted rounded-lg"
-                        >
+                        <div className="flex justify-between items-center text-base p-3 bg-muted rounded-lg">
                           <span className="flex items-center gap-2">
                             <span className="text-primary">•</span>
                             {meatOptions.find(m => m.id === selectedMeat)?.name}
                           </span>
                           {Number(meatOptions.find(m => m.id === selectedMeat)?.price_adjustment || 0) > 0 && (
-                            <span className="font-semibold text-green-600">
+                            <span className="text-lg font-semibold text-green-600">
                               +${Number(meatOptions.find(m => m.id === selectedMeat)?.price_adjustment || 0).toFixed(2)}
                             </span>
                           )}
-                        </motion.div>
+                        </div>
                       )}
                       
-                      {selectedSauces.map((sauceId, index) => {
+                      {/* Selected sauces */}
+                      {selectedSauces.map((sauceId) => {
                         const sauce = sauceOptions.find(s => s.id === sauceId);
-                        return sauce ? (
-                          <motion.div 
+                        if (!sauce) return null;
+                        
+                        return (
+                          <div 
                             key={sauceId}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + index * 0.1 }}
                             className="flex justify-between items-center text-base p-3 bg-muted rounded-lg"
                           >
                             <span className="flex items-center gap-2">
                               <span className="text-primary">•</span>
                               {sauce.name}
+                              {sauce.spice_level && sauce.spice_level > 0 && (
+                                <div className="flex items-center gap-1 ml-2">
+                                  {[...Array(sauce.spice_level)].map((_, i) => (
+                                    <Flame key={i} className="w-3 h-3 text-red-500" />
+                                  ))}
+                                </div>
+                              )}
                             </span>
                             {Number(sauce.price_adjustment) > 0 && (
-                              <span className="font-semibold text-green-600">
+                              <span className="text-lg font-semibold text-green-600">
                                 +${Number(sauce.price_adjustment).toFixed(2)}
                               </span>
                             )}
-                          </motion.div>
-                        ) : null;
+                          </div>
+                        );
                       })}
                       
+                      {/* Quantity */}
+                      <div className="flex justify-between items-center text-base p-3 bg-muted rounded-lg">
+                        <span className="flex items-center gap-2">
+                          <span className="text-primary">•</span>
+                          Quantity: {quantity}
+                        </span>
+                      </div>
+                      
                       {/* Special instructions */}
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <Button
                           variant="outline"
-                          className="w-full justify-start"
                           onClick={() => setShowInstructionsInput(!showInstructionsInput)}
+                          className="w-full"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          {specialInstructions ? 'Edit' : 'Add'} Special Instructions
+                          {showInstructionsInput ? 'Hide' : 'Add'} Special Instructions
                         </Button>
+                        
                         {showInstructionsInput && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                          >
-                            <textarea
-                              value={specialInstructions}
-                              onChange={(e) => setSpecialInstructions(e.target.value)}
-                              placeholder="Any special requests? (e.g., extra crispy, no onions, etc.)"
-                              className="w-full p-3 rounded-lg border bg-background resize-none"
-                              rows={3}
-                              maxLength={200}
-                            />
-                            <p className="text-xs text-muted-foreground mt-1 text-right">
-                              {specialInstructions.length}/200
-                            </p>
-                          </motion.div>
+                          <textarea
+                            value={specialInstructions}
+                            onChange={(e) => setSpecialInstructions(e.target.value)}
+                            placeholder="Any special requests or modifications..."
+                            className="w-full p-3 rounded-lg border border-muted bg-background min-h-[80px] resize-none"
+                            maxLength={200}
+                          />
                         )}
                       </div>
                       
                       {/* Total */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="border-t-2 pt-4 flex justify-between items-center p-4 bg-primary/10 rounded-lg"
-                      >
-                        <span className="text-xl font-bold">Total (×{quantity}):</span>
-                        <div className="text-right">
-                          <span className="text-2xl font-bold text-primary">
-                            ${calculateTotal().toFixed(2)}
-                          </span>
-                          {quantity > 1 && (
-                            <p className="text-sm text-muted-foreground">
-                              ${(calculateTotal() / quantity).toFixed(2)} each
-                            </p>
-                          )}
-                        </div>
-                      </motion.div>
+                      <div className="flex justify-between items-center p-4 bg-primary/10 rounded-lg border-2 border-primary/20 shadow-lg">
+                        <span className="text-xl font-bold">Total:</span>
+                        <span className="text-2xl font-bold text-primary">
+                          ${calculateTotal().toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -839,73 +819,40 @@ export default function MenuItemModal({
           )}
         </div>
 
-        {/* Footer */}
-        <DialogFooter className="border-t pt-4">
-          <div className="flex gap-3 w-full">
-            {currentScreen === 'review' ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleBack}
-                  className="flex-1"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={isCheckingAccess}
-                  className="flex-[2] bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                >
-                  {isCheckingAccess ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Add to Cart • ${calculateTotal().toFixed(2)}
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleContinue}
-                  disabled={!canContinue()}
-                  className={cn(
-                    "flex-[2] transition-all",
-                    canContinue() 
-                      ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70" 
-                      : ""
-                  )}
-                >
-                  Continue
-                  <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                </Button>
-              </>
-            )}
-          </div>
-          
-          {/* Validation message */}
-          {!canContinue() && currentScreen !== 'item-details' && currentScreen !== 'review' && (
-            <p className="text-sm text-destructive text-center mt-2">
-              {currentScreen === 'meat-choice' && requiresMeatSelection && 'Please select a protein to continue'}
-              {currentScreen === 'sauce-choice' && minSauceSelections > 0 && selectedSauces.length < minSauceSelections && 
-                `Please select at least ${minSauceSelections} sauce${minSauceSelections > 1 ? 's' : ''}`}
-            </p>
+        {/* Footer with action buttons */}
+        <div className="p-6 border-t bg-background">
+          {currentScreen === 'review' ? (
+            <Button
+              onClick={handleAddToCart}
+              disabled={isCheckingAccess}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6 rounded-xl font-bold shadow-lg"
+            >
+              {isCheckingAccess ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Adding to Cart...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  Add {quantity} to Cart - ${calculateTotal().toFixed(2)}
+                </div>
+              )}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleContinue}
+              disabled={!canContinue()}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6 rounded-xl font-bold shadow-lg"
+            >
+              <div className="flex items-center justify-center gap-2">
+                Continue
+                <ArrowLeft className="w-5 h-5 rotate-180" />
+              </div>
+            </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

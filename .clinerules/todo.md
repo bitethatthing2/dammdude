@@ -1,156 +1,437 @@
-# Side Hustle Bar PWA - Frontend Tasks TODO
+ide Hustle PWA - Frontend Development Tasks
+# Wolf Pack Implementation - Exact File Modifications
+## Precise Developer Instructions Based on Existing Project Structure
 
-## Phase 1: TypeScript and Supabase Client Resolution
-- [ ] **Task 1.1: Fix Supabase Client Creation Functions**
-  - [ ] Update `lib/actions/device-actions.ts` - Fix createClient() calls (3 instances)
-  - [ ] Update `lib/actions/notification-actions.ts` - Fix createServerClient() calls (8 instances)
-  - [ ] Test database connections with updated client creation
-  - [ ] Verify server-side and client-side contexts work properly
+**Project**: Side Hustle Wolf Pack Enhancement  
+**Date**: June 22, 2025  
+**Target**: Frontend Developer - Exact File Instructions
 
-- [ ] **Task 1.2: Resolve Authentication Context Issues**
-  - [ ] Remove duplicate imports in `lib/contexts/AuthContext.tsx`
-  - [ ] Fix User type usage (import from Supabase types)
-  - [ ] Resolve circular import issues with useAuth hook
-  - [ ] Consolidate useAuth hook into single export
-  - [ ] Add proper TypeScript types for all parameters
+## 🎯 CRITICAL: Files to Audit First
 
-- [ ] **Task 1.3: Fix Notification Utility Functions**
-  - [ ] Remove non-existent safeSupabaseQuery import from `lib/utils/notification-utils.ts`
-  - [ ] Add explicit TypeScript types for function parameters
-  - [ ] Implement proper error handling for Supabase queries
-  - [ ] Test notification functionality
+### Task 0: System Conflict Audit
+**Priority**: IMMEDIATE - Before any other work
 
-- [ ] **Task 1.4: Update Database Type Definitions**
-  - [ ] Regenerate types: `npx supabase gen types typescript --project-id tvnpgbjypnezoasbhbwx --schema public > lib/database.types.ts`
-  - [ ] Update imports throughout application
-  - [ ] Test database operations with new types
+**Files to Audit for Legacy/Conflicting Code:**
+1. **`components/cart/Cart.tsx`** - Check for old barcode/table number ordering system remnants
+2. **`components/menu/Menu.tsx`** - Look for legacy ordering flows that bypass Wolf Pack
+3. **`lib/types/order.ts`** - Audit for conflicting order type definitions
+4. **`lib/types/checkout.ts`** - Check for old payment processing types
+5. **`hooks/useCartAccess.ts`** - Verify it properly uses Wolf Pack access control
 
-## Phase 2: Authentication System Integration
-- [ ] **Task 2.1: Update Authentication Flows**
-  - [ ] Test user registration with new RLS policies
-  - [ ] Verify profile creation during signup
-  - [ ] Update login forms for proper state management
-  - [ ] Implement session persistence across page refreshes
-  - [ ] Add authentication error handling
+**What to Look For:**
+- Any references to "barcode", "table_number", "scan", "qr_code"
+- Payment processing code (should be removed - pay at bar only)
+- Order flows that don't check Wolf Pack membership
+- Duplicate type definitions between files
 
-- [ ] **Task 2.2: Implement Wolf Profile Management**
-  - [ ] Create separate User Profile vs Wolf Profile interfaces
-  - [ ] Implement Wolf Profile creation/editing forms
-  - [ ] Add privacy controls for location sharing
-  - [ ] Create profile picture upload for Wolf Profiles
-  - [ ] Add display name, favorite drink, vibe status fields
+**Action Required:**
+Remove all legacy barcode/table ordering system code and ensure all ordering goes through Wolf Pack membership validation.
 
+## 🚀 Phase 1: Integration and Enhancement Tasks
 
+### Task 1.1: Enhance Live Bar Map (CENTERPIECE FEATURE)
+**File to Modify**: `components/wolfpack/WolfpackSpatialView.tsx`
+**CSS File**: `components/wolfpack/WolfpackSpatialView.css`
 
-## Phase 3: BarTap Removal and WolfPack Implementation
-- [ ] **Task 3.1: Remove BarTap Feature References**
-  - [ ] Search and remove all "BarTap"/"bartap" references
-  - [ ] Remove barcode scanning components
-  - [ ] Remove manual table number entry interfaces
-  - [ ] Update navigation menus
-  - [ ] Remove BarTap routes from configuration
+**Current Status**: Component exists but needs "wow factor" enhancements
+**Goal**: Transform into animated, interactive bar map with wolf avatars
 
-- [ ] **Task 3.2: Implement WolfPack Geolocation Activation**
-  - [ ] Implement geolocation permission handling
-  - [ ] Create location monitoring service
-  - [ ] Implement geofence checking
-  - [ ] Design WolfPack invitation interface
-  - [ ] Add location privacy controls
-  - [ ] Test across different devices/browsers
+**Specific Changes Needed:**
+```typescript
+// In components/wolfpack/WolfpackSpatialView.tsx
+// ADD these imports at the top:
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback } from 'react';
 
-- [ ] **Task 3.3: Implement WolfPack Membership Management**
-  - [ ] Create WolfPack joining interface
-  - [ ] Implement member roster with real-time updates
-  - [ ] Add table location specification
-  - [ ] Create member activity indicators
-  - [ ] Implement WolfPack leaving functionality
+// MODIFY the main component to add animations:
+export function WolfpackSpatialView({ location }: WolfpackSpatialViewProps) {
+  const [selectedWolf, setSelectedWolf] = useState<string | null>(null);
+  
+  // ADD click handler for wolf interactions
+  const handleWolfClick = useCallback((wolfId: string) => {
+    setSelectedWolf(wolfId);
+    // Trigger profile modal or interaction menu
+  }, []);
 
-- [ ] **Task 3.4: Implement Real-Time Chat System**
-  - [ ] Create mobile-optimized chat interface
-  - [ ] Implement real-time message subscriptions
-  - [ ] Add message composition and sending
-  - [ ] Implement image upload/sharing
-  - [ ] Create emoji reaction system
-  - [ ] Add message flagging/moderation
+  // WRAP existing SVG with motion.svg for animations
+  return (
+    <div className="wolfpack-spatial-container">
+      <motion.svg 
+        viewBox="0 0 800 600" 
+        className="spatial-view-svg"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        {/* ENHANCE existing wolf rendering with animations */}
+        <AnimatePresence>
+          {wolves.map(wolf => (
+            <motion.g
+              key={wolf.id}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => handleWolfClick(wolf.id)}
+            >
+              {/* Existing wolf avatar content */}
+            </motion.g>
+          ))}
+        </AnimatePresence>
+      </motion.svg>
+    </div>
+  );
+}
+```
 
-## Phase 4: Notification and Device Registration Systems
-- [ ] **Task 4.1: Fix Firebase Cloud Messaging Integration**
-  - [ ] Verify FCM configuration and service worker
-  - [ ] Test device token registration/storage
-  - [ ] Implement notification permission flows
-  - [ ] Add platform-specific handling (iOS PWA, Android)
-  - [ ] Test notification delivery and click handling
+**CSS Enhancements Needed in WolfpackSpatialView.css:**
+```css
+.wolfpack-spatial-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  overflow: hidden;
+}
 
-- [ ] **Task 4.2: Implement WolfPack Notification Types**
-  - [ ] Create notification templates for different types
-  - [ ] Implement chat message notifications
-  - [ ] Create order status notifications
-  - [ ] Add event announcement notifications
-  - [ ] Implement social interaction notifications
+.spatial-view-svg {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
 
+/* Add hover effects for wolf avatars */
+.wolf-avatar {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
 
+.wolf-avatar:hover {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+```
 
-## Phase 5: Database Types and API Integration
-- [ ] **Task 5.1: Validate Database Query Integration**
-  - [ ] Review all queries for type safety
-  - [ ] Test WolfPack membership queries
-  - [ ] Validate chat message real-time updates
-  - [ ] Test ordering system interactions
-  - [ ] Implement proper error handling
+### Task 1.2: Create Live Pack Counter Component
+**New File**: `components/wolfpack/LivePackCounter.tsx`
 
-- [ ] **Task 5.2: Implement API Error Handling**
-  - [ ] Create standardized error handling patterns
-  - [ ] Add user-friendly error messages
-  - [ ] Implement retry logic for network errors
-  - [ ] Add offline mode detection
-  - [ ] Create error reporting systems
+**Purpose**: Display Salem vs Portland member counts with competitive element
+**Integration**: Use existing `useWolfpackMembership.ts` hook
 
-- [ ] **Task 5.3: Optimize Query Performance**
-  - [ ] Review query patterns for optimization
-  - [ ] Implement caching for frequent data
-  - [ ] Optimize real-time subscription efficiency
-  - [ ] Add pagination where appropriate
+**Complete Implementation:**
+```typescript
+// CREATE components/wolfpack/LivePackCounter.tsx
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
 
-## Phase 6: User Interface and Experience Optimization
-- [ ] **Task 6.1: Implement Mexican Food Theme**
-  - [ ] Define Mexican color palette
-  - [ ] Implement gradient backgrounds/text effects
-  - [ ] Add Mexican accent emojis
-  - [ ] Create hover animations with lift/glow
-  - [ ] Test theme consistency across components
+interface PackCounts {
+  salem: number;
+  portland: number;
+}
 
-- [ ] **Task 6.2: Optimize Mobile Responsiveness**
-  - [ ] Test components on various mobile screens
-  - [ ] Optimize touch targets for finger interaction
-  - [ ] Implement smooth scrolling/gestures
-  - [ ] Test PWA installation on mobile
-  - [ ] Optimize keyboard handling
+export function LivePackCounter() {
+  const { members: salemMembers } = useWolfpackMembership('salem');
+  const { members: portlandMembers } = useWolfpackMembership('portland');
+  const [animatedCounts, setAnimatedCounts] = useState<PackCounts>({ salem: 0, portland: 0 });
 
-- [ ] **Task 6.3: Implement Accessibility Features**
-  - [ ] Add ARIA labels to interactive elements
-  - [ ] Ensure color contrast meets standards
-  - [ ] Implement keyboard navigation
-  - [ ] Add screen reader support
-  - [ ] Test with accessibility tools
+  useEffect(() => {
+    const newCounts = { salem: salemMembers.length, portland: portlandMembers.length };
+    // Animate number changes
+    animateCountChange(newCounts, setAnimatedCounts);
+  }, [salemMembers.length, portlandMembers.length]);
 
+  return (
+    <div className="pack-counter-container">
+      <div className="pack-location salem">
+        <h3>Salem Pack</h3>
+        <motion.div 
+          className="count"
+          key={animatedCounts.salem}
+          initial={{ scale: 1.2, color: '#10b981' }}
+          animate={{ scale: 1, color: '#374151' }}
+        >
+          {animatedCounts.salem}
+        </motion.div>
+      </div>
+      
+      <div className="vs-divider">VS</div>
+      
+      <div className="pack-location portland">
+        <h3>Portland Pack</h3>
+        <motion.div 
+          className="count"
+          key={animatedCounts.portland}
+          initial={{ scale: 1.2, color: '#10b981' }}
+          animate={{ scale: 1, color: '#374151' }}
+        >
+          {animatedCounts.portland}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+```
 
+### Task 1.3: Integrate Wolf Pack into Main Navigation
+**File to Modify**: `components/shared/BottomNav.tsx`
 
+**Current Status**: Basic navigation exists
+**Required Changes**: Update to match Wolf Pack vision (7 items)
 
--
+**Specific Modifications:**
+```typescript
+// In components/shared/BottomNav.tsx
+// REPLACE existing navigation items with:
+const navigationItems = [
+  { id: 'home', label: 'Home', icon: Home, route: '/', requiresAuth: false },
+  { id: 'chat', label: 'Chat', icon: MessageCircle, route: '/chat', requiresAuth: true },
+  { id: 'profile', label: 'Profile', icon: User, route: '/profile', requiresAuth: true },
+  { id: 'merch', label: 'Merch', icon: ShoppingBag, route: '/merch', requiresAuth: false },
+  { id: 'booking', label: 'Booking', icon: Calendar, route: '/book', requiresAuth: false },
+  { id: 'login', label: 'Login', icon: LogIn, route: '/login', requiresAuth: false },
+  { id: 'blog', label: 'Blog', icon: BookOpen, route: '/blog', requiresAuth: false }
+];
 
-- [ ] **Task 8.2: Documentation Creation**
-  - [ ] Create user guide for WolfPack features
-  - [ ] Document administrative procedures
-  - [ ] Create technical documentation
-  - [ ] Document API endpoints/schema
-  - [ ] Create troubleshooting guides
+// ADD Wolf Pack access checking:
+import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 
-- 
+// MODIFY component to disable protected items when not in Wolf Pack:
+export function BottomNav() {
+  const { canAccess } = useWolfpackAccess();
+  
+  return (
+    <nav className="bottom-nav">
+      {navigationItems.map(item => (
+        <NavItem 
+          key={item.id}
+          item={item}
+          disabled={item.requiresAuth && !canAccess}
+        />
+      ))}
+    </nav>
+  );
+}
+```
 
-## Current Priority Tasks (Start Here)
-1. **Fix TypeScript compilation errors** (Phase 1 - Critical)
-2. **Update Supabase client creation** (Phase 1 - Critical)
-3. **Resolve authentication context issues** (Phase 1 - Critical)
-4. **Test authentication flows** (Phase 2 - High Priority)
-5. **Remove BarTap references** (Phase 3 - High Priority)
+### Task 1.4: Update Home Page with Wolf Pack Features
+**File to Modify**: `app/(main)/page.tsx`
+
+**Current Status**: Basic home page
+**Required Changes**: Add Wolf Pack components and quick actions
+
+**Specific Integration:**
+```typescript
+// In app/(main)/page.tsx
+// ADD these imports:
+import { LivePackCounter } from '@/components/wolfpack/LivePackCounter';
+import { QuickActionButtons } from '@/components/wolfpack/QuickActionButtons';
+import { WolfpackSpatialView } from '@/components/wolfpack/WolfpackSpatialView';
+
+// MODIFY the page component:
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Wolf Pack Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">The Wolf Pack</h1>
+          <p className="text-muted-foreground">Your Ultimate Interactive Bar Community</p>
+        </div>
+        
+        {/* Live Pack Counter */}
+        <LivePackCounter />
+        
+        {/* Quick Action Buttons */}
+        <QuickActionButtons />
+        
+        {/* Live Bar Map */}
+        <div className="bg-card rounded-lg p-4">
+          <h2 className="text-xl font-semibold mb-4">Live Bar Map</h2>
+          <WolfpackSpatialView location="salem" />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## 🔧 Phase 2: Component Enhancement Tasks
+
+### Task 2.1: Enhance Wolf Pack Chat Interface
+**File to Modify**: `components/wolfpack/WolfpackChatInterface.tsx`
+
+**Current Status**: Basic chat exists
+**Required Enhancements**: Add winks, DJ messaging, direct messages
+
+**Specific Changes:**
+```typescript
+// In components/wolfpack/WolfpackChatInterface.tsx
+// ADD new chat modes:
+type ChatMode = 'pack' | 'direct' | 'dj';
+
+// ADD wink functionality:
+const sendWink = async (targetUserId: string) => {
+  await supabase.rpc('send_wink', { target_user_id: targetUserId });
+};
+
+// ENHANCE component with mode switching:
+export function WolfpackChatInterface() {
+  const [chatMode, setChatMode] = useState<ChatMode>('pack');
+  
+  return (
+    <div className="chat-interface">
+      <ChatModeSelector mode={chatMode} onModeChange={setChatMode} />
+      {chatMode === 'pack' && <PackChat />}
+      {chatMode === 'direct' && <DirectMessageChat />}
+      {chatMode === 'dj' && <DJAnnouncementChat />}
+      <WinkInterface onSendWink={sendWink} />
+    </div>
+  );
+}
+```
+
+### Task 2.2: Create Quick Action Buttons
+**New File**: `components/wolfpack/QuickActionButtons.tsx`
+
+**Purpose**: Four main action buttons from vision document
+**Integration**: Use existing location and Wolf Pack hooks
+
+**Complete Implementation:**
+```typescript
+// CREATE components/wolfpack/QuickActionButtons.tsx
+import { MapPin, Truck, Users, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+
+export function QuickActionButtons() {
+  const router = useRouter();
+  const { canAccess, location } = useWolfpackAccess();
+
+  const handleDirections = () => {
+    // Open Google Maps to nearest location
+    const salemCoords = "44.9429,-123.0351";
+    const portlandCoords = "45.5152,-122.6784";
+    window.open(`https://maps.google.com/?q=${salemCoords}`, '_blank');
+  };
+
+  const handleOrderOnline = () => {
+    // Show modal with DoorDash, Uber Eats, Postmates links
+    // Implementation depends on existing modal system
+  };
+
+  const handleJoinWolfpack = () => {
+    if (!canAccess) {
+      router.push('/wolfpack/join');
+    } else {
+      router.push('/wolfpack');
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-4 p-4">
+      <Button 
+        onClick={handleDirections}
+        className="h-20 bg-gradient-to-r from-blue-500 to-cyan-500"
+      >
+        <div className="text-center">
+          <MapPin className="w-6 h-6 mx-auto mb-1" />
+          <div className="text-sm font-medium">Directions</div>
+          <div className="text-xs opacity-80">Portland/Salem</div>
+        </div>
+      </Button>
+
+      <Button 
+        onClick={handleOrderOnline}
+        className="h-20 bg-gradient-to-r from-green-500 to-emerald-500"
+      >
+        <div className="text-center">
+          <Truck className="w-6 h-6 mx-auto mb-1" />
+          <div className="text-sm font-medium">Order Online</div>
+          <div className="text-xs opacity-80">DoorDash, Uber Eats</div>
+        </div>
+      </Button>
+
+      <Button 
+        onClick={handleJoinWolfpack}
+        className="h-20 bg-gradient-to-r from-purple-500 to-pink-500"
+      >
+        <div className="text-center">
+          <Users className="w-6 h-6 mx-auto mb-1" />
+          <div className="text-sm font-medium">Join the Wolfpack</div>
+          <div className="text-xs opacity-80">Location verification</div>
+        </div>
+      </Button>
+
+      <Button 
+        onClick={() => router.push('/menu')}
+        className="h-20 bg-gradient-to-r from-orange-500 to-red-500"
+      >
+        <div className="text-center">
+          <Menu className="w-6 h-6 mx-auto mb-1" />
+          <div className="text-sm font-medium">Food & Drink Menu</div>
+          <div className="text-xs opacity-80">Browse offerings</div>
+        </div>
+      </Button>
+    </div>
+  );
+}
+```
+
+## 🔍 Phase 3: Integration and Testing
+
+### Task 3.1: Audit Cart Integration
+**Files to Check**: 
+- `components/cart/Cart.tsx`
+- `hooks/useCartAccess.ts`
+- `lib/types/order.ts`
+
+**Verification Needed:**
+1. Ensure Cart.tsx uses `useCartAccess` hook properly
+2. Verify all ordering requires Wolf Pack membership
+3. Check that no legacy payment processing remains
+4. Confirm cart integrates with Wolf Pack session lifecycle
+
+### Task 3.2: Test Wolf Pack Page Integration
+**File to Check**: `app/(main)/wolfpack/page.tsx`
+
+**Integration Points:**
+1. Ensure page uses enhanced WolfpackSpatialView
+2. Verify chat interface integration
+3. Test member list functionality
+4. Confirm real-time updates work
+
+### Task 3.3: PWA Feature Implementation
+**Files to Check/Modify**:
+- `lib/pwa/deviceDetection.ts`
+- `lib/pwa/pwaEventHandler.ts`
+- Components with "Install App" functionality
+
+**Required Actions:**
+1. Ensure "Install App" button works correctly
+2. Verify "Enable Notifications" prompts function
+3. Test PWA installation flow
+4. Confirm offline functionality works
+
+## 📋 Summary Checklist
+
+**Immediate Actions (Day 1):**
+- [ ] Audit and remove legacy barcode/table ordering code
+- [ ] Enhance WolfpackSpatialView.tsx with animations
+- [ ] Create LivePackCounter.tsx component
+- [ ] Update BottomNav.tsx with 7-item navigation
+
+**Integration Tasks (Day 2):**
+- [ ] Create QuickActionButtons.tsx component  
+- [ ] Update home page with Wolf Pack features
+- [ ] Enhance WolfpackChatInterface.tsx with winks/DJ messaging
+- [ ] Test cart integration with Wolf Pack access
+
+**Polish and Testing (Day 3):**
+- [ ] Verify PWA features work correctly
+- [ ] Test all Wolf Pack page integrations
+- [ ] Ensure real-time features function properly
+- [ ] Validate responsive design across devices
+
+This approach leverages your existing infrastructure while adding the missing "wow factor" features to make the Wolf Pack experience truly engaging and interactive.
 

@@ -128,6 +128,16 @@
 }
 
 @layer components {
+  /* Bottom navigation spacing - ensures content never scrolls behind fixed nav */
+  .bottom-nav-safe {
+    padding-bottom: 5rem; /* 80px - enough space for 64px nav + 16px breathing room */
+  }
+  
+  /* Alternative class for minimal spacing */
+  .bottom-nav-minimal {
+    padding-bottom: 4rem; /* 64px - exact height of bottom nav */
+  }
+
   /* Theme colors for base elements */
   .theme-red .theme-color { color: hsl(var(--primary)); }
   .theme-blue .theme-color { color: hsl(var(--primary)); }

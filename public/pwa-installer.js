@@ -76,7 +76,7 @@ function showIOSInstructions() {
         // Store in localStorage that we've shown the instructions
         try {
           localStorage.setItem('pwa-ios-instructions-shown', 'true');
-        } catch (e) {
+        } catch (_e) {
           console.error('[PWA Installer] Error storing in localStorage:', e);
         }
       });
@@ -120,7 +120,7 @@ window.addEventListener('appinstalled', function(e) {
   // Store in localStorage that the app is installed
   try {
     localStorage.setItem('pwa-app-installed', 'true');
-  } catch (e) {
+  } catch (_e) {
     console.error('[PWA Installer] Error storing in localStorage:', e);
   }
 });
@@ -151,7 +151,7 @@ window.addEventListener('load', function() {
         // Wait a bit before showing instructions
         setTimeout(showIOSInstructions, 3000);
       }
-    } catch (e) {
+    } catch (_e) {
       console.error('[PWA Installer] Error accessing localStorage:', e);
       // Show instructions anyway
       setTimeout(showIOSInstructions, 3000);

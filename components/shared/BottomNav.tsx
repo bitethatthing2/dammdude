@@ -1,25 +1,18 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import * as LucideIcons from 'lucide-react';
-import { Bell, MoreHorizontal } from 'lucide-react';
-import { NotificationIndicator } from '@/components/unified';
+import { usePathname } from 'next/navigation';
+import { Home, MessageCircle, User, ShoppingBag, Calendar, LogIn, BookOpen, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFcmContext } from '@/lib/hooks/useFcmToken';
-import { useState, useEffect, useRef } from 'react';
-import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
+import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+import { useDJPermissions } from '@/hooks/useDJPermissions';
+import { useState, useEffect } from 'react';
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const router = useRouter();
-  const { notificationPermissionStatus } = useFcmContext();
+  const { canCheckout } = useWolfpackAccess();
+  const { isActiveDJ } = useDJPermissions();
   const [isMounted, setIsMounted] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close more menu when clicking outside
-  useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
 
   // Set up mounted state
   useEffect(() => {
@@ -28,145 +21,118 @@ export const BottomNav = () => {
 
   // Define the type for navigation items
   interface NavItem {
+    id: string;
     href: string;
-    iconName?: string;
-    icon?: React.ReactNode;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     label: string;
-    onClick?: () => void;
+    requiresAuth: boolean;
   }
 
-  // Core navigation items - always visible
-  const coreNavItems: NavItem[] = [
-    { href: '/', iconName: 'Home', label: 'Home' },
-    { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
-    { href: '/chat', iconName: 'MessageCircle', label: 'Chat' },
+  // Wolf Pack Navigation - 7 items as specified in the vision, with DJ item conditionally added
+  const baseNavigationItems: NavItem[] = [
+    { id: 'home', href: '/', icon: Home, label: 'Home', requiresAuth: false },
+    { id: 'chat', href: '/chat', icon: MessageCircle, label: 'Chat', requiresAuth: true },
+    { id: 'profile', href: '/profile', icon: User, label: 'Profile', requiresAuth: true },
+    { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch', requiresAuth: false },
+    { id: 'booking', href: '/book', icon: Calendar, label: 'Booking', requiresAuth: false },
+    { id: 'login', href: '/login', icon: LogIn, label: 'Login', requiresAuth: false },
+    { id: 'blog', href: '/blog', icon: BookOpen, label: 'Blog', requiresAuth: false }
   ];
 
-  // Secondary navigation items - shown on larger screens or in a "more" menu
-  const secondaryNavItems: NavItem[] = [
-    { href: '/events', iconName: 'CalendarDays', label: 'Events' },
-    { href: '/merch', iconName: 'ShoppingBag', label: 'Merch' },
-    { href: '/about', iconName: 'Info', label: 'About' },
-    { href: '/contact', iconName: 'Phone', label: 'Contact' },
-    { href: '/book', iconName: 'BookOpen', label: 'Book' },
-  ];
+  // Add DJ item conditionally for authenticated DJs
+  const navigationItems: NavItem[] = isActiveDJ 
+    ? [
+        ...baseNavigationItems.slice(0, 3), // home, chat, profile
+        { id: 'dj', href: '/dj', icon: Music, label: 'DJ', requiresAuth: true },
+        ...baseNavigationItems.slice(3) // merch, booking, login, blog
+      ]
+    : baseNavigationItems;
 
-  // Combine for medium screens
-  const mediumScreenItems = [...coreNavItems, secondaryNavItems[0], secondaryNavItems[1]];
-
-  // Render a navigation item
-  const renderNavItem = (item: NavItem, onClick?: () => void) => {
+  // Render a navigation item with Wolf Pack access control
+  const renderNavItem = (item: NavItem) => {
     const isActive = pathname === item.href;
-    const Icon = item.iconName
-      ? (LucideIcons as Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>>)[item.iconName]
-      : null;
+    const isDisabled = item.requiresAuth && !canCheckout;
+    const Icon = item.icon;
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (isDisabled) {
+        e.preventDefault();
+        // Could show a toast or modal about joining Wolf Pack
+        return;
+      }
+    };
+
+    const linkClasses = cn(
+      "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200",
+      isActive 
+        ? "text-purple-400 bg-purple-500/10" 
+        : isDisabled 
+          ? "text-muted-foreground/50 cursor-not-allowed" 
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
+    );
+
+    const content = (
+      <>
+        <Icon className={cn(
+          "h-5 w-5 transition-all duration-200",
+          isActive && "drop-shadow-sm",
+          isDisabled && "opacity-50"
+        )} />
+        <span className={cn(
+          "text-[10px] mt-1 font-medium",
+          isDisabled && "opacity-50"
+        )}>
+          {item.label}
+        </span>
+        {isDisabled && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        )}
+      </>
+    );
+
+    if (isDisabled) {
+      return (
+        <div
+          key={item.id}
+          className={cn(linkClasses, "relative")}
+          onClick={handleClick}
+          title="Requires Wolf Pack membership"
+        >
+          {content}
+        </div>
+      );
+    }
 
     return (
       <Link
-        key={item.href}
+        key={item.id}
         href={item.href}
-        className={cn(
-          "flex flex-col items-center justify-center p-2",
-          isActive ? "text-foreground" : "text-muted-foreground"
-        )}
-        onClick={onClick || item.onClick}
+        className={linkClasses}
+        onClick={handleClick}
       >
-        {Icon ? <Icon className="h-5 w-5" /> : item.icon}
-        <span className="text-[10px] mt-1">{item.label}</span>
+        {content}
       </Link>
     );
   };
 
-  // Render notification item WITHOUT badge (badge removed)
-  const renderNotificationItem = () => (
-    <Link
-      href="/notifications"
-      className={cn(
-        "flex flex-col items-center justify-center p-2",
-        pathname === '/notifications' ? "text-foreground" : "text-muted-foreground"
-      )}
-    >
-      <div className="relative">
-        {/* Conditionally render Bell icon or Indicator */}
-        {notificationPermissionStatus === 'granted' ? (
-          <Bell className="h-5 w-5" />
-        ) : isMounted ? (
-          <NotificationIndicator variant="subtle" />
-        ) : (
-          <Bell className="h-5 w-5" />
-        )}
-        {/* BADGE REMOVED - No more notification count badge */}
-      </div>
-      <span className="text-[10px] mt-1">
-        {notificationPermissionStatus === 'granted' ? 'Alerts' : 'Notifications'}
-      </span>
-    </Link>
-  );
-
-  // Render the "More" button and dropdown
-  const renderMoreMenu = () => (
-    <div className="relative" ref={moreMenuRef}>
-      <button
-        onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-        className={cn(
-          "flex flex-col items-center justify-center p-2",
-          moreMenuOpen ? "text-foreground" : "text-muted-foreground"
-        )}
-        aria-label="More options"
-      >
-        <MoreHorizontal className="h-5 w-5" />
-        <span className="text-[10px] mt-1">More</span>
-      </button>
-
-      {moreMenuOpen && (
-        <div className="absolute bottom-16 right-0 bg-background border rounded-md shadow-lg p-2 min-w-[180px] z-50">
-          <div className="grid grid-cols-1 gap-1">
-            {secondaryNavItems.map((item) => (
-              <div key={item.href} className="w-full">
-                {renderNavItem(item, () => setMoreMenuOpen(false))}
-              </div>
-            ))}
-            <div className="w-full border-t pt-1 mt-1">
-              {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Render the Login item separately for large screens
-  const renderLoginItem = () => (
-    <div className="w-full flex justify-center">
-      {renderNavItem({ href: '/login', iconName: 'LogIn', label: 'Login' })}
-    </div>
-  );
+  if (!isMounted) {
+    return null; // Prevent hydration mismatch
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-transparent backdrop-blur-md z-50 flex justify-around items-center px-2">
-      {/* Mobile view (3 core items + notifications + more) */}
-      <div className="flex justify-between w-full md:hidden">
-        {coreNavItems.map((item) => renderNavItem(item))}
-        {renderNotificationItem()}
-        {renderMoreMenu()}
+    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50">
+      <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto">
+        {navigationItems.map((item) => renderNavItem(item))}
       </div>
-
-      {/* Medium screen view (6 items) */}
-      <div className="hidden md:flex lg:hidden justify-between w-full">
-        {mediumScreenItems.map((item) => renderNavItem(item))}
-        {renderNotificationItem()}
-        {renderMoreMenu()}
-      </div>
-
-      {/* Large screen view (all items + notifications + login) */}
-      <div className="hidden lg:grid lg:grid-cols-11 gap-2 items-center w-full max-w-7xl mx-auto">
-        {[...coreNavItems, ...secondaryNavItems].map((item) => (
-          <div key={item.href} className="flex justify-center">
-            {renderNavItem(item)}
-          </div>
-        ))}
-        <div className="flex justify-center">{renderNotificationItem()}</div>
-        <div className="flex justify-center">{renderLoginItem()}</div>
+      
+      {/* Wolf Pack Status Indicator */}
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className={cn(
+          "h-1 w-12 rounded-full transition-all duration-300",
+          canCheckout 
+            ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/25" 
+            : "bg-muted-foreground/20"
+        )} />
       </div>
     </nav>
   );

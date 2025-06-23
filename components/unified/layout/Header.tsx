@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Bell, Search, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import { 
   Sheet, 
   SheetContent, 

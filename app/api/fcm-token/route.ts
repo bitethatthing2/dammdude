@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     
     // Check if token already exists
     const { data: existingToken, error: checkError } = await supabaseAdmin
-      .from('fcm_tokens')
+      .from('device_tokens')
       .select('token, created_at')
       .eq('token', token)
       .single();
@@ -86,9 +86,10 @@ export async function POST(request: NextRequest) {
       console.log('Token already exists, updating last active time');
       
       const { error: updateError } = await supabaseAdmin
-        .from('fcm_tokens')
+        .from('device_tokens')
         .update({
-          device_info: deviceInfo,
+          platform: deviceInfo.platform,
+          last_used: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('token', token);
@@ -111,11 +112,13 @@ export async function POST(request: NextRequest) {
       console.log('Inserting new token');
       
       const { error: insertError } = await supabaseAdmin
-        .from('fcm_tokens')
+        .from('device_tokens')
         .insert([
           {
             token,
-            device_info: deviceInfo,
+            platform: deviceInfo.platform,
+            is_active: true,
+            last_used: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }

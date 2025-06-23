@@ -1,8 +1,33 @@
-// Export all types from the module
-export * from './menu';
+// Export specific types from menu (excluding CartItem to avoid conflict)
+export type {
+  MenuItem,
+  MenuItemModifier,
+  FoodDrinkCategory,
+  MenuCategory,
+  MenuItemWithCategory,
+  MenuItemImage,
+  CartItemModifier,
+  MenuItemWithRelations,
+  BartenderTab,
+  CreateMenuItem,
+  UpdateMenuItem,
+  CreateMenuItemModifier,
+  UpdateMenuItemModifier,
+  CreateBartenderOrder,
+  UpdateBartenderOrder,
+  MenuItemResponse,
+  CartState,
+  MenuModifier,
+  CartItemData
+} from './menu';
+
+// Export utility functions from menu
+export {
+  isMenuItemModifier
+} from './menu';
+
+// Export all types from order (includes new CartItem from wolfpack-unified)
 export * from './order';
-export type { BartenderOrder } from './order';
-export { isValidOrderStatus, isValidPaymentStatus } from './order';
 export * from './api';
 
 // Export specific items from checkout to avoid conflicts
@@ -19,7 +44,9 @@ export type {
   CreateOrderRequest,
   CreateOrderResponse
 } from './checkout';
-export { 
+
+// Export utility functions from checkout module
+export {
   calculateOrderTotals,
   calculateTipAmount,
   validateEmail,

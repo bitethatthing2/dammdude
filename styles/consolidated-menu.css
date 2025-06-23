@@ -476,6 +476,38 @@ a,
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  max-width: 32rem !important; /* 512px - smaller than before */
+  max-height: calc(100vh - 6rem) !important;
+  max-height: calc(100dvh - 6rem) !important;
+}
+
+/* Menu item modal specific sizing */
+.menu-item-modal-container {
+  width: 100% !important;
+  max-width: 28rem !important; /* 448px - even smaller for mobile */
+  max-height: calc(100vh - 6rem) !important;
+  max-height: calc(100dvh - 6rem) !important;
+  margin-bottom: 5rem !important; /* Space for bottom nav */
+}
+
+@media (min-width: 640px) {
+  .menu-item-modal-container {
+    max-width: 36rem !important; /* 576px - slightly larger on desktop */
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Menu item image sizing */
+.menu-item-modal-image {
+  height: 10rem !important; /* 160px - much smaller */
+  max-height: 10rem !important;
+}
+
+@media (min-width: 640px) {
+  .menu-item-modal-image {
+    height: 12rem !important; /* 192px - slightly larger on desktop */
+    max-height: 12rem !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -486,6 +518,15 @@ a,
   .menu-modal-content button:not([aria-label="Close"]) {
     min-height: var(--touch-target-min);
     font-size: 1rem;
+  }
+  
+  .menu-item-modal-container {
+    max-width: 24rem !important; /* 384px - even smaller on mobile */
+  }
+  
+  .menu-item-modal-image {
+    height: 8rem !important; /* 128px - smaller on mobile */
+    max-height: 8rem !important;
   }
 }
 

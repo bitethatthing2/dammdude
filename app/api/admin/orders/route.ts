@@ -1,98 +1,152 @@
 import { NextResponse } from 'next/server';
-import type { Database } from '@/lib/database.types';
-
-type Order = Database['public']['Tables']['bartender_orders']['Row'];
-type Table = Database['public']['Tables']['tables']['Row'];
 import { createServerClient } from '@/lib/supabase/server';
-import { OrderStatus } from '@/lib/types/order';
+import { z } from 'zod';
 
-// Type for the selected order fields from our query
-type OrderQueryResult = Pick<Order, 'id' | 'status' | 'created_at' | 'total_amount' | 'customer_notes' | 'table_location'>;
-
-// Type for table query result
-type TableQueryResult = Pick<Table, 'id' | 'name'>;
+// Input validation schema
+const updateOrderStatusSchema = z.object({
+  status: z.enum(['pending', 'preparing', 'ready', 'delivered', 'completed', 'cancelled']),
+  notify: z.boolean().optional().default(true)
+});
 
 /**
- * GET /api/admin/orders
- * Fetches orders with filtering by status and optional pagination
+ * PATCH /api/admin/orders/[orderId]/status
+ * Updates an order's status and optionally sends notifications
  */
-export async function GET(request: Request) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ orderId: string }> }
+) {
   try {
-    // Parse query parameters
-    const { searchParams } = new URL(request.url);
+    // Get order ID from params
+    const { orderId } = await params;
     
-    // Get status filter values
-    const statusParams = searchParams.getAll('status') as OrderStatus[];
-    
-    // Get pagination parameters
-    const limit = Number(searchParams.get('limit')) || 50;
-    const page = Number(searchParams.get('page')) || 1;
-    const offset = (page - 1) * limit;
-    
-    // Get cookie store and create Supabase client with fixed async cookie handling
-    const supabase = await createServerClient();
-    
-    // Query bartender_orders table with correct column names
-    let query = supabase.from('bartender_orders')
-      .select(`
-        id,
-        status, 
-        created_at,
-        total_amount,
-        customer_notes,
-        table_location
-      `);
-    
-    // Add status filter if provided
-    if (statusParams.length > 0) {
-      query = query.in('status', statusParams);
+    if (!orderId) {
+      return NextResponse.json({
+        error: 'Order ID is required'
+      }, { status: 400 });
     }
     
-    // Add order by and pagination
-    query = query
-      .order('created_at', { ascending: false })
-      .limit(limit)
-      .range(offset, offset + limit - 1);
+    // Parse request body
+    const body = await request.json();
     
-    // Execute query
-    const { data, error, count } = await query;
+    // Validate input
+    const validation = updateOrderStatusSchema.safeParse(body);
     
-    // Handle query errors
-    if (error) {
-      console.error('Database query failed:', error);
-      
+    if (!validation.success) {
       return NextResponse.json({
-        error: 'Database query failed',
-        details: error.message,
-        code: error.code
+        error: 'Invalid input',
+        details: validation.error.format()
+      }, { status: 400 });
+    }
+    
+    const { status, notify } = validation.data;
+    
+    // Get cookie store and create Supabase client
+    const supabase = await createServerClient();
+    
+    // Fetch current order to verify it exists
+    const { data: order, error: orderError } = await supabase
+      .from('bartender_orders')
+      .select('id, status, table_id, customer_id, location_id')
+      .eq('id', orderId)
+      .single();
+    
+    if (orderError || !order) {
+      return NextResponse.json({
+        error: 'Order not found',
+        details: orderError?.message
+      }, { status: 404 });
+    }
+    
+    // Update order status
+    const { error: updateError } = await supabase
+      .from('bartender_orders')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+    
+    if (updateError) {
+      return NextResponse.json({
+        error: 'Failed to update order status',
+        details: updateError.message
       }, { status: 500 });
     }
     
-    // Format orders using actual column names from bartender_orders table
-    const formattedOrders = data?.map((order: OrderQueryResult) => ({
-      id: order.id,
-      table_location: order.table_location,
-      status: order.status,
-      created_at: order.created_at,
-      updated_at: order.created_at, // Use created_at since updated_at isn't selected
-      total_amount: order.total_amount,
-      notes: order.customer_notes,
-      items: [] // Simplified until order_items relationship is fixed
-    })) || [];
+    // Send notification if requested and status is 'ready'
+    let notificationSent = false;
     
-    // Return formatted response
-    return NextResponse.json({ 
-      orders: formattedOrders,
-      count: count || formattedOrders.length,
-      pagination: {
-        page,
-        limit,
-        total: count
+    if (notify && status === 'ready' && order.customer_id) {
+      try {
+        // Get table information if available
+        const { data: table } = order.table_id ? await supabase
+          .from('tables')
+          .select('name')
+          .eq('id', order.table_id)
+          .single() : { data: null };
+        
+        // Create notification for the customer
+        const notificationMessage = table?.name 
+          ? `Your order for ${table.name} is ready for pickup!`
+          : 'Your order is ready for pickup!';
+        
+        await supabase
+          .from('notifications')
+          .insert({
+            recipient_id: order.customer_id,
+            message: notificationMessage,
+            type: 'info',
+            status: 'unread',
+            metadata: {
+              order_id: orderId,
+              order_status: status,
+              table_name: table?.name || null
+            }
+          });
+        
+        // Also send push notification if user has device tokens
+        const { data: deviceTokens } = await supabase
+          .from('device_tokens')
+          .select('token')
+          .eq('user_id', order.customer_id)
+          .eq('is_active', true);
+        
+        if (deviceTokens && deviceTokens.length > 0) {
+          // Queue push notification for sending
+          await supabase
+            .from('push_notifications')
+            .insert({
+              user_id: order.customer_id,
+              title: 'Order Ready!',
+              body: notificationMessage,
+              data: {
+                type: 'order',
+                order_id: orderId,
+                action: 'view_order'
+              },
+              status: 'pending'
+            });
+        }
+        
+        notificationSent = true;
+      } catch (notificationError) {
+        console.error('Error sending notifications:', notificationError);
+        // Continue even if notification fails
       }
+    }
+    
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      order: {
+        id: orderId,
+        status
+      },
+      notificationSent
     });
     
   } catch (err) {
-    // Log and return unexpected errors
     console.error('Unexpected server error:', err);
     
     return NextResponse.json({

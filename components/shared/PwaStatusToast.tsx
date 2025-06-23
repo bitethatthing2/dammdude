@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { Bell, CheckCircle2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { onAppInstalled } from '@/lib/pwa/pwaEventHandler';
 
 export function PwaStatusToast() {
@@ -56,22 +56,29 @@ export function PwaStatusToast() {
     // Check notification permission on mount and when it changes
     checkNotificationPermission();
     
-    // Listen for permission changes
+    // Listen for permission changes using the Permissions API if available
+    let permissionStatus: PermissionStatus | null = null;
+    
     const handlePermissionChange = () => {
       checkNotificationPermission();
     };
     
-    // Add event listener if supported
-    if ('Notification' in window && 'onchange' in Notification) {
-      // @ts-ignore - TypeScript doesn't recognize onchange on the Notification object
-      Notification.onchange = handlePermissionChange;
+    // Use the Permissions API to listen for notification permission changes
+    if ('permissions' in navigator && 'query' in navigator.permissions) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName })
+        .then((status) => {
+          permissionStatus = status;
+          status.addEventListener('change', handlePermissionChange);
+        })
+        .catch((error) => {
+          console.warn('[PwaStatusToast] Permissions API not fully supported:', error);
+        });
     }
 
     return () => {
       unregisterAppInstalled();
-      if ('Notification' in window && 'onchange' in Notification) {
-        // @ts-ignore
-        Notification.onchange = null;
+      if (permissionStatus) {
+        permissionStatus.removeEventListener('change', handlePermissionChange);
       }
     };
   }, [toast, hasShownNotificationToast]);
