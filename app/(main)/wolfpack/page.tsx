@@ -41,9 +41,6 @@ export default function WolfpackPage() {
   
   const supabase = getSupabaseBrowserClient();
 
-  // Special VIP users who should always be wolfpack members
-  const vipUsers = ['mkahler599@gmail.com'];
-  const isVipUser = user?.email && vipUsers.includes(user.email);
 
   useEffect(() => {
     if (user) {
@@ -73,9 +70,6 @@ export default function WolfpackPage() {
 
       if (membershipData) {
         setMembership(membershipData);
-      } else if (isVipUser) {
-        // Auto-create membership for VIP users
-        await createVipMembership();
       }
     } catch (error) {
       console.error('Error checking membership status:', error);
@@ -89,33 +83,6 @@ export default function WolfpackPage() {
     }
   };
 
-  const createVipMembership = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('wolfpack_memberships')
-        .insert({
-          user_id: user.id,
-          status: 'active',
-          table_location: 'VIP',
-          joined_at: new Date().toISOString(),
-          last_active: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setMembership(data);
-      toast({
-        title: "🐺 Welcome to the Wolf Pack!",
-        description: "Your VIP membership is now active.",
-      });
-    } catch (error) {
-      console.error('Error creating VIP membership:', error);
-    }
-  };
 
   const requestLocationPermission = async () => {
     try {
@@ -158,10 +125,8 @@ export default function WolfpackPage() {
     setJoining(true);
 
     try {
-      // For VIP users, skip location check
-      if (!isVipUser) {
-        await requestLocationPermission();
-      }
+      // Request location permission to verify user is at venue
+      await requestLocationPermission();
 
       // Create wolfpack membership
       const { data, error } = await supabase
@@ -169,7 +134,7 @@ export default function WolfpackPage() {
         .insert({
           user_id: user.id,
           status: 'active',
-          table_location: isVipUser ? 'VIP' : 'General',
+          table_location: 'General',
           joined_at: new Date().toISOString(),
           last_active: new Date().toISOString()
         })
@@ -256,18 +221,10 @@ export default function WolfpackPage() {
               <h1 className="text-2xl font-bold">Wolf Pack Member</h1>
               <p className="text-muted-foreground">Welcome back to the pack!</p>
             </div>
-            <div className="flex items-center gap-2">
-              {isVipUser && (
-                <Badge variant="default" className="bg-amber-500">
-                  <Crown className="h-3 w-3 mr-1" />
-                  VIP
-                </Badge>
-              )}
-              <Badge variant="default">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Active Member
-              </Badge>
-            </div>
+            <Badge variant="default">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Active Member
+            </Badge>
           </div>
 
           {/* Member Status Card */}
@@ -371,12 +328,6 @@ export default function WolfpackPage() {
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-sm">Member-only offers and discounts</span>
                 </div>
-                {isVipUser && (
-                  <div className="flex items-center gap-3">
-                    <Crown className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-medium text-amber-700">VIP exclusive benefits</span>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -478,15 +429,13 @@ export default function WolfpackPage() {
         </Card>
 
         {/* Location Permission Notice */}
-        {!isVipUser && (
-          <Alert className="mb-6">
-            <MapPin className="h-4 w-4" />
-            <AlertDescription>
-              To join the Wolf Pack, we need to verify you&apos;re at one of our locations (Salem or Portland). 
-              Location access will be requested during the joining process.
-            </AlertDescription>
-          </Alert>
-        )}
+        <Alert className="mb-6">
+          <MapPin className="h-4 w-4" />
+          <AlertDescription>
+            To join the Wolf Pack, we need to verify you&apos;re at one of our locations (Salem or Portland).
+            Location access will be requested during the joining process.
+          </AlertDescription>
+        </Alert>
 
         {/* Join Button */}
         <Card>
@@ -500,21 +449,18 @@ export default function WolfpackPage() {
               {joining ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {isVipUser ? 'Activating VIP Membership...' : 'Joining the Pack...'}
+                  Joining the Pack...
                 </>
               ) : (
                 <>
                   <Shield className="mr-2 h-5 w-5" />
-                  {isVipUser ? 'Activate VIP Membership' : 'Join the Wolf Pack'}
+                  Join the Wolf Pack
                 </>
               )}
             </Button>
             
             <p className="text-sm text-muted-foreground mt-4">
-              {isVipUser 
-                ? 'Your VIP status grants you instant access to all Wolf Pack benefits.'
-                : 'By joining, you agree to share your location and follow community guidelines.'
-              }
+              By joining, you agree to share your location and follow community guidelines.
             </p>
           </CardContent>
         </Card>

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Utensils, CalendarDays, BookOpen, Download, Bell, Star, Users } from "lucide-react";
+import { Utensils, CalendarDays, BookOpen, Download, Bell, Star, Users, MapPin, Truck } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
@@ -181,24 +181,62 @@ export default function Page() {
         <h2 className="text-lg font-semibold mb-4 text-center">Quick Links</h2>
         <div className="grid grid-cols-2 gap-4">
           <QuickLink 
+            href="/menu" 
+            icon={<Utensils className="h-6 w-6 text-primary" />} 
+            label="Food & Drink Menu" 
+          />
+          <div onClick={() => {
+            const salemCoords = "44.9429,-123.0351";
+            window.open(`https://maps.google.com/?q=${salemCoords}`, '_blank');
+          }}>
+            <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center justify-center">
+                <div className="h-10 w-10 mb-3 flex items-center justify-center">
+                  <MapPin className="h-6 w-6 text-primary" />
+                </div>
+                <span className="text-base font-medium text-foreground">Directions</span>
+              </CardContent>
+            </Card>
+          </div>
+          <div onClick={() => {
+            // Create a simple modal or alert for delivery options
+            const deliveryOptions = [
+              { name: 'DoorDash', url: 'https://www.doordash.com/store/side-hustle-lounge-salem-23456789/' },
+              { name: 'Uber Eats', url: 'https://www.ubereats.com/store/side-hustle-lounge/abcdef123456' },
+              { name: 'Postmates', url: 'https://postmates.com/merchant/side-hustle-lounge-salem' }
+            ];
+            
+            const choice = window.confirm(
+              'Choose delivery service:\n\n' +
+              '• DoorDash (Click OK)\n' +
+              '• Uber Eats (Click Cancel, then OK on next prompt)\n' +
+              '• Postmates (Click Cancel twice)'
+            );
+            
+            if (choice) {
+              window.open(deliveryOptions[0].url, '_blank');
+            } else {
+              const secondChoice = window.confirm('Open Uber Eats? (Cancel opens Postmates)');
+              if (secondChoice) {
+                window.open(deliveryOptions[1].url, '_blank');
+              } else {
+                window.open(deliveryOptions[2].url, '_blank');
+              }
+            }
+          }}>
+            <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center justify-center">
+                <div className="h-10 w-10 mb-3 flex items-center justify-center">
+                  <Truck className="h-6 w-6 text-primary" />
+                </div>
+                <span className="text-base font-medium text-foreground">Order Online</span>
+              </CardContent>
+            </Card>
+          </div>
+          <QuickLink 
             href="/wolfpack" 
             icon={<Users className="h-6 w-6 text-primary" />} 
             label="Join Wolf Pack" 
-          />
-          <QuickLink 
-            href="/table" 
-            icon={<Utensils className="h-6 w-6 text-primary" />} 
-            label="Order Now" 
-          />
-          <QuickLink 
-            href="/events" 
-            icon={<CalendarDays className="h-6 w-6 text-primary" />} 
-            label="Events" 
-          />
-          <QuickLink 
-            href="/notifications" 
-            icon={<Bell className="h-6 w-6 text-primary" />} 
-            label="Notifications" 
           />
         </div>
       </div>

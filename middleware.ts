@@ -98,7 +98,6 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
   const isLoginRoute = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/admin/login';
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
-  const isTableRoute = request.nextUrl.pathname === '/table';
   
   // Log processing for debugging
   console.log(`Middleware: Processing ${request.nextUrl.pathname}`);
@@ -106,20 +105,6 @@ export async function middleware(request: NextRequest) {
   // Skip authentication checks for API routes
   if (isApiRoute) {
     return response;
-  }
-
-  // Handle table route requests
-  if (isTableRoute) {
-    // For HTML requests (browser navigation), let it proceed
-    const accept = request.headers.get('accept');
-    if (accept && accept.includes('text/html')) {
-      return response;
-    }
-    
-    // For API/resource requests, redirect to proper endpoint
-    console.log('Middleware: Redirecting /table resource request to proper endpoint');
-    const url = new URL('/api/table-identification', request.url);
-    return NextResponse.redirect(url);
   }
 
   // Login route handling - always allow access to login page

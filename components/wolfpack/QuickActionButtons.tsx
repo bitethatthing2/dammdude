@@ -1,12 +1,20 @@
-// CREATE components/wolfpack/QuickActionButtons.tsx
 import { MapPin, Truck, Users, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useState } from 'react';
 
 export function QuickActionButtons() {
   const router = useRouter();
   const { canCheckout } = useWolfpackAccess();
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
 
   const handleDirections = () => {
     // Open Google Maps to nearest location
@@ -16,9 +24,7 @@ export function QuickActionButtons() {
   };
 
   const handleOrderOnline = () => {
-    // Show modal with DoorDash, Uber Eats, Postmates links
-    // For now, open a simple alert - this could be enhanced with a modal
-    alert('Order online through:\n• DoorDash\n• Uber Eats\n• Postmates\n\nFeature coming soon!');
+    setShowDeliveryDialog(true);
   };
 
   const handleJoinWolfpack = () => {
@@ -30,7 +36,8 @@ export function QuickActionButtons() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 p-4">
+    <>
+      <div className="grid grid-cols-2 gap-4 p-4">
       <Button 
         onClick={handleDirections}
         className="h-20 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-lg"
@@ -74,6 +81,45 @@ export function QuickActionButtons() {
           <div className="text-xs opacity-80">Browse offerings</div>
         </div>
       </Button>
-    </div>
+      </div>
+
+      {/* Delivery Services Dialog */}
+      <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Order Online</DialogTitle>
+          <DialogDescription>
+            Choose your preferred delivery service
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Button
+            onClick={() => window.open('https://www.doordash.com/store/side-hustle-lounge-salem-23456789/', '_blank')}
+            className="w-full justify-start"
+            variant="outline"
+          >
+            <Truck className="mr-2 h-4 w-4" />
+            DoorDash
+          </Button>
+          <Button
+            onClick={() => window.open('https://www.ubereats.com/store/side-hustle-lounge/abcdef123456', '_blank')}
+            className="w-full justify-start"
+            variant="outline"
+          >
+            <Truck className="mr-2 h-4 w-4" />
+            Uber Eats
+          </Button>
+          <Button
+            onClick={() => window.open('https://postmates.com/merchant/side-hustle-lounge-salem', '_blank')}
+            className="w-full justify-start"
+            variant="outline"
+          >
+            <Truck className="mr-2 h-4 w-4" />
+            Postmates
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

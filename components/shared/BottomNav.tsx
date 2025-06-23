@@ -35,7 +35,7 @@ export const BottomNav = () => {
     { id: 'profile', href: '/profile', icon: User, label: 'Profile', requiresAuth: true },
     { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch', requiresAuth: false },
     { id: 'booking', href: '/book', icon: Calendar, label: 'Booking', requiresAuth: false },
-    { id: 'login', href: '/login', icon: LogIn, label: 'Login', requiresAuth: false },
+    { id: 'login', href: '/login', icon: LogIn, label: 'Log In / Sign Up', requiresAuth: false },
     { id: 'blog', href: '/blog', icon: BookOpen, label: 'Blog', requiresAuth: false }
   ];
 

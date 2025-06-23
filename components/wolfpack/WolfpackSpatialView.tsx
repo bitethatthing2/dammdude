@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import './WolfpackSpatialView.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -253,10 +252,10 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
   return (
     <div className="space-y-4">
       {/* Animated Live Bar Map */}
-      <div className="wolfpack-spatial-container">
-        <motion.svg 
-          viewBox="0 0 800 600" 
-          className="spatial-view-svg"
+      <div className="relative w-full h-[400px] bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-xl overflow-hidden">
+        <motion.svg
+          viewBox="0 0 800 600"
+          className="w-full h-full cursor-pointer"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -349,7 +348,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     fill={isCurrentUser ? "#3b82f6" : "#6366f1"} 
                     stroke={isCurrentUser ? "#1d4ed8" : "#4f46e5"} 
                     strokeWidth="2"
-                    className="wolf-avatar"
+                    className="cursor-pointer transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                   />
                   
                   {/* Wolf Icon */}

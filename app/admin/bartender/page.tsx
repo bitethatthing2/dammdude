@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { OrdersManagement } from '@/components/unified/OrdersManagement';
+import { OrderManagement } from '@/components/unified';
 
 export const metadata: Metadata = {
   title: 'Side Hustle Admin - Bartender',
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 /**
  * Bartender page for managing drink orders
- * Uses the same unified OrdersManagement component as the main orders page
+ * Uses the same unified OrderManagement component as the main orders page
  */
 export default function BartenderPage() {
   return (
@@ -23,7 +23,7 @@ export default function BartenderPage() {
       
       {/* Add Suspense boundary for better UX */}
       <Suspense fallback={<OrdersSkeleton />}>
-        <OrdersManagement />
+        <OrderManagement />
       </Suspense>
     </div>
   );

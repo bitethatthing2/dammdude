@@ -24,10 +24,6 @@ export const OrderManagement = dynamic(() => import('./OrderManagement'), {
 // Export UI components
 export { StatusBadge } from './ui/StatusBadge';
 
-// Export drop-in replacement components
-export { OrdersManagement } from './OrdersManagement';
-
-
 // Export notification components
 export { NotificationIndicator } from './notifications/NotificationIndicator';
 export { NotificationPopover } from './notifications/NotificationPopover';
