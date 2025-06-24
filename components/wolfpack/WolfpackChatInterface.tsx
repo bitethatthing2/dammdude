@@ -44,7 +44,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
       try {
         // Get location ID and membership data
         const { data: memberData, error } = await supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_memberships')
           .select(`
             id,
             location_id,
@@ -57,7 +57,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
             )
           `)
           .eq('user_id', userId)
-          .eq('is_active', true)
+          .eq('status', 'active')
           .single();
 
         if (error) throw error;

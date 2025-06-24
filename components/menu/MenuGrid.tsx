@@ -5,24 +5,9 @@ import { Loader2 } from 'lucide-react';
 import MenuItemCard from './MenuItemCard';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
 
-// Type definitions
-interface MenuItem {
-  id: string;
-  category_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  is_available: boolean;
-  display_order: number;
-  image_url?: string | null;
-  category?: {
-    id: string;
-    name: string;
-    type?: string;
-  };
-}
-
+// Local type definitions
 interface Category {
   id: string;
   name: string;
@@ -32,36 +17,13 @@ interface Category {
   color_class?: string;
 }
 
-interface CartOrderData {
-  item: {
-    id: string;
-    name: string;
-    price: number;
-  };
-  modifiers: {
-    meat: {
-      id: string;
-      name: string;
-      price_adjustment: number;
-    } | null;
-    sauces: Array<{
-      id: string;
-      name: string;
-      price_adjustment: number;
-    }>;
-  };
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
 interface MenuGridProps {
   selectedCategoryId?: string | null;
   onAddToCart: (orderData: CartOrderData) => void;
 }
 
 export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridProps) {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItemWithModifiers[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId || null);

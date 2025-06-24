@@ -111,7 +111,7 @@ export function LiveEventsDisplay({ locationId, userId }: LiveEventsDisplayProps
         setIsLoading(true);
 
         // Get active events for this location
-        const { data: eventsData, error: eventsError } = await supabase
+        let eventsQuery = supabase
           .from('dj_events')
           .select(`
             *,
@@ -131,9 +131,16 @@ export function LiveEventsDisplay({ locationId, userId }: LiveEventsDisplayProps
               voter_id
             )
           `)
-          .eq('location_id', locationId)
-          .in('status', ['active', 'voting'])
-          .order('created_at', { ascending: false });
+          .in('status', ['active', 'voting']);
+
+        // Handle location filter correctly - avoid NULL query issues
+        if (locationId === null || locationId === undefined) {
+          eventsQuery = eventsQuery.is('location_id', null);
+        } else {
+          eventsQuery = eventsQuery.eq('location_id', locationId);
+        }
+
+        const { data: eventsData, error: eventsError } = await eventsQuery.order('created_at', { ascending: false });
 
         if (eventsError) throw eventsError;
 

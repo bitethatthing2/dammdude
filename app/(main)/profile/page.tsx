@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { BackButton } from '@/components/shared/BackButton';
-import { UserProfileManager } from '@/components/profile/UserProfileManager';
+import { WolfpackProfileManager } from '@/components/wolfpack/WolfpackProfileManager';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -58,7 +58,7 @@ export default function ProfilePage() {
       </div>
 
       <Suspense fallback={<ProfileLoadingSkeleton />}>
-        <UserProfileManager />
+        <WolfpackProfileManager />
       </Suspense>
     </div>
   );

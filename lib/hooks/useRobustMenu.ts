@@ -153,7 +153,7 @@ export function useMenuByCategory() {
   const menuByCategory = categories.map(category => ({
     ...category,
     items: items.filter(item => 
-      item.menu_category_id === category.id || 
+      item.category_id === category.id || 
       (item as unknown as { category_id: string }).category_id === category.id
     )
   }));

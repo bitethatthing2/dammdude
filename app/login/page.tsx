@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { logAuthError, getAuthErrorSuggestions, testSupabaseAuth } from '@/lib/auth/debug';
 
 export default function UnifiedLoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -24,6 +25,18 @@ export default function UnifiedLoginPage() {
   const { toast } = useToast();
   
   const supabase = getSupabaseBrowserClient();
+
+  // Diagnostic function to test Supabase connectivity
+  const testSupabaseConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('users').select('count').limit(1);
+      console.log('Supabase connection test:', { data, error });
+      return !error;
+    } catch (err) {
+      console.error('Supabase connection test failed:', err);
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -111,16 +124,39 @@ export default function UnifiedLoginPage() {
         });
 
         if (error) {
-          console.error('Sign in error:', error);
+          // Use enhanced error logging
+          logAuthError(error, 'Sign In');
+          
           let errorMessage = error.message;
           
-          // Handle specific database errors
-          if (error.message.includes('Database error') || error.message.includes('schema')) {
-            errorMessage = 'Database connection issue. Please contact support if this persists.';
-          } else if (error.message.includes('Invalid login credentials')) {
-            errorMessage = 'Invalid email or password. Please check your credentials.';
+          // Handle specific authentication errors with better user guidance
+          if (error.message.includes('Invalid login credentials')) {
+            errorMessage = 'Invalid email or password. Please double-check your credentials and try again.';
+            
+            // Run diagnostic test when credentials are invalid
+            testSupabaseAuth().then(result => {
+              console.log('🔍 Auth diagnostic test results:', result);
+              if (!result.success) {
+                console.error('🚨 Supabase connection issues detected');
+              }
+            });
+            
           } else if (error.message.includes('Email not confirmed')) {
-            errorMessage = 'Please check your email and confirm your account before signing in.';
+            errorMessage = 'Please check your email and confirm your account before signing in. Check your spam folder if needed.';
+          } else if (error.message.includes('Too many requests')) {
+            errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.';
+          } else if (error.message.includes('User not found')) {
+            errorMessage = 'No account found with this email. Please sign up first or check your email address.';
+          } else if (error.message.includes('Database error') || error.message.includes('schema')) {
+            errorMessage = 'Database connection issue. Please contact support if this persists.';
+          } else if (error.message.includes('signup disabled')) {
+            errorMessage = 'New user registration is currently disabled. Please contact support.';
+          }
+          
+          // Get helpful suggestions for the user
+          const suggestions = getAuthErrorSuggestions(errorMessage);
+          if (suggestions.length > 0) {
+            console.log('💡 Suggestions for user:', suggestions);
           }
           
           setError(errorMessage);

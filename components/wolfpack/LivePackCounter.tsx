@@ -32,10 +32,13 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
         
         // Fetch total members
         let totalQuery = supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_memberships')
           .select('id', { count: 'exact' });
         
-        if (locationId) {
+        // Handle location filter correctly - avoid NULL query issues
+        if (locationId === null || locationId === undefined) {
+          totalQuery = totalQuery.is('location_id', null);
+        } else if (locationId) {
           totalQuery = totalQuery.eq('location_id', locationId);
         }
         
@@ -43,11 +46,14 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
         
         // Fetch active members
         let activeQuery = supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_memberships')
           .select('id', { count: 'exact' })
-          .eq('is_active', true);
+          .eq('status', 'active');
         
-        if (locationId) {
+        // Handle location filter correctly for active query too
+        if (locationId === null || locationId === undefined) {
+          activeQuery = activeQuery.is('location_id', null);
+        } else if (locationId) {
           activeQuery = activeQuery.eq('location_id', locationId);
         }
         
@@ -87,7 +93,7 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'wolf_pack_members'
+        table: 'wolfpack_memberships'
       }, () => {
         fetchStats();
       })

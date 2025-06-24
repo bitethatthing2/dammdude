@@ -508,30 +508,29 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
   }
 
   return (
-    <Card className="flex flex-col h-[600px]">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Pack Chat
-          {!state.isConnected && (
-            <Badge variant="destructive" className="text-xs">Disconnected</Badge>
-          )}
-        </CardTitle>
-        <CardDescription>
-          Real-time chat with your WolfPack members
-        </CardDescription>
-      </CardHeader>
-
+    <div className="flex flex-col h-full max-h-[70vh]">
       {state.error && (
-        <Alert variant="destructive" className="mx-4 mb-4">
+        <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       )}
 
       {/* Messages Container */}
-      <CardContent className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+      <div className="flex-1 overflow-hidden flex flex-col bg-background border rounded-lg">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            <h3 className="font-semibold">Pack Chat</h3>
+            {!state.isConnected && (
+              <Badge variant="destructive" className="text-xs">Disconnected</Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Real-time chat with your WolfPack members
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-4 p-4">
           {state.isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -702,9 +701,8 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce bounce-delay-100" />
                 <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce bounce-delay-200" />
-                <div
-                   className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce bounce-delay-200" />
               </div>
               <span>
                 {state.typingUsers.length === 1
@@ -718,77 +716,76 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
           <div ref={messagesEndRef} />
         </div>
 
-        <Separator className="my-4" />
-
-        {/* Message Input */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Input
-                ref={inputRef}
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Type a message..."
-                disabled={!state.isConnected}
-                className="pr-12"
-              />
-              
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                  disabled={isUploading}
+        <div className="border-t p-4">
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  disabled={!state.isConnected}
+                  className="pr-12"
                 />
-                <label htmlFor="image-upload">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
+                
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
                     disabled={isUploading}
-                    asChild
-                  >
-                    <span className="cursor-pointer" title="Upload image" aria-label="Upload image">
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ImageIcon className="h-4 w-4" />
-                      )}
-                    </span>
-                  </Button>
-                </label>
+                  />
+                  <label htmlFor="image-upload">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      disabled={isUploading}
+                      asChild
+                    >
+                      <span className="cursor-pointer" title="Upload image" aria-label="Upload image">
+                        {isUploading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-4 w-4" />
+                        )}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
               </div>
+              
+              <Button
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || !state.isConnected}
+                size="sm"
+                title="Send message"
+                aria-label="Send message"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-            
-            <Button
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || !state.isConnected}
-              size="sm"
-              title="Send message"
-              aria-label="Send message"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
 
-          {!state.isConnected && (
-            <p className="text-xs text-muted-foreground text-center">
-              Reconnecting to chat...
-            </p>
-          )}
+            {!state.isConnected && (
+              <p className="text-xs text-muted-foreground text-center">
+                Reconnecting to chat...
+              </p>
+            )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

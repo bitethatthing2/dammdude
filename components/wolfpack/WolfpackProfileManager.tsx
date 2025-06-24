@@ -47,7 +47,7 @@ interface WolfProfile {
 const WOLF_EMOJIS = [
   '🐺', '🌙', '⭐', '🔥', '💫', '🌟', '✨', '🎭', 
   '🎨', '🎵', '🎸', '🍺', '🍹', '🌮', '🌶️', '💃',
-  '🕺', '🎯', '🎲', '🃏', '🎪', '🎨', '🎭', '🎬'
+  '🕺', '🎯', '🎲', '🃏', '🎪', '🎬', '🎤', '🎊'
 ];
 
 const VIBE_OPTIONS = [
@@ -209,7 +209,7 @@ export function WolfpackProfileManager() {
       const filePath = `avatars/${fileName}`;
 
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('images')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -217,7 +217,8 @@ export function WolfpackProfileManager() {
         });
 
       if (uploadError) {
-        throw uploadError;
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
       // Get public URL
@@ -225,43 +226,45 @@ export function WolfpackProfileManager() {
         .from('images')
         .getPublicUrl(filePath);
 
-      // Create image record
-      const { data: imageData, error: imageError } = await supabase
-        .from('images')
-        .insert({
-          name: fileName,
-          url: publicUrl,
-          size: file.size,
-          mime_type: file.type,
-          image_type: 'avatar',
-          uploaded_by: user.id
-        })
+      // Update profile directly with new avatar URL
+      const updatedFormData = {
+        ...formData
+      };
+
+      const profileData = {
+        user_id: user.id,
+        display_name: updatedFormData.display_name || null,
+        bio: updatedFormData.bio || null,
+        favorite_drink: updatedFormData.favorite_drink || null,
+        favorite_song: updatedFormData.favorite_song || null,
+        instagram_handle: updatedFormData.instagram_handle ? 
+          updatedFormData.instagram_handle.replace('@', '') : null,
+        vibe_status: updatedFormData.vibe_status || null,
+        wolf_emoji: updatedFormData.wolf_emoji,
+        looking_for: updatedFormData.looking_for || null,
+        gender: updatedFormData.gender || null,
+        pronouns: updatedFormData.pronouns || null,
+        is_visible: updatedFormData.is_visible,
+        profile_pic_url: publicUrl
+      };
+
+      const { data: savedData, error: profileError } = await supabase
+        .from('wolf_profiles')
+        .upsert(profileData, { onConflict: 'user_id' })
         .select()
         .single();
 
-      if (imageError) {
-        throw imageError;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw new Error(`Profile update failed: ${profileError.message}`);
       }
 
-      // Update profile with new avatar
-      const updatedProfile = {
-        ...formData,
-        profile_pic_url: publicUrl,
-        custom_avatar_id: imageData.id
-      };
-
-      await saveProfile(updatedProfile, false);
-      
-      setProfile(prev => prev ? {
-        ...prev,
-        profile_pic_url: publicUrl,
-        custom_avatar_id: imageData.id
-      } : null);
-
+      setProfile(savedData);
       toast.success('Avatar uploaded successfully!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to upload avatar: ${errorMessage}`);
     } finally {
       setUploadingAvatar(false);
     }
@@ -342,7 +345,7 @@ export function WolfpackProfileManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bottom-nav-safe">
       {/* Profile Header */}
       <Card>
         <CardContent className="pt-6">
@@ -428,6 +431,20 @@ export function WolfpackProfileManager() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-muted text-muted-foreground"
+                placeholder="Your email address"
+              />
+              <p className="text-xs text-muted-foreground">
+                This is your account email and cannot be changed here
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="display-name">Display Name</Label>
               <Input
@@ -515,9 +532,9 @@ export function WolfpackProfileManager() {
             <div className="space-y-2">
               <Label>Wolf Emoji</Label>
               <div className="grid grid-cols-8 gap-2">
-                {WOLF_EMOJIS.map(emoji => (
+                {WOLF_EMOJIS.map((emoji, index) => (
                   <button
-                    key={emoji}
+                    key={`wolf-emoji-${index}-${emoji}`}
                     type="button"
                     onClick={() => handleInputChange('wolf_emoji', emoji)}
                     className={cn(

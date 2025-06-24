@@ -9,53 +9,10 @@ import { toast } from '@/components/ui/use-toast';
 import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
 import Image from 'next/image';
 
-// TypeScript interfaces
-interface MenuItem {
-  id: string;
-  category_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  is_available: boolean;
-  display_order: number;
-  image_url?: string | null;
-  images?: {
-    id: string;
-    url: string;
-    storage_path: string;
-    metadata: Record<string, unknown>;
-  } | null;
-  category?: {
-    name: string;
-    type?: string;
-  };
-}
-
-interface CartOrderData {
-  item: {
-    id: string;
-    name: string;
-    price: number;
-  };
-  modifiers: {
-    meat: {
-      id: string;
-      name: string;
-      price_adjustment: number;
-    } | null;
-    sauces: Array<{
-      id: string;
-      name: string;
-      price_adjustment: number;
-    }>;
-  };
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
+import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
 
 interface MenuItemCardProps {
-  item: MenuItem;
+  item: MenuItemWithModifiers;
   onAddToCart: (orderData: CartOrderData) => void;
 }
 
@@ -77,9 +34,14 @@ const getCategoryTheme = (categoryName?: string) => {
 };
 
 // Helper function to determine if item needs customization or can be added directly
-const needsCustomization = (item: MenuItem): boolean => {
+const needsCustomization = (item: MenuItemWithModifiers): boolean => {
+  // If item has modifiers, it needs customization
+  if (item.modifiers && item.modifiers.length > 0) {
+    return true;
+  }
+
   const categoryName = item.category?.name?.toLowerCase() || '';
-  const itemName = item.name.toLowerCase();
+  const itemName = (item.name || '').toLowerCase();
   const description = item.description?.toLowerCase() || '';
   
   // Simple beverages that should be added directly to cart (NO modal)
@@ -115,7 +77,7 @@ const needsCustomization = (item: MenuItem): boolean => {
   
   // Food items that typically need customization (meat, sauces)
   const foodItemsNeedingCustomization = [
-    'taco', 'burrito', 'quesadilla', 'torta', 'nacho', 'wings'
+    'loaded fries', 'loaded nacho', 'taco', 'burrito', 'quesadilla', 'torta', 'nacho', 'wings'
   ];
   
   for (const foodType of foodItemsNeedingCustomization) {
@@ -141,6 +103,7 @@ const itemImageMapping: { [key: string]: string } = {
   'beans and rice': 'beans-and-rice.png',
   'rice and beans': 'beans-and-rice.png',
   'loaded nachos': 'loaded-nacho.png',
+  'loaded fries': 'loaded-nacho.png',
   'mango ceviche': 'mango-civeche.png',
   'french fries': 'basket-of-fries.png',
   'taco salad': 'taco-salad.png',
@@ -183,7 +146,7 @@ const findImageForMenuItem = (itemName: string, itemDescription: string, categor
   // Drink-specific mappings
   const drinkImageMapping: { [key: string]: string } = {
     'margarita board': 'boards.png',
-    'mimosa board': 'boards.png', // Use boards.png for mimosa board too
+    'mimosa board': 'boards.png',
     'board': 'boards.png',
     'boards': 'boards.png'
   };
@@ -227,7 +190,7 @@ const findImageForMenuItem = (itemName: string, itemDescription: string, categor
     }
   }
   
-  return null; // No match found
+  return null;
 };
 
 // Placeholder image while loading
@@ -258,7 +221,7 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
+  const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
   const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
     ? `${baseImageUrl}?v=${Date.now()}` 
     : baseImageUrl;
@@ -297,7 +260,8 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
         },
         quantity: 1,
         unitPrice: Number(item.price),
-        totalPrice: Number(item.price)
+        totalPrice: Number(item.price),
+        specialInstructions: ''
       };
       
       onAddToCart(orderData);
@@ -400,7 +364,7 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
+  const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
   const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
     ? `${baseImageUrl}?v=${Date.now()}` 
     : baseImageUrl;
@@ -434,7 +398,8 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
         },
         quantity: 1,
         unitPrice: Number(item.price),
-        totalPrice: Number(item.price)
+        totalPrice: Number(item.price),
+        specialInstructions: ''
       };
       
       onAddToCart(orderData);

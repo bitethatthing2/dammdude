@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
+interface AuthUser {
+  id: string;
+  email?: string;
+}
+
 interface SupabaseError {
   message?: string;
   code?: string;
@@ -116,6 +121,57 @@ interface UseWolfpackMembershipReturn {
   debugMembership: () => Promise<DebugResult>;
 }
 
+// Helper function to ensure user exists in public.users table
+async function ensureUserExists(supabase: ReturnType<typeof getSupabaseBrowserClient>, authUser: AuthUser): Promise<boolean> {
+  try {
+    // Check if user already exists
+    const { data: existingUser, error: selectError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', authUser.id)
+      .maybeSingle();
+    
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Error checking user existence:', selectError);
+      return false;
+    }
+    
+    if (existingUser) {
+      return true; // User already exists
+    }
+    
+    // Create user if doesn't exist
+    const { error: createError } = await supabase
+      .from('users')
+      .upsert({
+        id: authUser.id,
+        email: authUser.email || '',
+        auth_id: authUser.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: true
+      });
+    
+    if (createError) {
+      // If it's a duplicate key error, that's actually fine
+      if (createError.code === '23505' || createError.message?.includes('duplicate key')) {
+        console.log('✅ User already exists (conflict resolved)');
+        return true;
+      }
+      console.error('Failed to create user in public.users:', createError);
+      return false;
+    }
+    
+    console.log('✅ User created in public.users table');
+    return true;
+  } catch (error) {
+    console.error('Error ensuring user exists:', error);
+    return false;
+  }
+}
+
 // Special VIP users who should always be wolfpack members
 const VIP_USERS = ['mkahler599@gmail.com'];
 
@@ -139,6 +195,12 @@ export function useWolfpackMembership(locationId?: string): UseWolfpackMembershi
     try {
       setIsLoading(true);
       setError(null);
+      
+      // First ensure user exists in public.users table
+      const userExists = await ensureUserExists(supabase, user);
+      if (!userExists) {
+        throw new Error('Failed to create user record');
+      }
 
       // Build query
       let query = supabase
@@ -147,8 +209,10 @@ export function useWolfpackMembership(locationId?: string): UseWolfpackMembershi
         .eq('user_id', user.id)
         .eq('status', 'active');
 
-      // Add location filter if provided
-      if (locationId) {
+      // Handle location filter correctly - avoid NULL query issues
+      if (locationId === null || locationId === undefined) {
+        query = query.is('location_id', null);
+      } else if (locationId) {
         query = query.eq('location_id', locationId);
       }
 
@@ -163,23 +227,23 @@ export function useWolfpackMembership(locationId?: string): UseWolfpackMembershi
       if (membershipData) {
         setMembership(membershipData);
       } else if (isVipUser) {
-        // Check if VIP user already has an inactive membership
-        console.log('🌟 VIP User detected, checking for existing membership...');
+        console.log('🌟 VIP User detected, auto-creating membership...');
         
-        const { data: existingVip, error: checkVipError } = await supabase
-          .from('wolfpack_memberships')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        try {
+          // Check for existing VIP membership first
+          const { data: existingVip, error: checkVipError } = await supabase
+            .from('wolfpack_memberships')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (checkVipError && checkVipError.code !== 'PGRST116') {
+            throw checkVipError;
+          }
           
-        if (checkVipError && checkVipError.code !== 'PGRST116') {
-          throw checkVipError;
-        }
-        
-        if (existingVip) {
-          // Reactivate existing VIP membership
-          console.log('♻️ Reactivating existing VIP membership...');
-          try {
+          if (existingVip) {
+            // Reactivate existing VIP membership
+            console.log('♻️ Reactivating existing VIP membership...');
             const { data: vipMembership, error: vipError } = await supabase
               .from('wolfpack_memberships')
               .update({
@@ -194,45 +258,43 @@ export function useWolfpackMembership(locationId?: string): UseWolfpackMembershi
               
             if (vipError) {
               console.error('Failed to reactivate VIP membership:', vipError);
-              throw vipError;
+              // Don't throw, just log and continue
+              setMembership(null);
+            } else {
+              setMembership(vipMembership);
+              console.log('✅ VIP membership reactivated successfully');
             }
-            
-            setMembership(vipMembership);
-            console.log('✅ VIP membership reactivated successfully');
-          } catch (vipErr) {
-            console.error('VIP reactivation error:', vipErr);
-            // Don't throw - just continue without VIP membership
-            setMembership(null);
-          }
-        } else {
-          // Create new VIP membership
-          console.log('➕ Creating new VIP membership...');
-          try {
+          } else {
+            // Create new VIP membership using upsert to avoid conflicts
+            console.log('➕ Creating new VIP membership...');
             const { data: vipMembership, error: vipError } = await supabase
               .from('wolfpack_memberships')
-              .insert({
+              .upsert({
                 user_id: user.id,
                 status: 'active',
                 table_location: 'VIP',
                 location_id: locationId || null,
                 joined_at: new Date().toISOString(),
                 last_active: new Date().toISOString()
+              }, {
+                onConflict: 'user_id',
+                ignoreDuplicates: false
               })
               .select()
               .single();
 
             if (vipError) {
               console.error('Failed to create VIP membership:', vipError);
-              throw vipError;
+              // Don't throw, just log and continue
+              setMembership(null);
+            } else {
+              setMembership(vipMembership);
+              console.log('✅ VIP membership created successfully');
             }
-            
-            setMembership(vipMembership);
-            console.log('✅ VIP membership created successfully');
-          } catch (vipErr) {
-            console.error('VIP creation error:', vipErr);
-            // Don't throw - just continue without VIP membership
-            setMembership(null);
           }
+        } catch (vipErr) {
+          console.error('VIP membership handling error:', vipErr);
+          setMembership(null);
         }
       } else {
         setMembership(null);

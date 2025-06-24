@@ -29,19 +29,36 @@ interface WolfPackMember {
   table_location?: string;
   joined_at: string;
   last_activity: string;
-  is_active: boolean;
-  wolf_profiles?: {
-    display_name: string;
-    wolf_emoji: string;
-    vibe_status: string;
-    favorite_drink?: string;
-    instagram_handle?: string;
-    looking_for?: string;
-    bio?: string;
-    is_visible: boolean;
-    profile_image_url?: string;
+  status: 'active' | 'inactive';
+  user?: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    role: string;
+    wolf_profile?: {
+      display_name: string;
+      wolf_emoji: string;
+      vibe_status: string;  // NOT wolfpack_status
+      favorite_drink?: string;
+      instagram_handle?: string;
+      looking_for?: string;
+      bio?: string;
+      is_visible: boolean;
+      profile_image_url?: string;
+      allow_messages?: boolean;
+    };
   };
-  users?: {
+}
+
+interface SimpleMemberData {
+  id: string;
+  user_id: string;
+  location_id: string;
+  table_location?: string;
+  joined_at: string;
+  last_activity: string;
+  status: 'active' | 'inactive';
+  user?: {
     email: string;
     first_name?: string;
     last_name?: string;
@@ -67,39 +84,87 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
   // Load wolfpack members
   useEffect(() => {
     async function loadMembers() {
+      if (!locationId || !currentUserId) {
+        console.warn('Missing locationId or currentUserId:', { locationId, currentUserId });
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
 
-        const { data, error } = await supabase
-          .from('wolf_pack_members')
+        // Try the full query first
+        let query = supabase
+          .from('wolfpack_memberships')
           .select(`
             *,
-            wolf_profiles (
-              display_name,
-              wolf_emoji,
-              vibe_status,
-              favorite_drink,
-              instagram_handle,
-              looking_for,
-              bio,
-              is_visible,
-              profile_image_url
-            ),
-            users (
-              email,
-              first_name,
-              last_name,
-              role
+            user:users (
+              *,
+              wolf_profile:wolf_profiles (*)
             )
           `)
-          .eq('location_id', locationId)
-          .eq('is_active', true)
-          .order('joined_at', { ascending: false });
+          .eq('status', 'active');
 
-        if (error) throw error;
+        // Handle location filter correctly - avoid NULL query issues
+        if (locationId === null || locationId === undefined) {
+          query = query.is('location_id', null);
+        } else {
+          query = query.eq('location_id', locationId);
+        }
 
-        setMembers(data || []);
+        const { data, error } = await query.order('joined_at', { ascending: false });
+
+        if (error) {
+          // If it's a relationship error, try a simpler query
+          if (error.code === 'PGRST200') {
+            console.log('Wolf profiles relationship not found, trying simpler query...');
+            let simpleQuery = supabase
+              .from('wolfpack_memberships')
+              .select(`
+                *,
+                user:users (*)
+              `)
+              .eq('status', 'active');
+
+            // Handle location filter correctly for fallback query too
+            if (locationId === null || locationId === undefined) {
+              simpleQuery = simpleQuery.is('location_id', null);
+            } else {
+              simpleQuery = simpleQuery.eq('location_id', locationId);
+            }
+
+            const { data: simpleData, error: simpleError } = await simpleQuery.order('joined_at', { ascending: false });
+
+            if (simpleError) throw simpleError;
+
+            // Transform data to match expected interface (without wolf_profile)
+            const transformedData = simpleData?.map((member: SimpleMemberData) => ({
+              ...member,
+              user: member.user ? {
+                ...member.user,
+                wolf_profile: {
+                  display_name: 'Anonymous Wolf',
+                  wolf_emoji: '🐺',
+                  vibe_status: 'Just joined',
+                  favorite_drink: null,
+                  instagram_handle: null,
+                  looking_for: null,
+                  bio: null,
+                  is_visible: true,
+                  profile_image_url: null,
+                  allow_messages: true
+                }
+              } : undefined
+            })) || [];
+
+            setMembers(transformedData);
+          } else {
+            throw error;
+          }
+        } else {
+          setMembers(data || []);
+        }
       } catch (error) {
         console.error('Error loading wolfpack members:', error);
         setError('Failed to load wolfpack members');
@@ -108,10 +173,10 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
       }
     }
 
-    if (locationId) {
-      loadMembers();
+    loadMembers();
 
-      // Set up real-time subscription for member changes
+    // Set up real-time subscription for member changes
+    if (locationId) {
       const memberSubscription = supabase
         .channel(`wolfpack_members_${locationId}`)
         .on(
@@ -119,7 +184,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
           {
             event: '*',
             schema: 'public',
-            table: 'wolf_pack_members',
+            table: 'wolfpack_memberships',
             filter: `location_id=eq.${locationId}`
           },
           () => {
@@ -132,7 +197,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
         memberSubscription.unsubscribe();
       };
     }
-  }, [locationId, supabase]);
+  }, [locationId, currentUserId, supabase]);
 
   // Send wink to another member
   const sendWink = async (targetUserId: string) => {
@@ -165,7 +230,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
 
   // Get member role display
   const getMemberRoleDisplay = (member: WolfPackMember) => {
-    const role = member.users?.role;
+    const role = member.user?.role;
     if (role === 'dj') return { icon: Mic, label: 'DJ', color: 'bg-purple-500' };
     if (role === 'bartender') return { icon: Crown, label: 'Bartender', color: 'bg-orange-500' };
     return { icon: Star, label: 'Wolf', color: 'bg-blue-500' };
@@ -223,7 +288,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
   }
 
   const visibleMembers = members.filter(member => 
-    member.wolf_profiles?.is_visible !== false
+    member.user?.wolf_profile?.is_visible !== false
   );
 
   return (
@@ -266,10 +331,10 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.wolf_profiles?.profile_image_url} />
+                          <AvatarImage src={member.user?.wolf_profile?.profile_image_url} />
                           <AvatarFallback>
-                            {member.wolf_profiles?.wolf_emoji || 
-                             member.wolf_profiles?.display_name?.charAt(0)?.toUpperCase() || 
+                            {member.user?.wolf_profile?.wolf_emoji || 
+                             member.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
                              'W'}
                           </AvatarFallback>
                         </Avatar>
@@ -283,8 +348,8 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium truncate">
-                            {member.wolf_profiles?.display_name || 
-                             member.users?.first_name || 
+                            {member.user?.wolf_profile?.display_name || 
+                             member.user?.first_name || 
                              'Anonymous Wolf'}
                           </h3>
                           {isCurrentUser && (
@@ -296,7 +361,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                         </div>
                         
                         <p className="text-sm text-muted-foreground mb-1">
-                          {member.wolf_profiles?.vibe_status || 'Ready to party! 🎉'}
+                          {member.user?.wolf_profile?.vibe_status || 'Ready to party! 🎉'}
                         </p>
                         
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -328,7 +393,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                               e.stopPropagation();
                               startPrivateChat(
                                 member.user_id, 
-                                member.wolf_profiles?.display_name || 'Anonymous Wolf'
+                                member.user?.wolf_profile?.display_name || 'Anonymous Wolf'
                               );
                             }}
                             className="w-full"
@@ -368,20 +433,20 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
           <CardContent>
             <div className="flex items-center gap-4 mb-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={selectedMember.wolf_profiles?.profile_image_url} />
+                <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url} />
                 <AvatarFallback className="text-lg">
-                  {selectedMember.wolf_profiles?.wolf_emoji || 
-                   selectedMember.wolf_profiles?.display_name?.charAt(0)?.toUpperCase() || 
+                  {selectedMember.user?.wolf_profile?.wolf_emoji || 
+                   selectedMember.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
                    'W'}
                 </AvatarFallback>
               </Avatar>
               
               <div className="flex-1">
                 <h3 className="text-xl font-bold">
-                  {selectedMember.wolf_profiles?.display_name || 'Anonymous Wolf'}
+                  {selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'}
                 </h3>
                 <p className="text-muted-foreground">
-                  {selectedMember.wolf_profiles?.vibe_status || 'Ready to party! 🎉'}
+                  {selectedMember.user?.wolf_profile?.vibe_status || 'Ready to party! 🎉'}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="secondary">
@@ -395,29 +460,29 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
             </div>
 
             <div className="space-y-3">
-              {selectedMember.wolf_profiles?.bio && (
+              {selectedMember.user?.wolf_profile?.bio && (
                 <div>
                   <h4 className="font-medium mb-1">About</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedMember.wolf_profiles.bio}
+                    {selectedMember.user.wolf_profile.bio}
                   </p>
                 </div>
               )}
 
-              {selectedMember.wolf_profiles?.favorite_drink && (
+              {selectedMember.user?.wolf_profile?.favorite_drink && (
                 <div>
                   <h4 className="font-medium mb-1">Favorite Drink</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedMember.wolf_profiles.favorite_drink}
+                    {selectedMember.user.wolf_profile.favorite_drink}
                   </p>
                 </div>
               )}
 
-              {selectedMember.wolf_profiles?.looking_for && (
+              {selectedMember.user?.wolf_profile?.looking_for && (
                 <div>
                   <h4 className="font-medium mb-1">Looking For</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedMember.wolf_profiles.looking_for}
+                    {selectedMember.user.wolf_profile.looking_for}
                   </p>
                 </div>
               )}
@@ -432,11 +497,11 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                 </div>
               )}
 
-              {selectedMember.wolf_profiles?.instagram_handle && (
+              {selectedMember.user?.wolf_profile?.instagram_handle && (
                 <div>
                   <h4 className="font-medium mb-1">Instagram</h4>
                   <p className="text-sm text-muted-foreground">
-                    @{selectedMember.wolf_profiles.instagram_handle}
+                    @{selectedMember.user.wolf_profile.instagram_handle}
                   </p>
                 </div>
               )}
@@ -454,7 +519,7 @@ export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembe
                 <Button
                   onClick={() => startPrivateChat(
                     selectedMember.user_id,
-                    selectedMember.wolf_profiles?.display_name || 'Anonymous Wolf'
+                    selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'
                   )}
                   className="flex-1"
                 >

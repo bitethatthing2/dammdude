@@ -97,7 +97,7 @@ const joinWolfPackFromLocation = async (
 
     // Step 4: Check if already a pack member
     const { data: existingMember, error: memberCheckError } = await supabase
-      .from('wolf_pack_members')
+      .from('wolfpack_memberships')
       .select('*')
       .eq('user_id', user.id)
       .eq('location_id', locationId)
@@ -112,13 +112,13 @@ const joinWolfPackFromLocation = async (
       const memberData = {
         user_id: user.id,
         location_id: locationId,
-        is_active: true,
+        status: 'active',
         joined_at: new Date().toISOString(),
-        last_activity: new Date().toISOString()
+        last_active: new Date().toISOString()
       };
 
       const { data: memberEntry, error: memberError } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_memberships')
         .insert(memberData)
         .select()
         .single();
@@ -132,10 +132,10 @@ const joinWolfPackFromLocation = async (
     } else {
       // Update existing membership
       const { error: updateError } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_memberships')
         .update({ 
-          is_active: true, 
-          last_activity: new Date().toISOString() 
+          status: 'active', 
+          last_active: new Date().toISOString() 
         })
         .eq('id', existingMember.id);
 
@@ -168,19 +168,19 @@ export async function checkWolfPackStatus(userId: string) {
       console.error('Error checking user wolfpack status:', userError);
     }
 
-    // Fix 2: Query wolf_pack_members with correct columns
+    // Fix 2: Query wolfpack_memberships with correct columns
     const { data: memberData, error: memberError } = await supabase
-      .from('wolf_pack_members')
+      .from('wolfpack_memberships')
       .select(`
         id,
         user_id,
         location_id,
-        is_active,
+        status,
         joined_at,
-        last_activity
+        last_active
       `)
       .eq('user_id', userId)
-      .eq('is_active', true);
+      .eq('status', 'active');
 
     if (memberError) {
       console.error('Error checking pack membership:', memberError);
@@ -208,11 +208,11 @@ export async function getWolfPackLocations(userId: string) {
   try {
     // Fix 3: Correct join syntax for locations
     const { data, error } = await supabase
-      .from('wolf_pack_members')
+      .from('wolfpack_memberships')
       .select(`
         id,
         location_id,
-        is_active,
+        status,
         joined_at,
         locations (
           id,
@@ -223,7 +223,7 @@ export async function getWolfPackLocations(userId: string) {
         )
       `)
       .eq('user_id', userId)
-      .eq('is_active', true);
+      .eq('status', 'active');
 
     if (error) {
       console.error('Error fetching wolfpack locations:', error);
@@ -289,14 +289,14 @@ export function GeolocationActivation() {
 
       try {
         const { data, error } = await supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_memberships')
           .select(`
             id,
             location_id,
             locations!inner(name)
           `)
           .eq('user_id', user.id)
-          .eq('is_active', true)
+          .eq('status', 'active')
           .maybeSingle();
 
         if (!error && data) {

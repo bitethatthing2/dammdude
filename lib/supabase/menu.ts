@@ -1,9 +1,23 @@
 // lib/supabase/menu.ts
 import { getSupabaseBrowserClient } from './client';
-import { MenuCategory, MenuItem, MenuModifier, FoodDrinkCategory } from '../types/menu';
+import { MenuCategory, MenuItemWithModifiers, MenuItemModifier } from '../types/menu';
+
+// Type for the food_drink_categories table
+interface FoodDrinkCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  type: 'food' | 'drink';
+  display_order: number;
+  is_active: boolean;
+  icon: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 // Type for the joined query result
-interface MenuItemWithCategory extends MenuItem {
+interface MenuItemWithCategory extends MenuItemWithModifiers {
   food_drink_categories: FoodDrinkCategory | null;
 }
 
@@ -66,7 +80,7 @@ export async function getMenuCategories(): Promise<MenuCategory[]> {
   }
 }
 
-export async function getMenuItems(categoryId?: string): Promise<MenuItem[]> {
+export async function getMenuItems(categoryId?: string): Promise<MenuItemWithModifiers[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     
@@ -157,7 +171,7 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItem[]> {
   }
 }
 
-export async function getMenuModifiers(itemId?: string): Promise<MenuModifier[]> {
+export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifier[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     
@@ -246,7 +260,7 @@ export async function getModifierOptionsByType(modifierType: 'meat' | 'sauce'): 
   }
 }
 
-export async function getFullMenu(): Promise<{ menu: MenuCategory[]; modifiers: MenuModifier[] }> {
+export async function getFullMenu(): Promise<{ menu: MenuCategory[]; modifiers: MenuItemModifier[] }> {
   try {
     console.log('Starting getFullMenu...');
     
@@ -268,7 +282,7 @@ export async function getFullMenu(): Promise<{ menu: MenuCategory[]; modifiers: 
       ...category,
       items: items.filter(item => {
         // Handle both new and old field names for category ID
-        const itemCategoryId = (item as MenuItem & { category_id?: string }).category_id || item.menu_category_id;
+        const itemCategoryId = (item as MenuItemWithModifiers & { category_id?: string }).category_id || item.category_id;
         return itemCategoryId === category.id;
       })
     }));

@@ -51,9 +51,10 @@ export function useWolfpackStatus(): WolfpackStatus {
 
         // Also check if user is currently in a wolf pack
         const { data: packMember, error: packError } = await supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_memberships')
           .select('user_id')
           .eq('user_id', user.id)
+          .eq('status', 'active')
           .single();
 
         if (packError && packError.code !== 'PGRST116') {

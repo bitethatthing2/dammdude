@@ -24,7 +24,7 @@ interface MenuCategoryNavProps {
 
 // Get the appropriate CSS class based on category name and active state
 const getCategoryColorClass = (name: string, isActive: boolean) => {
-  const lowerName = name.toLowerCase();
+  const lowerName = (name || '').toLowerCase();
   
   // Food Categories
   if (lowerName.includes('small') || lowerName.includes('bite')) {

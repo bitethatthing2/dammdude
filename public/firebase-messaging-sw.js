@@ -161,18 +161,35 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     (async () => {
       try {
-        // Get the appropriate caching strategy for this request
-        const { strategy, options } = self.sideHustleCache.getStrategy(event.request);
+        // Only use cache utility if available, otherwise use normal fetch
+        if (self.sideHustleCache && typeof self.sideHustleCache.getStrategy === 'function') {
+          try {
+            // Get the appropriate caching strategy for this request
+            const { strategy, options } = self.sideHustleCache.getStrategy(event.request);
+            
+            // Apply the strategy with reasonable timeout (reduced from 30s to 10s)
+            const response = await Promise.race([
+              strategy(options),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Service worker timeout')), 10000)
+              )
+            ]);
+            
+            return response;
+          } catch (cacheError) {
+            console.warn('[Service Worker] Cache strategy failed, falling back to fetch:', cacheError);
+            // Fall through to normal fetch
+          }
+        }
         
-        // Apply the strategy with timeout
-        const response = await Promise.race([
-          strategy(options),
+        // Fallback to normal fetch with shorter timeout
+        return await Promise.race([
+          fetch(event.request),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Service worker timeout')), 30000)
+            setTimeout(() => reject(new Error('Fetch timeout')), 8000)
           )
         ]);
         
-        return response;
       } catch (error) {
         console.error('[Service Worker] Error in fetch handler:', error);
         
@@ -203,20 +220,26 @@ self.addEventListener('fetch', event => {
           );
         }
         
-        // For other requests, try to fetch normally as fallback
+        // For other requests, try to return cached version if available
         try {
-          return await fetch(event.request);
-        } catch (fetchError) {
-          // Return appropriate error response
-          return new Response(
-            JSON.stringify({ error: 'Service unavailable' }),
-            {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) {
+            console.log('[Service Worker] Returning cached response for failed request');
+            return cachedResponse;
+          }
+        } catch (cacheError) {
+          console.warn('[Service Worker] Cache lookup failed:', cacheError);
         }
+        
+        // Return appropriate error response as last resort
+        return new Response(
+          JSON.stringify({ error: 'Service unavailable', message: error.message }),
+          {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
       }
     })()
   );

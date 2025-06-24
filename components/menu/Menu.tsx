@@ -22,70 +22,17 @@ import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
 import Cart, { useCart } from '@/components/cart/Cart';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
-
-interface MenuCategory {
-  id: string;
-  name: string;
-  type: 'food' | 'drink';
-  description: string | null;
-  display_order: number;
-  is_active: boolean;
-  icon: string | null;
-  color: string | null;
-}
-
-interface MenuItem {
-  id: string;
-  category_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  is_available: boolean;
-  display_order: number;
-  image_url?: string | null;
-  images?: {
-    id: string;
-    url: string;
-    storage_path: string;
-    metadata: Record<string, unknown>;
-  } | null;
-  category?: {
-    name: string;
-    type?: string;
-  };
-}
-
-interface CartOrderData {
-  item: {
-    id: string;
-    name: string;
-    price: number;
-  };
-  modifiers: {
-    meat: {
-      id: string;
-      name: string;
-      price_adjustment: number;
-    } | null;
-    sauces: Array<{
-      id: string;
-      name: string;
-      price_adjustment: number;
-    }>;
-  };
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-interface MenuCategoryWithCount extends MenuCategory {
-  item_count: number;
-}
+import type { 
+  MenuCategory, 
+  MenuCategoryWithCount, 
+  MenuItemWithModifiers, 
+  CartOrderData
+} from '@/lib/types/menu';
 
 export default function Menu() {
   const [activeTab, setActiveTab] = useState<'food' | 'drink'>('food');
   const [categories, setCategories] = useState<MenuCategoryWithCount[]>([]);
-  const [items, setItems] = useState<MenuItem[]>([]);
+  const [items, setItems] = useState<MenuItemWithModifiers[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +47,6 @@ export default function Menu() {
   const { cartCount, addToCart } = useCart();
   const { user } = useAuth();
 
-
   // Initialize client-side state
   useEffect(() => {
     // Check if mobile device (mobile-first approach)
@@ -112,6 +58,7 @@ export default function Menu() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
   // Fetch menu data function
   const fetchMenuData = useCallback(async () => {
     try {
@@ -127,21 +74,50 @@ export default function Menu() {
 
       if (categoriesError) throw categoriesError;
 
-      // Fetch items using our corrected API route (with database images)
-      const itemsResponse = await fetch('/api/menu-items');
-      if (!itemsResponse.ok) {
-        throw new Error(`API Error: ${itemsResponse.status}`);
+      // Fetch items with modifiers using RPC function
+      const { data: rpcItemsData, error: itemsError } = await supabase
+        .rpc('get_menu_items_with_modifiers');
+
+      if (itemsError) throw itemsError;
+      
+      // Convert RPC items to MenuItemWithModifiers format
+      const convertedItems: MenuItemWithModifiers[] = [];
+      
+      if (rpcItemsData && Array.isArray(rpcItemsData)) {
+        for (const rpcItem of rpcItemsData) {
+          try {
+            // Direct conversion from RPC format to MenuItemWithModifiers
+            const convertedItem: MenuItemWithModifiers = {
+              id: rpcItem.id,
+              name: rpcItem.name,
+              description: rpcItem.description,
+              price: typeof rpcItem.price === 'string' ? parseFloat(rpcItem.price) : rpcItem.price,
+              is_available: rpcItem.is_available,
+              display_order: rpcItem.display_order,
+              category_id: rpcItem.category_id,
+              category: {
+                id: rpcItem.category_id,
+                name: rpcItem.category_name,
+                type: rpcItem.menu_type
+              },
+              modifiers: rpcItem.modifiers, // RPC already returns in correct format
+              image_url: rpcItem.image_url
+            };
+            convertedItems.push(convertedItem);
+          } catch (e) {
+            console.error('Error converting menu item:', e, rpcItem);
+          }
+        }
       }
-      const itemsData: MenuItem[] = await itemsResponse.json();
 
       // Count items per category
       const categoriesWithCount: MenuCategoryWithCount[] = (categoriesData || []).map((cat: MenuCategory) => ({
         ...cat,
-        item_count: (itemsData || []).filter((item: MenuItem) => item.category_id === cat.id).length
+        item_count: convertedItems.filter((item) => item.category_id === cat.id).length
       }));
 
       setCategories(categoriesWithCount);
-      setItems(itemsData || []);
+      setItems(convertedItems);
 
       // Set initial active category
       setActiveCategory(prevCategory => {
@@ -201,10 +177,11 @@ export default function Menu() {
     // Find the menu item to get image_url
     const menuItem = items.find(item => item.id === orderData.item.id);
     
-    // Convert legacy modifiers to unified customizations structure
+    // Convert modifiers to unified customizations structure
     const customizations: ItemCustomization = {
       meat: orderData.modifiers.meat,
-      sauces: orderData.modifiers.sauces
+      sauces: orderData.modifiers.sauces || [],
+      special_instructions: orderData.specialInstructions
     };
 
     // Create cart item using unified utility function

@@ -43,7 +43,7 @@ interface WolfPackSession {
   expires_at: string;
   member_count: number;
   max_members: number;
-  is_active: boolean;
+  status: 'active' | 'inactive';
 }
 
 interface MembershipState {
@@ -148,7 +148,7 @@ export function WolfpackMembershipManager() {
             expires_at: membership.wolfpack_sessions.expires_at,
             member_count: membership.wolfpack_sessions.member_count,
             max_members: membership.wolfpack_sessions.max_members,
-            is_active: membership.wolfpack_sessions.is_active
+            status: membership.wolfpack_sessions.is_active ? 'active' : 'inactive'
           }
         }));
 

@@ -4,7 +4,22 @@ import { Database } from '@/types/database'
 export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      // Remove global Content-Type header to allow file uploads
+      global: {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Profile': 'public'
+        }
+      },
+      // Improve connection handling
+      realtime: {
+        params: {
+          eventsPerSecond: 2
+        }
+      }
+    }
   )
 }
 
