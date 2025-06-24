@@ -44,7 +44,7 @@ interface WolfProfile {
   vibe_status: string | null;
   favorite_drink: string | null;
   instagram_handle: string | null;
-  looking_for: string | null;
+  favorite_bartender: string | null;
   is_visible: boolean;
   profile_image_url: string | null;
   phone: string | null;
@@ -71,7 +71,7 @@ export function UserProfileManager() {
     bio: '',
     favorite_drink: '',
     instagram_handle: '',
-    looking_for: '',
+    favorite_bartender: '',
     is_visible: true
   });
 
@@ -119,7 +119,7 @@ export function UserProfileManager() {
           bio: wolfData?.bio || '',
           favorite_drink: wolfData?.favorite_drink || '',
           instagram_handle: wolfData?.instagram_handle || '',
-          looking_for: wolfData?.looking_for || '',
+          favorite_bartender: wolfData?.favorite_bartender || '',
           is_visible: wolfData?.is_visible ?? true
         });
       }
@@ -236,7 +236,7 @@ export function UserProfileManager() {
         bio: formData.bio || null,
         favorite_drink: formData.favorite_drink || null,
         instagram_handle: formData.instagram_handle || null,
-        looking_for: formData.looking_for || null,
+        favorite_bartender: formData.favorite_bartender || null,
         is_visible: formData.is_visible,
         phone: formData.phone || null,
         profile_image_url: wolfProfile?.profile_image_url || null
@@ -498,12 +498,12 @@ export function UserProfileManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="looking-for">Looking For</Label>
+              <Label htmlFor="favorite-bartender">Favorite Bartender</Label>
               <Input
-                id="looking-for"
-                value={formData.looking_for}
-                onChange={(e) => handleInputChange('looking_for', e.target.value)}
-                placeholder="New friends, dance partners..."
+                id="favorite-bartender"
+                value={formData.favorite_bartender}
+                onChange={(e) => handleInputChange('favorite_bartender', e.target.value)}
+                placeholder="Your favorite bartender's name..."
               />
             </div>
 

@@ -173,43 +173,57 @@ const itemImageMapping: { [key: string]: string } = {
   'rice': 'rice.png'
 };
 
-const findImageForMenuItem = (itemName: string, itemDescription: string): string | null => {
+const findImageForMenuItem = (itemName: string, itemDescription: string, categoryType?: string): string | null => {
   const searchText = (itemName + ' ' + itemDescription).toLowerCase().trim();
   const itemNameOnly = itemName.toLowerCase().trim();
   
+  // Determine image directory based on category type
+  const imageDir = categoryType === 'drink' ? '/drink-menu-images/' : '/food-menu-images/';
+  
+  // Drink-specific mappings
+  const drinkImageMapping: { [key: string]: string } = {
+    'margarita board': 'boards.png',
+    'mimosa board': 'boards.png', // Use boards.png for mimosa board too
+    'board': 'boards.png',
+    'boards': 'boards.png'
+  };
+  
+  // Use drink mappings for drink items
+  const mappingsToUse = categoryType === 'drink' ? drinkImageMapping : itemImageMapping;
+  
   // First pass: Look for EXACT matches with full search text
-  for (const [keyword, imageName] of Object.entries(itemImageMapping)) {
+  for (const [keyword, imageName] of Object.entries(mappingsToUse)) {
     if (searchText === keyword.toLowerCase()) {
-      return `/food-menu-images/${imageName}`;
+      return `${imageDir}${imageName}`;
     }
   }
   
   // Second pass: Look for EXACT matches with item name only
-  for (const [keyword, imageName] of Object.entries(itemImageMapping)) {
+  for (const [keyword, imageName] of Object.entries(mappingsToUse)) {
     if (itemNameOnly === keyword.toLowerCase()) {
-      return `/food-menu-images/${imageName}`;
+      return `${imageDir}${imageName}`;
     }
   }
   
   // Third pass: Look for specific multi-word matches (prioritize longer phrases)
-  const sortedMappings = Object.entries(itemImageMapping)
+  const sortedMappings = Object.entries(mappingsToUse)
     .filter(([keyword]) => keyword.includes(' '))
     .sort((a, b) => b[0].length - a[0].length);
     
   for (const [keyword, imageName] of sortedMappings) {
     if (searchText.includes(keyword.toLowerCase()) || itemNameOnly.includes(keyword.toLowerCase())) {
-      return `/food-menu-images/${imageName}`;
+      return `${imageDir}${imageName}`;
     }
   }
   
   // Fourth pass: Single word matches
-  const singleWordMappings = Object.entries(itemImageMapping)
+  const singleWordMappings = Object.entries(mappingsToUse)
     .filter(([keyword]) => !keyword.includes(' '))
     .sort((a, b) => b[0].length - a[0].length);
     
   for (const [keyword, imageName] of singleWordMappings) {
     if (searchText.includes(keyword.toLowerCase()) || itemNameOnly.includes(keyword.toLowerCase())) {
-      return `/food-menu-images/${imageName}`;
+      return `${imageDir}${imageName}`;
     }
   }
   
@@ -244,8 +258,8 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
-  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') 
+  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
+  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
     ? `${baseImageUrl}?v=${Date.now()}` 
     : baseImageUrl;
   
@@ -386,8 +400,8 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
-  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '');
-  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') 
+  const baseImageUrl = item.images?.url || item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
+  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
     ? `${baseImageUrl}?v=${Date.now()}` 
     : baseImageUrl;
   

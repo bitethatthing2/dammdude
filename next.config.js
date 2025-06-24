@@ -14,9 +14,19 @@ const nextConfig = {
   
   // Image optimization configuration
   images: {
-    domains: [
-      'localhost',
-      'your-supabase-url.supabase.co', // Replace with your actual Supabase URL
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'tvnpgbjypnezoasbhbwx.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

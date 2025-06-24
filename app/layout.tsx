@@ -9,6 +9,7 @@ import { BottomNav } from '@/components/shared/BottomNav';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'),
   title: 'Side Hustle',
   description: 'Order food and drinks at Side Hustle - A faster, app-like experience with offline access',
   manifest: '/manifest.json',

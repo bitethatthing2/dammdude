@@ -80,7 +80,7 @@ export const BottomNav = () => {
       basicItems.push({ id: 'profile', href: '/profile', icon: User, label: 'Profile' });
     } else {
       // Only show login if NOT logged in
-      basicItems.push({ id: 'login', href: '/login', icon: LogIn, label: 'Log In' });
+      basicItems.push({ id: 'login', href: '/login', icon: LogIn, label: 'Log In / Sign Up' });
     }
 
     // Add public features
