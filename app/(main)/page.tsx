@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Utensils, CalendarDays, BookOpen, Download, Bell, Star, Users, MapPin, Truck } from "lucide-react";
+import { Utensils, Download, Bell, Star, Users, MapPin, Truck } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
@@ -60,22 +60,22 @@ export default function Page() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <div className="container mx-auto px-4 py-6 space-y-6 bottom-nav-safe">
       {/* Original Home Page Content */}
-      <div className="flex flex-col items-center pt-2 relative">
+      <div className="flex flex-col items-center pt-16 relative">
 
 
-      {/* Side Hustle Font Logo - Positioned in upper left */}
-      <div className="absolute top-4 left-4 z-10"> 
+      {/* Side Hustle Font Logo - Fixed to viewport top-left */}
+      <div className="fixed top-0 left-0 z-50 bg-background/95 backdrop-blur-sm p-3 shadow-sm"> 
         {mounted ? (
           <Image 
             src={sideHustleFontSrc} 
             alt="Side Hustle" 
-            width={144} // Adjust based on your image dimensions
-            height={64}  // Adjust based on your image dimensions
-            className="h-12 w-auto md:h-14 lg:h-16" 
+            width={240}
+            height={48}
+            className="h-10 w-auto sm:h-12 md:h-14 lg:h-16" 
             priority
           />
         ) : (
-          <div className="h-12 w-28 md:h-14 md:w-32 lg:h-16 lg:w-36 bg-muted animate-pulse" />
+          <div className="h-10 w-40 sm:h-12 sm:w-48 md:h-14 md:w-56 lg:h-16 lg:w-64 bg-muted animate-pulse rounded" />
         )}
       </div>
 

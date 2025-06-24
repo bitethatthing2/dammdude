@@ -19,7 +19,7 @@ export function QuickActionButtons() {
   const handleDirections = () => {
     // Open Google Maps to nearest location
     const salemCoords = "44.9429,-123.0351";
-    const portlandCoords = "45.5152,-122.6784";
+    // Portland coordinates: "45.5152,-122.6784" - available if needed
     window.open(`https://maps.google.com/?q=${salemCoords}`, '_blank');
   };
 

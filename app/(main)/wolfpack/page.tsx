@@ -19,48 +19,78 @@ import {
   CheckCircle, 
   AlertCircle,
   Loader2,
-  ArrowRight,
-  Crown
+  ArrowRight
 } from 'lucide-react';
 
 interface WolfpackMembership {
   id: string;
   user_id: string;
-  status: 'active' | 'inactive' | 'pending';
+  location_id: string;
+  status: 'active' | 'away' | 'offline' | 'inactive';
   table_location: string | null;
   joined_at: string;
-  last_active: string | null;
+  last_activity: string | null;
+  is_active: boolean;
+  latitude?: number;
+  longitude?: number;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  city: string;
 }
 
 export default function WolfpackPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [membership, setMembership] = useState<WolfpackMembership | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   
   const supabase = getSupabaseBrowserClient();
 
-
   useEffect(() => {
     if (user) {
       checkMembershipStatus();
+      fetchLocations();
     } else {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const fetchLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('id, name, city')
+        .in('city', ['Salem', 'Portland']);
+
+      if (error) throw error;
+      if (data) {
+        console.log('Fetched locations:', data);
+        setLocations(data);
+        return data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      return [];
+    }
+  };
+
   const checkMembershipStatus = async () => {
     if (!user) return;
 
     try {
-      // Check for existing membership
+      // Check for existing membership using the correct table name
       const { data: membershipData, error } = await supabase
-        .from('wolfpack_memberships')
+        .from('wolf_pack_members')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .eq('is_active', true)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -83,32 +113,98 @@ export default function WolfpackPage() {
     }
   };
 
-
-  const requestLocationPermission = async () => {
-    try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation is not supported by this browser');
-      }
-
-      return new Promise<boolean>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          resolve(true);
-        },
-          (error) => {
-            console.error('Location error:', error);
-            reject(new Error('Location permission denied'));
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
-          }
-        );
-      });
-    } catch (error) {
-      throw error;
+  const requestLocationPermission = async (availableLocations: Location[]): Promise<{ latitude: number; longitude: number; location: Location }> => {
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by this browser');
     }
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('Location access granted:', { latitude, longitude });
+          
+          // Determine which location the user is closest to
+          const location = determineClosestLocation(latitude, longitude, availableLocations);
+          
+          resolve({ latitude, longitude, location });
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          let errorMessage = 'Location access failed';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location permission was denied. Please enable location access in your browser settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information is unavailable. Please check your GPS or internet connection.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again.';
+              break;
+            default:
+              errorMessage = `Location error: ${error.message}`;
+              break;
+          }
+          
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      );
+    });
+  };
+
+  const determineClosestLocation = (latitude: number, longitude: number, availableLocations: Location[]): Location => {
+    if (!availableLocations || availableLocations.length === 0) {
+      throw new Error('No locations available. Please try again.');
+    }
+
+    // Salem coordinates (approximate downtown area)
+    const salemLat = 44.9429;
+    const salemLng = -123.0351;
+    
+    // Portland coordinates (approximate downtown area)
+    const portlandLat = 45.5152;
+    const portlandLng = -122.6784;
+    
+    // Calculate distance to each city
+    const salemDistance = Math.sqrt(
+      Math.pow(latitude - salemLat, 2) + Math.pow(longitude - salemLng, 2)
+    );
+    
+    const portlandDistance = Math.sqrt(
+      Math.pow(latitude - portlandLat, 2) + Math.pow(longitude - portlandLng, 2)
+    );
+    
+    // Find the appropriate location from our fetched locations
+    let closestCity: string;
+    let minDistance: number;
+    
+    if (salemDistance < portlandDistance) {
+      closestCity = 'Salem';
+      minDistance = salemDistance;
+    } else {
+      closestCity = 'Portland';
+      minDistance = portlandDistance;
+    }
+    
+    // Check if within reasonable distance (about 0.15 degrees ~ 10 miles)
+    if (minDistance > 0.15) {
+      throw new Error('You must be at one of our Salem or Portland locations to join the Wolf Pack.');
+    }
+    
+    // Find the location object
+    const location = availableLocations.find(loc => loc.city === closestCity);
+    if (!location) {
+      throw new Error(`No active location found in ${closestCity}`);
+    }
+    
+    return location;
   };
 
   const joinWolfpack = async () => {
@@ -125,38 +221,120 @@ export default function WolfpackPage() {
     setJoining(true);
 
     try {
+      // First ensure locations are loaded
+      let availableLocations = locations;
+      if (!availableLocations || availableLocations.length === 0) {
+        console.log('No locations loaded, fetching...');
+        availableLocations = await fetchLocations();
+        if (!availableLocations || availableLocations.length === 0) {
+          throw new Error('Unable to load locations. Please try again.');
+        }
+      }
+
       // Request location permission to verify user is at venue
-      await requestLocationPermission();
+      let locationData;
+      try {
+        locationData = await requestLocationPermission(availableLocations);
+        console.log('User location determined:', locationData);
+      } catch (locationError) {
+        console.error('Location permission error:', locationError);
+        toast({
+          title: "Location Required",
+          description: locationError instanceof Error ? locationError.message : 'Location access is required to join the Wolf Pack.',
+          variant: "destructive"
+        });
+        setJoining(false);
+        return;
+      }
 
-      // Create wolfpack membership
-      const { data, error } = await supabase
-        .from('wolfpack_memberships')
-        .insert({
-          user_id: user.id,
-          status: 'active',
-          table_location: 'General',
-          joined_at: new Date().toISOString(),
-          last_active: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setMembership(data);
-      
-      toast({
-        title: "🐺 Welcome to the Wolf Pack!",
-        description: "Your membership is now active. You can now place orders!",
+      // Use the new RPC function to join wolfpack
+      console.log('Calling join_wolfpack with:', {
+        location_id: locationData.location.id,
+        location_name: locationData.location.name,
+        location_city: locationData.location.city,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude
       });
 
-      // Redirect to welcome page
-      router.push('/wolfpack/welcome');
+      const { data, error } = await supabase
+        .rpc('join_wolfpack', {
+          p_location_id: locationData.location.id,
+          p_latitude: locationData.latitude,
+          p_longitude: locationData.longitude,
+          p_table_location: locationData.location.city
+        });
+
+      if (error) {
+        console.error('Database error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Handle specific error cases
+        if (error.code === '23505') {
+          // This shouldn't happen with our new function, but just in case
+          toast({
+            title: "Already a Member",
+            description: "You're already a member of this Wolf Pack location!",
+            variant: "default"
+          });
+          // Refresh membership status
+          await checkMembershipStatus();
+          return;
+        } else if (error.code === '23503') {
+          throw new Error('Invalid location selected');
+        } else {
+          throw new Error(error.message || 'Failed to join Wolf Pack');
+        }
+      }
+
+      // Check the response from the function
+      if (data && data.success) {
+        console.log('Successfully joined wolfpack:', data);
+        
+        // Fetch the updated membership data
+        const { data: newMembership } = await supabase
+          .from('wolf_pack_members')
+          .select('*')
+          .eq('id', data.member_id)
+          .single();
+          
+        if (newMembership) {
+          setMembership(newMembership);
+        }
+        
+        const action = data.action === 'created' ? 'joined' : 'rejoined';
+        toast({
+          title: `🐺 Welcome to the ${locationData.location.city} Wolf Pack!`,
+          description: `You've ${action} the ${locationData.location.name} pack!`,
+        });
+
+        // Redirect to welcome page
+        router.push('/wolfpack/welcome');
+      } else if (data && !data.success) {
+        console.error('Function returned error:', data.error);
+        throw new Error(data.error || 'Failed to join Wolf Pack');
+      } else {
+        throw new Error('No response from server');
+      }
+
     } catch (error) {
-      console.error('Error joining wolfpack:', error);
+      console.error('Error joining wolfpack:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      let errorMessage = "Please try again or contact support.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Failed to Join",
-        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -166,7 +344,7 @@ export default function WolfpackPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-20">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -179,7 +357,7 @@ export default function WolfpackPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-20">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <BackButton fallbackHref="/" />
@@ -208,8 +386,10 @@ export default function WolfpackPage() {
 
   // If user is already a member
   if (membership) {
+    const locationInfo = locations.find(loc => loc.id === membership.location_id);
+    
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-20">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-3 mb-8">
@@ -247,12 +427,19 @@ export default function WolfpackPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-green-800">Table Location</p>
+                  <p className="text-sm font-medium text-green-800">Pack Location</p>
                   <p className="text-sm text-green-700">
-                    {membership.table_location || 'Not assigned'}
+                    {locationInfo ? `${locationInfo.name} - ${locationInfo.city}` : membership.table_location || 'Not assigned'}
                   </p>
                 </div>
               </div>
+              {membership.last_activity && (
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <p className="text-xs text-green-600">
+                    Last active: {new Date(membership.last_activity).toLocaleString()}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -354,7 +541,7 @@ export default function WolfpackPage() {
 
   // If user is not a member - show join form
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-20">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
@@ -436,6 +623,25 @@ export default function WolfpackPage() {
             Location access will be requested during the joining process.
           </AlertDescription>
         </Alert>
+
+        {/* Available Locations */}
+        {locations.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Available Locations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-2">
+                {locations.map((location) => (
+                  <div key={location.id} className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{location.name} - {location.city}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Join Button */}
         <Card>

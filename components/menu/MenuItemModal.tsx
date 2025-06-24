@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Minus, ArrowLeft, Check, Loader2, Sparkles, ShoppingCart, Star, Flame, X } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
 import { cn } from '@/lib/utils';
 import { MenuItem } from '@/lib/types/menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -101,6 +102,7 @@ export default function MenuItemModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
+  const { isActive: isWolfPackMember } = useWolfpackMembership();
   const supabase = getSupabaseBrowserClient();
 
   // Precise meat selection requirements based on exact item names
@@ -348,6 +350,16 @@ export default function MenuItemModal({
     setIsCheckingAccess(true);
 
     try {
+      // Check if user is in Wolf Pack before allowing cart access
+      if (!isWolfPackMember) {
+        toast({
+          title: "🐺 Wolf Pack Membership Required",
+          description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const selectedMeatData = meatOptions.find(m => m.id === selectedMeat);
       const selectedSaucesData = sauceOptions.filter(s => selectedSauces.includes(s.id));
       

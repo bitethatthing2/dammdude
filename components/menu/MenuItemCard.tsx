@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Flame, Leaf, Star } from 'lucide-react';
 import MenuItemModal from './MenuItemModal';
 import { toast } from '@/components/ui/use-toast';
+import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
 import Image from 'next/image';
 
 // TypeScript interfaces
@@ -238,6 +239,7 @@ const toBase64 = (str: string) =>
 export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { isActive: isWolfPackMember } = useWolfpackMembership();
   
   const themeColor = getCategoryTheme(item.category?.name);
   
@@ -255,6 +257,16 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   // Handler for add button - either open modal or add directly
   const handleAddClick = () => {
     if (!item.is_available) return;
+
+    // Check if user is in Wolf Pack before allowing cart access
+    if (!isWolfPackMember) {
+      toast({
+        title: "🐺 Wolf Pack Membership Required",
+        description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (needsCustomization(item)) {
       setShowModal(true);
@@ -370,6 +382,7 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
 export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { isActive: isWolfPackMember } = useWolfpackMembership();
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images
@@ -381,6 +394,16 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   // Handler for add button - either open modal or add directly
   const handleAddClick = () => {
     if (!item.is_available) return;
+
+    // Check if user is in Wolf Pack before allowing cart access
+    if (!isWolfPackMember) {
+      toast({
+        title: "🐺 Wolf Pack Membership Required",
+        description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (needsCustomization(item)) {
       setShowModal(true);

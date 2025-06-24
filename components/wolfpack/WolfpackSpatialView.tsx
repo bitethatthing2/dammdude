@@ -157,14 +157,6 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
     return '🐾';
   };
 
-  // Get member display color based on role
-  const getMemberColor = (member: WolfPackMember) => {
-    const role = member.users?.role;
-    if (role === 'dj') return 'text-purple-600';
-    if (role === 'bartender') return 'text-orange-600';
-    return 'text-blue-600';
-  };
-
   // Send interaction (wink, message, etc.)
   const sendInteraction = async (targetUserId: string, type: 'wink' | 'message' | 'block') => {
     if (!user || targetUserId === currentUserId) return;
@@ -263,8 +255,8 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           {/* Bar Background */}
           <defs>
             <linearGradient id="barGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: '#1a1a2e', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: '#16213e', stopOpacity: 1 }} />
+              <stop offset="0%" stopColor="#1a1a2e" stopOpacity={1} />
+              <stop offset="100%" stopColor="#16213e" stopOpacity={1} />
             </linearGradient>
           </defs>
           
@@ -337,7 +329,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                   whileHover={{ scale: 1.2 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleWolfClick(member)}
-                  style={{ cursor: 'pointer' }}
+                  className="cursor-pointer"
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
                   {/* Wolf Avatar Background */}
@@ -348,7 +340,6 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     fill={isCurrentUser ? "#3b82f6" : "#6366f1"} 
                     stroke={isCurrentUser ? "#1d4ed8" : "#4f46e5"} 
                     strokeWidth="2"
-                    className="cursor-pointer transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                   />
                   
                   {/* Wolf Icon */}
@@ -358,7 +349,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     textAnchor="middle" 
                     fill="white" 
                     fontSize="20"
-                    style={{ userSelect: 'none' }}
+                    className="select-none"
                   >
                     {icon}
                   </text>
@@ -371,7 +362,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     fill="#e2e8f0" 
                     fontSize="12" 
                     fontFamily="system-ui"
-                    style={{ userSelect: 'none' }}
+                    className="select-none"
                   >
                     {member.wolf_profiles?.display_name || member.users?.first_name || 'Wolf'}
                   </text>

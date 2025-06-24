@@ -1,218 +1,451 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Users, MessageCircle, QrCode, Star, CheckCircle, ArrowRight } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
+import { 
+  Shield, 
+  Star, 
+  CheckCircle, 
+  MessageCircle,
+  MapPin,
+  Users,
+  UtensilsCrossed,
+  Calendar,
+  ArrowRight,
+  User,
+  Music,
+  Vote,
+  Bell,
+  Smartphone,
+  Heart,
+  Zap,
+  Info
+} from 'lucide-react';
 
 export default function WolfpackWelcomePage() {
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
+  const onboardingSteps = [
+    {
+      icon: MapPin,
+      title: "Location Verified",
+      description: "You've joined the Salem Wolf Pack! Your location determines which pack you interact with.",
+      action: "Enable Location",
+      actionIcon: MapPin
+    },
+    {
+      icon: Users,
+      title: "See Who's Here",
+      description: "Check out the live bar map to see other Wolf Pack members currently at your location.",
+      action: "View Pack Map",
+      actionIcon: Users
+    },
+    {
+      icon: MessageCircle,
+      title: "Connect & Chat",
+      description: "Tap on any wolf avatar to interact, send messages, or just say hey!",
+      action: "Start Chatting",
+      actionIcon: MessageCircle
+    },
+    {
+      icon: UtensilsCrossed,
+      title: "Order Instantly",
+      description: "Skip the wait! Order food and drinks directly to your bartender.",
+      action: "Browse Menu",
+      actionIcon: UtensilsCrossed
+    }
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-20">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <BackButton fallbackHref="/" className="mr-2" />
+          <BackButton fallbackHref="/" />
           <div className="p-2 bg-primary/10 rounded-lg">
             <Shield className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Welcome to the Wolfpack!</h1>
-            <p className="text-muted-foreground">Your membership is now active</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">Welcome to the Wolf Pack! 🐺</h1>
+            <p className="text-muted-foreground">Your exclusive bar community awaits</p>
           </div>
-          <Badge variant="default" className="ml-auto">
+          <Badge variant="default" className="bg-green-600">
             <CheckCircle className="h-3 w-3 mr-1" />
             Active Member
           </Badge>
         </div>
 
-        {/* Welcome Message */}
-        <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-              <Star className="h-6 w-6 text-primary" />
-              Congratulations!
-            </CardTitle>
-            <CardDescription className="text-lg">
-              You&apos;re now part of an exclusive community with amazing benefits
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground mb-6">
-              Your Wolfpack membership gives you instant access to premium features 
-              and exclusive experiences. Start exploring what&apos;s available to you!
-            </p>
+        {/* Welcome Hero Card */}
+        <Card className="mb-8 border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 overflow-hidden">
+          <CardContent className="pt-8 pb-6">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-500/10 mb-4">
+                <Zap className="h-10 w-10 text-purple-500" />
+              </div>
+              <h2 className="text-3xl font-bold mb-2">You&#39;re In The Pack! 🎉</h2>
+              <p className="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
+                Welcome to Salem&#39;s most exclusive bar community
+              </p>
+              <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                The Wolf Pack transforms your bar visit into a connected, gamified experience. 
+                Let&#39;s show you how to make the most of your membership!
+              </p>
+            </div>
             
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button onClick={() => router.push('/chat')} className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
-                Join Wolfpack Chat
+            {/* Quick Start Actions */}
+            <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              <Button 
+                size="lg" 
+                onClick={() => router.push('/chat')}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+              >
+                <Users className="h-5 w-5" />
+                See Who&#39;s Here Now
               </Button>
-              <Button variant="outline" onClick={() => router.push('/table')} className="flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
-                Try Bar Tab
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => router.push('/menu')}
+                className="flex items-center gap-2"
+              >
+                <UtensilsCrossed className="h-5 w-5" />
+                Start Ordering
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Features Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Instant Access Features */}
-          <Card>
+        {/* Interactive Onboarding Steps */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  Quick Start Guide
+                </CardTitle>
+                <CardDescription>
+                  Get started with these essential features
+                </CardDescription>
+              </div>
+              <Badge variant="outline">
+                {currentStep + 1} of {onboardingSteps.length}
+              </Badge>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+              <div
+                className={`bg-purple-600 h-2 rounded-full transition-all duration-300 wolfpack-progress-bar`}
+                data-progress={`${(currentStep + 1) / onboardingSteps.length * 100}`}
+              />
+            </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {onboardingSteps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = index === currentStep;
+                const isCompleted = index < currentStep;
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                      isActive ? 'border-purple-500 bg-purple-50' : 
+                      isCompleted ? 'border-green-200 bg-green-50' : 
+                      'border-border hover:bg-muted/50'
+                    }`}
+                    onClick={() => setCurrentStep(index)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`p-2 rounded-lg ${
+                        isActive ? 'bg-purple-500 text-white' :
+                        isCompleted ? 'bg-green-600 text-white' :
+                        'bg-muted'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle className="h-5 w-5" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1">{step.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">{step.description}</p>
+                        {isActive && (
+                          <Button size="sm" className="mt-2">
+                            <step.actionIcon className="h-4 w-4 mr-1" />
+                            {step.action}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Core Features Explained */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Live Bar Experience */}
+          <Card className="border-purple-500/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Available Now
+              <CardTitle className="flex items-center gap-2 text-purple-600">
+                <Users className="h-5 w-5" />
+                Live Bar Map & Avatars
               </CardTitle>
               <CardDescription>
-                Features you can use immediately
+                See who&#39;s in your pack right now
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <QrCode className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Instant Bar Tab</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Automatic tab opening when you arrive at the venue
-                  </p>
-                  <Button size="sm" variant="ghost" className="mt-2 p-0 h-auto" onClick={() => router.push('/table')}>
-                    Try it now <ArrowRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-purple-600" />
+                  How it works:
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-1">•</span>
+                    <span>Each member appears as a wolf avatar on the digital bar map</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-1">•</span>
+                    <span>Tap any avatar to view their profile and start chatting</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-1">•</span>
+                    <span>See real-time movement as people arrive and leave</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-1">•</span>
+                    <span>Profile pictures help you recognize fellow pack members</span>
+                  </li>
+                </ul>
               </div>
-              
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <MessageCircle className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Wolfpack Chat</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Connect with other members in real-time
-                  </p>
-                  <Button size="sm" variant="ghost" className="mt-2 p-0 h-auto" onClick={() => router.push('/chat')}>
-                    Start chatting <ArrowRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Users className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Member Benefits</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Priority service and exclusive member perks
-                  </p>
-                </div>
-              </div>
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => router.push('/chat')}
+              >
+                Explore the Pack Map
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Getting Started Guide */}
-          <Card>
+          {/* DJ Events & Voting */}
+          <Card className="border-orange-500/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-primary" />
-                Getting Started
+              <CardTitle className="flex items-center gap-2 text-orange-600">
+                <Music className="h-5 w-5" />
+                DJ Events & Live Voting
               </CardTitle>
               <CardDescription>
-                Make the most of your membership
+                Participate in live entertainment
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg border">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-                    1
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Enable location services</p>
-                    <p className="text-xs text-muted-foreground">Allow location access for automatic check-ins</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg border">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-                    2
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Join the chat</p>
-                    <p className="text-xs text-muted-foreground">Introduce yourself to other pack members</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg border">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-                    3
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Try your bar tab</p>
-                    <p className="text-xs text-muted-foreground">Experience seamless ordering when you visit</p>
-                  </div>
-                </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Vote className="h-4 w-4 text-orange-600" />
+                  Live Events Include:
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-600 mt-1">🎤</span>
+                    <span>Freestyle Fridays & Rap Battles</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-600 mt-1">🎃</span>
+                    <span>Costume Competitions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-600 mt-1">🎵</span>
+                    <span>DJ-created spontaneous events</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-600 mt-1">🗳️</span>
+                    <span>Vote for contestants in real-time</span>
+                  </li>
+                </ul>
               </div>
-              
-              <div className="border-t pt-4 mt-4">
-                <Button variant="outline" className="w-full" onClick={() => router.push('/')}>
-                  Explore the App
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => router.push('/events')}
+              >
+                Check Tonight&#39;s Events
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Support Section */}
-        <Card className="mt-8">
-          <CardHeader className="text-center">
-            <CardTitle>Need Help?</CardTitle>
-            <CardDescription>
-              We&apos;re here to help you get the most out of your Wolfpack membership
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Button variant="outline" onClick={() => router.push('/contact')}>
-                Contact Support
-              </Button>
-              <Button variant="outline" onClick={() => router.push('/about')}>
-                Learn More
-              </Button>
-              <Button variant="outline" onClick={() => router.push('/events')}>
-                View Events
+        {/* Additional Features */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                All Pack Features
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowAllFeatures(!showAllFeatures)}
+              >
+                {showAllFeatures ? 'Show Less' : 'Show All'}
               </Button>
             </div>
-            
-            <p className="text-sm text-muted-foreground">
-              Check out our events page for upcoming member-exclusive gatherings and special offers.
-            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Always visible features */}
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <UtensilsCrossed className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Effortless Ordering</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Order directly from your phone, pay at the bar
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <MessageCircle className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Private Messaging</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Chat with other pack members at your location
+                  </p>
+                </div>
+              </div>
+
+              {showAllFeatures && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-green-500/10 rounded-lg">
+                      <MapPin className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Location-Based Packs</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Salem & Portland packs with local features
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-orange-500/10 rounded-lg">
+                      <Calendar className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Exclusive Events</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Member-only events and competitions
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-pink-500/10 rounded-lg">
+                      <User className="h-4 w-4 text-pink-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Saved Preferences</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Your profile and settings are always saved
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-red-500/10 rounded-lg">
+                      <Zap className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Daily Reset</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Fresh start daily at 2:38 AM
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* App Setup Reminders */}
+        <Card className="mb-8 border-blue-500/10 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Complete Your Setup
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Bell className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium">Enable Notifications</p>
+                    <p className="text-sm text-muted-foreground">Get order updates & event alerts</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline">Enable</Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium">Install the App</p>
+                    <p className="text-sm text-muted-foreground">For the best experience</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline">Install</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bottom CTA */}
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Ready to explore?</h3>
+          <p className="text-muted-foreground mb-4">Jump into the pack and start connecting!</p>
+          <div className="flex gap-3 justify-center">
+            <Button 
+              size="lg"
+              onClick={() => router.push('/chat')}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Users className="h-5 w-5 mr-2" />
+              Enter the Pack
+            </Button>
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => router.push('/profile')}
+            >
+              <User className="h-5 w-5 mr-2" />
+              Setup Profile
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
