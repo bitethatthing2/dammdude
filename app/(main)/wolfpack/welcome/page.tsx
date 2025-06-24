@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BackButton } from '@/components/shared/BackButton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Shield, 
   Star, 
@@ -23,7 +24,9 @@ import {
   Smartphone,
   Heart,
   Zap,
-  Info
+  Info,
+  Trophy,
+  Sparkles
 } from 'lucide-react';
 
 export default function WolfpackWelcomePage() {
@@ -34,31 +37,35 @@ export default function WolfpackWelcomePage() {
   const onboardingSteps = [
     {
       icon: MapPin,
-      title: "Location Verified",
-      description: "You've joined the Salem Wolf Pack! Your location determines which pack you interact with.",
-      action: "Enable Location",
-      actionIcon: MapPin
+      title: "🎯 You're Verified & In!",
+      description: "Your location has been confirmed - you're now part of an exclusive community that only exists when you're physically here at Side Hustle Bar.",
+      action: "See Who Else is Here",
+      actionIcon: Users,
+      actionUrl: "/chat"
     },
     {
       icon: Users,
-      title: "See Who's Here",
-      description: "Check out the live bar map to see other Wolf Pack members currently at your location.",
-      action: "View Pack Map",
-      actionIcon: Users
+      title: "🐺 Meet Your Pack",
+      description: "See other wolves on the live bar map, view their profiles, and start conversations. Everyone you see is someone you could walk over and meet right now!",
+      action: "View Live Pack Map",
+      actionIcon: Users,
+      actionUrl: "/chat"
     },
     {
       icon: MessageCircle,
-      title: "Connect & Chat",
-      description: "Tap on any wolf avatar to interact, send messages, or just say hey!",
+      title: "💬 Connect & Socialize",
+      description: "Send messages, 'winks', and connect with fellow pack members. Build your bar social network in real-time!",
       action: "Start Chatting",
-      actionIcon: MessageCircle
+      actionIcon: MessageCircle,
+      actionUrl: "/chat"
     },
     {
       icon: UtensilsCrossed,
-      title: "Order Instantly",
-      description: "Skip the wait! Order food and drinks directly to your bartender.",
+      title: "🍹 Revolutionary Ordering",
+      description: "Skip the wait and order directly through the app. Your bartender gets your order instantly - just pay at the bar when ready!",
       action: "Browse Menu",
-      actionIcon: UtensilsCrossed
+      actionIcon: UtensilsCrossed,
+      actionUrl: "/menu"
     }
   ];
 
@@ -82,20 +89,28 @@ export default function WolfpackWelcomePage() {
         </div>
 
         {/* Welcome Hero Card */}
-        <Card className="mb-8 border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 overflow-hidden">
+        <Card className="mb-8 border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-orange-500/5 overflow-hidden">
           <CardContent className="pt-8 pb-6">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-500/10 mb-4">
-                <Zap className="h-10 w-10 text-purple-500" />
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
+                <Trophy className="h-12 w-12 text-white" />
               </div>
-              <h2 className="text-3xl font-bold mb-2">You&#39;re In The Pack! 🎉</h2>
-              <p className="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
-                Welcome to Salem&#39;s most exclusive bar community
+              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                🎉 Welcome to the Pack! 🐺
+              </h2>
+              <p className="text-xl text-muted-foreground mb-4 max-w-3xl mx-auto">
+                You&apos;ve just joined Side Hustle Bar&apos;s most exclusive community - a revolutionary social dining experience that transforms every visit into an adventure!
               </p>
-              <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-                The Wolf Pack transforms your bar visit into a connected, gamified experience. 
-                Let&#39;s show you how to make the most of your membership!
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
+                Your Wolf Pack membership gives you access to features that bridge digital connection with real-world social interaction in ways you&apos;ve never experienced before.
               </p>
+
+              <Alert className="mb-6 border-green-200 bg-green-50 max-w-2xl mx-auto">
+                <Sparkles className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <strong>🎯 You&apos;re now part of something special:</strong> An authentic, location-based community where everyone you interact with is someone you could literally walk over and meet in person right now!
+                </AlertDescription>
+              </Alert>
             </div>
             
             {/* Quick Start Actions */}
@@ -103,16 +118,16 @@ export default function WolfpackWelcomePage() {
               <Button 
                 size="lg" 
                 onClick={() => router.push('/chat')}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
               >
                 <Users className="h-5 w-5" />
-                See Who&#39;s Here Now
+                See Who&apos;s Here Now
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
                 onClick={() => router.push('/menu')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-purple-300 hover:bg-purple-50"
               >
                 <UtensilsCrossed className="h-5 w-5" />
                 Start Ordering

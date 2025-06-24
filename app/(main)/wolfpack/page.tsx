@@ -19,7 +19,18 @@ import {
   CheckCircle, 
   AlertCircle,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  Zap,
+  Heart,
+  Music,
+  Vote,
+  UtensilsCrossed,
+  Smartphone,
+  Coffee,
+  PartyPopper,
+  Globe,
+  Lock,
+  Clock
 } from 'lucide-react';
 
 interface WolfpackMembership {
@@ -539,103 +550,283 @@ export default function WolfpackPage() {
     );
   }
 
-  // If user is not a member - show join form
+  // If user is not a member - show compelling join experience
   return (
     <div className="container mx-auto px-4 py-8 pb-20">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <BackButton fallbackHref="/" />
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Shield className="h-6 w-6 text-primary" />
+          <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg">
+            <Shield className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Join the Wolf Pack</h1>
-            <p className="text-muted-foreground">Unlock exclusive ordering and social features</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              The Wolf Pack Experience
+            </h1>
+            <p className="text-muted-foreground">Your Ultimate Bar Social Network</p>
           </div>
         </div>
 
-        {/* Benefits Section */}
-        <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-              <Star className="h-6 w-6 text-primary" />
-              Why Join the Wolf Pack?
-            </CardTitle>
-            <CardDescription className="text-lg">
-              Get access to exclusive features and become part of our community
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">🍽️ Ordering Benefits</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Direct ordering through bartender interface
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    No payment processing in app - pay at the bar
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Customizable orders with special instructions
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Priority service for pack members
-                  </li>
-                </ul>
+        {/* Hero Section */}
+        <Card className="mb-8 border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-orange-500/5 overflow-hidden">
+          <CardContent className="pt-8 pb-6">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
+                <Zap className="h-12 w-12 text-white" />
               </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">🐺 Social Features</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Real-time chat with other pack members
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Direct messaging to DJ for requests
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Participate in events and voting
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Member-exclusive events and offers
-                  </li>
-                </ul>
-              </div>
+              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Welcome to the Pack! 🐺
+              </h2>
+              <p className="text-xl text-muted-foreground mb-4 max-w-3xl mx-auto">
+                Imagine walking into Side Hustle Bar and instantly becoming part of an exclusive, 
+                interactive community where every visit feels like joining a private club.
+              </p>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                The Wolf Pack isn&apos;t just an app – it&apos;s a complete reimagining of how people connect, 
+                order, and have fun at bars using cutting-edge technology.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Location Permission Notice */}
-        <Alert className="mb-6">
-          <MapPin className="h-4 w-4" />
-          <AlertDescription>
-            To join the Wolf Pack, we need to verify you&apos;re at one of our locations (Salem or Portland).
-            Location access will be requested during the joining process.
-          </AlertDescription>
-        </Alert>
+        {/* What Is Wolf Pack Section */}
+        <Card className="mb-8 border-l-4 border-l-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <Globe className="h-6 w-6 text-blue-600" />
+              What Exactly Is the Wolf Pack?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-lg leading-relaxed">
+              The Wolf Pack is Side Hustle Bar&apos;s <strong>exclusive digital community</strong> that brings together 
+              everyone who&apos;s physically present at either the Salem or Portland location.
+            </p>
+            <p className="leading-relaxed">
+              Think of it as a <strong>private social network that only exists when you&apos;re actually at the bar</strong> – 
+              creating an intimate, real-time community of people who are all sharing the same physical space and experience.
+            </p>
+            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-400">
+              <p className="text-blue-800 font-medium">
+                ✨ The beauty lies in its exclusivity: You can&apos;t join from home or another location – 
+                you have to be physically present at Side Hustle Bar.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* The Experience Grid */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Social Connection */}
+          <Card className="border-purple-500/20 bg-purple-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-purple-700">
+                <Users className="h-6 w-6" />
+                Live Social Connection
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Heart className="h-5 w-5 text-purple-600 mt-1" />
+                <div>
+                  <p className="font-semibold">See Who&apos;s Here Now</p>
+                  <p className="text-sm text-muted-foreground">View other pack members in real-time on the live bar map</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MessageCircle className="h-5 w-5 text-purple-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Chat & Connect</p>
+                  <p className="text-sm text-muted-foreground">Send messages and &quot;winks&quot; to fellow wolves</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-purple-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Your Wolf Profile</p>
+                  <p className="text-sm text-muted-foreground">Express your bar personality with custom profiles</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* DJ Events */}
+          <Card className="border-orange-500/20 bg-orange-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-700">
+                <Music className="h-6 w-6" />
+                Live DJ Events & Voting
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <PartyPopper className="h-5 w-5 text-orange-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Interactive Contests</p>
+                  <p className="text-sm text-muted-foreground">Costume contests, dance-offs, trivia nights</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Vote className="h-5 w-5 text-orange-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Real-Time Voting</p>
+                  <p className="text-sm text-muted-foreground">Vote for your favorites and see live results</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Music className="h-5 w-5 text-orange-600 mt-1" />
+                <div>
+                  <p className="font-semibold">DJ Interaction</p>
+                  <p className="text-sm text-muted-foreground">Direct messaging for song requests and events</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Seamless Ordering */}
+          <Card className="border-green-500/20 bg-green-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700">
+                <UtensilsCrossed className="h-6 w-6" />
+                Revolutionary Ordering
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Smartphone className="h-5 w-5 text-green-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Skip the Wait</p>
+                  <p className="text-sm text-muted-foreground">Order directly to bartender - no payment processing</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Coffee className="h-5 w-5 text-green-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Full Customization</p>
+                  <p className="text-sm text-muted-foreground">Special requests, dietary restrictions, table notes</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Pay at Bar</p>
+                  <p className="text-sm text-muted-foreground">Simple checkout, no digital payment hassles</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Exclusive Community */}
+          <Card className="border-pink-500/20 bg-pink-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-pink-700">
+                <Lock className="h-6 w-6" />
+                Exclusive & Fresh
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-pink-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Location Verified</p>
+                  <p className="text-sm text-muted-foreground">GPS ensures only people actually at the bar can join</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-pink-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Daily Reset</p>
+                  <p className="text-sm text-muted-foreground">Fresh community every day (resets at 2:30 AM)</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Star className="h-5 w-5 text-pink-600 mt-1" />
+                <div>
+                  <p className="font-semibold">Special Occasions</p>
+                  <p className="text-sm text-muted-foreground">Each visit is unique and memorable</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* How to Join Section */}
+        <Card className="mb-8 border-2 border-blue-500/20 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <Zap className="h-6 w-6 text-blue-600" />
+              How Do You Join the Pack?
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Joining is incredibly simple while ensuring authenticity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="text-center p-4 rounded-lg bg-white border">
+                <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="font-bold">1</span>
+                </div>
+                <h3 className="font-semibold mb-2">Arrive at Side Hustle</h3>
+                <p className="text-sm text-muted-foreground">
+                  Come to either our Salem or Portland location
+                </p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-white border">
+                <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="font-bold">2</span>
+                </div>
+                <h3 className="font-semibold mb-2">Tap &quot;Join Wolf Pack&quot;</h3>
+                <p className="text-sm text-muted-foreground">
+                  Allow location access to verify you&apos;re here
+                </p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-white border">
+                <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="font-bold">3</span>
+                </div>
+                <h3 className="font-semibold mb-2">Welcome to the Pack!</h3>
+                <p className="text-sm text-muted-foreground">
+                  Instant access to all social features and ordering
+                </p>
+              </div>
+            </div>
+
+            <Alert className="border-blue-200 bg-blue-50">
+              <MapPin className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Location Verification:</strong> We use GPS to ensure you&apos;re actually at Side Hustle Bar. 
+                This creates an authentic, exclusive community where everyone you interact with is someone 
+                you could literally walk over and meet in person.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
 
         {/* Available Locations */}
         {locations.length > 0 && (
-          <Card className="mb-6">
+          <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-lg">Available Locations</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Wolf Pack Locations
+              </CardTitle>
+              <CardDescription>
+                Currently available at these Side Hustle Bar locations
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {locations.map((location) => (
-                  <div key={location.id} className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{location.name} - {location.city}</span>
+                  <div key={location.id} className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">{location.name}</p>
+                      <p className="text-sm text-muted-foreground">{location.city}, Oregon</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -643,30 +834,39 @@ export default function WolfpackPage() {
           </Card>
         )}
 
-        {/* Join Button */}
-        <Card>
-          <CardContent className="pt-6 text-center">
+        {/* Join CTA */}
+        <Card className="border-2 border-gradient-to-r from-purple-500 to-pink-500">
+          <CardContent className="pt-8 pb-6 text-center">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold mb-2">Ready to Join the Revolution?</h3>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Transform your bar visit into a connected, interactive experience. 
+                Join the most exclusive bar community in Salem and Portland.
+              </p>
+            </div>
+            
             <Button 
               onClick={joinWolfpack}
               disabled={joining}
               size="lg"
-              className="w-full max-w-md"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
             >
               {joining ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Joining the Pack...
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Verifying Location...
                 </>
               ) : (
                 <>
-                  <Shield className="mr-2 h-5 w-5" />
-                  Join the Wolf Pack
+                  <Shield className="mr-2 h-6 w-6" />
+                  Join the Wolf Pack Now
                 </>
               )}
             </Button>
             
-            <p className="text-sm text-muted-foreground mt-4">
-              By joining, you agree to share your location and follow community guidelines.
+            <p className="text-sm text-muted-foreground mt-4 max-w-md mx-auto">
+              By joining, you agree to location verification and community guidelines. 
+              Your privacy and safety are our top priorities.
             </p>
           </CardContent>
         </Card>
