@@ -7,6 +7,7 @@ import { Plus, Flame, Leaf, Star } from 'lucide-react';
 import MenuItemModal from './MenuItemModal';
 import { toast } from '@/components/ui/use-toast';
 import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
+import { detectItemOptions } from './MenuOptionsConfig';
 import Image from 'next/image';
 
 import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';

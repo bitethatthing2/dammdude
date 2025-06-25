@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { CartProvider } from '@/components/cart/CartContext';
 import { BottomNav } from '@/components/shared/BottomNav';
 
 // Define metadata for the app, including PWA-related tags
@@ -136,6 +137,16 @@ const ServiceWorkerScript = () => (
             console.log('Performance monitoring not supported');
           }
         }
+
+        // Initialize PWA functionality early to prevent duplicate handlers
+        (async function initPWA() {
+          try {
+            const { initPwaEventListeners } = await import('@/lib/pwa/pwaEventHandler');
+            initPwaEventListeners();
+          } catch (error) {
+            console.error('Failed to initialize PWA:', error);
+          }
+        })();
 
         // Cookie health check and Supabase auth fixes
         (function() {
@@ -317,12 +328,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>
-          <UnifiedNotificationProvider>
-            <NuqsAdapter>
-              {children}
-              <BottomNav />
-            </NuqsAdapter>
-          </UnifiedNotificationProvider>
+          <CartProvider>
+            <UnifiedNotificationProvider>
+              <NuqsAdapter>
+                {children}
+                <BottomNav />
+              </NuqsAdapter>
+            </UnifiedNotificationProvider>
+          </CartProvider>
         </AuthProvider>
         
         {/* Service Worker Registration */}

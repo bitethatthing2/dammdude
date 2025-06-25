@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { ShoppingCart, Plus, Minus, Trash2, X, Shield, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  CartItem, 
-  calculateItemTotal, 
-  calculateOrderTotal 
-} from '@/types/wolfpack-unified';
+import { useCart, CartItem } from '@/components/cart/CartContext';
 
 interface CartProps {
   isOpen: boolean;
@@ -25,73 +21,40 @@ interface CartProps {
   onCheckout: (items: CartItem[], notes: string, total: number) => Promise<void>;
 }
 
+// Helper function to calculate item total with customizations
+const calculateItemTotal = (item: CartItem): number => {
+  let total = Number(item.price);
+  
+  if (item.customizations?.meat?.price_adjustment) {
+    total += Number(item.customizations.meat.price_adjustment);
+  }
+  
+  if (item.customizations?.sauces) {
+    total += item.customizations.sauces.reduce((sum, sauce) => {
+      return sum + Number(sauce.price_adjustment || 0);
+    }, 0);
+  }
+  
+  return total * item.quantity;
+};
+
 export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderNotes, setOrderNotes] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const { user } = useAuth();
   const { isActive: isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackMembership();
+  
+  // Use the unified cart context
+  const { 
+    items: cartItems, 
+    updateQuantity, 
+    removeFromCart, 
+    clearCart, 
+    getCartTotal 
+  } = useCart();
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user) {
-      const savedCart = localStorage.getItem(`cart_${user.id}`);
-      if (savedCart) {
-        try {
-          setCartItems(JSON.parse(savedCart));
-        } catch (error) {
-          console.error('Error loading cart:', error);
-          localStorage.removeItem(`cart_${user.id}`);
-        }
-      }
-    }
-  }, [user]);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user) {
-      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cartItems));
-    }
-  }, [cartItems, user]);
-
-  // Calculate cart total using unified function
-  const cartTotal = calculateOrderTotal(cartItems);
-
-  // Update item quantity
-  const updateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItem(itemId);
-      return;
-    }
-
-    setCartItems(prev => 
-      prev.map(item => 
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  // Remove item from cart
-  const removeItem = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-    toast({
-      title: "Item Removed",
-      description: "Item has been removed from your cart",
-    });
-  };
-
-  // Clear entire cart
-  const clearCart = () => {
-    setCartItems([]);
-    setOrderNotes('');
-    if (typeof window !== 'undefined' && user) {
-      localStorage.removeItem(`cart_${user.id}`);
-    }
-    toast({
-      title: "Cart Cleared",
-      description: "All items have been removed from your cart",
-    });
-  };
+  // Calculate cart total
+  const cartTotal = getCartTotal();
 
   // Handle join wolf pack
   const handleJoinWolfPack = () => {
@@ -137,6 +100,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
       
       // Clear cart after successful checkout
       clearCart();
+      setOrderNotes('');
       onClose();
       
       toast({
@@ -221,7 +185,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
               <ScrollArea className="flex-1 max-h-[300px]">
                 <div className="space-y-4">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3 pb-4 border-b last:border-0">
+                    <div key={item.cartId || item.id} className="flex gap-3 pb-4 border-b last:border-0">
                       {item.image_url && (
                         <Image
                           src={item.image_url}
@@ -259,7 +223,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.cartId || item.id, item.quantity - 1)}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -268,7 +232,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.cartId || item.id, item.quantity + 1)}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -282,7 +246,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => removeFromCart(item.cartId || item.id)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -367,71 +331,4 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
       </Card>
     </div>
   );
-}
-
-// Hook to manage cart state globally
-export function useCart() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const { user } = useAuth();
-
-  // Load cart from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user) {
-      const savedCart = localStorage.getItem(`cart_${user.id}`);
-      if (savedCart) {
-        try {
-          setCartItems(JSON.parse(savedCart));
-        } catch (error) {
-          console.error('Error loading cart:', error);
-          localStorage.removeItem(`cart_${user.id}`);
-        }
-      }
-    }
-  }, [user]);
-
-  // Save cart to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user) {
-      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cartItems));
-    }
-  }, [cartItems, user]);
-
-  // Add item to cart
-  const addToCart = (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
-    const quantity = item.quantity || 1;
-    const itemId = `${item.id}_${JSON.stringify(item.customizations || {})}`;
-
-    setCartItems(prev => {
-      const existingItem = prev.find(cartItem => cartItem.id === itemId);
-      
-      if (existingItem) {
-        return prev.map(cartItem =>
-          cartItem.id === itemId
-            ? { ...cartItem, quantity: cartItem.quantity + quantity }
-            : cartItem
-        );
-      } else {
-        return [...prev, { ...item, id: itemId, quantity }];
-      }
-    });
-
-    toast({
-      title: "Added to Cart",
-      description: `${item.name} has been added to your cart`,
-    });
-  };
-
-  // Get cart item count
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  // Calculate cart total using unified function
-  const cartTotal = calculateOrderTotal(cartItems);
-
-  return {
-    cartItems,
-    cartCount,
-    cartTotal,
-    addToCart,
-    setCartItems
-  };
 }

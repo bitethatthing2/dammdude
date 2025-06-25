@@ -1,15 +1,5 @@
-// PWA installation handler script
-// This script gets loaded as early as possible to capture the beforeinstallprompt event
-window.deferredPromptEvent = null;
+// This file has been consolidated into lib/pwa/pwaEventHandler.ts
+// to prevent duplicate PWA event handlers and conflicts.
+// The React component PwaInstallGuide now handles all PWA functionality.
 
-window.addEventListener('beforeinstallprompt', function(e) {
-  console.log('[PWA Install Handler] beforeinstallprompt event captured!', e);
-  
-  // Prevent Chrome from automatically showing the prompt
-  e.preventDefault();
-  
-  // Store the event for later use
-  window.deferredPromptEvent = e;
-});
-
-console.log('[PWA Install Handler] Script loaded and listening for installation events');
+console.log('[PWA Install Handler] Legacy handler disabled - using TypeScript handler instead');

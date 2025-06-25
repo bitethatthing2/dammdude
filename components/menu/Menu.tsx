@@ -19,7 +19,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
-import Cart, { useCart } from '@/components/cart/Cart';
+import Cart from '@/components/cart/Cart';
+import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
 import type { 
