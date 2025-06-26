@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { BackButton } from '@/components/shared/BackButton';
+import { WolfpackHeader } from '@/components/shared/AppHeader';
+import { DynamicLogo } from '@/components/shared/DynamicLogo';
 import { useWolfpack } from '@/hooks/useWolfpack';
 import { 
   Shield, 
@@ -131,20 +132,19 @@ export default function WolfpackPage() {
 
   // If user is in the pack - direct to chat interface
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+      <WolfpackHeader />
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Compact Header for Mobile */}
+        {/* Pack Status Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <BackButton fallbackHref="/" />
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">🐺 Wolf Pack</h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">Active Member</p>
-              </div>
+            <DynamicLogo type="wolf" width={32} height={32} />
+            <div>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                🐺 Wolf Pack 
+                <Badge variant="default" className="text-xs">Active</Badge>
+              </h1>
+              <p className="text-sm text-muted-foreground">Connected and ready to chat</p>
             </div>
           </div>
           <Button

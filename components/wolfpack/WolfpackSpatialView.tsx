@@ -707,19 +707,23 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
       {/* Special Role Actions Dialog */}
       {showSpecialRole && (
-        <SpecialRoleActions
-          isOpen={!!showSpecialRole}
-          onClose={() => setShowSpecialRole(null)}
-          memberData={{
-            id: showSpecialRole.member.id,
-            user_id: showSpecialRole.member.user_id,
-            display_name: showSpecialRole.member.user?.wolf_profile?.display_name || 
-                          showSpecialRole.member.user?.first_name || 'Wolf',
-            role: showSpecialRole.role,
-            avatar_url: showSpecialRole.member.user?.wolf_profile?.profile_image_url,
-            status: showSpecialRole.member.table_location
-          }}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">
+              {showSpecialRole.role === 'bartender' ? '🐺 Bartender Actions' : '🎵 DJ Actions'}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Special actions for {showSpecialRole.member.user?.wolf_profile?.display_name || 
+                                  showSpecialRole.member.user?.first_name || 'Wolf'}
+            </p>
+            <button 
+              onClick={() => setShowSpecialRole(null)}
+              className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
       
       {/* Regular Member Profile Dialog */}

@@ -7,17 +7,17 @@ export const SIDE_HUSTLE_LOCATIONS = {
   salem: {
     id: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
     name: 'Salem',
-    lat: 44.9429,
-    lng: -123.0351,
-    address: '123 Main St, Salem, OR',
+    lat: 44.94049607107024, // Exact coordinates from Google Maps
+    lng: -123.0413951237716,
+    address: '1849 Lancaster Dr NE, Salem, OR 97305',
     radius: 100 // meters
   },
   portland: {
     id: 'ec1e8869-454a-49d2-93e5-ed05f49bb932',
     name: 'Portland', 
-    lat: 45.5152,
-    lng: -122.6784,
-    address: '456 Oak Ave, Portland, OR',
+    lat: 45.51853717107486, // Exact coordinates from Google Maps
+    lng: -122.67878942374,
+    address: '318 NW 11th Ave, Portland, OR 97209',
     radius: 100 // meters
   }
 } as const;
@@ -297,5 +297,86 @@ export class WolfpackLocationService {
       console.error('Error checking location permission:', error);
       throw error;
     }
+  }
+
+  // Location switching functionality
+  private static selectedLocation: LocationKey = 'salem';
+  private static readonly STORAGE_KEY = 'sidehustle-selected-location';
+
+  /**
+   * Set the selected location (used by location switcher)
+   */
+  static setSelectedLocation(locationKey: LocationKey): void {
+    this.selectedLocation = locationKey;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(this.STORAGE_KEY, locationKey);
+    }
+  }
+
+  /**
+   * Get the currently selected location
+   */
+  static getSelectedLocation(): LocationKey {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(this.STORAGE_KEY) as LocationKey;
+      if (saved && saved in SIDE_HUSTLE_LOCATIONS) {
+        this.selectedLocation = saved;
+        return saved;
+      }
+    }
+    return this.selectedLocation;
+  }
+
+  /**
+   * Get the selected location data
+   */
+  static getSelectedLocationData() {
+    return SIDE_HUSTLE_LOCATIONS[this.getSelectedLocation()];
+  }
+
+  /**
+   * Verify user is at the selected location (fallback to nearest if not selected)
+   */
+  static async verifyAtSelectedLocation(): Promise<LocationVerificationResult & { selectedLocation: LocationKey }> {
+    const selectedKey = this.getSelectedLocation();
+    const selectedData = SIDE_HUSTLE_LOCATIONS[selectedKey];
+    
+    try {
+      const userCoords = await this.getCurrentPosition();
+      const distance = this.calculateDistance(
+        userCoords.latitude,
+        userCoords.longitude,
+        selectedData.lat,
+        selectedData.lng
+      );
+      
+      const isAtLocation = distance <= selectedData.radius;
+      
+      return {
+        isAtLocation,
+        nearestLocation: selectedKey,
+        distance,
+        locationId: isAtLocation ? selectedData.id : null,
+        locationName: isAtLocation ? selectedData.name : null,
+        selectedLocation: selectedKey
+      };
+    } catch (error) {
+      // Fall back to regular verification if GPS fails
+      const fallbackResult = await this.verifyUserLocation();
+      return {
+        ...fallbackResult,
+        selectedLocation: selectedKey
+      };
+    }
+  }
+
+  /**
+   * Get all locations for UI components
+   */
+  static getAllLocations() {
+    return Object.entries(SIDE_HUSTLE_LOCATIONS).map(([key, data]) => ({
+      key: key as LocationKey,
+      ...data
+    }));
   }
 }

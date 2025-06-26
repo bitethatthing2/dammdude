@@ -8,6 +8,8 @@ import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { CartProvider } from '@/components/cart/CartContext';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { PwaInitializer } from '@/components/shared/PwaInitializer';
+import { LogoPreloader } from '@/components/shared/LogoPreloader';
+import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -318,17 +320,20 @@ export default function RootLayout({ children }: RootLayoutProps) {
         />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <AuthProvider>
-          <CartProvider>
-            <UnifiedNotificationProvider>
-              <NuqsAdapter>
-                <PwaInitializer />
-                {children}
-                <BottomNav />
-              </NuqsAdapter>
-            </UnifiedNotificationProvider>
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProviderWrapper>
+          <AuthProvider>
+            <CartProvider>
+              <UnifiedNotificationProvider>
+                <NuqsAdapter>
+                  <LogoPreloader />
+                  <PwaInitializer />
+                  {children}
+                  <BottomNav />
+                </NuqsAdapter>
+              </UnifiedNotificationProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProviderWrapper>
         
         {/* Service Worker Registration */}
         <ServiceWorkerScript />

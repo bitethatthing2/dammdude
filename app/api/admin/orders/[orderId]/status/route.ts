@@ -78,32 +78,37 @@ export async function PATCH(
     
     if (notify && status === 'ready') {
       try {
-        // Get table information
-        const { data: table } = await supabase
-          .from('tables')
-          .select('name')
-          .eq('id', order.table_id)
-          .single();
+        // Get table information (using table_location as string identifier)
+        const tableLocation = order.table_location || null;
         
-        // Find registered devices for this table
-        const { data: devices } = await supabase
-          .from('device_registrations')
-          .select('device_id')
-          .eq('table_id', order.table_id)
-          .eq('type', 'customer');
+        // Find registered devices for this table if device_registrations table exists
+        let devices: Array<{ device_id: string }> = [];
+        if (tableLocation) {
+          try {
+            const { data: deviceData } = await supabase
+              .from('device_registrations')
+              .select('device_id')
+              .eq('table_location', tableLocation)
+              .eq('type', 'customer');
+            devices = deviceData;
+          } catch {
+            // device_registrations table may not exist yet
+            devices = [];
+          }
+        }
         
         if (devices && devices.length > 0) {
           // Create notifications for each device
           const notifications = devices.map((device: { device_id: string }) => ({
             recipient_id: device.device_id,
-            message: `Your order for ${table?.name || 'your table'} is ready for pickup!`,
+            message: `Your order for ${tableLocation || 'your table'} is ready for pickup!`,
             type: 'info',
             status: 'unread'
           }));
           
-          // Insert notifications
+          // Insert notifications (use push_notifications table instead)
           await supabase
-            .from('notifications')
+            .from('push_notifications')
             .insert(notifications);
           
           notificationSent = true;

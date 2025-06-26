@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/client';
 import { WolfpackAuthService } from './wolfpack-auth.service';
 import { WolfpackLocationService, type LocationKey } from './wolfpack-location.service';
+import { adaptWolfpackMembership, adaptAPIResponse, type FrontendWolfpackMembership } from '@/lib/types/adapters';
+import { WOLFPACK_TABLES } from './wolfpack-backend.service';
 import type { User } from '@supabase/supabase-js';
 
 const supabase = createClient();

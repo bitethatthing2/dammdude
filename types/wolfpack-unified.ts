@@ -3,7 +3,7 @@
 
 import { Database, Json } from '@/types/database';
 
-// Base types from Supabase
+// Base types from Supabase - using bartender_orders table as it exists in schema
 export type BartenderOrderRow = Database['public']['Tables']['bartender_orders']['Row'];
 export type OrderInsert = Database['public']['Tables']['bartender_orders']['Insert'];
 export type OrderUpdate = Database['public']['Tables']['bartender_orders']['Update'];

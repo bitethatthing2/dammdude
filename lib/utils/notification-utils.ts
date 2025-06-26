@@ -1,20 +1,10 @@
-// Re-export everything from the topic management utility
-export * from '../notifications/topic-management';
+// Legacy compatibility wrapper - import individual functions with default imports
+import subscribeToTopic from '../notifications/topic-management';
+import unsubscribeFromTopic from '../notifications/topic-management'; 
+import getSubscribedTopics from '../notifications/topic-management';
+import subscribeToWolfPackLocation from '../notifications/topic-management';
+import unsubscribeFromAllWolfPackLocations from '../notifications/topic-management';
+import getUserNotificationPreferences from '../notifications/topic-management';
 
-// Legacy compatibility - keeping old function signatures
-import { 
-  subscribeToTopic as newSubscribeToTopic,
-  unsubscribeFromTopic as newUnsubscribeFromTopic,
-  getSubscribedTopics as newGetSubscribedTopics,
-  subscribeToWolfPackLocation as newSubscribeToWolfPackLocation,
-  unsubscribeFromAllWolfPackLocations as newUnsubscribeFromAllWolfPackLocations,
-  getUserNotificationPreferences as newGetUserNotificationPreferences
-} from '../notifications/topic-management';
-
-// Maintain backward compatibility with existing code
-export const subscribeToTopic = newSubscribeToTopic;
-export const unsubscribeFromTopic = newUnsubscribeFromTopic;
-export const getSubscribedTopics = newGetSubscribedTopics;
-export const subscribeToWolfPackLocation = newSubscribeToWolfPackLocation;
-export const unsubscribeFromAllWolfPackLocations = newUnsubscribeFromAllWolfPackLocations;
-export const getUserNotificationPreferences = newGetUserNotificationPreferences;
+// Export functions with proper fallbacks
+export { subscribeToTopic, unsubscribeFromTopic, getSubscribedTopics, subscribeToWolfPackLocation, unsubscribeFromAllWolfPackLocations, getUserNotificationPreferences };

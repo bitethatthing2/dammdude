@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { adaptUserType, adaptWolfpackMembership, adaptError } from '@/lib/types/adapters';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
 import { WolfpackLocationService, type LocationKey } from '@/lib/services/wolfpack-location.service';
 import { 
@@ -106,8 +107,10 @@ export function useWolfpackComplete(): UseWolfpackCompleteReturn {
     });
   }, []);
 
-  // Refresh authentication state
+  // Refresh authentication state - memoized properly
   const refreshAuth = useCallback(async () => {
+    if (!user) return;
+    
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
@@ -175,22 +178,26 @@ export function useWolfpackComplete(): UseWolfpackCompleteReturn {
     }
   }, [verifyLocation]);
 
-  // Refresh membership status
+  // Refresh membership status - batch state updates
   const refreshMembership = useCallback(async () => {
     if (!user) return;
     
     try {
       setState(prev => ({ ...prev, isLoading: true }));
       
-      const membershipStatus = await WolfpackMembershipService.checkMembership(user.id);
-      const canJoin = await WolfpackMembershipService.canUserJoin(user.id);
+      const [membershipStatus, canJoinResult] = await Promise.all([
+        WolfpackMembershipService.checkMembership(user.id),
+        WolfpackMembershipService.canUserJoin(user.id)
+      ]);
       
+      // Batch state update to prevent multiple renders
       setState(prev => ({
         ...prev,
         membershipStatus,
         isInPack: membershipStatus.isActive,
-        canJoinPack: canJoin.canJoin,
-        isLoading: false
+        canJoinPack: canJoinResult.canJoin,
+        isLoading: false,
+        error: null
       }));
     } catch (error) {
       const errorMessage = WolfpackErrorHandler.getWolfpackErrorMessage('membership', error);
@@ -276,8 +283,18 @@ export function useWolfpackComplete(): UseWolfpackCompleteReturn {
     }
   }, [state.membershipStatus?.membershipId, refreshMembership]);
 
-  // Update profile
-  const updateProfile = useCallback(async (data: Partial<any>): Promise<boolean> => {
+  // Update profile with proper typing
+  const updateProfile = useCallback(async (data: Partial<{
+    display_name?: string;
+    wolf_emoji?: string;
+    current_vibe?: string;
+    favorite_drink?: string;
+    looking_for?: string;
+    instagram_handle?: string;
+    bio?: string;
+    is_visible?: boolean;
+    allow_messages?: boolean;
+  }>): Promise<boolean> => {
     if (!user || !state.membershipStatus?.locationId) {
       return false;
     }
@@ -304,7 +321,7 @@ export function useWolfpackComplete(): UseWolfpackCompleteReturn {
     }
   }, [user, state.membershipStatus?.locationId, refreshMembership]);
 
-  // Initialize on mount and when user changes
+  // Initialize on mount and when user changes - fixed dependencies
   useEffect(() => {
     const initialize = async () => {
       if (!user) {
@@ -334,7 +351,7 @@ export function useWolfpackComplete(): UseWolfpackCompleteReturn {
     };
 
     initialize();
-  }, [user, refreshAuth, refreshMembership, reset]);
+  }, [user]); // Only depend on user, functions are stable with useCallback
 
   // Auto-verify location for VIP users
   useEffect(() => {
@@ -400,5 +417,23 @@ export function useWolfpackMembership() {
     leavePack: actions.leavePack,
     updateProfile: actions.updateProfile,
     refreshMembership: actions.refreshMembership
+  };
+}
+
+// Legacy compatibility hook - gradually migrate components to useWolfpackComplete
+export function useWolfpack() {
+  const { state, actions } = useWolfpackComplete();
+  
+  // Map to legacy interface for backward compatibility
+  return {
+    isInPack: state.isInPack,
+    isLoading: state.isLoading,
+    error: state.error,
+    joinPack: actions.joinPack,
+    leavePack: actions.leavePack,
+    // Legacy properties
+    packMembers: [], // Would need to be fetched separately if needed
+    activeEvents: [], // Would need to be fetched separately if needed  
+    membership: state.membershipStatus
   };
 }

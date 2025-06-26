@@ -10,7 +10,8 @@ export const WOLFPACK_TABLES = {
   LOCATIONS: 'locations',
   
   // Wolfpack specific tables
-  WOLFPACK_MEMBERSHIPS: 'wolfpack_memberships',
+  WOLFPACK_MEMBERSHIPS: 'wolfpack_members_unified', // Actual table
+  WOLFPACK_MEMBERSHIPS_VIEW: 'wolfpack_memberships', // View with joins
   WOLF_PACK_MEMBERS: 'wolf_pack_members', // Legacy support
   WOLF_PROFILES: 'wolf_profiles',
   WOLF_CHAT: 'wolfpack_chat_messages',

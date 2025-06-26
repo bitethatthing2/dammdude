@@ -186,8 +186,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
             )}
           </div>
         </TabsContent>
-        </Tabs>
-      </div>
+      </Tabs>
     </div>
   );
 }

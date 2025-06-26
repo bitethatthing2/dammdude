@@ -279,7 +279,7 @@ export async function checkWolfPackStatus(userId: string) {
 
     // Query wolfpack_memberships with correct columns
     const { data: memberData, error: memberError } = await supabase
-      .from('wolfpack_memberships')
+      .from('wolfpack_members_unified')
       .select(`
         id,
         user_id,
@@ -317,7 +317,7 @@ export async function getWolfPackLocations(userId: string) {
   try {
     // Correct join syntax for locations
     const { data, error } = await supabase
-      .from('wolfpack_memberships')
+      .from('wolfpack_members_unified')
       .select(`
         id,
         location_id,

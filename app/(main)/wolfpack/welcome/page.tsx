@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SimpleHeader } from '@/components/shared/AppHeader';
+import { DynamicLogo } from '@/components/shared/DynamicLogo';
 import { useWolfpack } from '@/hooks/useWolfpack';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { 
@@ -112,7 +114,7 @@ export default function WolfpackWelcomePage() {
     setIsJoining(true);
     try {
       const result = await joinPack({
-        display_name: user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Wolf',
+        display_name: (user?.user_metadata?.display_name as string) || user?.email?.split('@')[0] || 'Wolf',
         emoji: '🐺',
         current_vibe: 'Ready to party!',
         table_location: 'Just arrived'
@@ -158,20 +160,21 @@ export default function WolfpackWelcomePage() {
   // Render different states based on location verification
   if (locationStatus === 'checking') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="animate-pulse mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
-              <Shield className="h-8 w-8 text-white" />
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+        <SimpleHeader />
+        <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+          <div className="text-center max-w-md mx-auto px-4">
+            <div className="animate-pulse mb-6">
+              <DynamicLogo type="wolf" width={64} height={64} className="mx-auto mb-4" />
             </div>
-          </div>
-          <h1 className="text-2xl font-bold mb-4">🐺 Detecting Your Location</h1>
-          <p className="text-muted-foreground mb-6">
-            Checking if you're at Side Hustle Bar...
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-            <span className="text-sm text-purple-600">Verifying location...</span>
+            <h1 className="text-2xl font-bold mb-4">🐺 Detecting Your Location</h1>
+            <p className="text-muted-foreground mb-6">
+              Checking if you&apos;re at Side Hustle Bar...
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+              <span className="text-sm text-purple-600">Verifying location...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -260,7 +263,7 @@ export default function WolfpackWelcomePage() {
         </div>
         <h1 className="text-2xl font-bold mb-4">⚠️ Location Error</h1>
         <p className="text-muted-foreground mb-6">
-          We couldn't access your location. Please enable location services and try again.
+          We couldn&apos;t access your location. Please enable location services and try again.
         </p>
         <div className="space-y-3">
           <Button 
