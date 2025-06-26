@@ -20,13 +20,13 @@ interface WolfpackChatInterfaceProps {
 
 interface MembershipData {
   id: string;
-  location_id: string;
+  location_id: string | null;
   table_location: string | null;
-  joined_at: string;
+  joined_at: string | null;
   locations: {
     id: string;
     name: string;
-    address: string;
+    address: string | null;
   };
 }
 
@@ -121,7 +121,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
               )}
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <span>•</span>
-                <span>Joined: {new Date(membershipData.joined_at).toLocaleTimeString()}</span>
+                <span>Joined: {membershipData.joined_at ? new Date(membershipData.joined_at).toLocaleTimeString() : 'Unknown'}</span>
               </div>
             </div>
           </CardContent>
@@ -186,39 +186,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
             )}
           </div>
         </TabsContent>
-      </Tabs>
-
-      {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/menu')}>
-          <CardContent className="p-4 text-center">
-            <div className="p-2 bg-orange-100 rounded-lg inline-block mb-2">
-              <span className="text-2xl">🍽️</span>
-            </div>
-            <h3 className="font-semibold mb-1">Order Food & Drinks</h3>
-            <p className="text-sm text-muted-foreground">Browse menu and place orders</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/wolfpack/profile')}>
-          <CardContent className="p-4 text-center">
-            <div className="p-2 bg-blue-100 rounded-lg inline-block mb-2">
-              <span className="text-2xl">🐺</span>
-            </div>
-            <h3 className="font-semibold mb-1">Edit Wolf Profile</h3>
-            <p className="text-sm text-muted-foreground">Customize your pack persona</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/events')}>
-          <CardContent className="p-4 text-center">
-            <div className="p-2 bg-purple-100 rounded-lg inline-block mb-2">
-              <span className="text-2xl">🎉</span>
-            </div>
-            <h3 className="font-semibold mb-1">Events & Voting</h3>
-            <p className="text-sm text-muted-foreground">Join DJ events and contests</p>
-          </CardContent>
-        </Card>
+        </Tabs>
       </div>
     </div>
   );

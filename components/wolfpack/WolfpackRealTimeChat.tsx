@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -40,10 +41,50 @@ interface ChatMessage {
 
 interface MessageReaction {
   id: string;
-  message_id: string;
-  user_id: string;
+  message_id: string | null;
+  user_id: string | null;
   emoji: string;
-  created_at: string;
+  created_at: string | null;
+}
+
+interface DbChatMessage {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  display_name: string;
+  avatar_url: string | null;
+  content: string;
+  message_type: 'text' | 'image' | 'system';
+  image_url: string | null;
+  created_at: string | null;
+  edited_at: string | null;
+  is_flagged: boolean | null;
+  is_deleted: boolean | null;
+  wolfpack_chat_reactions?: MessageReaction[];
+}
+
+interface DbMessageReaction {
+  id: string;
+  message_id: string | null;
+  user_id: string | null;
+  emoji: string;
+  created_at: string | null;
+}
+
+interface SupabaseMessageResult {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  display_name: string;
+  avatar_url: string | null;
+  content: string;
+  message_type: string;
+  image_url: string | null;
+  created_at: string | null;
+  edited_at: string | null;
+  is_flagged: boolean | null;
+  is_deleted: boolean | null;
+  wolfpack_chat_reactions?: MessageReaction[];
 }
 
 interface TypingUser {
@@ -82,12 +123,7 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  interface SupabaseChannel {
-    unsubscribe: () => void;
-    send: (options: { type: string; event: string; payload: Record<string, unknown> }) => void;
-  }
-  
-  const channelRef = useRef<{ messagesChannel: SupabaseChannel; typingChannel: SupabaseChannel } | null>(null);
+  const channelRef = useRef<{ messagesChannel: RealtimeChannel; typingChannel: RealtimeChannel } | null>(null);
   
   const supabase = getSupabaseBrowserClient();
 
@@ -127,10 +163,22 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
 
       setState(prev => ({
         ...prev,
-        messages: messages?.map((msg: { wolfpack_chat_reactions?: MessageReaction[]; [key: string]: unknown }) => ({
-          ...msg,
-          reactions: msg.wolfpack_chat_reactions || []
-        })) || [],
+        messages: messages?.map((msg: SupabaseMessageResult) => ({
+          id: msg.id,
+          session_id: msg.session_id,
+          user_id: msg.user_id || '',
+          display_name: msg.display_name,
+          avatar_url: msg.avatar_url || undefined,
+          content: msg.content,
+          message_type: msg.message_type as 'text' | 'image' | 'system',
+          image_url: msg.image_url || undefined,
+          created_at: msg.created_at || '',
+          edited_at: msg.edited_at || undefined,
+          is_flagged: msg.is_flagged || false,
+          reactions: (msg.wolfpack_chat_reactions || []).filter((reaction: MessageReaction) => 
+            reaction.message_id !== null && reaction.user_id !== null
+          )
+        } as ChatMessage)) || [],
         isLoading: false
       }));
 
@@ -333,8 +381,8 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
       const messageData = {
         session_id: sessionId,
         user_id: user.id,
-        display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous',
-        avatar_url: user.user_metadata?.avatar_url,
+        display_name: (user.user_metadata?.display_name as string) || user.email?.split('@')[0] || 'Anonymous',
+        avatar_url: (user.user_metadata?.avatar_url as string) || null,
         content: newMessage.trim(),
         message_type: 'text' as const,
         created_at: new Date().toISOString()
@@ -398,8 +446,8 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
       const messageData = {
         session_id: sessionId,
         user_id: user.id,
-        display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous',
-        avatar_url: user.user_metadata?.avatar_url,
+        display_name: (user.user_metadata?.display_name as string) || user.email?.split('@')[0] || 'Anonymous',
+        avatar_url: (user.user_metadata?.avatar_url as string) || null,
         content: 'Shared an image',
         message_type: 'image' as const,
         image_url: urlData.publicUrl,
@@ -478,6 +526,25 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
     } catch (error) {
       console.error('Error flagging message:', error);
       toast.error('Failed to flag message');
+    }
+  };
+
+  // Get user role for special styling
+  const getUserRole = (userId: string): string | null => {
+    // This would typically come from user data or membership info
+    // For now, return null as default
+    return null;
+  };
+
+  // Handle special role interactions
+  const handleSpecialRoleClick = (userId: string, role: 'dj' | 'bartender') => {
+    if (role === 'bartender') {
+      // Direct access to menu
+      window.open('/menu', '_blank');
+      toast.success('Opening menu in new tab!');
+    } else if (role === 'dj') {
+      // Show DJ profile or DJ dashboard access
+      toast.success('DJ profile features coming soon!');
     }
   };
 
@@ -569,7 +636,19 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
                   <div className={`flex-1 max-w-[80%] ${isOwn ? 'text-right' : 'text-left'}`}>
                     {showAvatar && (
                       <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                        <span className="text-sm font-medium">{message.display_name}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-medium">{message.display_name}</span>
+                          {message.user_id && getUserRole(message.user_id) === 'dj' && (
+                            <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                              🎵 DJ
+                            </span>
+                          )}
+                          {message.user_id && getUserRole(message.user_id) === 'bartender' && (
+                            <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                              🐺 BAR
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {formatMessageTime(message.created_at)}
                         </span>
@@ -581,6 +660,10 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
                         className={`rounded-lg px-3 py-2 max-w-full ${
                           isOwn
                             ? 'bg-primary text-primary-foreground'
+                            : message.user_id && getUserRole(message.user_id) === 'dj'
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-2 border-yellow-400'
+                            : message.user_id && getUserRole(message.user_id) === 'bartender'
+                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-400'
                             : 'bg-muted'
                         } ${message.is_flagged ? 'opacity-50' : ''}`}
                       >
@@ -626,6 +709,33 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
                         >
                           <Smile className="h-3 w-3" />
                         </Button>
+                        
+                        {/* Special role quick actions */}
+                        {message.user_id && getUserRole(message.user_id) === 'bartender' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSpecialRoleClick(message.user_id, 'bartender')}
+                            className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                            title="Quick menu access"
+                            aria-label="Access menu through bartender"
+                          >
+                            🍽️
+                          </Button>
+                        )}
+                        
+                        {message.user_id && getUserRole(message.user_id) === 'dj' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSpecialRoleClick(message.user_id, 'dj')}
+                            className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700"
+                            title="DJ profile"
+                            aria-label="View DJ profile"
+                          >
+                            🎵
+                          </Button>
+                        )}
                         
                         {!isOwn && (
                           <Button

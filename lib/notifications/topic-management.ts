@@ -1,350 +1,389 @@
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { 
-  TopicSubscription, 
-  NotificationTopic, 
-  SubscriptionResult, 
-  TopicsResult,
-  UserRole,
-  WolfPackLocation 
-} from '@/types/notifications';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-/**
- * Subscribe a device token to a notification topic
- * @param token FCM token
- * @param topic Topic to subscribe to
- * @param userId Optional user ID to associate with subscription
- * @returns Success status and error if any
- */
-export async function subscribeToTopic(
-  token: string, 
-  topic: string, 
-  userId?: string
-): Promise<SubscriptionResult> {
-  if (!token || !topic) {
-    return { success: false, error: 'Token and topic are required' };
-  }
+// Import or define the Database type from your generated types
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    // Get current user if userId not provided
-    let user_id = userId;
-    if (!user_id) {
-      const { data: { user } } = await supabase.auth.getUser();
-      user_id = user?.id;
+export type Database = {
+  public: {
+    Tables: {
+      notification_topics: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          requires_role: string | null
+          topic_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          requires_role?: string | null
+          topic_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          requires_role?: string | null
+          topic_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      topic_subscriptions: {
+        Row: {
+          created_at: string | null
+          id: string
+          token: string
+          topic: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          token: string
+          topic: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          token?: string
+          topic?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
-
-    const { error } = await supabase
-      .from('topic_subscriptions')
-      .upsert({
-        token,
-        topic,
-        user_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'token,topic',
-        ignoreDuplicates: false
-      });
-
-    if (error) {
-      console.error(`Error subscribing to topic ${topic}:`, error);
-      return { success: false, error: error.message };
-    }
-
-    console.log(`Successfully subscribed to topic: ${topic}`);
-    return { success: true };
-  } catch (err) {
-    console.error(`Error subscribing to topic ${topic}:`, err);
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-/**
- * Unsubscribe a device token from a notification topic
- * @param token FCM token
- * @param topic Topic to unsubscribe from
- * @returns Success status and error if any
- */
-export async function unsubscribeFromTopic(
-  token: string, 
-  topic: string
-): Promise<SubscriptionResult> {
-  if (!token || !topic) {
-    return { success: false, error: 'Token and topic are required' };
+// Type aliases using the Database schema
+export type NotificationTopic = Database['public']['Tables']['notification_topics']['Row'];
+export type NotificationTopicInsert = Database['public']['Tables']['notification_topics']['Insert'];
+export type NotificationTopicUpdate = Database['public']['Tables']['notification_topics']['Update'];
+
+export type TopicSubscription = Database['public']['Tables']['topic_subscriptions']['Row'];
+export type TopicSubscriptionInsert = Database['public']['Tables']['topic_subscriptions']['Insert'];
+export type TopicSubscriptionUpdate = Database['public']['Tables']['topic_subscriptions']['Update'];
+
+// Topic management class
+export class TopicManagement {
+  private supabase: SupabaseClient<Database>;
+
+  constructor(supabaseUrl: string, supabaseKey: string) {
+    this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
   }
 
-  try {
-    const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase
-      .from('topic_subscriptions')
-      .delete()
-      .match({ token, topic });
+  // Notification Topics Management
+  async getAllTopics(): Promise<NotificationTopic[]> {
+    const { data, error } = await this.supabase
+      .from('notification_topics')
+      .select('*')
+      .order('display_name');
 
-    if (error) {
-      console.error(`Error unsubscribing from topic ${topic}:`, error);
-      return { success: false, error: error.message };
-    }
-
-    console.log(`Successfully unsubscribed from topic: ${topic}`);
-    return { success: true };
-  } catch (err) {
-    console.error(`Error unsubscribing from topic ${topic}:`, err);
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-/**
- * Get all topics a device is subscribed to
- * @param token FCM token
- * @returns List of topics and error if any
- */
-export async function getSubscribedTopics(
-  token: string
-): Promise<{ topics: string[]; error?: Error | string | null }> {
-  if (!token) {
-    return { topics: [], error: 'Token is required' };
+    if (error) throw error;
+    return data || [];
   }
 
-  try {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase
-      .from('topic_subscriptions')
-      .select('topic')
-      .eq('token', token);
-
-    if (error) {
-      console.error('Error getting subscribed topics:', error);
-      return { topics: [], error: error.message };
-    }
-
-    const topicsData = (data || []) as Pick<TopicSubscription, 'topic'>[];
-    const topics = topicsData.map(item => item.topic);
-    return { topics };
-  } catch (err) {
-    console.error('Error getting subscribed topics:', err);
-    return { topics: [], error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-/**
- * Get all available notification topics
- * @returns List of available topics and error if any
- */
-export async function getAvailableTopics(): Promise<TopicsResult> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase
+  async getActiveTopics(): Promise<NotificationTopic[]> {
+    const { data, error } = await this.supabase
       .from('notification_topics')
       .select('*')
       .eq('is_active', true)
       .order('display_name');
 
-    if (error) {
-      console.error('Error getting available topics:', error);
-      return { topics: [], error: error.message };
-    }
-
-    return { topics: (data || []) as NotificationTopic[] };
-  } catch (err) {
-    console.error('Error getting available topics:', err);
-    return { topics: [], error: err instanceof Error ? err.message : String(err) };
+    if (error) throw error;
+    return data || [];
   }
-}
 
-/**
- * Subscribe to location-based wolf pack topics
- * @param token FCM token
- * @param location 'salem' | 'portland'
- * @returns Success status and error if any
- */
-export async function subscribeToWolfPackLocation(
-  token: string,
-  location: WolfPackLocation
-): Promise<SubscriptionResult> {
-  const topic = `wolfpack_${location}`;
-  return subscribeToTopic(token, topic);
-}
-
-/**
- * Unsubscribe from all wolf pack location topics
- * @param token FCM token
- * @returns Success status and error if any
- */
-export async function unsubscribeFromAllWolfPackLocations(
-  token: string
-): Promise<SubscriptionResult> {
-  try {
-    const results = await Promise.all([
-      unsubscribeFromTopic(token, 'wolfpack_salem'),
-      unsubscribeFromTopic(token, 'wolfpack_portland')
-    ]);
-
-    const hasError = results.some(r => !r.success);
-    return { 
-      success: !hasError, 
-      error: hasError ? 'Failed to unsubscribe from some topics' : null 
-    };
-  } catch (err) {
-    return { 
-      success: false, 
-      error: err instanceof Error ? err.message : String(err) 
-    };
-  }
-}
-
-/**
- * Update notification preferences for multiple topics at once
- * @param token FCM token
- * @param topicsToSubscribe Topics to subscribe to
- * @param topicsToUnsubscribe Topics to unsubscribe from
- * @returns Success status and error if any
- */
-export async function updateNotificationPreferences(
-  token: string,
-  topicsToSubscribe: string[] = [],
-  topicsToUnsubscribe: string[] = []
-): Promise<SubscriptionResult> {
-  try {
-    const subscribePromises = topicsToSubscribe.map(topic => 
-      subscribeToTopic(token, topic)
-    );
-    const unsubscribePromises = topicsToUnsubscribe.map(topic => 
-      unsubscribeFromTopic(token, topic)
-    );
-
-    const allResults = await Promise.all([
-      ...subscribePromises,
-      ...unsubscribePromises
-    ]);
-
-    const hasError = allResults.some(result => !result.success);
-    
-    if (hasError) {
-      const errors = allResults
-        .filter(result => !result.success)
-        .map(result => result.error)
-        .join(', ');
-      return { success: false, error: `Some operations failed: ${errors}` };
-    }
-
-    return { success: true };
-  } catch (err) {
-    return { 
-      success: false, 
-      error: err instanceof Error ? err.message : String(err) 
-    };
-  }
-}
-
-/**
- * Check if user can subscribe to a topic based on their role
- * @param topicKey Topic to check access for
- * @param userRole User's role
- * @returns Whether user can subscribe to topic
- */
-export async function canSubscribeToTopic(
-  topicKey: string,
-  userRole?: UserRole
-): Promise<{ canSubscribe: boolean; topic?: NotificationTopic }> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase
+  async getTopicByKey(topicKey: string): Promise<NotificationTopic | null> {
+    const { data, error } = await this.supabase
       .from('notification_topics')
       .select('*')
       .eq('topic_key', topicKey)
-      .eq('is_active', true)
       .single();
 
-    if (error || !data) {
-      return { canSubscribe: false };
-    }
-
-    const topic = data as NotificationTopic;
-
-    // If no role requirement, anyone can subscribe
-    if (!topic.requires_role) {
-      return { canSubscribe: true, topic };
-    }
-
-    // Check if user has required role
-    const canSubscribe = userRole === topic.requires_role || 
-                        userRole === 'admin' || 
-                        (topic.requires_role === 'staff' && ['bartender', 'dj'].includes(userRole || ''));
-
-    return { canSubscribe, topic };
-  } catch (err) {
-    console.error('Error checking topic access:', err);
-    return { canSubscribe: false };
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   }
-}
 
-/**
- * Get user's notification preferences
- * @param userId User ID
- * @returns User's subscribed topics
- */
-export async function getUserNotificationPreferences(
-  userId: string
-): Promise<{ subscriptions: TopicSubscription[]; error?: Error | string | null }> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase
+  async createTopic(topic: NotificationTopicInsert): Promise<NotificationTopic> {
+    const { data, error } = await this.supabase
+      .from('notification_topics')
+      .insert(topic)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateTopic(id: string, updates: NotificationTopicUpdate): Promise<NotificationTopic> {
+    const { data, error } = await this.supabase
+      .from('notification_topics')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteTopic(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('notification_topics')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async deactivateTopic(id: string): Promise<NotificationTopic> {
+    return this.updateTopic(id, { is_active: false });
+  }
+
+  async activateTopic(id: string): Promise<NotificationTopic> {
+    return this.updateTopic(id, { is_active: true });
+  }
+
+  // Topic Subscriptions Management
+  async getAllSubscriptions(): Promise<TopicSubscription[]> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getSubscriptionsByTopic(topic: string): Promise<TopicSubscription[]> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .select('*')
+      .eq('topic', topic)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getSubscriptionsByUser(userId: string): Promise<TopicSubscription[]> {
+    const { data, error } = await this.supabase
       .from('topic_subscriptions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error getting user notification preferences:', error);
-      return { subscriptions: [], error: error.message };
-    }
-
-    return { subscriptions: (data || []) as TopicSubscription[] };
-  } catch (err) {
-    console.error('Error getting user notification preferences:', err);
-    return { 
-      subscriptions: [], 
-      error: err instanceof Error ? err.message : String(err) 
-    };
+    if (error) throw error;
+    return data || [];
   }
-}
 
-/**
- * Get topics filtered by user role
- * @param userRole User's role for filtering topics
- * @returns Available topics for the user's role
- */
-export async function getTopicsForRole(userRole?: UserRole): Promise<TopicsResult> {
-  try {
-    const { topics, error } = await getAvailableTopics();
-    
-    if (error) {
-      return { topics: [], error };
-    }
+  async getSubscriptionsByToken(token: string): Promise<TopicSubscription[]> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .select('*')
+      .eq('token', token)
+      .order('created_at', { ascending: false });
 
-    // Filter topics based on user role
-    const filteredTopics = topics.filter(topic => {
-      // No role requirement means everyone can access
-      if (!topic.requires_role) return true;
-      
-      // Admin can access everything
-      if (userRole === 'admin') return true;
-      
-      // Staff role includes bartender and dj
-      if (topic.requires_role === 'staff') {
-        return ['staff', 'bartender', 'dj', 'admin'].includes(userRole || '');
-      }
-      
-      // Exact role match
-      return topic.requires_role === userRole;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createSubscription(subscription: TopicSubscriptionInsert): Promise<TopicSubscription> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .insert(subscription)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateSubscription(id: string, updates: TopicSubscriptionUpdate): Promise<TopicSubscription> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteSubscription(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async deleteSubscriptionByTokenAndTopic(token: string, topic: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .eq('token', token)
+      .eq('topic', topic);
+
+    if (error) throw error;
+  }
+
+  // Bulk operations
+  async subscribeTokenToTopics(token: string, topics: string[], userId?: string): Promise<TopicSubscription[]> {
+    const subscriptions: TopicSubscriptionInsert[] = topics.map(topic => ({
+      token,
+      topic,
+      user_id: userId || null
+    }));
+
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .insert(subscriptions)
+      .select();
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async unsubscribeTokenFromTopics(token: string, topics: string[]): Promise<void> {
+    const { error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .eq('token', token)
+      .in('topic', topics);
+
+    if (error) throw error;
+  }
+
+  async unsubscribeTokenFromAllTopics(token: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .eq('token', token);
+
+    if (error) throw error;
+  }
+
+  // User-specific operations
+  async subscribeUserToTopic(userId: string, topic: string, token: string): Promise<TopicSubscription> {
+    return this.createSubscription({
+      user_id: userId,
+      topic,
+      token
     });
+  }
 
-    return { topics: filteredTopics };
-  } catch (err) {
-    return { 
-      topics: [], 
-      error: err instanceof Error ? err.message : String(err) 
-    };
+  async unsubscribeUserFromTopic(userId: string, topic: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('topic', topic);
+
+    if (error) throw error;
+  }
+
+  async getUserTopics(userId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .select('topic')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data?.map(sub => sub.topic) || [];
+  }
+
+  // Analytics and reporting
+  async getTopicSubscriptionCounts(): Promise<Array<{ topic: string; count: number }>> {
+    const { data, error } = await this.supabase
+      .from('topic_subscriptions')
+      .select('topic')
+      .order('topic');
+
+    if (error) throw error;
+    
+    // Count subscriptions per topic
+    const counts = data?.reduce((acc, sub) => {
+      acc[sub.topic] = (acc[sub.topic] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    return Object.entries(counts).map(([topic, count]) => ({ topic, count }));
+  }
+
+  async getActiveTopicsWithSubscriptionCounts(): Promise<Array<NotificationTopic & { subscription_count: number }>> {
+    // Get active topics
+    const topics = await this.getActiveTopics();
+    
+    // Get subscription counts
+    const counts = await this.getTopicSubscriptionCounts();
+    const countMap = new Map(counts.map(c => [c.topic, c.count]));
+
+    // Combine data
+    return topics.map(topic => ({
+      ...topic,
+      subscription_count: countMap.get(topic.topic_key) || 0
+    }));
+  }
+
+  // Cleanup operations
+  async cleanupInactiveSubscriptions(): Promise<number> {
+    // This would typically involve checking for expired or invalid tokens
+    // For now, we'll just remove subscriptions for inactive topics
+    const { data: inactiveTopics } = await this.supabase
+      .from('notification_topics')
+      .select('topic_key')
+      .eq('is_active', false);
+
+    if (!inactiveTopics || inactiveTopics.length === 0) {
+      return 0;
+    }
+
+    const inactiveTopicKeys = inactiveTopics.map(t => t.topic_key);
+    
+    const { count, error } = await this.supabase
+      .from('topic_subscriptions')
+      .delete()
+      .in('topic', inactiveTopicKeys);
+
+    if (error) throw error;
+    return count || 0;
   }
 }
+
+// Export singleton instance factory
+export function createTopicManagement(supabaseUrl: string, supabaseKey: string): TopicManagement {
+  return new TopicManagement(supabaseUrl, supabaseKey);
+}
+
+// Export default instance if environment variables are available
+export default typeof process !== 'undefined' && process.env 
+  ? createTopicManagement(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '', 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    )
+  : null;

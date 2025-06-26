@@ -1,67 +1,11 @@
 import { useState, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
-export interface WolfProfile {
-  id?: string;
-  user_id: string;
-  display_name: string;
-  wolf_emoji: string;
-  bio?: string;
-  favorite_drink?: string;
-  vibe_status: string;  // NOT wolfpack_status
-  profile_image_url?: string;  // NOT profile_pic_url or avatar_url
-  instagram_handle?: string;
-  looking_for?: string;
-  is_visible: boolean;
-  allow_messages: boolean;
-  phone?: string;
-}
-
-export interface WolfpackMembershipWithProfile {
-  id: string;
-  user_id: string;
-  status: string;
-  joined_at: string;
-  location_id: string;
-  table_location?: string;
-  user: {
-    id: string;
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    wolf_profile?: WolfProfile;
-  };
-  locations?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-}
-
-// Default wolf profile factory
-export const createDefaultWolfProfile = (user: {
-  id: string;
-  first_name?: string;
-  avatar_url?: string;
-}): WolfProfile => ({
-  user_id: user.id,
-  display_name: user.first_name || 'Anonymous Wolf',
-  wolf_emoji: '🐺',
-  vibe_status: 'Just joined the pack!',
-  profile_image_url: user.avatar_url,
-  is_visible: true,
-  allow_messages: true,
-  bio: '',
-});
-
-// Helper function to transform data
-const transformMembershipData = (membership: unknown): WolfpackMembershipWithProfile => {
-  const typedMembership = membership as WolfpackMembershipWithProfile;
-  if (typedMembership.user && !typedMembership.user.wolf_profile) {
-    typedMembership.user.wolf_profile = createDefaultWolfProfile(typedMembership.user);
-  }
-  return typedMembership;
-};
+import { 
+  WolfProfile, 
+  WolfpackMembershipWithProfile, 
+  createDefaultWolfProfile, 
+  transformMembershipData 
+} from '@/types/wolfpack-interfaces';
 
 export const useWolfpackQuery = () => {
   const [isUsingFallback, setIsUsingFallback] = useState(false);

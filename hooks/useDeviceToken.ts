@@ -129,7 +129,12 @@ export function useDeviceToken(userId?: string) {
         throw new Error(error.message);
       }
 
-      return data as DeviceToken;
+      // Type assertion with proper type checking
+      if (data && 'id' in data && 'device_type' in data) {
+        return data as unknown as DeviceToken;
+      }
+      
+      return null;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save device token';
       setError(errorMessage);
@@ -183,13 +188,15 @@ export function useDeviceToken(userId?: string) {
         
         // Update last used timestamp
         const supabase = getSupabaseBrowserClient();
-        await supabase
-          .from('device_tokens')
-          .update({ 
-            last_used_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingToken.id);
+        if (existingToken.id) {
+          await supabase
+            .from('device_tokens')
+            .update({
+              last_used_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingToken.id);
+        }
       }
 
       // Check current permission status
@@ -249,9 +256,13 @@ export function useDeviceToken(userId?: string) {
 
     try {
       const supabase = getSupabaseBrowserClient();
+      if (!deviceToken.id) {
+        throw new Error('Device token ID is missing');
+      }
+      
       const { error } = await supabase
         .from('device_tokens')
-        .update({ 
+        .update({
           is_active: false,
           updated_at: new Date().toISOString()
         })

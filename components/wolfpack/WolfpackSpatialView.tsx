@@ -22,48 +22,47 @@ import { toast } from 'sonner';
 interface WolfPackMember {
   id: string;
   user_id: string;
-  location_id: string;
-  table_location?: string;
-  joined_at: string;
-  last_activity: string;
-  status: 'active' | 'inactive';
+  location_id: string | null;
+  table_location?: string | null;
+  joined_at: string | null;
+  last_active: string | null;
+  status: string;
   position_x?: number;
   position_y?: number;
   user?: {
     email: string;
-    first_name?: string;
-    last_name?: string;
-    role: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    role: string | null;
     wolf_profile?: {
-      display_name: string;
-      wolf_emoji: string;
-      wolfpack_status: string;
-      favorite_drink?: string;
-      instagram_handle?: string;
-      looking_for?: string;
-      bio?: string;
-      is_visible: boolean;
-      profile_image_url?: string;
-      allow_messages: boolean;
-    };
+      display_name: string | null;
+      wolf_emoji: string | null;
+      favorite_drink?: string | null;
+      instagram_handle?: string | null;
+      looking_for?: string | null;
+      bio?: string | null;
+      is_visible: boolean | null;
+      profile_image_url?: string | null;
+      allow_messages: boolean | null;
+    } | null;
   };
 }
 
 interface SimpleSpatialMemberData {
   id: string;
   user_id: string;
-  location_id: string;
-  table_location?: string;
-  joined_at: string;
-  last_activity: string;
-  status: 'active' | 'inactive';
+  location_id: string | null;
+  table_location?: string | null;
+  joined_at: string | null;
+  last_active: string | null;
+  status: string;
   position_x?: number;
   position_y?: number;
   user?: {
     email: string;
-    first_name?: string;
-    last_name?: string;
-    role: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    role: string | null;
   };
 }
 
@@ -79,6 +78,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
   const [selectedMember, setSelectedMember] = useState<WolfPackMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'spatial' | 'list'>('spatial');
 
   const supabase = getSupabaseBrowserClient();
 
@@ -151,7 +151,6 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                 wolf_profile: {
                   display_name: 'Anonymous Wolf',
                   wolf_emoji: '🐺',
-                  wolfpack_status: 'Just joined',
                   favorite_drink: null,
                   instagram_handle: null,
                   looking_for: null,
@@ -178,7 +177,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           .eq('sender_id', currentUserId)
           .eq('interaction_type', 'block');
 
-        setBlockedUsers(blockData?.map((b: { receiver_id: string }) => b.receiver_id) || []);
+        setBlockedUsers(blockData?.map((b: { receiver_id: string | null }) => b.receiver_id).filter((id): id is string => id !== null) || []);
 
       } catch (error) {
         console.error('Error loading wolfpack data:', error);
@@ -213,12 +212,26 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
     }
   }, [locationId, currentUserId, supabase]);
 
-  // Get member icon based on role
+  // Get member icon based on role with exclusive wolf emojis
   const getMemberIcon = (member: WolfPackMember) => {
     const role = member.user?.role;
-    if (role === 'dj') return '⭐';
-    if (role === 'bartender') return '🐺';
-    return '🐾';
+    if (role === 'dj') return '🎵'; // DJ gets music emoji
+    if (role === 'bartender') return '🐺'; // Bartender gets exclusive wolf emoji
+    return member.user?.wolf_profile?.wolf_emoji || '🐾'; // Default wolf paw
+  };
+
+  // Get member bubble color based on role
+  const getMemberBubbleColor = (member: WolfPackMember, isCurrentUser: boolean) => {
+    const role = member.user?.role;
+    if (role === 'dj') return { bg: '#9333ea', border: '#7c3aed' }; // Purple for DJ
+    if (role === 'bartender') return { bg: '#059669', border: '#047857' }; // Green for bartender
+    if (isCurrentUser) return { bg: '#3b82f6', border: '#1d4ed8' }; // Blue for current user
+    return { bg: '#6366f1', border: '#4f46e5' }; // Default indigo
+  };
+
+  // Toggle between spatial and list view for mobile
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === 'spatial' ? 'list' : 'spatial');
   };
 
   // Send interaction (wink, message, etc.)
@@ -256,7 +269,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
         if (error) throw error;
         toast.success('Wink sent! 😉');
       } else if (type === 'message') {
-        router.push(`/chat`);
+        router.push(`/wolfpack/chat`);
       }
     } catch (error) {
       console.error('Error sending interaction:', error);
@@ -307,8 +320,70 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
   return (
     <div className="space-y-4">
-      {/* Animated Live Bar Map */}
-      <div className="relative w-full h-[400px] bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-xl overflow-hidden">
+      {/* View Toggle for Mobile */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Wolf Pack Members ({visibleMembers.length})
+        </h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleViewMode}
+          className="md:hidden"
+        >
+          {viewMode === 'spatial' ? 'List View' : 'Bar View'}
+        </Button>
+      </div>
+
+      {/* Mobile List View */}
+      {viewMode === 'list' && (
+        <div className="block md:hidden space-y-3">
+          {visibleMembers.map((member) => {
+            const isCurrentUser = member.user_id === currentUserId;
+            const icon = getMemberIcon(member);
+            
+            return (
+              <Card key={member.id} className="cursor-pointer hover:shadow-md transition-all"
+                    onClick={() => handleWolfClick(member)}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white`}
+                           style={{ backgroundColor: getMemberBubbleColor(member, isCurrentUser).bg }}>
+                        {icon}
+                      </div>
+                      {isCurrentUser && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">
+                        {member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf'}
+                        {isCurrentUser && <span className="text-sm text-muted-foreground ml-2">(You)</span>}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {member.table_location || 'Roaming the bar'}
+                      </p>
+                      {member.user?.role && (
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          {member.user.role === 'dj' ? 'DJ' : member.user.role === 'bartender' ? 'Bartender' : 'Member'}
+                        </Badge>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Enhanced Spatial Bar Map */}
+      <div className={`relative w-full ${viewMode === 'spatial' ? 'block' : 'hidden md:block'} h-[450px] md:h-[500px] bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-xl overflow-hidden shadow-lg`}>
         <motion.svg
           viewBox="0 0 800 600"
           className="w-full h-full cursor-pointer"
@@ -361,28 +436,61 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
             DJ Booth 🎵
           </text>
           
-          {/* Wolf Pack Members */}
+          {/* Wolf Pack Members with Better Positioning */}
           <AnimatePresence>
             {visibleMembers.map((member, index) => {
               const isCurrentUser = member.user_id === currentUserId;
               const icon = getMemberIcon(member);
+              const colors = getMemberBubbleColor(member, isCurrentUser);
               
-              // Calculate position based on table_location or use default positions
+              // Enhanced position calculation with organic clustering
               let x = 400, y = 300; // Default center position
               
               if (member.table_location) {
-                if (member.table_location.includes('Table 1')) { x = 150; y = 300; }
-                else if (member.table_location.includes('Table 2')) { x = 400; y = 300; }
-                else if (member.table_location.includes('Table 3')) { x = 650; y = 300; }
-                else if (member.table_location.includes('High 1')) { x = 120; y = 420; }
-                else if (member.table_location.includes('High 2')) { x = 680; y = 420; }
-                else if (member.table_location.includes('Bar')) { x = 200 + (index * 80); y = 120; }
+                // More precise table positioning
+                if (member.table_location.toLowerCase().includes('table 1')) { 
+                  x = 150 + (Math.random() * 40 - 20); 
+                  y = 300 + (Math.random() * 40 - 20); 
+                }
+                else if (member.table_location.toLowerCase().includes('table 2')) { 
+                  x = 400 + (Math.random() * 40 - 20); 
+                  y = 300 + (Math.random() * 40 - 20); 
+                }
+                else if (member.table_location.toLowerCase().includes('table 3')) { 
+                  x = 650 + (Math.random() * 40 - 20); 
+                  y = 300 + (Math.random() * 40 - 20); 
+                }
+                else if (member.table_location.toLowerCase().includes('high 1')) { 
+                  x = 120 + (Math.random() * 30 - 15); 
+                  y = 420 + (Math.random() * 30 - 15); 
+                }
+                else if (member.table_location.toLowerCase().includes('high 2')) { 
+                  x = 680 + (Math.random() * 30 - 15); 
+                  y = 420 + (Math.random() * 30 - 15); 
+                }
+                else if (member.table_location.toLowerCase().includes('bar') || member.table_location.toLowerCase().includes('counter')) { 
+                  x = 200 + (index * 60) + (Math.random() * 20 - 10); 
+                  y = 120 + (Math.random() * 20 - 10); 
+                }
+                else if (member.table_location.toLowerCase().includes('upstairs')) {
+                  x = 500 + (Math.random() * 200 - 100);
+                  y = 150 + (Math.random() * 60 - 30);
+                }
+                else if (member.table_location.toLowerCase().includes('outside') || member.table_location.toLowerCase().includes('patio')) {
+                  x = 100 + (Math.random() * 100);
+                  y = 500 + (Math.random() * 80 - 40);
+                }
               } else {
-                // Distribute members around the space if no specific table
+                // Organic distribution around the bar space
                 const angle = (index / visibleMembers.length) * 2 * Math.PI;
-                x = 400 + Math.cos(angle) * 150;
-                y = 350 + Math.sin(angle) * 100;
+                const radius = 120 + (Math.random() * 80); // Variable radius for organic feel
+                x = 400 + Math.cos(angle) * radius;
+                y = 350 + Math.sin(angle) * (radius * 0.6); // Elliptical distribution
               }
+              
+              // Ensure positions stay within bounds
+              x = Math.max(30, Math.min(770, x));
+              y = Math.max(130, Math.min(570, y));
               
               return (
                 <motion.g
@@ -396,40 +504,91 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                   className="cursor-pointer"
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  {/* Wolf Avatar Background */}
+                  {/* Enhanced Wolf Avatar Background */}
                   <circle 
                     cx={x} 
                     cy={y} 
-                    r="20" 
-                    fill={isCurrentUser ? "#3b82f6" : "#6366f1"} 
-                    stroke={isCurrentUser ? "#1d4ed8" : "#4f46e5"} 
-                    strokeWidth="2"
+                    r="22" 
+                    fill={colors.bg} 
+                    stroke={colors.border} 
+                    strokeWidth="3"
+                    filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"
                   />
                   
-                  {/* Wolf Icon */}
+                  {/* Role indicator ring for special roles */}
+                  {(member.user?.role === 'dj' || member.user?.role === 'bartender') && (
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r="26" 
+                      fill="none" 
+                      stroke={member.user.role === 'dj' ? '#fbbf24' : '#10b981'} 
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      className="animate-pulse"
+                    />
+                  )}
+                  
+                  {/* Enhanced Wolf Icon */}
                   <text 
                     x={x} 
-                    y={y + 5} 
+                    y={y + 6} 
                     textAnchor="middle" 
                     fill="white" 
-                    fontSize="20"
-                    className="select-none"
+                    fontSize="22"
+                    className="select-none font-bold"
+                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
                   >
                     {icon}
                   </text>
                   
-                  {/* Name Label */}
+                  {/* Enhanced Name Label with Background */}
+                  <rect
+                    x={x - 35}
+                    y={y - 40}
+                    width="70"
+                    height="16"
+                    fill="rgba(0,0,0,0.7)"
+                    rx="8"
+                    ry="8"
+                  />
                   <text 
                     x={x} 
-                    y={y - 30} 
+                    y={y - 28} 
                     textAnchor="middle" 
-                    fill="#e2e8f0" 
-                    fontSize="12" 
+                    fill="#ffffff" 
+                    fontSize="11" 
                     fontFamily="system-ui"
-                    className="select-none"
+                    className="select-none font-medium"
                   >
-                    {member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf'}
+                    {(member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf').slice(0, 10)}
                   </text>
+                  
+                  {/* Role badge for special users */}
+                  {member.user?.role && (member.user.role === 'dj' || member.user.role === 'bartender') && (
+                    <>
+                      <rect
+                        x={x - 15}
+                        y={y - 55}
+                        width="30"
+                        height="12"
+                        fill={member.user.role === 'dj' ? '#9333ea' : '#059669'}
+                        rx="6"
+                        ry="6"
+                      />
+                      <text 
+                        x={x} 
+                        y={y - 47} 
+                        textAnchor="middle" 
+                        fill="white" 
+                        fontSize="8" 
+                        fontFamily="system-ui"
+                        className="select-none font-bold"
+                      >
+                        {member.user.role === 'dj' ? 'DJ' : 'BAR'}
+                      </text>
+                    </>
+                  )}
                   
                   {/* Current User Indicator */}
                   {isCurrentUser && (
@@ -481,6 +640,44 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           )}
         </motion.svg>
         
+        {/* Special Role Quick Access Overlay */}
+        <div className="absolute top-4 left-4 space-y-2">
+          {visibleMembers.filter(m => m.user?.role === 'bartender').length > 0 && (
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-2 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-all"
+              onClick={() => {
+                const bartender = visibleMembers.find(m => m.user?.role === 'bartender');
+                if (bartender) handleWolfClick(bartender);
+              }}
+            >
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <span className="text-lg">🐺</span>
+                <span>Bartender Available</span>
+              </div>
+            </motion.div>
+          )}
+          
+          {visibleMembers.filter(m => m.user?.role === 'dj').length > 0 && (
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-all"
+              onClick={() => {
+                const dj = visibleMembers.find(m => m.user?.role === 'dj');
+                if (dj) handleWolfClick(dj);
+              }}
+            >
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <span className="text-lg">⭐</span>
+                <span>DJ Live</span>
+              </div>
+            </motion.div>
+          )}
+        </div>
+        
         {/* Legend */}
         <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
           <div className="space-y-1">
@@ -496,11 +693,36 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               <span>Online</span>
             </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Bartender</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+              <span>DJ</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Member Profile Dialog */}
+      {/* Special Role Actions Dialog */}
+      {showSpecialRole && (
+        <SpecialRoleActions
+          isOpen={!!showSpecialRole}
+          onClose={() => setShowSpecialRole(null)}
+          memberData={{
+            id: showSpecialRole.member.id,
+            user_id: showSpecialRole.member.user_id,
+            display_name: showSpecialRole.member.user?.wolf_profile?.display_name || 
+                          showSpecialRole.member.user?.first_name || 'Wolf',
+            role: showSpecialRole.role,
+            avatar_url: showSpecialRole.member.user?.wolf_profile?.profile_image_url,
+            status: showSpecialRole.member.table_location
+          }}
+        />
+      )}
+      
+      {/* Regular Member Profile Dialog */}
       {selectedMember && (
         <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
           <DialogContent className="max-w-md">
@@ -515,7 +737,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               {/* Profile Header */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url} />
+                  <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url || undefined} />
                   <AvatarFallback className="text-lg">
                     {selectedMember.user?.wolf_profile?.wolf_emoji || 
                      selectedMember.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
@@ -528,7 +750,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     {selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    {selectedMember.user?.wolf_profile?.wolfpack_status || 'Ready to party! 🎉'}
+                    Ready to party! 🎉
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary">

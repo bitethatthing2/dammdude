@@ -58,19 +58,19 @@ export function useDJPermissions() {
         } else {
           // Try to check for DJ assignment in database
           const { data: djData } = await supabase
-            .from('dj_assignments')
+            .from('users')
             .select('*')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .single();
 
-          if (djData) {
+          if (djData && 'location' in djData) {
             setPermissions({
               canCreateEvents: true,
               canSendMassMessages: true,
               canSelectContestants: true,
               canManageVoting: true,
-              assignedLocation: djData.location,
+              assignedLocation: djData.location as 'salem' | 'portland',
               isActiveDJ: true
             });
           }

@@ -40,7 +40,20 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
           .order('display_order', { ascending: true });
 
         if (error) throw error;
-        setCategories(data || []);
+        
+        interface DBCategory {
+          id: string;
+          name: string;
+          description?: string | null;
+          emoji?: string | null;
+          display_order: number | null;
+          color_class?: string;
+        }
+        
+        setCategories((data || []).map((cat: DBCategory) => ({
+          ...cat,
+          display_order: cat.display_order || 0
+        })));
         
         // Set first category as active if none selected
         if (!activeCategory && data && data.length > 0) {
@@ -85,7 +98,41 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
         const { data, error } = await query;
 
         if (error) throw error;
-        setMenuItems(data || []);
+        
+        interface DBMenuItem {
+          id: string;
+          name: string;
+          description: string | null;
+          price: number;
+          is_available: boolean | null;
+          display_order: number | null;
+          category_id: string | null;
+          category: {
+            id: string;
+            name: string;
+            type: string;
+          } | null;
+          image_url: string | null;
+        }
+        
+        // Transform the data to match MenuItemWithModifiers type
+        const transformedItems: MenuItemWithModifiers[] = (data || []).map((item: DBMenuItem) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || undefined,
+          price: item.price,
+          is_available: item.is_available || false,
+          display_order: item.display_order || 0,
+          category_id: item.category_id,
+          category: item.category ? {
+            id: item.category.id,
+            name: item.category.name,
+            type: item.category.type
+          } : undefined,
+          image_url: item.image_url || undefined
+        }));
+        
+        setMenuItems(transformedItems);
       } catch (error) {
         console.error('Error fetching menu items:', error);
         toast({
@@ -103,11 +150,11 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
 
   // Filter items by availability
   const availableItems = useMemo(() => {
-    return menuItems.filter(item => item.is_available);
+    return menuItems.filter((item: MenuItemWithModifiers) => item.is_available);
   }, [menuItems]);
 
   const unavailableItems = useMemo(() => {
-    return menuItems.filter(item => !item.is_available);
+    return menuItems.filter((item: MenuItemWithModifiers) => !item.is_available);
   }, [menuItems]);
 
   // Combine items with available first
@@ -131,7 +178,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
               )}
               <h3 className="wolfpack-category-name">{category.name}</h3>
               <span className="wolfpack-category-count">
-                {menuItems.filter(item => item.category_id === category.id).length} items
+                {menuItems.filter((item: MenuItemWithModifiers) => item.category_id === category.id).length} items
               </span>
             </button>
           ))}

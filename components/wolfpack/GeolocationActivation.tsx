@@ -10,247 +10,18 @@ import { MapPin, Shield, AlertTriangle, Check, X, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
-
-interface Location {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  address: string;
-  radius_miles: number;
-}
-
-interface GeolocationState {
-  permission: 'prompt' | 'granted' | 'denied';
-  position: GeolocationPosition | null;
-  error: string | null;
-  isLoading: boolean;
-}
-
-interface WolfPackInvitation {
-  show: boolean;
-  location: Location | null;
-  distance: number;
-}
-
-// Fixed joinWolfPackFromLocation with proper error handling
-const joinWolfPackFromLocation = async (
-  locationId: string, 
-  user: { id: string; first_name?: string; email?: string }, 
-  supabase: ReturnType<typeof getSupabaseBrowserClient>
-) => {
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
-  try {
-    // Step 1: Check if profile already exists
-    console.log('Step 1: Checking for existing profile for user:', user.id);
-    
-    const { error: checkError } = await supabase
-      .from('wolf_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    // Handle 409 conflict by updating instead of creating
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing profile:', checkError);
-    }
-
-    // Step 2: Prepare profile data
-    const profileData = {
-      user_id: user.id,
-      display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
-      wolf_emoji: '🐺',
-      vibe_status: 'Ready to party! 🎉',
-      is_visible: true,
-      looking_for: 'New friends',
-      bio: null,
-      favorite_drink: null,
-      favorite_song: null,
-      instagram_handle: null,
-      gender: null,
-      pronouns: null,
-      profile_pic_url: null,
-      custom_avatar_id: null
-    };
-
-    console.log('Step 2: Profile data prepared');
-
-    // Step 3: Upsert profile (insert or update)
-    const { data: profileResult, error: profileError } = await supabase
-      .from('wolf_profiles')
-      .upsert(profileData, { 
-        onConflict: 'user_id',
-        ignoreDuplicates: false 
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      console.error('Profile upsert error:', profileError);
-      throw new Error(`Failed to save profile: ${profileError.message}`);
-    }
-
-    console.log('Profile saved successfully:', profileResult);
-
-    // Step 4: Check if already a pack member
-    const { data: existingMember, error: memberCheckError } = await supabase
-      .from('wolfpack_memberships')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('location_id', locationId)
-      .maybeSingle();
-
-    if (memberCheckError && memberCheckError.code !== 'PGRST116') {
-      console.error('Error checking pack membership:', memberCheckError);
-    }
-
-    // Step 5: Create or update pack membership
-    if (!existingMember) {
-      const memberData = {
-        user_id: user.id,
-        location_id: locationId,
-        status: 'active',
-        joined_at: new Date().toISOString(),
-        last_active: new Date().toISOString()
-      };
-
-      const { data: memberEntry, error: memberError } = await supabase
-        .from('wolfpack_memberships')
-        .insert(memberData)
-        .select()
-        .single();
-
-      if (memberError) {
-        console.error('Wolf pack member creation error:', memberError);
-        // Don't throw - profile was created successfully
-      } else {
-        console.log('Successfully joined wolf pack:', memberEntry);
-      }
-    } else {
-      // Update existing membership
-      const { error: updateError } = await supabase
-        .from('wolfpack_memberships')
-        .update({ 
-          status: 'active', 
-          last_active: new Date().toISOString() 
-        })
-        .eq('id', existingMember.id);
-
-      if (updateError) {
-        console.error('Error updating pack membership:', updateError);
-      }
-    }
-
-    return { success: true };
-
-  } catch (error) {
-    console.error('Unexpected error in joinWolfPackFromLocation:', error);
-    throw error;
-  }
-};
-
-// Fixed query functions to use correct column names
-export async function checkWolfPackStatus(userId: string) {
-  const supabase = getSupabaseBrowserClient();
-  
-  try {
-    // Fix 1: Query wolfpack_status from users table correctly
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('wolfpack_status, wolfpack_joined_at')
-      .eq('id', userId)
-      .single();
-
-    if (userError && userError.code !== 'PGRST116') {
-      console.error('Error checking user wolfpack status:', userError);
-    }
-
-    // Fix 2: Query wolfpack_memberships with correct columns
-    const { data: memberData, error: memberError } = await supabase
-      .from('wolfpack_memberships')
-      .select(`
-        id,
-        user_id,
-        location_id,
-        status,
-        joined_at,
-        last_active
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active');
-
-    if (memberError) {
-      console.error('Error checking pack membership:', memberError);
-    }
-
-    return {
-      isWolfpackMember: userData?.wolfpack_status === 'active' || (memberData && memberData.length > 0),
-      memberData: memberData || [],
-      userStatus: userData?.wolfpack_status
-    };
-  } catch (error) {
-    console.error('Error in checkWolfPackStatus:', error);
-    return {
-      isWolfpackMember: false,
-      memberData: [],
-      userStatus: null
-    };
-  }
-}
-
-// Fixed location query with proper join syntax
-export async function getWolfPackLocations(userId: string) {
-  const supabase = getSupabaseBrowserClient();
-  
-  try {
-    // Fix 3: Correct join syntax for locations
-    const { data, error } = await supabase
-      .from('wolfpack_memberships')
-      .select(`
-        id,
-        location_id,
-        status,
-        joined_at,
-        locations (
-          id,
-          name,
-          address,
-          city,
-          state
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active');
-
-    if (error) {
-      console.error('Error fetching wolfpack locations:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error in getWolfPackLocations:', error);
-    return [];
-  }
-}
-
-// Add this to your auth configuration to fix cookie issues
-export function clearCorruptedAuthCookies() {
-  // Clear all Supabase cookies
-  document.cookie.split(";").forEach(function(c) { 
-    if (c.trim().startsWith('sb-') || c.includes('supabase')) {
-      const eqPos = c.indexOf('=');
-      const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
-    }
-  });
-  
-  console.log('Cleared corrupted auth cookies');
-}
+import { 
+  Location, 
+  GeolocationState, 
+  WolfPackInvitation 
+} from '@/types/wolfpack-interfaces';
+import { 
+  joinWolfPackFromLocation, 
+  checkWolfPackStatus, 
+  getWolfPackLocations, 
+  clearCorruptedAuthCookies, 
+  calculateDistance 
+} from '@/lib/utils/wolfpack-utils';
 
 // Call this when you detect cookie errors
 if (typeof window !== 'undefined') {
@@ -422,6 +193,12 @@ export function GeolocationActivation() {
 
       for (const location of locations) {
         const distance = calculateDistance(userLat, userLng, location.latitude, location.longitude);
+        
+        // Skip location if radius_miles is null or undefined
+        if (location.radius_miles == null) {
+          continue;
+        }
+        
         const radiusInMeters = location.radius_miles * 1609.34; // Convert miles to meters
         
         // Check if user is within geofence and not already a member
@@ -634,7 +411,7 @@ export function GeolocationActivation() {
               Enjoying exclusive features: chat, profile, and menu access
             </p>
             <div className="flex gap-2 mt-3">
-              <Button size="sm" onClick={() => router.push('/chat')}>
+              <Button size="sm" onClick={() => router.push('/wolfpack/chat')}>
                 <Users className="mr-2 h-3 w-3" />
                 Open Chat
               </Button>

@@ -23,11 +23,12 @@ import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
-import type { 
-  MenuCategory, 
-  MenuCategoryWithCount, 
-  MenuItemWithModifiers, 
-  CartOrderData
+import type {
+  MenuCategory,
+  MenuCategoryWithCount,
+  MenuItemWithModifiers,
+  CartOrderData,
+  APIModifierGroup
 } from '@/lib/types/menu';
 
 export default function Menu() {
@@ -87,6 +88,9 @@ export default function Menu() {
       if (rpcItemsData && Array.isArray(rpcItemsData)) {
         for (const rpcItem of rpcItemsData) {
           try {
+            // Extract category_id from the item id pattern or use a default
+            const categoryId = rpcItem.category_icon || rpcItem.id.split('-')[0] || 'default';
+            
             // Direct conversion from RPC format to MenuItemWithModifiers
             const convertedItem: MenuItemWithModifiers = {
               id: rpcItem.id,
@@ -94,15 +98,17 @@ export default function Menu() {
               description: rpcItem.description,
               price: typeof rpcItem.price === 'string' ? parseFloat(rpcItem.price) : rpcItem.price,
               is_available: rpcItem.is_available,
-              display_order: rpcItem.display_order,
-              category_id: rpcItem.category_id,
+              display_order: 0, // Default display order
+              category_id: categoryId,
               category: {
-                id: rpcItem.category_id,
+                id: categoryId,
                 name: rpcItem.category_name,
-                type: rpcItem.menu_type
+                type: rpcItem.menu_type as 'food' | 'drink'
               },
-              modifiers: rpcItem.modifiers, // RPC already returns in correct format
-              image_url: rpcItem.image_url
+              modifiers: rpcItem.modifiers && typeof rpcItem.modifiers === 'object' && rpcItem.modifiers !== null
+                ? (rpcItem.modifiers as unknown as APIModifierGroup[])
+                : undefined,
+              image_url: undefined // RPC doesn't include image_url
             };
             convertedItems.push(convertedItem);
           } catch (e) {
@@ -112,8 +118,12 @@ export default function Menu() {
       }
 
       // Count items per category
-      const categoriesWithCount: MenuCategoryWithCount[] = (categoriesData || []).map((cat: MenuCategory) => ({
+      const categoriesWithCount: MenuCategoryWithCount[] = (categoriesData || []).map((cat) => ({
         ...cat,
+        type: cat.type as 'food' | 'drink', // Cast type to literal union
+        color: cat.color || null, // Add missing color property
+        display_order: cat.display_order || 0, // Ensure display_order is never null
+        is_active: cat.is_active ?? true, // Ensure is_active is never null
         item_count: convertedItems.filter((item) => item.category_id === cat.id).length
       }));
 
@@ -256,11 +266,11 @@ export default function Menu() {
   );
 
   // Filter categories by type
-  const foodCategories = categories.filter(cat => cat.type === 'food');
-  const drinkCategories = categories.filter(cat => cat.type === 'drink');
+  const foodCategories = categories.filter((cat: MenuCategoryWithCount) => cat.type === 'food');
+  const drinkCategories = categories.filter((cat: MenuCategoryWithCount) => cat.type === 'drink');
 
   // Filter items by active category
-  const activeItems = items.filter(item => item.category_id === activeCategory);
+  const activeItems = items.filter((item: MenuItemWithModifiers) => item.category_id === activeCategory);
 
   // Error state
   if (error) {

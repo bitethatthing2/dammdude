@@ -41,7 +41,12 @@ interface WolfProfile {
   pronouns: string | null;
   is_visible: boolean;
   profile_pic_url: string | null;
+  profile_image_url: string | null; // Alternative field name
   custom_avatar_id: string | null;
+  allow_messages: boolean;
+  phone?: string | null;
+  location_permissions_granted?: boolean;
+  favorite_bartender?: string | null;
 }
 
 const WOLF_EMOJIS = [
@@ -64,12 +69,18 @@ const VIBE_OPTIONS = [
 ];
 
 const GENDER_OPTIONS = [
-  "Male",
-  "Female", 
-  "Non-binary",
-  "Prefer not to say",
-  "Other"
+  "male",
+  "female", 
+  "other",
+  "prefer_not_to_say"
 ];
+
+const GENDER_DISPLAY_MAP: Record<string, string> = {
+  "male": "Male",
+  "female": "Female",
+  "other": "Non-binary",
+  "prefer_not_to_say": "Prefer not to say"
+};
 
 const LOOKING_FOR_OPTIONS = [
   "New friends",
@@ -102,7 +113,9 @@ export function WolfpackProfileManager() {
     looking_for: '',
     gender: '',
     pronouns: '',
-    is_visible: true
+    is_visible: true,
+    allow_messages: true,
+    favorite_bartender: ''
   });
 
   // Load existing profile
@@ -135,39 +148,31 @@ export function WolfpackProfileManager() {
           looking_for: data.looking_for || '',
           gender: data.gender || '',
           pronouns: data.pronouns || '',
-          is_visible: data.is_visible ?? true
+          is_visible: data.is_visible ?? true,
+          allow_messages: data.allow_messages ?? true,
+          favorite_bartender: data.favorite_bartender || ''
         });
       } else {
-        // Create default profile
-        const defaultProfile: Partial<WolfProfile> = {
-          user_id: user.id,
-          display_name: (user.user_metadata?.first_name as string) || user.email?.split('@')[0] || 'Wolf',
-          bio: null,
-          favorite_drink: null,
-          favorite_song: null,
-          instagram_handle: null,
-          vibe_status: "Ready to party! 🎉",
-          wolf_emoji: '🐺',
-          looking_for: null,
-          gender: null,
-          pronouns: null,
-          is_visible: true,
-          profile_pic_url: null,
-          custom_avatar_id: null
-        };
+        // Set default values for new profile
+        const defaultName = user.user_metadata?.first_name || 
+                          user.user_metadata?.display_name || 
+                          user.email?.split('@')[0] || 
+                          'Wolf';
 
         setFormData({
-          display_name: defaultProfile.display_name || '',
+          display_name: defaultName,
           bio: '',
           favorite_drink: '',
           favorite_song: '',
           instagram_handle: '',
-          vibe_status: defaultProfile.vibe_status || '',
-          wolf_emoji: defaultProfile.wolf_emoji || '🐺',
+          vibe_status: "Ready to party! 🎉",
+          wolf_emoji: '🐺',
           looking_for: '',
           gender: '',
           pronouns: '',
-          is_visible: true
+          is_visible: true,
+          allow_messages: true,
+          favorite_bartender: ''
         });
       }
     } catch (error) {
@@ -176,7 +181,7 @@ export function WolfpackProfileManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, supabase, user?.user_metadata?.first_name, user?.email]);
+  }, [user?.id, user?.user_metadata, user?.email, supabase]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -209,7 +214,7 @@ export function WolfpackProfileManager() {
       const filePath = `avatars/${fileName}`;
 
       // Upload to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -226,40 +231,12 @@ export function WolfpackProfileManager() {
         .from('images')
         .getPublicUrl(filePath);
 
-      // Update profile directly with new avatar URL
-      const updatedFormData = {
-        ...formData
-      };
+      // Save profile with new avatar URL
+      await saveProfile({
+        ...formData,
+        profile_image_url: publicUrl
+      }, false);
 
-      const profileData = {
-        user_id: user.id,
-        display_name: updatedFormData.display_name || null,
-        bio: updatedFormData.bio || null,
-        favorite_drink: updatedFormData.favorite_drink || null,
-        favorite_song: updatedFormData.favorite_song || null,
-        instagram_handle: updatedFormData.instagram_handle ? 
-          updatedFormData.instagram_handle.replace('@', '') : null,
-        vibe_status: updatedFormData.vibe_status || null,
-        wolf_emoji: updatedFormData.wolf_emoji,
-        looking_for: updatedFormData.looking_for || null,
-        gender: updatedFormData.gender || null,
-        pronouns: updatedFormData.pronouns || null,
-        is_visible: updatedFormData.is_visible,
-        profile_pic_url: publicUrl
-      };
-
-      const { data: savedData, error: profileError } = await supabase
-        .from('wolf_profiles')
-        .upsert(profileData, { onConflict: 'user_id' })
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error('Profile update error:', profileError);
-        throw new Error(`Profile update failed: ${profileError.message}`);
-      }
-
-      setProfile(savedData);
       toast.success('Avatar uploaded successfully!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
@@ -277,7 +254,8 @@ export function WolfpackProfileManager() {
     setSaving(true);
 
     try {
-      const profileData = {
+      // Prepare profile data
+      const profileData: Partial<WolfProfile> = {
         user_id: user.id,
         display_name: data.display_name || null,
         bio: data.bio || null,
@@ -291,13 +269,33 @@ export function WolfpackProfileManager() {
         gender: data.gender || null,
         pronouns: data.pronouns || null,
         is_visible: data.is_visible,
-        ...(profile?.profile_pic_url && { profile_pic_url: profile.profile_pic_url }),
-        ...(profile?.custom_avatar_id && { custom_avatar_id: profile.custom_avatar_id })
+        allow_messages: data.allow_messages,
+        favorite_bartender: data.favorite_bartender || null
       };
+
+      // Preserve existing image URLs if they exist
+      if (profile?.profile_pic_url) {
+        profileData.profile_pic_url = profile.profile_pic_url;
+      }
+      if (profile?.profile_image_url) {
+        profileData.profile_image_url = profile.profile_image_url;
+      }
+      if (profile?.custom_avatar_id) {
+        profileData.custom_avatar_id = profile.custom_avatar_id;
+      }
+
+      // If data contains profile_image_url (from avatar upload), use it
+      if ('profile_image_url' in data && data.profile_image_url) {
+        profileData.profile_image_url = data.profile_image_url;
+        profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
+      }
 
       const { data: savedData, error } = await supabase
         .from('wolf_profiles')
-        .upsert(profileData, { onConflict: 'user_id' })
+        .upsert(profileData, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        })
         .select()
         .single();
 
@@ -306,6 +304,26 @@ export function WolfpackProfileManager() {
       }
 
       setProfile(savedData);
+      
+      // Also update the wolfpack_members_unified table if user is active member
+      const { error: memberError } = await supabase
+        .from('wolf_pack_members')
+        .update({
+          display_name: data.display_name || null,
+          avatar_url: savedData.profile_image_url || savedData.profile_pic_url || null,
+          emoji: data.wolf_emoji,
+          favorite_drink: data.favorite_drink || null,
+          current_vibe: data.vibe_status || null,
+          looking_for: data.looking_for || null,
+          instagram_handle: data.instagram_handle ? data.instagram_handle.replace('@', '') : null
+        })
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (memberError) {
+        console.warn('Could not update wolfpack member data:', memberError);
+      }
+
       if (showToast) {
         toast.success('Profile saved successfully!');
       }
@@ -344,6 +362,8 @@ export function WolfpackProfileManager() {
     );
   }
 
+  const avatarUrl = profile?.profile_image_url || profile?.profile_pic_url;
+
   return (
     <div className="space-y-6 bottom-nav-safe">
       {/* Profile Header */}
@@ -355,7 +375,7 @@ export function WolfpackProfileManager() {
               <div className="relative">
                 <Avatar className="h-24 w-24">
                   <AvatarImage 
-                    src={profile?.profile_pic_url || undefined} 
+                    src={avatarUrl || undefined} 
                     alt={formData.display_name || 'Avatar'} 
                   />
                   <AvatarFallback className="text-2xl">
@@ -483,7 +503,9 @@ export function WolfpackProfileManager() {
                 >
                   <option value="">Select...</option>
                   {GENDER_OPTIONS.map(option => (
-                    <option key={option} value={option}>{option}</option>
+                    <option key={option} value={option}>
+                      {GENDER_DISPLAY_MAP[option] || option}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -507,9 +529,8 @@ export function WolfpackProfileManager() {
                 onChange={(e) => handleInputChange('is_visible', e.target.checked)}
                 className="rounded"
                 title="Make profile visible to other wolves"
-                placeholder="Make profile visible to other wolves"
               />
-              <Label htmlFor="is-visible" className="flex items-center gap-2">
+              <Label htmlFor="is-visible" className="flex items-center gap-2 cursor-pointer">
                 <Eye className="h-4 w-4" />
                 Make profile visible to other wolves
               </Label>
@@ -636,6 +657,18 @@ export function WolfpackProfileManager() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="favorite-bartender">
+                Favorite Bartender
+              </Label>
+              <Input
+                id="favorite-bartender"
+                value={formData.favorite_bartender}
+                onChange={(e) => handleInputChange('favorite_bartender', e.target.value)}
+                placeholder="Who makes the best drinks?"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -668,6 +701,27 @@ export function WolfpackProfileManager() {
                       onChange={(e) => handleInputChange('is_visible', e.target.checked)}
                       className="rounded"
                       aria-label="Toggle profile visibility"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium">Allow Messages</p>
+                    <p className="text-sm text-muted-foreground">
+                      Let other wolves send you private messages
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="messages-toggle"
+                      checked={formData.allow_messages}
+                      onChange={(e) => handleInputChange('allow_messages', e.target.checked)}
+                      className="rounded"
+                      aria-label="Toggle message permissions"
                     />
                   </div>
                 </div>

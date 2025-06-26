@@ -15,43 +15,28 @@ import {
   User, 
   MessageCircle, 
   LogOut,
-  Crown,
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { Database } from '@/types/database';
 
-interface WolfPackMember {
-  id: string;
-  user_id: string;
-  display_name: string;
-  avatar_url?: string;
-  table_location?: string;
-  joined_at: string;
-  last_active: string;
-  status: 'online' | 'away' | 'offline';
-  is_host?: boolean;
-}
+// Use centralized Supabase client
+const supabase = createClient();
 
-interface WolfPackSession {
-  id: string;
-  bar_location_id: string;
-  bar_name: string;
-  created_at: string;
-  expires_at: string;
-  member_count: number;
-  max_members: number;
-  status: 'active' | 'inactive';
-}
+// Type aliases for easier use - using actual database tables
+type WolfpackMember = Database['public']['Views']['wolfpack_members_at_location']['Row'];
+type WolfpackMembership = Database['public']['Tables']['wolfpack_memberships']['Row'];
+type Location = Database['public']['Tables']['locations']['Row'];
 
 interface MembershipState {
   isLoading: boolean;
   isMember: boolean;
-  currentSession: WolfPackSession | null;
-  members: WolfPackMember[];
-  userMembership: WolfPackMember | null;
+  currentMembership: WolfpackMembership | null;
+  currentLocation: Location | null;
+  members: WolfpackMember[];
   error: string | null;
 }
 
@@ -60,37 +45,26 @@ export function WolfpackMembershipManager() {
   const [state, setState] = useState<MembershipState>({
     isLoading: true,
     isMember: false,
-    currentSession: null,
+    currentMembership: null,
+    currentLocation: null,
     members: [],
-    userMembership: null,
     error: null
   });
 
-  const supabase = getSupabaseBrowserClient();
-
-  const loadMembers = useCallback(async (sessionId?: string) => {
-    const targetSessionId = sessionId || state.currentSession?.id;
-    if (!targetSessionId) return;
+  const loadMembers = useCallback(async (locationId: string | null) => {
+    if (!locationId) return;
 
     try {
       const { data: members, error } = await supabase
-        .from('wolfpack_memberships')
-        .select(`
-          id,
-          user_id,
-          display_name,
-          avatar_url,
-          table_location,
-          joined_at,
-          last_active,
-          status,
-          is_host
-        `)
-        .eq('session_id', targetSessionId)
-        .eq('is_active', true)
-        .order('joined_at', { ascending: true });
+        .from('wolfpack_members_at_location')
+        .select('*')
+        .eq('location_id', locationId)
+        .order('last_seen', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading members:', error);
+        return;
+      }
 
       setState(prev => ({
         ...prev,
@@ -100,7 +74,7 @@ export function WolfpackMembershipManager() {
     } catch (error) {
       console.error('Error loading members:', error);
     }
-  }, [state.currentSession?.id, supabase]);
+  }, []);
 
   const loadMembershipStatus = useCallback(async () => {
     if (!user) {
@@ -111,53 +85,46 @@ export function WolfpackMembershipManager() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Check current WolfPack membership
-      const { data: membership, error: membershipError } = await supabase
+      // Get active membership from wolfpack_memberships table
+      const { data: membershipData, error: membershipError } = await supabase
         .from('wolfpack_memberships')
-        .select(`
-          *,
-          wolfpack_sessions (
-            id,
-            bar_location_id,
-            created_at,
-            expires_at,
-            member_count,
-            max_members,
-            is_active,
-            bar_locations (name)
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
+        .eq('status', 'active')
+        .maybeSingle();
 
-      if (membershipError && membershipError.code !== 'PGRST116') {
-        throw membershipError;
+      if (membershipError) {
+        console.error('Error loading membership:', membershipError);
+        setState(prev => ({ 
+          ...prev, 
+          isLoading: false, 
+          error: 'Failed to load membership status' 
+        }));
+        return;
       }
 
-      if (membership && membership.wolfpack_sessions) {
+      if (membershipData && membershipData.location_id) {
+        // Get location details
+        const { data: locationData, error: locationError } = await supabase
+          .from('locations')
+          .select('*')
+          .eq('id', membershipData.location_id)
+          .maybeSingle();
+
         setState(prev => ({
           ...prev,
           isMember: true,
-          userMembership: membership,
-          currentSession: {
-            id: membership.wolfpack_sessions.id,
-            bar_location_id: membership.wolfpack_sessions.bar_location_id,
-            bar_name: membership.wolfpack_sessions.bar_locations?.name || 'Unknown Location',
-            created_at: membership.wolfpack_sessions.created_at,
-            expires_at: membership.wolfpack_sessions.expires_at,
-            member_count: membership.wolfpack_sessions.member_count,
-            max_members: membership.wolfpack_sessions.max_members,
-            status: membership.wolfpack_sessions.is_active ? 'active' : 'inactive'
-          }
+          currentMembership: membershipData,
+          currentLocation: locationData || null
         }));
 
-        // Load other members
-        await loadMembers(membership.session_id);
+        await loadMembers(membershipData.location_id);
+      } else {
+        setState(prev => ({ ...prev, isMember: false }));
       }
 
     } catch (error) {
-      console.error('Error loading membership status:', error);
+      console.error('Error in loadMembershipStatus:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to load membership status'
@@ -165,37 +132,36 @@ export function WolfpackMembershipManager() {
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, supabase, loadMembers]);
+  }, [user, loadMembers]);
 
-  // Load current membership status
   useEffect(() => {
     loadMembershipStatus();
   }, [loadMembershipStatus]);
 
-  // Set up real-time subscriptions
   useEffect(() => {
-    if (!state.currentSession) return;
+    const locationId = state.currentMembership?.location_id;
+    if (!locationId) return;
 
-    const membershipSubscription = supabase
-      .channel(`wolfpack_${state.currentSession.id}`)
+    const channel = supabase
+      .channel(`wolfpack_${locationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'wolfpack_memberships',
-          filter: `session_id=eq.${state.currentSession.id}`
+          filter: `location_id=eq.${locationId}`
         },
         () => {
-          loadMembers();
+          loadMembers(locationId);
         }
       )
       .subscribe();
 
     return () => {
-      membershipSubscription.unsubscribe();
+      channel.unsubscribe();
     };
-  }, [state.currentSession, loadMembers, supabase]);
+  }, [state.currentMembership?.location_id, loadMembers]);
 
   const joinWolfPack = async () => {
     if (!user) {
@@ -206,54 +172,50 @@ export function WolfpackMembershipManager() {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
-      // Get user's current location to find nearby sessions
+      // Get current position
       const position = await getCurrentPosition();
       
-      // Find active WolfPack session nearby
-      const { data: sessions, error: sessionsError } = await supabase
-        .rpc('find_nearby_wolfpack_sessions', {
+      // Find nearby locations
+      const { data: locations, error: locError } = await supabase
+        .rpc('find_nearest_location', {
           user_lat: position.coords.latitude,
-          user_lng: position.coords.longitude,
-          radius_meters: 100 // 100m radius
+          user_lon: position.coords.longitude,
+          max_distance_meters: 100
         });
 
-      if (sessionsError) throw sessionsError;
-
-      if (!sessions || sessions.length === 0) {
-        toast.error('No active WolfPack sessions found nearby');
+      if (locError || !locations || locations.length === 0) {
+        toast.error('No Side Hustle locations found nearby');
+        setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
-      const session = sessions[0];
+      const nearestLocation = locations[0] as { location_id: string; location_name: string; distance_meters: number };
 
-      // Join the session
-      const { error: joinError } = await supabase
-        .from('wolfpack_memberships')
-        .insert({
-          session_id: session.id,
-          user_id: user.id,
-          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous',
-          avatar_url: user.user_metadata?.avatar_url,
-          status: 'online',
-          joined_at: new Date().toISOString(),
-          last_active: new Date().toISOString()
-        });
+      // Join wolfpack using RPC function
+      const { data: result, error: joinError } = await supabase
+        .rpc('join_wolfpack_membership');
 
-      if (joinError) throw joinError;
+      if (joinError) {
+        throw new Error(joinError.message || 'Failed to join WolfPack');
+      }
 
       toast.success('Joined WolfPack!');
+      
+      // Reload membership status
       await loadMembershipStatus();
 
     } catch (error) {
       console.error('Error joining WolfPack:', error);
-      toast.error('Failed to join WolfPack');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to join WolfPack';
+      toast.error(errorMessage);
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const leaveWolfPack = async () => {
-    if (!state.userMembership) return;
+    const membershipId = state.currentMembership?.id;
+    if (!membershipId) return;
 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
@@ -261,22 +223,22 @@ export function WolfpackMembershipManager() {
       const { error } = await supabase
         .from('wolfpack_memberships')
         .update({ 
-          is_active: false,
-          left_at: new Date().toISOString()
+          status: 'inactive',
+          last_active: new Date().toISOString()
         })
-        .eq('id', state.userMembership.id);
+        .eq('id', membershipId);
 
       if (error) throw error;
 
       toast.success('Left WolfPack');
-      setState({
+      setState(prev => ({
+        ...prev,
         isLoading: false,
         isMember: false,
-        currentSession: null,
-        members: [],
-        userMembership: null,
-        error: null
-      });
+        currentMembership: null,
+        currentLocation: null,
+        members: []
+      }));
 
     } catch (error) {
       console.error('Error leaving WolfPack:', error);
@@ -286,7 +248,8 @@ export function WolfpackMembershipManager() {
   };
 
   const updateTableLocation = async (tableLocation: string) => {
-    if (!state.userMembership) return;
+    const membershipId = state.currentMembership?.id;
+    if (!membershipId) return;
 
     try {
       const { error } = await supabase
@@ -295,17 +258,23 @@ export function WolfpackMembershipManager() {
           table_location: tableLocation,
           last_active: new Date().toISOString()
         })
-        .eq('id', state.userMembership.id);
+        .eq('id', membershipId);
 
       if (error) throw error;
 
+      // Update local state
       setState(prev => ({
         ...prev,
-        userMembership: prev.userMembership ? {
-          ...prev.userMembership,
+        currentMembership: prev.currentMembership ? {
+          ...prev.currentMembership,
           table_location: tableLocation
         } : null
       }));
+
+      // Reload members to get updated data
+      if (state.currentMembership?.location_id) {
+        await loadMembers(state.currentMembership.location_id);
+      }
 
       toast.success('Table location updated');
 
@@ -322,15 +291,21 @@ export function WolfpackMembershipManager() {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
-      });
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      );
     });
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const formatTimeAgo = (dateString: string | null): string => {
+    if (!dateString) return 'Unknown';
+    
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -342,6 +317,7 @@ export function WolfpackMembershipManager() {
     return `${Math.floor(diffMins / 1440)}d ago`;
   };
 
+  // Loading state
   if (state.isLoading) {
     return (
       <Card>
@@ -353,6 +329,7 @@ export function WolfpackMembershipManager() {
     );
   }
 
+  // Error state
   if (state.error) {
     return (
       <Alert variant="destructive">
@@ -362,6 +339,7 @@ export function WolfpackMembershipManager() {
     );
   }
 
+  // Not a member - show join UI
   if (!state.isMember) {
     return (
       <Card>
@@ -385,7 +363,12 @@ export function WolfpackMembershipManager() {
             </ul>
           </div>
           
-          <Button onClick={joinWolfPack} className="w-full" size="lg">
+          <Button 
+            onClick={joinWolfPack} 
+            className="w-full" 
+            size="lg"
+            disabled={state.isLoading}
+          >
             <Shield className="mr-2 h-4 w-4" />
             Find & Join WolfPack
           </Button>
@@ -394,9 +377,12 @@ export function WolfpackMembershipManager() {
     );
   }
 
+  // Get location name
+  const locationName = state.currentLocation?.name || 'Unknown Location';
+
+  // Member UI
   return (
     <div className="space-y-6">
-      {/* Current Session Info */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -404,32 +390,33 @@ export function WolfpackMembershipManager() {
             Active WolfPack
           </CardTitle>
           <CardDescription>
-            You&apos;re part of the pack at {state.currentSession?.bar_name}
+            You&#39;re part of the pack at {locationName}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{state.currentSession?.bar_name}</span>
+              <span className="text-sm">
+                {locationName}
+              </span>
             </div>
             <Badge variant="secondary">
-              {state.members.length} / {state.currentSession?.max_members} members
+              {state.members.length} members
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              Active since {state.currentSession?.created_at ? 
-                formatTimeAgo(state.currentSession.created_at) : 'Unknown'}
+              Joined {formatTimeAgo(state.currentMembership?.joined_at || null)}
             </span>
           </div>
 
-          {state.userMembership?.table_location && (
+          {state.currentMembership?.table_location && (
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Table: {state.userMembership.table_location}</span>
+              <span className="text-sm">Table: {state.currentMembership.table_location}</span>
             </div>
           )}
 
@@ -446,7 +433,12 @@ export function WolfpackMembershipManager() {
               Update Location
             </Button>
             
-            <Button variant="destructive" onClick={leaveWolfPack} size="sm">
+            <Button 
+              variant="destructive" 
+              onClick={leaveWolfPack} 
+              size="sm"
+              disabled={state.isLoading}
+            >
               <LogOut className="mr-2 h-3 w-3" />
               Leave Pack
             </Button>
@@ -454,7 +446,6 @@ export function WolfpackMembershipManager() {
         </CardContent>
       </Card>
 
-      {/* Members List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -462,63 +453,67 @@ export function WolfpackMembershipManager() {
             Pack Members ({state.members.length})
           </CardTitle>
           <CardDescription>
-            Other wolves currently at {state.currentSession?.bar_name}
+            Other wolves currently at {locationName}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {state.members.map((member, index) => (
-              <div key={member.id}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={member.avatar_url} />
-                      <AvatarFallback>
-                        {member.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{member.display_name}</span>
-                        {member.is_host && (
-                          <Crown className="h-3 w-3 text-yellow-500" />
-                        )}
-                        {member.user_id === user?.id && (
-                          <Badge variant="outline" className="text-xs">You</Badge>
-                        )}
-                      </div>
+            {state.members.map((member, index) => {
+              const isCurrentUser = member.id === user?.id;
+              const displayName = member.display_name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Anonymous';
+              const memberEmoji = member.wolf_emoji || '🐺';
+              
+              return (
+                <div key={member.id}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        {member.avatar_url && <AvatarImage src={member.avatar_url} />}
+                        <AvatarFallback>
+                          {memberEmoji || displayName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className={`w-2 h-2 rounded-full ${
-                          member.status === 'online' ? 'bg-green-500' :
-                          member.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                        }`} />
-                        <span>{member.status}</span>
-                        {member.table_location && (
-                          <>
-                            <span>•</span>
-                            <span>Table {member.table_location}</span>
-                          </>
-                        )}
-                        <span>•</span>
-                        <span>{formatTimeAgo(member.last_active)}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {displayName}
+                          </span>
+                          {isCurrentUser && (
+                            <Badge variant="outline" className="text-xs">You</Badge>
+                          )}
+                          {member.wolfpack_tier && member.wolfpack_tier !== 'basic' && (
+                            <Badge variant="secondary" className="text-xs">
+                              {member.wolfpack_tier}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {member.vibe_status && (
+                            <>
+                              <span>{member.vibe_status}</span>
+                              <span>•</span>
+                            </>
+                          )}
+                          <span>{formatTimeAgo(member.last_seen)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {member.user_id !== user?.id && (
-                    <Button variant="ghost" size="sm">
-                      <MessageCircle className="h-3 w-3" />
-                    </Button>
+                    {!isCurrentUser && (
+                      <Button variant="ghost" size="sm">
+                        <MessageCircle className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {index < state.members.length - 1 && (
+                    <Separator className="mt-3" />
                   )}
                 </div>
-                
-                {index < state.members.length - 1 && (
-                  <Separator className="mt-3" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {state.members.length === 0 && (

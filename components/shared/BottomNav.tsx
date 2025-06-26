@@ -50,7 +50,7 @@ export const BottomNav = () => {
     if (canCheckout) {
       const items: NavItem[] = [
         { id: 'home', href: '/', icon: Home, label: 'Home' },
-        { id: 'chat', href: '/chat', icon: MessageCircle, label: 'Chat', requiresWolfPack: true },
+        { id: 'chat', href: '/wolfpack/chat', icon: MessageCircle, label: 'Chat', requiresWolfPack: true },
         { id: 'profile', href: '/profile', icon: User, label: 'Profile', requiresWolfPack: true },
       ];
 

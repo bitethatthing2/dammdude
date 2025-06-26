@@ -1,19 +1,17 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { DownloadIcon, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToastAction } from '@/components/ui/toast';
-import { 
-  initPwaEventListeners, 
-  showInstallPrompt, 
-  isInstalled, 
-  isPromptAvailable,
+import {
+  initPwaEventListeners,
+  showInstallPrompt,
+  isInstalled,
+  isPromptAvailable, // Re-added this import as it was present in the original problem statement
   onBeforeInstallPrompt,
   onAppInstalled
-} from '@/lib/pwa/pwaEventHandler';
+} from '../../lib/pwa/pwaEventHandler'; // <--- CORRECTED IMPORT PATH
 
 interface PwaInstallGuideProps {
   className?: string;
@@ -22,23 +20,23 @@ interface PwaInstallGuideProps {
 
 export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGuideProps) {
   const [appInstalled, setAppInstalled] = useState(false);
-  const [promptAvailable, setPromptAvailable] = useState(false);
+  const [promptAvailable, setPromptAvailable] = useState(false); // Re-added this state
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
   // Handle installation button click
   const handleInstallClick = async () => {
     console.log('[PWA Install] Install button clicked');
-    
+
     if (isInstalling) return; // Prevent double clicks
-    
+
     setIsInstalling(true);
-    
+
     try {
       const result = await showInstallPrompt();
-      
+
       console.log('[PWA Install] Installation result:', result);
-      
+
       if (result === 'accepted') {
         toast({
           title: "🎉 Installation Started!",
@@ -85,49 +83,52 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
   // Initialize PWA functionality and check status
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     console.log('[PWA Install] Initializing PWA functionality');
-    
+
     // Initialize PWA event listeners
     initPwaEventListeners();
-    
+
     // Detect iOS devices
     const ua = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(ua) || 
+    const isIOSDevice = /iphone|ipad|ipod/.test(ua) ||
                         (ua.includes('mac') && navigator.maxTouchPoints > 0);
     setIsIOS(isIOSDevice);
-    
+
     // Check if already installed
     setAppInstalled(isInstalled());
-    
+
     // Check if prompt is available
-    setPromptAvailable(isPromptAvailable());
-    
+    setPromptAvailable(isPromptAvailable()); // Re-enabled this line
+
     // Register for PWA events
-    const unregisterPrompt = onBeforeInstallPrompt((event) => {
+    type UnregisterCallback = () => void;
+
+    const unregisterPrompt: UnregisterCallback = onBeforeInstallPrompt(() => {
       console.log('[PWA Install] Install prompt became available');
-      setPromptAvailable(true);
+      setPromptAvailable(true); // Re-enabled this line
     });
-    
-    const unregisterInstalled = onAppInstalled(() => {
+
+    const unregisterInstalled: UnregisterCallback = onAppInstalled(() => {
       console.log('[PWA Install] App was installed');
       setAppInstalled(true);
       toast({
-        title: "🎉 App Installed Successfully!",
-        description: "You can now access Side Hustle from your home screen",
-        duration: 5000,
-        action: <ToastAction altText="Awesome">Awesome!</ToastAction>,
+      title: "🎉 App Installed Successfully!",
+      description: "You can now access Side Hustle from your home screen",
+      duration: 5000,
+      action: <ToastAction altText="Awesome">Awesome!</ToastAction>,
       });
     });
-    
-    return () => {
+
+    return (): void => {
       unregisterPrompt();
       unregisterInstalled();
     };
-  }, []);
+    }, []);
 
   // Don't show the button if the app is already installed
-  if (appInstalled) {
+  // Also, don't show if no prompt is available (unless it's iOS, where we give instructions)
+  if (appInstalled || (!promptAvailable && !isIOS)) {
     return null;
   }
 

@@ -8,19 +8,20 @@ export interface WolfPackNotificationData {
   orderId?: string;
   messageContent?: string;
   eventTitle?: string;
-  customData?: Record<string, unknown>;
+  eventDescription?: string;
+  eventTime?: string;
+  status?: string;
+  estimatedTime?: number;
 }
 
-export interface NotificationRecipient {
-  userId: string;
-  fcmToken: string;
-  preferences?: {
-    chatMessages: boolean;
-    orderUpdates: boolean;
-    memberActivity: boolean;
-    events: boolean;
-    socialInteractions: boolean;
-  };
+export interface NotificationPreferences {
+  chat_messages?: boolean;
+  order_updates?: boolean;
+  member_activity?: boolean;
+  events?: boolean;
+  social_interactions?: boolean;
+  announcements?: boolean;
+  marketing?: boolean;
 }
 
 /**
@@ -35,61 +36,92 @@ export async function sendChatMessageNotification(
   try {
     const supabase = getSupabaseBrowserClient();
 
-    // Get all active WolfPack members with FCM tokens
-    const { data: members, error } = await supabase
-      .from('wolfpack_memberships')
-      .select(`
-        user_id,
-        display_name,
-        user_profiles!inner (
-          fcm_token,
-          notification_preferences
-        )
-      `)
+    // Get all active WolfPack members except sender
+    const { data: members, error: membersError } = await supabase
+      .from('wolfpack_members_unified')
+      .select('user_id, display_name')
       .eq('session_id', sessionId)
       .eq('is_active', true)
-      .neq('user_id', excludeUserId || '')
-      .not('user_profiles.fcm_token', 'is', null);
+      .neq('user_id', excludeUserId || '');
 
-    if (error || !members) {
-      console.error('Error fetching WolfPack members:', error);
-      return false;
-    }
-
-    // Filter members who have chat notifications enabled
-    const recipients = members.filter((member: { user_profiles: { fcm_token: string; notification_preferences?: { chatMessages?: boolean } } }) => {
-      const prefs = member.user_profiles?.notification_preferences;
-      return !prefs || prefs.chatMessages !== false;
-    });
-
-    if (recipients.length === 0) {
-      console.log('No recipients found for chat notification');
+    if (membersError || !members || members.length === 0) {
+      console.log('No other members to notify');
       return true;
     }
 
-    // Prepare notification data
-    const notificationData: WolfPackNotificationData = {
-      type: 'chat_message',
-      sessionId,
-      memberId: excludeUserId,
-      memberName: senderName,
-      messageContent: messageContent.substring(0, 100) // Truncate for notification
-    };
+    // Get notification preferences and device tokens for all members
+    const userIds = members.map(m => m.user_id);
+    
+    // Get users with preferences
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, notification_preferences')
+      .in('id', userIds);
 
-    // Send notifications
-    return await sendBulkNotification({
-      title: `${senderName} in WolfPack`,
-      body: messageContent.length > 50 
-        ? `${messageContent.substring(0, 50)}...` 
-        : messageContent,
-      data: notificationData,
-      recipients: recipients.map((m: { user_id: string; user_profiles: { fcm_token: string } }) => ({
-        userId: m.user_id,
-        fcmToken: m.user_profiles.fcm_token
-      })),
-      link: `/wolfpack/chat?session=${sessionId}`,
-      icon: '/icons/chat-notification.png'
-    });
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      return false;
+    }
+
+    // Get active device tokens
+    const { data: deviceTokens, error: tokensError } = await supabase
+      .from('device_tokens')
+      .select('id, user_id, token, platform')
+      .in('user_id', userIds)
+      .eq('is_active', true);
+
+    if (tokensError || !deviceTokens || deviceTokens.length === 0) {
+      console.log('No active device tokens found');
+      return true;
+    }
+
+    // Build notifications for users who have chat notifications enabled
+    const notifications = [];
+    
+    for (const token of deviceTokens) {
+      const user = users?.find(u => u.id === token.user_id);
+      const prefs = user?.notification_preferences as NotificationPreferences | null;
+      
+      // Check if user wants chat notifications (default true if not set)
+      if (!prefs || prefs.chat_messages !== false) {
+        notifications.push({
+          user_id: token.user_id,
+          device_token_id: token.id,
+          title: `${senderName} in WolfPack`,
+          body: messageContent.length > 50 
+            ? `${messageContent.substring(0, 50)}...` 
+            : messageContent,
+          data: {
+            type: 'chat_message',
+            sessionId,
+            memberId: excludeUserId,
+            memberName: senderName,
+            messageContent: messageContent.substring(0, 100)
+          },
+          status: 'pending',
+          type: 'wolfpack_chat',
+          priority: 'high',
+          link: `/wolfpack/chat?session=${sessionId}`
+        });
+      }
+    }
+
+    if (notifications.length === 0) {
+      console.log('No recipients want chat notifications');
+      return true;
+    }
+
+    // Insert notifications
+    const { error: insertError } = await supabase
+      .from('push_notifications')
+      .insert(notifications);
+
+    if (insertError) {
+      console.error('Error creating notifications:', insertError);
+      return false;
+    }
+
+    return true;
 
   } catch (error) {
     console.error('Error sending chat message notification:', error);
@@ -109,26 +141,38 @@ export async function sendOrderUpdateNotification(
   try {
     const supabase = getSupabaseBrowserClient();
 
-    // Get user's FCM token and preferences
-    const { data: userProfile, error } = await supabase
-      .from('user_profiles')
-      .select('fcm_token, notification_preferences')
-      .eq('user_id', userId)
+    // Get user preferences
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, notification_preferences')
+      .eq('id', userId)
       .single();
 
-    if (error || !userProfile?.fcm_token) {
-      console.error('Error fetching user profile or no FCM token:', error);
+    if (userError || !user) {
+      console.error('User not found:', userError);
       return false;
     }
 
     // Check if user wants order notifications
-    const prefs = userProfile.notification_preferences;
-    if (prefs && prefs.orderUpdates === false) {
-      console.log('User has disabled order update notifications');
+    const prefs = user.notification_preferences as NotificationPreferences | null;
+    if (prefs && prefs.order_updates === false) {
+      console.log('User has disabled order notifications');
       return true;
     }
 
-    // Prepare notification content based on status
+    // Get active device tokens for user
+    const { data: deviceTokens, error: tokensError } = await supabase
+      .from('device_tokens')
+      .select('id, token, platform')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (tokensError || !deviceTokens || deviceTokens.length === 0) {
+      console.log('No active device tokens for user');
+      return false;
+    }
+
+    // Prepare notification content
     let title = 'Order Update';
     let body = '';
 
@@ -157,26 +201,37 @@ export async function sendOrderUpdateNotification(
         body = `Your order status has been updated to: ${status}`;
     }
 
-    const notificationData: WolfPackNotificationData = {
-      type: 'order_update',
-      orderId,
-      customData: { status, estimatedTime }
-    };
-
-    return await sendSingleNotification({
+    // Create notifications for all devices
+    const notifications = deviceTokens.map(token => ({
+      user_id: userId,
+      device_token_id: token.id,
       title,
       body,
-      data: notificationData,
-      recipient: {
-        userId,
-        fcmToken: userProfile.fcm_token
+      data: {
+        type: 'order_update',
+        orderId,
+        status,
+        estimatedTime
       },
-      link: `/orders/${orderId}`,
-      icon: '/icons/order-notification.png'
-    });
+      status: 'pending',
+      type: 'order_update',
+      priority: status === 'ready' ? 'high' : 'normal',
+      link: `/orders/${orderId}`
+    }));
+
+    const { error: insertError } = await supabase
+      .from('push_notifications')
+      .insert(notifications);
+
+    if (insertError) {
+      console.error('Error creating notifications:', insertError);
+      return false;
+    }
+
+    return true;
 
   } catch (error) {
-    console.error('Error sending order update notification:', error);
+    console.error('Error sending order notification:', error);
     return false;
   }
 }
@@ -192,53 +247,78 @@ export async function sendMemberJoinedNotification(
   try {
     const supabase = getSupabaseBrowserClient();
 
-    // Get all other active WolfPack members
-    const { data: members, error } = await supabase
-      .from('wolfpack_memberships')
-      .select(`
-        user_id,
-        user_profiles!inner (
-          fcm_token,
-          notification_preferences
-        )
-      `)
+    // Get all other active members
+    const { data: members, error: membersError } = await supabase
+      .from('wolfpack_members_unified')
+      .select('user_id')
       .eq('session_id', sessionId)
       .eq('is_active', true)
       .neq('user_id', newMemberUserId);
 
-    if (error || !members) {
-      console.error('Error fetching WolfPack members:', error);
-      return false;
-    }
-
-    // Filter members who want member activity notifications
-    const recipients = members.filter((member: { user_profiles: { fcm_token: string; notification_preferences?: { memberActivity?: boolean } } }) => {
-      const prefs = member.user_profiles?.notification_preferences;
-      return !prefs || prefs.memberActivity !== false;
-    });
-
-    if (recipients.length === 0) {
+    if (membersError || !members || members.length === 0) {
       return true;
     }
 
-    const notificationData: WolfPackNotificationData = {
-      type: 'member_joined',
-      sessionId,
-      memberId: newMemberUserId,
-      memberName: newMemberName
-    };
+    const userIds = members.map(m => m.user_id);
 
-    return await sendBulkNotification({
-      title: '🐺 New Pack Member!',
-      body: `${newMemberName} has joined your WolfPack`,
-      data: notificationData,
-      recipients: recipients.map((m: { user_id: string; user_profiles: { fcm_token: string } }) => ({
-        userId: m.user_id,
-        fcmToken: m.user_profiles.fcm_token
-      })),
-      link: `/wolfpack?session=${sessionId}`,
-      icon: '/icons/wolfpack-notification.png'
-    });
+    // Get users with preferences
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, notification_preferences')
+      .in('id', userIds);
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      return false;
+    }
+
+    // Get device tokens
+    const { data: deviceTokens, error: tokensError } = await supabase
+      .from('device_tokens')
+      .select('id, user_id, token, platform')
+      .in('user_id', userIds)
+      .eq('is_active', true);
+
+    if (tokensError || !deviceTokens || deviceTokens.length === 0) {
+      return true;
+    }
+
+    // Build notifications
+    const notifications = [];
+    
+    for (const token of deviceTokens) {
+      const user = users?.find(u => u.id === token.user_id);
+      const prefs = user?.notification_preferences as NotificationPreferences | null;
+      
+      if (!prefs || prefs.member_activity !== false) {
+        notifications.push({
+          user_id: token.user_id,
+          device_token_id: token.id,
+          title: '🐺 New Pack Member!',
+          body: `${newMemberName} has joined your WolfPack`,
+          data: {
+            type: 'member_joined',
+            sessionId,
+            memberId: newMemberUserId,
+            memberName: newMemberName
+          },
+          status: 'pending',
+          type: 'wolfpack_member',
+          priority: 'normal',
+          link: `/wolfpack?session=${sessionId}`
+        });
+      }
+    }
+
+    if (notifications.length === 0) {
+      return true;
+    }
+
+    const { error: insertError } = await supabase
+      .from('push_notifications')
+      .insert(notifications);
+
+    return !insertError;
 
   } catch (error) {
     console.error('Error sending member joined notification:', error);
@@ -258,59 +338,85 @@ export async function sendEventAnnouncementNotification(
   try {
     const supabase = getSupabaseBrowserClient();
 
-    // Get all active WolfPack members
-    const { data: members, error } = await supabase
-      .from('wolfpack_memberships')
-      .select(`
-        user_id,
-        user_profiles!inner (
-          fcm_token,
-          notification_preferences
-        )
-      `)
+    // Get all active members
+    const { data: members, error: membersError } = await supabase
+      .from('wolfpack_members_unified')
+      .select('user_id')
       .eq('session_id', sessionId)
       .eq('is_active', true);
 
-    if (error || !members) {
-      console.error('Error fetching WolfPack members:', error);
-      return false;
-    }
-
-    // Filter members who want event notifications
-    const recipients = members.filter((member: { user_profiles: { fcm_token: string; notification_preferences?: { events?: boolean } } }) => {
-      const prefs = member.user_profiles?.notification_preferences;
-      return !prefs || prefs.events !== false;
-    });
-
-    if (recipients.length === 0) {
+    if (membersError || !members || members.length === 0) {
       return true;
     }
 
-    const notificationData: WolfPackNotificationData = {
-      type: 'event_announcement',
-      sessionId,
-      eventTitle,
-      customData: { eventDescription, eventTime }
-    };
+    const userIds = members.map(m => m.user_id);
+
+    // Get users with preferences
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, notification_preferences')
+      .in('id', userIds);
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      return false;
+    }
+
+    // Get device tokens
+    const { data: deviceTokens, error: tokensError } = await supabase
+      .from('device_tokens')
+      .select('id, user_id, token, platform')
+      .in('user_id', userIds)
+      .eq('is_active', true);
+
+    if (tokensError || !deviceTokens || deviceTokens.length === 0) {
+      return true;
+    }
 
     const body = eventTime 
       ? `${eventDescription} • ${eventTime}`
       : eventDescription;
 
-    return await sendBulkNotification({
-      title: `🎉 ${eventTitle}`,
-      body: body.length > 100 ? `${body.substring(0, 100)}...` : body,
-      data: notificationData,
-      recipients: recipients.map((m: { user_id: string; user_profiles: { fcm_token: string } }) => ({
-        userId: m.user_id,
-        fcmToken: m.user_profiles.fcm_token
-      })),
-      link: `/wolfpack/events?session=${sessionId}`,
-      icon: '/icons/event-notification.png'
-    });
+    // Build notifications
+    const notifications = [];
+    
+    for (const token of deviceTokens) {
+      const user = users?.find(u => u.id === token.user_id);
+      const prefs = user?.notification_preferences as NotificationPreferences | null;
+      
+      if (!prefs || prefs.events !== false) {
+        notifications.push({
+          user_id: token.user_id,
+          device_token_id: token.id,
+          title: `🎉 ${eventTitle}`,
+          body: body.length > 100 ? `${body.substring(0, 100)}...` : body,
+          data: {
+            type: 'event_announcement',
+            sessionId,
+            eventTitle,
+            eventDescription,
+            eventTime
+          },
+          status: 'pending',
+          type: 'wolfpack_event',
+          priority: 'high',
+          link: `/wolfpack/events?session=${sessionId}`
+        });
+      }
+    }
+
+    if (notifications.length === 0) {
+      return true;
+    }
+
+    const { error: insertError } = await supabase
+      .from('push_notifications')
+      .insert(notifications);
+
+    return !insertError;
 
   } catch (error) {
-    console.error('Error sending event announcement:', error);
+    console.error('Error sending event notification:', error);
     return false;
   }
 }
@@ -327,43 +433,67 @@ export async function sendWinkNotification(
   try {
     const supabase = getSupabaseBrowserClient();
 
-    // Get recipient's FCM token and preferences
-    const { data: userProfile, error } = await supabase
-      .from('user_profiles')
-      .select('fcm_token, notification_preferences')
-      .eq('user_id', recipientUserId)
+    // Get recipient preferences and privacy settings
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, notification_preferences, privacy_settings')
+      .eq('id', recipientUserId)
       .single();
 
-    if (error || !userProfile?.fcm_token) {
-      console.error('Error fetching user profile or no FCM token:', error);
+    if (userError || !user) {
+      console.error('User not found:', userError);
       return false;
     }
 
-    // Check if user wants social interaction notifications
-    const prefs = userProfile.notification_preferences;
-    if (prefs && prefs.socialInteractions === false) {
+    // Check privacy settings
+    const privacySettings = user.privacy_settings as { accept_winks?: boolean } | null;
+    if (privacySettings && privacySettings.accept_winks === false) {
+      console.log('User has disabled winks');
+      return true;
+    }
+
+    // Check notification preferences
+    const prefs = user.notification_preferences as NotificationPreferences | null;
+    if (prefs && prefs.social_interactions === false) {
       console.log('User has disabled social interaction notifications');
       return true;
     }
 
-    const notificationData: WolfPackNotificationData = {
-      type: 'wink_received',
-      sessionId,
-      memberId: senderUserId,
-      memberName: senderName
-    };
+    // Get device tokens
+    const { data: deviceTokens, error: tokensError } = await supabase
+      .from('device_tokens')
+      .select('id, token, platform')
+      .eq('user_id', recipientUserId)
+      .eq('is_active', true);
 
-    return await sendSingleNotification({
+    if (tokensError || !deviceTokens || deviceTokens.length === 0) {
+      console.log('No active device tokens');
+      return false;
+    }
+
+    // Create notifications
+    const notifications = deviceTokens.map(token => ({
+      user_id: recipientUserId,
+      device_token_id: token.id,
       title: '😉 Someone winked at you!',
       body: `${senderName} sent you a wink`,
-      data: notificationData,
-      recipient: {
-        userId: recipientUserId,
-        fcmToken: userProfile.fcm_token
+      data: {
+        type: 'wink_received',
+        sessionId,
+        memberId: senderUserId,
+        memberName: senderName
       },
-      link: sessionId ? `/wolfpack?session=${sessionId}` : '/wolfpack',
-      icon: '/icons/wink-notification.png'
-    });
+      status: 'pending',
+      type: 'social_interaction',
+      priority: 'normal',
+      link: sessionId ? `/wolfpack?session=${sessionId}` : '/wolfpack'
+    }));
+
+    const { error: insertError } = await supabase
+      .from('push_notifications')
+      .insert(notifications);
+
+    return !insertError;
 
   } catch (error) {
     console.error('Error sending wink notification:', error);
@@ -372,90 +502,16 @@ export async function sendWinkNotification(
 }
 
 /**
- * Send a single notification
- */
-async function sendSingleNotification(options: {
-  title: string;
-  body: string;
-  data: WolfPackNotificationData;
-  recipient: NotificationRecipient;
-  link?: string;
-  icon?: string;
-}): Promise<boolean> {
-  try {
-    const response = await fetch('/api/send-notification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: options.recipient.fcmToken,
-        title: options.title,
-        body: options.body,
-        data: {
-          ...options.data,
-          link: options.link || '/',
-          userId: options.recipient.userId
-        },
-        link: options.link,
-        icon: options.icon || '/icons/android-big-icon.png'
-      }),
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('Error sending single notification:', error);
-    return false;
-  }
-}
-
-/**
- * Send bulk notifications to multiple recipients
- */
-async function sendBulkNotification(options: {
-  title: string;
-  body: string;
-  data: WolfPackNotificationData;
-  recipients: NotificationRecipient[];
-  link?: string;
-  icon?: string;
-}): Promise<boolean> {
-  try {
-    const promises = options.recipients.map(recipient => 
-      sendSingleNotification({
-        title: options.title,
-        body: options.body,
-        data: options.data,
-        recipient,
-        link: options.link,
-        icon: options.icon
-      })
-    );
-
-    const results = await Promise.allSettled(promises);
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
-    
-    console.log(`Sent ${successCount}/${options.recipients.length} notifications successfully`);
-    
-    // Consider it successful if at least 50% were sent
-    return successCount >= Math.ceil(options.recipients.length * 0.5);
-  } catch (error) {
-    console.error('Error sending bulk notifications:', error);
-    return false;
-  }
-}
-
-/**
  * Get user's notification preferences
  */
-export async function getUserNotificationPreferences(userId: string) {
+export async function getUserNotificationPreferences(userId: string): Promise<NotificationPreferences | null> {
   try {
     const supabase = getSupabaseBrowserClient();
     
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('notification_preferences')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) {
@@ -463,12 +519,14 @@ export async function getUserNotificationPreferences(userId: string) {
       return null;
     }
 
-    return data?.notification_preferences || {
-      chatMessages: true,
-      orderUpdates: true,
-      memberActivity: true,
+    return (data?.notification_preferences as NotificationPreferences) || {
+      chat_messages: true,
+      order_updates: true,
+      member_activity: true,
       events: true,
-      socialInteractions: true
+      social_interactions: true,
+      announcements: true,
+      marketing: false
     };
   } catch (error) {
     console.error('Error getting notification preferences:', error);
@@ -481,24 +539,17 @@ export async function getUserNotificationPreferences(userId: string) {
  */
 export async function updateNotificationPreferences(
   userId: string,
-  preferences: {
-    chatMessages?: boolean;
-    orderUpdates?: boolean;
-    memberActivity?: boolean;
-    events?: boolean;
-    socialInteractions?: boolean;
-  }
+  preferences: Partial<NotificationPreferences>
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseBrowserClient();
     
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({
-        notification_preferences: preferences,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
+    // Use the database function to properly merge preferences
+    const { data, error } = await supabase
+      .rpc('update_notification_preferences', {
+        p_user_id: userId,
+        p_preferences: preferences
+      });
 
     if (error) {
       console.error('Error updating notification preferences:', error);
@@ -508,6 +559,197 @@ export async function updateNotificationPreferences(
     return true;
   } catch (error) {
     console.error('Error updating notification preferences:', error);
+    return false;
+  }
+}
+
+/**
+ * Register a device token for push notifications
+ */
+export async function registerDeviceToken(token: string, platform: 'ios' | 'android' | 'web' = 'web'): Promise<boolean> {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('User not authenticated');
+      return false;
+    }
+
+    // Get user ID from users table
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('User not found in database');
+      return false;
+    }
+
+    // Check if token already exists
+    const { data: existingToken } = await supabase
+      .from('device_tokens')
+      .select('id')
+      .eq('token', token)
+      .single();
+
+    if (existingToken) {
+      // Update existing token
+      const { error: updateError } = await supabase
+        .from('device_tokens')
+        .update({
+          user_id: userData.id,
+          platform,
+          is_active: true,
+          last_used: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('token', token);
+
+      if (updateError) {
+        console.error('Error updating device token:', updateError);
+        return false;
+      }
+    } else {
+      // Insert new token
+      const { error: insertError } = await supabase
+        .from('device_tokens')
+        .insert({
+          user_id: userData.id,
+          token,
+          platform,
+          is_active: true
+        });
+
+      if (insertError) {
+        console.error('Error inserting device token:', insertError);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error registering device token:', error);
+    return false;
+  }
+}
+
+/**
+ * Unregister a device token
+ */
+export async function unregisterDeviceToken(token: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    const { error } = await supabase
+      .from('device_tokens')
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('token', token);
+
+    if (error) {
+      console.error('Error unregistering device token:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error unregistering device token:', error);
+    return false;
+  }
+}
+
+/**
+ * Get notification history for a user
+ */
+export async function getNotificationHistory(userId: string, limit: number = 50) {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    const { data, error } = await supabase
+      .from('push_notifications')
+      .select(`
+        id,
+        title,
+        body,
+        data,
+        status,
+        type,
+        sent_at,
+        delivered_at,
+        read_at,
+        clicked_at,
+        link
+      `)
+      .eq('user_id', userId)
+      .order('sent_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching notification history:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error getting notification history:', error);
+    return [];
+  }
+}
+
+/**
+ * Mark notification as read
+ */
+export async function markNotificationAsRead(notificationId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    const { error } = await supabase
+      .from('push_notifications')
+      .update({
+        read_at: new Date().toISOString()
+      })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return false;
+  }
+}
+
+/**
+ * Mark notification as clicked
+ */
+export async function markNotificationAsClicked(notificationId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseBrowserClient();
+    
+    const { error } = await supabase
+      .from('push_notifications')
+      .update({
+        clicked_at: new Date().toISOString()
+      })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as clicked:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error marking notification as clicked:', error);
     return false;
   }
 }

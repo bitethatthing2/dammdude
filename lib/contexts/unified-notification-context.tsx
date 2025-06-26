@@ -97,7 +97,7 @@ export function UnifiedNotificationProvider({
       
       // Fetch notifications for this recipient
       const { data, error: fetchError } = await supabase
-        .from('notifications')
+        .from('announcements')
         .select('*')
         .eq('recipient_id', recipientId)
         .order('created_at', { ascending: false })
@@ -239,7 +239,7 @@ export function UnifiedNotificationProvider({
     try {
       // Update in database
       const { error: updateError } = await supabase
-        .from('notifications')
+        .from('announcements')
         .update({ status: 'dismissed' as const })
         .eq('id', id);
       
@@ -262,7 +262,7 @@ export function UnifiedNotificationProvider({
     try {
       // Update all unread notifications
       const { error: updateError } = await supabase
-        .from('notifications')
+        .from('announcements')
         .update({ status: 'dismissed' as const })
         .eq('recipient_id', recipientId)
         .eq('status', 'unread');

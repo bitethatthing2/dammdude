@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Minus, ArrowLeft, Check, Loader2, Sparkles, ShoppingCart, X } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpackMembership } from '@/hooks/useWolfpackMembership';
+import { useWolfpack } from '@/hooks/useWolfpack';
 import { cn } from '@/lib/utils';
 import { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -51,7 +51,7 @@ export default function MenuItemModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
-  const { isActive: isWolfPackMember } = useWolfpackMembership();
+  const { isActive: isWolfPackMember } = useWolfpack();
 
   // Process modifiers from API data
   const { meatGroup, sauceGroup, meatOptions, sauceOptions } = useMemo(() => {

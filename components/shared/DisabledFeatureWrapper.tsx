@@ -2,7 +2,8 @@
 
 import { ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWolfpackAccess, type WolfpackStatusType } from '@/lib/hooks/useWolfpackAccess';
+import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+import type { WolfpackStatusType } from '@/types/wolfpack-interfaces';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

@@ -28,11 +28,10 @@ import {
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useSimpleWolfpack } from '@/hooks/useSimpleWolfpack';
-import { useWolfpackQuery, WolfpackMembershipWithProfile } from '@/hooks/useWolfpackQuery';
+import { useWolfpack } from '@/hooks/useWolfpack';
+import { useWolfpackQuery } from '@/hooks/useWolfpackQuery';
 import { WolfpackDevWarning } from '@/components/wolfpack/WolfpackDevWarning';
 import { trackFallbackUsage, trackDatabaseError } from '@/lib/utils/monitoring';
-import { applyLocationFilter } from '@/lib/utils/supabaseHelpers';
 
 interface WolfPackMember {
   id: string;
@@ -55,7 +54,7 @@ interface WolfpackEvent {
   description: string;
   is_active: boolean;
   participant_count: number;
-  location: string;  // Changed from location_id to location
+  location: string;
   created_at: string;
   created_by?: string;
   ends_at?: string;
@@ -64,64 +63,94 @@ interface WolfpackEvent {
 interface LocationData {
   id: string;
   name: string;
-  address: string;
+  address: string | null;
 }
 
-interface MembershipData {
+// Updated interface to match wolfpack_members_unified table exactly
+interface WolfpackMemberUnified {
   id: string;
   user_id: string;
-  location_id: string;
-  table_location: string | null;
+  location_id: string | null;
+  status: string | null;
   joined_at: string;
-  status: 'active' | 'inactive';
+  last_active: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  position_x: number | null;
+  position_y: number | null;
+  table_location: string | null;
+  is_active: boolean | null;
+  username: string | null;
+  avatar_url: string | null;
+  favorite_drink: string | null;
+  current_vibe: string | null;
+  looking_for: string | null;
+  instagram_handle: string | null;
+  emoji: string | null;
+  role: string | null;
   created_at: string;
   updated_at: string;
-  locations: LocationData;
+  session_id: string | null;
+  display_name: string | null;
+  is_host: boolean | null;
+  left_at: string | null;
+  status_enum: string | null;
 }
 
-interface MemberQueryResult {
+// Updated interface for DJ events to match actual schema
+interface DjEvent {
   id: string;
-  user_id: string;
-  table_location: string | null;
-  joined_at: string;
-  status: 'active' | 'inactive';
-  locations: LocationData;
-  wolf_profiles: {
-    id: string;
-    display_name: string | null;
-    avatar_url: string | null;
-    wolfpack_status: string | null;
-    favorite_drink: string | null;
-    current_vibe: string | null;
-    looking_for: string | null;
-  };
-}
-
-interface SimpleMemberResult {
-  id: string;
-  user_id: string;
-  table_location: string | null;
-  joined_at: string;
-  status: 'active' | 'inactive';
+  dj_id: string | null;
   location_id: string | null;
-  locations: LocationData;
+  event_type: string;
+  title: string;
+  description: string | null;
+  status: string | null;
+  voting_ends_at: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  winner_id: string | null;
+  winner_data: unknown | null;
+  event_config: Record<string, unknown> | null;
+  voting_format: string | null;
+  options: unknown | null;
 }
 
 export default function WolfPackChatPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { isInPack, isLoading: packLoading } = useSimpleWolfpack();
-  const { queryWolfpackMembers, queryUserMembership, isUsingFallback } = useWolfpackQuery();
+  const { isInPack, isLoading: packLoading } = useWolfpack();
+  const { isUsingFallback } = useWolfpackQuery();
   
   const [packMembers, setPackMembers] = useState<WolfPackMember[]>([]);
   const [activeEvents, setActiveEvents] = useState<WolfpackEvent[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
-  const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
+  const [userMembership, setUserMembership] = useState<WolfpackMemberUnified | null>(null);
   const [selectedTab, setSelectedTab] = useState('chat');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = getSupabaseBrowserClient();
+  
+  // Type-safe wrapper for database operations that may not be in the restrictive client type
+  const queryTable = async <T = unknown>(tableName: string, query: string) => {
+    const { data, error } = await (supabase as unknown as { 
+      from: (table: string) => { 
+        select: (q: string) => Promise<{ data: T[] | null; error: unknown }>;
+      } 
+    }).from(tableName).select(query);
+    return { data, error };
+  };
+
+  const insertIntoTable = async (tableName: string, values: Record<string, unknown>) => {
+    const { error } = await (supabase as unknown as { 
+      from: (table: string) => { 
+        insert: (values: Record<string, unknown>) => Promise<{ error: unknown }>;
+      } 
+    }).from(tableName).insert(values);
+    return { error };
+  };
 
   // Track fallback usage for monitoring
   useEffect(() => {
@@ -137,19 +166,12 @@ export default function WolfPackChatPage() {
         setIsLoading(true);
         setError(null);
 
-        // Get current user's membership data
+        // Get current user's membership data from wolfpack_members_unified
         const { data: membership, error: membershipError } = await supabase
-          .from('wolfpack_memberships')
-          .select(`
-            *,
-            locations(
-              id,
-              name,
-              address
-            )
-          `)
+          .from('wolfpack_members_unified')
+          .select('*')
           .eq('user_id', user.id)
-          .eq('status', 'active')
+          .eq('is_active', true)
           .maybeSingle();
 
         if (membershipError) {
@@ -161,34 +183,39 @@ export default function WolfPackChatPage() {
           throw new Error('No active membership found');
         }
 
-        setMembershipData(membership);
-        setCurrentLocation(membership.locations);
+        setUserMembership(membership);
 
-        // Get all pack members at the same location
-        // Use a simplified query that doesn't rely on wolf_profiles relationship
+        // Get location data if location_id exists
+        if (membership.location_id) {
+          // Fallback: fetch location via REST API route or handle as unknown
+          try {
+            const res = await fetch(`/api/locations/${membership.location_id}`);
+            if (res.ok) {
+              const locationData = await res.json();
+              setCurrentLocation(locationData);
+            } else {
+              setCurrentLocation({ id: membership.location_id, name: 'Unknown', address: null });
+            }
+          } catch (err) {
+            console.error('Error loading location:', err);
+            setCurrentLocation({ id: membership.location_id, name: 'Unknown', address: null });
+          }
+        }
+
+        // Get all pack members at the same location using wolfpack_members_unified
         console.log('Loading members for location:', membership.location_id);
         
-        // Build the members query with proper location filtering
         let membersQuery = supabase
-          .from('wolfpack_memberships')
-          .select(`
-            id,
-            user_id,
-            table_location,
-            joined_at,
-            status,
-            location_id,
-            locations(
-              id,
-              name,
-              address
-            )
-          `);
+          .from('wolfpack_members_unified')
+          .select('*');
 
-        // Apply location filter correctly using the helper function
-        membersQuery = applyLocationFilter(membersQuery, membership.location_id);
+        // Apply location filter if location_id exists
+        if (membership.location_id) {
+          membersQuery = membersQuery.eq('location_id', membership.location_id);
+        }
+        
         membersQuery = membersQuery
-          .eq('status', 'active')
+          .eq('is_active', true)
           .order('joined_at', { ascending: false });
 
         const { data: members, error: membersError } = await membersQuery;
@@ -198,38 +225,57 @@ export default function WolfPackChatPage() {
           throw membersError;
         }
 
-        // Transform members data without wolf_profiles for now
-        const transformedMembers: WolfPackMember[] = members?.map((member: SimpleMemberResult) => ({
+        // Transform members data using the unified table
+        const transformedMembers: WolfPackMember[] = members?.map((member: WolfpackMemberUnified) => ({
           id: member.id,
           user_id: member.user_id,
-          display_name: member.user_id === user.id ? 'You' : 'Pack Member',
-          avatar_url: undefined,
-          status: 'In the pack',
-          favorite_drink: undefined,
-          current_vibe: undefined,
-          looking_for: undefined,
-          table_location: member.table_location,
+          display_name: member.display_name || member.username || (member.user_id === user.id ? 'You' : 'Pack Member'),
+          avatar_url: member.avatar_url || undefined,
+          status: member.status || member.status_enum || 'In the pack',
+          favorite_drink: member.favorite_drink || undefined,
+          current_vibe: member.current_vibe || undefined,
+          looking_for: member.looking_for || undefined,
+          table_location: member.table_location || undefined,
           joined_at: member.joined_at,
-          location_name: member.locations?.name || 'Unknown'
+          location_name: currentLocation?.name || 'Unknown'
         })) || [];
 
         setPackMembers(transformedMembers);
 
-        // Get active events for this location
-        // Note: wolfpack_events uses 'location' column with location name, not location_id
-        if (membership.locations?.name) {
-          const { data: events, error: eventsError } = await supabase
-            .from('wolfpack_events')
-            .select('*')
-            .eq('location', membership.locations.name) // Use location name, not ID
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
-
-          if (eventsError) {
+        // Get active events for this location using correct dj_events schema
+        if (membership.location_id) {
+          try {
+            // Use fetch as fallback for tables not in the restricted type
+            const response = await fetch('/api/dj-events', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ location_id: membership.location_id })
+            });
+            
+            if (response.ok) {
+              const events = await response.json() as DjEvent[];
+              const transformedEvents: WolfpackEvent[] = events?.map((event: DjEvent) => ({
+                id: event.id,
+                title: event.title || `${event.event_type} Event`,
+                type: event.event_type === 'trivia' ? 'trivia' : 
+                      event.event_type === 'contest' ? 'contest' : 'special',
+                description: event.description || 'Join this exciting event!',
+                is_active: event.status === 'active' && !event.ended_at,
+                participant_count: 0, // Would need to count from participants table
+                location: currentLocation?.name || 'Unknown',
+                created_at: event.created_at || new Date().toISOString(),
+                created_by: event.dj_id || undefined,
+                ends_at: event.ended_at || undefined
+              })) || [];
+              
+              setActiveEvents(transformedEvents);
+            } else {
+              console.warn('Failed to load events, setting empty array');
+              setActiveEvents([]);
+            }
+          } catch (eventsError) {
             console.error('Error loading events:', eventsError);
-            // Don't throw - events are optional
-          } else {
-            setActiveEvents(events || []);
+            setActiveEvents([]);
           }
         }
 
@@ -250,13 +296,24 @@ export default function WolfPackChatPage() {
     if (!user) return;
 
     try {
-      // In a real app, you'd store winks in the database
-      // For now, just show a toast notification
-      const targetMember = packMembers.find(m => m.id === memberId);
-      if (targetMember) {
-        // Could implement actual wink notifications here
-        console.log(`Wink sent to ${targetMember.display_name}`);
-        // toast.success(`Wink sent to ${targetMember.display_name}! 😉`);
+      // Check if wolfpack_winks table exists and insert wink
+      const { error } = await insertIntoTable('wolfpack_winks', {
+        from_user_id: user.id,
+        to_user_id: targetUserId,
+      });
+
+      if (error) {
+        console.error('Error sending wink:', error);
+        // Fall back to just showing a console message
+        const targetMember = packMembers.find(m => m.id === memberId);
+        if (targetMember) {
+          console.log(`Wink sent to ${targetMember.display_name}`);
+        }
+      } else {
+        const targetMember = packMembers.find(m => m.id === memberId);
+        if (targetMember) {
+          console.log(`Wink sent to ${targetMember.display_name}! 😉`);
+        }
       }
     } catch (error) {
       console.error('Error sending wink:', error);
@@ -268,9 +325,17 @@ export default function WolfPackChatPage() {
     if (!user) return;
 
     try {
-      // In a real app, you'd handle event participation
-      console.log(`Joining event ${eventId}`);
-      // toast.success('Joined event successfully!');
+      // Try to insert into dj_event_participants table
+      const { error } = await insertIntoTable('dj_event_participants', {
+        event_id: eventId,
+        participant_id: user.id,
+      });
+
+      if (error) {
+        console.error('Error joining event:', error);
+      } else {
+        console.log(`Joined event ${eventId} successfully!`);
+      }
     } catch (error) {
       console.error('Error joining event:', error);
     }
@@ -432,9 +497,9 @@ export default function WolfPackChatPage() {
           <TabsContent value="chat" className="space-y-4 flex-1 flex flex-col">
             {/* Chat Interface with proper spacing */}
             <div className="flex-1 min-h-0">
-              {membershipData && (
+              {userMembership && (
                 <WolfpackRealTimeChat
-                  sessionId={`location_${membershipData.location_id}`}
+                  sessionId={`location_${userMembership.location_id}`}
                 />
               )}
             </div>

@@ -121,7 +121,7 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
       // Fallback to old menu_items table
       console.log('Falling back to menu_items table...');
       let fallbackQuery = supabase
-        .from('menu_items')
+        .from('food_drink_items')
         .select(`
           id,
           name,

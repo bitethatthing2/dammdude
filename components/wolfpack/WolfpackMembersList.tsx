@@ -1,536 +1,531 @@
-"use client";
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/contexts/AuthContext'
+import type { Database } from '@/types/database'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  MapPin, 
-  Crown, 
-  Mic, 
-  Star,
-  Eye,
-  MessageCircle,
-  Loader2,
-  AlertTriangle
-} from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useUser } from '@/hooks/useUser';
-import { toast } from 'sonner';
+// Use centralized Supabase client
+const supabase = createClient()
 
-interface WolfPackMember {
-  id: string;
-  user_id: string;
-  location_id: string;
-  table_location?: string;
-  joined_at: string;
-  last_activity: string;
-  status: 'active' | 'inactive';
-  user?: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    role: string;
-    wolf_profile?: {
-      display_name: string;
-      wolf_emoji: string;
-      vibe_status: string;  // NOT wolfpack_status
-      favorite_drink?: string;
-      instagram_handle?: string;
-      looking_for?: string;
-      bio?: string;
-      is_visible: boolean;
-      profile_image_url?: string;
-      allow_messages?: boolean;
-    };
-  };
+// Location IDs from database
+const LOCATION_IDS = {
+  salem: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
+  portland: 'ec1e8869-454a-49d2-93e5-ed05f49bb932'
+} as const
+
+export type LocationKey = keyof typeof LOCATION_IDS
+
+// Type aliases from database - using correct table names
+type WolfPackMemberRow = Database['public']['Tables']['wolf_pack_members']['Row']
+type WolfpackMembership = Database['public']['Tables']['wolfpack_memberships']['Row']
+type DjEvent = Database['public']['Tables']['dj_events']['Row']
+type Location = Database['public']['Tables']['locations']['Row']
+
+// Extended types for our use
+export interface WolfPackMember extends WolfPackMemberRow {
+  users?: {
+    id: string
+    email: string
+    first_name?: string | null
+    last_name?: string | null
+    role: string
+    avatar_url?: string | null
+  }
 }
 
-interface SimpleMemberData {
-  id: string;
-  user_id: string;
-  location_id: string;
-  table_location?: string;
-  joined_at: string;
-  last_activity: string;
-  status: 'active' | 'inactive';
-  user?: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    role: string;
-  };
+export interface WolfPackEvent extends DjEvent {
+  participant_count?: number
 }
 
-interface WolfPackMembersListProps {
-  locationId: string;
-  currentUserId: string;
+export interface WolfPackLocation extends Location {
+  member_count?: number
 }
 
-export function WolfPackMembersList({ locationId, currentUserId }: WolfPackMembersListProps) {
-  const router = useRouter();
-  const { user } = useUser();
-  const [members, setMembers] = useState<WolfPackMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMember, setSelectedMember] = useState<WolfPackMember | null>(null);
+interface UseWolfPackReturn {
+  packMembers: WolfPackMember[]
+  activeEvents: WolfPackEvent[]
+  membership: WolfpackMembership | null
+  isInPack: boolean
+  loading: boolean
+  error: string | null
+  joinPack: (profileData: Partial<{
+    display_name: string
+    emoji: string
+    current_vibe: string
+    favorite_drink: string
+    looking_for: string
+    instagram_handle: string
+    table_location: string
+  }>) => Promise<{ data?: WolfPackMember; error?: string }>
+  leavePack: () => Promise<void>
+}
 
-  const supabase = getSupabaseBrowserClient();
+export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn {
+  const { user } = useAuth()
+  const [packMembers, setPackMembers] = useState<WolfPackMember[]>([])
+  const [activeEvents, setActiveEvents] = useState<WolfPackEvent[]>([])
+  const [membership, setMembership] = useState<WolfpackMembership | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load wolfpack members
-  useEffect(() => {
-    async function loadMembers() {
-      if (!locationId || !currentUserId) {
-        console.warn('Missing locationId or currentUserId:', { locationId, currentUserId });
-        setIsLoading(false);
-        return;
-      }
+  const locationId = locationKey ? LOCATION_IDS[locationKey] : null
 
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Try the full query first
-        let query = supabase
-          .from('wolfpack_memberships')
-          .select(`
-            *,
-            user:users (
-              *,
-              wolf_profile:wolf_profiles (*)
-            )
-          `)
-          .eq('status', 'active');
-
-        // Handle location filter correctly - avoid NULL query issues
-        if (locationId === null || locationId === undefined) {
-          query = query.is('location_id', null);
-        } else {
-          query = query.eq('location_id', locationId);
-        }
-
-        const { data, error } = await query.order('joined_at', { ascending: false });
-
-        if (error) {
-          // If it's a relationship error, try a simpler query
-          if (error.code === 'PGRST200') {
-            console.log('Wolf profiles relationship not found, trying simpler query...');
-            let simpleQuery = supabase
-              .from('wolfpack_memberships')
-              .select(`
-                *,
-                user:users (*)
-              `)
-              .eq('status', 'active');
-
-            // Handle location filter correctly for fallback query too
-            if (locationId === null || locationId === undefined) {
-              simpleQuery = simpleQuery.is('location_id', null);
-            } else {
-              simpleQuery = simpleQuery.eq('location_id', locationId);
-            }
-
-            const { data: simpleData, error: simpleError } = await simpleQuery.order('joined_at', { ascending: false });
-
-            if (simpleError) throw simpleError;
-
-            // Transform data to match expected interface (without wolf_profile)
-            const transformedData = simpleData?.map((member: SimpleMemberData) => ({
-              ...member,
-              user: member.user ? {
-                ...member.user,
-                wolf_profile: {
-                  display_name: 'Anonymous Wolf',
-                  wolf_emoji: '🐺',
-                  vibe_status: 'Just joined',
-                  favorite_drink: null,
-                  instagram_handle: null,
-                  looking_for: null,
-                  bio: null,
-                  is_visible: true,
-                  profile_image_url: null,
-                  allow_messages: true
-                }
-              } : undefined
-            })) || [];
-
-            setMembers(transformedData);
-          } else {
-            throw error;
-          }
-        } else {
-          setMembers(data || []);
-        }
-      } catch (error) {
-        console.error('Error loading wolfpack members:', error);
-        setError('Failed to load wolfpack members');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadMembers();
-
-    // Set up real-time subscription for member changes
-    if (locationId) {
-      const memberSubscription = supabase
-        .channel(`wolfpack_members_${locationId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'wolfpack_memberships',
-            filter: `location_id=eq.${locationId}`
-          },
-          () => {
-            loadMembers(); // Reload members when changes occur
-          }
-        )
-        .subscribe();
-
-      return () => {
-        memberSubscription.unsubscribe();
-      };
-    }
-  }, [locationId, currentUserId, supabase]);
-
-  // Send wink to another member
-  const sendWink = async (targetUserId: string) => {
-    if (!user) return;
+  // Check if user has an active wolf pack membership
+  const checkMembership = useCallback(async () => {
+    if (!user || !locationId) return
 
     try {
-      const { error } = await supabase
+      // Get active membership for this user and location
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('wolfpack_memberships')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('location_id', locationId)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (membershipError) throw membershipError
+      setMembership(membershipData)
+    } catch (err) {
+      console.error('Error checking wolf pack membership:', err)
+      setError(err instanceof Error ? err.message : 'Failed to check membership')
+    }
+  }, [user, locationId])
+
+  // Join the wolf pack
+  const joinPack = async (profileData: Partial<{
+    display_name: string
+    emoji: string
+    current_vibe: string
+    favorite_drink: string
+    looking_for: string
+    instagram_handle: string
+    table_location: string
+  }>) => {
+    if (!user || !locationId) return { error: 'User or location not available' }
+
+    try {
+      // Call the join_wolfpack RPC function
+      const { data: result, error: joinError } = await supabase
+        .rpc('join_wolfpack', {
+          p_location_id: locationId,
+          p_latitude: undefined,
+          p_longitude: undefined,
+          p_table_location: profileData.table_location || undefined
+        })
+
+      if (joinError) throw joinError
+
+      // Check if join was successful
+      if (result && typeof result === 'object' && 'success' in result && !result.success) {
+        throw new Error(String(result.error) || 'Failed to join wolfpack')
+      }
+
+      // Update member profile with additional data
+      if (Object.keys(profileData).length > 0) {
+        const { error: updateError } = await supabase
+          .from('wolf_pack_members')
+          .update({
+            display_name: profileData.display_name,
+            emoji: profileData.emoji,
+            current_vibe: profileData.current_vibe,
+            favorite_drink: profileData.favorite_drink,
+            looking_for: profileData.looking_for,
+            instagram_handle: profileData.instagram_handle,
+            table_location: profileData.table_location
+          })
+          .eq('user_id', user.id)
+          .eq('location_id', locationId)
+          .eq('is_active', true)
+
+        if (updateError) console.error('Error updating profile:', updateError)
+      }
+
+      // Refresh membership and members
+      await checkMembership()
+      
+      return { data: undefined } // Will be loaded by checkMembership
+    } catch (err) {
+      console.error('Error joining wolf pack:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to join pack' }
+    }
+  }
+
+  // Leave the wolf pack
+  const leavePack = async () => {
+    if (!user || !locationId) return
+
+    try {
+      // Update member to inactive
+      const { error: leaveError } = await supabase
+        .from('wolf_pack_members')
+        .update({ 
+          is_active: false,
+          left_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('location_id', locationId)
+        .eq('is_active', true)
+
+      if (leaveError) throw leaveError
+
+      setMembership(null)
+      setPackMembers([])
+    } catch (err) {
+      console.error('Error leaving wolf pack:', err)
+    }
+  }
+
+  // Fetch active pack members
+  useEffect(() => {
+    if (!locationId) return
+
+    const fetchMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('wolf_pack_members')
+          .select(`
+            *,
+            users!user_id (
+              id,
+              email,
+              first_name,
+              last_name,
+              role,
+              avatar_url
+            )
+          `)
+          .eq('location_id', locationId)
+          .eq('is_active', true)
+          .order('joined_at', { ascending: false })
+
+        if (error) throw error
+        setPackMembers((data || []) as WolfPackMember[])
+      } catch (err) {
+        console.error('Error fetching pack members:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch members')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMembers()
+
+    // Set up realtime subscription for members
+    const channel = supabase
+      .channel(`wolfpack_members_${locationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wolfpack_members_unified',
+          filter: `location_id=eq.${locationId}`
+        },
+        (payload) => {
+          const { eventType, old: oldRecord } = payload
+          
+          if (eventType === 'INSERT' || eventType === 'UPDATE') {
+            // Refetch to get joined data
+            fetchMembers()
+          } else if (eventType === 'DELETE' && oldRecord) {
+            setPackMembers((prev) => prev.filter((member) => member.id !== oldRecord.id))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [locationId])
+
+  // Fetch active events
+  useEffect(() => {
+    if (!locationId) return
+
+    const fetchEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('dj_events')
+          .select('*')
+          .eq('location_id', locationId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        
+        // Add participant count (would need to be calculated separately)
+        const eventsWithCount = (data || []).map(event => ({
+          ...event,
+          participant_count: 0 // You'd need to fetch this separately
+        }))
+        
+        setActiveEvents(eventsWithCount)
+      } catch (err) {
+        console.error('Error fetching events:', err)
+      }
+    }
+
+    fetchEvents()
+    // Set up realtime subscription for events
+    const channel = supabase
+      .channel(`wolfpack_events_${locationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dj_events',
+          filter: `location_id=eq.${locationId}`
+        },
+        () => {
+          fetchEvents() // Refetch on any change
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [locationId])
+
+  // Check membership when user changes
+  useEffect(() => {
+    checkMembership()
+  }, [checkMembership])
+
+  return {
+    packMembers,
+    activeEvents,
+    membership,
+    isInPack: !!membership,
+    loading,
+    error,
+    joinPack,
+    leavePack
+  }
+}
+
+// WolfPack Actions Hook
+export function useWolfPackActions() {
+  const { user } = useAuth()
+
+  const sendWink = async (recipientId: string, locationId: string) => {
+    if (!user) return { error: 'Not authenticated' }
+
+    try {
+      const { data, error } = await supabase
         .from('wolf_pack_interactions')
         .insert({
           sender_id: user.id,
-          receiver_id: targetUserId,
+          receiver_id: recipientId,
           interaction_type: 'wink',
-          location_id: locationId,
-          created_at: new Date().toISOString()
-        });
+          location_id: locationId
+        })
+        .select()
+        .single()
 
-      if (error) throw error;
-
-      toast.success('Wink sent! 😉');
-    } catch (error) {
-      console.error('Error sending wink:', error);
-      toast.error('Failed to send wink');
+      if (error) throw error
+      return { data }
+    } catch (err) {
+      console.error('Error sending wink:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to send wink' }
     }
-  };
-
-  // Start private chat
-  const startPrivateChat = (targetUserId: string, displayName: string) => {
-    router.push(`/wolfpack/chat/private/${targetUserId}?name=${encodeURIComponent(displayName)}`);
-  };
-
-  // Get member role display
-  const getMemberRoleDisplay = (member: WolfPackMember) => {
-    const role = member.user?.role;
-    if (role === 'dj') return { icon: Mic, label: 'DJ', color: 'bg-purple-500' };
-    if (role === 'bartender') return { icon: Crown, label: 'Bartender', color: 'bg-orange-500' };
-    return { icon: Star, label: 'Wolf', color: 'bg-blue-500' };
-  };
-
-  // Format time since joined
-  const getTimeSinceJoined = (joinedAt: string) => {
-    const now = new Date();
-    const joined = new Date(joinedAt);
-    const diffMs = now.getTime() - joined.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just joined';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return 'Earlier today';
-  };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            WolfPack Members
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading pack members...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            WolfPack Members
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
+  const sendPrivateMessage = async (recipientId: string, message: string) => {
+    if (!user) return { error: 'Not authenticated' }
+
+    try {
+      const { data, error } = await supabase
+        .from('wolf_private_messages')
+        .insert({
+          from_user_id: user.id,
+          to_user_id: recipientId,
+          message,
+          is_read: false
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { data }
+    } catch (err) {
+      console.error('Error sending private message:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to send message' }
+    }
   }
 
-  const visibleMembers = members.filter(member => 
-    member.user?.wolf_profile?.is_visible !== false
-  );
+  const joinEvent = async (eventId: string) => {
+    if (!user) return { error: 'Not authenticated' }
 
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            WolfPack Members
-            <Badge variant="secondary">{visibleMembers.length}</Badge>
-          </CardTitle>
-          <CardDescription>
-            Current pack members at this location
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {visibleMembers.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground">No other pack members visible</p>
-              <p className="text-sm text-muted-foreground">Be the first to start the conversation!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {visibleMembers.map((member) => {
-                const isCurrentUser = member.user_id === currentUserId;
-                const roleDisplay = getMemberRoleDisplay(member);
-                const RoleIcon = roleDisplay.icon;
+    try {
+      const { data, error } = await supabase
+        .from('dj_event_participants')
+        .insert({
+          event_id: eventId,
+          participant_id: user.id
+        })
+        .select()
+        .single()
 
-                return (
-                  <div
-                    key={member.id}
-                    className={`p-4 rounded-lg border transition-all cursor-pointer hover:shadow-md ${
-                      isCurrentUser 
-                        ? 'bg-primary/5 border-primary/20' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => setSelectedMember(member)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.user?.wolf_profile?.profile_image_url} />
-                          <AvatarFallback>
-                            {member.user?.wolf_profile?.wolf_emoji || 
-                             member.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
-                             'W'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        {/* Role indicator */}
-                        <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${roleDisplay.color} flex items-center justify-center`}>
-                          <RoleIcon className="h-3 w-3 text-white" />
-                        </div>
-                      </div>
+      if (error) throw error
+      return { data }
+    } catch (err) {
+      console.error('Error joining event:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to join event' }
+    }
+  }
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">
-                            {member.user?.wolf_profile?.display_name || 
-                             member.user?.first_name || 
-                             'Anonymous Wolf'}
-                          </h3>
-                          {isCurrentUser && (
-                            <Badge variant="outline" className="text-xs">You</Badge>
-                          )}
-                          <Badge variant="secondary" className="text-xs">
-                            {roleDisplay.label}
-                          </Badge>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {member.user?.wolf_profile?.vibe_status || 'Ready to party! 🎉'}
-                        </p>
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {member.table_location || 'At the bar'}
-                          </span>
-                          <span>{getTimeSinceJoined(member.joined_at)}</span>
-                        </div>
-                      </div>
+  const voteInEvent = async (eventId: string, votedForId: string) => {
+    if (!user) return { error: 'Not authenticated' }
 
-                      {!isCurrentUser && (
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              sendWink(member.user_id);
-                            }}
-                            className="w-full"
-                          >
-                            😉 Wink
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startPrivateChat(
-                                member.user_id, 
-                                member.user?.wolf_profile?.display_name || 'Anonymous Wolf'
-                              );
-                            }}
-                            className="w-full"
-                          >
-                            <MessageCircle className="h-3 w-3 mr-1" />
-                            Chat
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    try {
+      const { data, error } = await supabase
+        .from('wolf_pack_votes')
+        .insert({
+          contest_id: eventId,
+          voter_id: user.id,
+          voted_for_id: votedForId
+        })
+        .select()
+        .single()
 
-      {/* Member Profile Modal */}
-      {selectedMember && (
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Wolf Profile
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedMember(null)}
-              >
-                ✕
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url} />
-                <AvatarFallback className="text-lg">
-                  {selectedMember.user?.wolf_profile?.wolf_emoji || 
-                   selectedMember.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
-                   'W'}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <h3 className="text-xl font-bold">
-                  {selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {selectedMember.user?.wolf_profile?.vibe_status || 'Ready to party! 🎉'}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary">
-                    {getMemberRoleDisplay(selectedMember).label}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {getTimeSinceJoined(selectedMember.joined_at)}
-                  </span>
-                </div>
-              </div>
-            </div>
+      if (error) throw error
+      return { data }
+    } catch (err) {
+      console.error('Error voting:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to vote' }
+    }
+  }
 
-            <div className="space-y-3">
-              {selectedMember.user?.wolf_profile?.bio && (
-                <div>
-                  <h4 className="font-medium mb-1">About</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedMember.user.wolf_profile.bio}
-                  </p>
-                </div>
-              )}
+  return {
+    sendWink,
+    joinEvent,
+    voteInEvent,
+    sendPrivateMessage
+  }
+}
 
-              {selectedMember.user?.wolf_profile?.favorite_drink && (
-                <div>
-                  <h4 className="font-medium mb-1">Favorite Drink</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedMember.user.wolf_profile.favorite_drink}
-                  </p>
-                </div>
-              )}
+// Location Verification Hook for Side Hustle Bar
+export function useLocationVerification() {
+  const [location, setLocation] = useState<LocationKey | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-              {selectedMember.user?.wolf_profile?.looking_for && (
-                <div>
-                  <h4 className="font-medium mb-1">Looking For</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedMember.user.wolf_profile.looking_for}
-                  </p>
-                </div>
-              )}
+  // Side Hustle Bar locations from database
+  const LOCATIONS = {
+    salem: {
+      lat: 44.9429,
+      lng: -123.0351,
+      radius: 100 // meters
+    },
+    portland: {
+      lat: 45.5152,
+      lng: -122.6784,
+      radius: 100 // meters
+    }
+  }
 
-              {selectedMember.table_location && (
-                <div>
-                  <h4 className="font-medium mb-1">Location</h4>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {selectedMember.table_location}
-                  </p>
-                </div>
-              )}
+  // Haversine formula to calculate distance between two points
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3 // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180
+    const φ2 = (lat2 * Math.PI) / 180
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180
 
-              {selectedMember.user?.wolf_profile?.instagram_handle && (
-                <div>
-                  <h4 className="font-medium mb-1">Instagram</h4>
-                  <p className="text-sm text-muted-foreground">
-                    @{selectedMember.user.wolf_profile.instagram_handle}
-                  </p>
-                </div>
-              )}
-            </div>
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
-            {selectedMember.user_id !== currentUserId && (
-              <div className="flex gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => sendWink(selectedMember.user_id)}
-                  className="flex-1"
-                >
-                  😉 Send Wink
-                </Button>
-                <Button
-                  onClick={() => startPrivateChat(
-                    selectedMember.user_id,
-                    selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'
-                  )}
-                  className="flex-1"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Start Chat
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+    return R * c
+  }
+
+  const verifyLocation = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        })
+      })
+
+      const { latitude, longitude } = position.coords
+
+      // Check if user is at Salem location
+      const salemDistance = calculateDistance(
+        latitude,
+        longitude,
+        LOCATIONS.salem.lat,
+        LOCATIONS.salem.lng
+      )
+
+      if (salemDistance <= LOCATIONS.salem.radius) {
+        setLocation('salem')
+        return
+      }
+
+      // Check if user is at Portland location
+      const portlandDistance = calculateDistance(
+        latitude,
+        longitude,
+        LOCATIONS.portland.lat,
+        LOCATIONS.portland.lng
+      )
+
+      if (portlandDistance <= LOCATIONS.portland.radius) {
+        setLocation('portland')
+        return
+      }
+
+      setError('You must be at Side Hustle Bar to join the Wolf Pack')
+    } catch (err) {
+      console.error('Location error:', err)
+      setError('Unable to verify location. Please enable location services.')
+    } finally {
+      setLoading(false)
+    }
+  }, [LOCATIONS.salem.lat, LOCATIONS.salem.lng, LOCATIONS.salem.radius, LOCATIONS.portland.lat, LOCATIONS.portland.lng, LOCATIONS.portland.radius])
+
+  useEffect(() => {
+    verifyLocation()
+  }, [verifyLocation])
+
+  return {
+    location,
+    loading,
+    error,
+    verifyLocation
+  }
+}
+
+// Get nearest location helper
+export async function getNearestLocation(latitude: number, longitude: number) {
+  const { data, error } = await supabase
+    .rpc('find_nearest_location', {
+      user_lat: latitude,
+      user_lon: longitude,
+      max_distance_meters: 100
+    })
+
+  if (error || !data || data.length === 0) {
+    return null
+  }
+
+  const location = data[0]
+  
+  // Map location to our location key
+  if (location.location_id === LOCATION_IDS.salem) {
+    return 'salem' as LocationKey
+  } else if (location.location_id === LOCATION_IDS.portland) {
+    return 'portland' as LocationKey
+  }
+  
+  return null
 }

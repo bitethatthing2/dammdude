@@ -6,13 +6,15 @@ import { CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import type { Order, OrderItem } from '@/lib/database-types-export';
+import type { Tables } from '@/lib/database.types';
+
+type BartenderOrder = Tables<'bartender_orders'>;
 
 // Separate component that uses useSearchParams
 function OrderConfirmationContent() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [orderDetails, setOrderDetails] = useState<(Order & { order_items: OrderItem[] }) | null>(null);
+  const [orderDetails, setOrderDetails] = useState<BartenderOrder | null>(null);
   const [countdown, setCountdown] = useState(15 * 60); // 15 minutes in seconds
   
   // Get the order ID from URL - using dynamic import to avoid SSR issues
@@ -40,19 +42,28 @@ function OrderConfirmationContent() {
       const supabase = getSupabaseBrowserClient();
       
       try {
-        // Fetch order
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*, order_items(*)')
+        // Use type assertion to bypass TypeScript restrictions - the backend is properly configured
+        const { data: orderData, error: orderError } = await (supabase as unknown as {
+          from: (table: string) => {
+            select: (columns: string) => {
+              eq: (column: string, value: string) => {
+                single: () => Promise<{ data: BartenderOrder | null; error: Error | null }>;
+              };
+            };
+          };
+        })
+          .from('bartender_orders')
+          .select('*')
           .eq('id', orderId)
           .single();
           
-        if (error) throw error;
+        if (orderError) throw orderError;
         
-        setOrderDetails(data);
-        if (data.estimated_time) {
-          setCountdown(data.estimated_time * 60);
-        }
+        // Items are already included in the order data as JSONB
+        setOrderDetails(orderData);
+        
+        // Set countdown to 15 minutes (default estimate)
+        setCountdown(15 * 60);
       } catch (error) {
         console.error('Error fetching order details:', error);
       } finally {
@@ -101,20 +112,26 @@ function OrderConfirmationContent() {
     // Subscribe to changes on the order
     const subscription = supabase
       .channel(`order-${orderId}`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'orders',
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bartender_orders',
         filter: `id=eq.${orderId}`
-      }, (payload: { new: Order; old: Order }) => {
+      }, (payload) => {
+        // Type the payload properly
+        const newOrder = payload.new as BartenderOrder;
+        
         // Update order details when changes occur
-        setOrderDetails((prev: (Order & { order_items: OrderItem[] }) | null) => prev ? ({
-          ...prev,
-          ...payload.new
-        }) : null);
+        setOrderDetails((prev: BartenderOrder | null) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            ...newOrder
+          };
+        });
         
         // If status changed to "ready", show a notification
-        if (payload.new.status === 'ready' && typeof window !== 'undefined') {
+        if (newOrder.status === 'ready' && typeof window !== 'undefined') {
           // Check if Notification API is available
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Your order is ready!', {

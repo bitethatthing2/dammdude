@@ -6,17 +6,11 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
-export interface WolfpackStatus {
-  isWolfpackMember: boolean;
-  isLocationVerified: boolean;
-  isLoading: boolean;
-  isChecking: boolean;
-  isMember: boolean;
-}
-
-export type WolfpackStatusType = 'loading' | 'not_member' | 'pending' | 'active' | 'inactive' | 'suspended';
-export type LocationStatus = 'loading' | 'granted' | 'denied' | 'not_requested';
+import { 
+  WolfpackStatus, 
+  WolfpackStatusType, 
+  LocationStatus 
+} from '@/types/wolfpack-interfaces';
 
 interface UseWolfpackAccessReturn {
   wolfpack: WolfpackStatusType;

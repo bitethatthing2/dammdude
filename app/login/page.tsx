@@ -86,7 +86,7 @@ export default function UnifiedLoginPage() {
           // Create user profile automatically
           try {
             const { error: profileError } = await supabase
-              .from('profiles')
+              .from('users')
               .insert({
                 id: data.user.id,
                 email: data.user.email,

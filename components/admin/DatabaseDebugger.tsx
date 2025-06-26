@@ -49,7 +49,7 @@ export function DatabaseDebugger() {
       // Try direct Supabase query
       const supabase = getSupabaseBrowserClient();
       const { data: queryData, error: queryError } = await supabase
-        .from('orders')
+        .from('bartender_orders')
         .select('count')
         .limit(1);
       
