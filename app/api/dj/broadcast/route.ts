@@ -6,7 +6,7 @@ import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -52,15 +52,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create DJ broadcast message
+    const broadcastData = {
+      dj_id: user.id,
+      location_id,
+      message,
+      broadcast_type: 'announcement',
+      created_at: new Date().toISOString()
+    };
+    
     const broadcastResult = await WolfpackBackendService.insert(
       WOLFPACK_TABLES.DJ_BROADCASTS,
-      {
-        dj_id: user.id,
-        location_id,
-        message,
-        created_at: new Date().toISOString()
-      },
-      'id, created_at'
+      broadcastData,
+      '*'
     );
 
     if (broadcastResult.error) {
@@ -69,26 +72,31 @@ export async function POST(request: NextRequest) {
 
     // Also create a chat message for immediate display
     const displayName = WolfpackAuthService.getUserDisplayName(user);
+    const chatData = {
+      session_id: `location_${location_id}`,
+      user_id: user.id,
+      display_name: displayName,
+      avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
+      content: `🎵 DJ ANNOUNCEMENT: ${message}`,
+      message_type: 'dj_broadcast',
+      created_at: new Date().toISOString(),
+      is_flagged: false
+    };
+    
     const chatResult = await WolfpackBackendService.insert(
       WOLFPACK_TABLES.WOLF_CHAT,
-      {
-        session_id: `location_${location_id}`,
-        user_id: user.id,
-        display_name: displayName,
-        avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
-        content: `🎵 DJ ANNOUNCEMENT: ${message}`,
-        message_type: 'dj_broadcast',
-        created_at: new Date().toISOString(),
-        is_flagged: false
-      },
-      'id, created_at'
+      chatData,
+      '*'
     );
 
+    const broadcastRecord = broadcastResult.data?.[0];
+    const chatRecord = chatResult.data?.[0];
+    
     return NextResponse.json({
       success: true,
-      broadcast_id: broadcastResult.data?.[0]?.id,
-      chat_message_id: chatResult.data?.[0]?.id,
-      created_at: broadcastResult.data?.[0]?.created_at
+      broadcast_id: (broadcastRecord as any)?.id || null,
+      chat_message_id: (chatRecord as any)?.id || null,
+      created_at: (broadcastRecord as any)?.created_at || new Date().toISOString()
     });
 
   } catch (error) {

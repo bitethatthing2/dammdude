@@ -15,7 +15,7 @@ export const useWolfpackQuery = () => {
     try {
       // Try primary query first
       let query = supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select(`
           *,
           user:users (
@@ -47,7 +47,7 @@ export const useWolfpackQuery = () => {
         
         // Fallback query without wolf_profiles
         let fallbackQuery = supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select(`
             *,
             user:users (*),
@@ -99,7 +99,7 @@ export const useWolfpackQuery = () => {
     try {
       // Try primary query first
       const query = supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select(`
           *,
           user:users (
@@ -124,7 +124,7 @@ export const useWolfpackQuery = () => {
         
         // Fallback query
         const { data: fallbackData, error: fallbackError } = await supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select(`
             *,
             user:users (*),

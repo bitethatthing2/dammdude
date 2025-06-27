@@ -9,7 +9,7 @@ export async function POST(
   { params }: { params: { eventId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -40,19 +40,20 @@ export async function POST(
     }
 
     // Get event details
-    const eventResult = await WolfpackBackendService.get(
+    const eventResult = await WolfpackBackendService.queryOne(
       WOLFPACK_TABLES.DJ_EVENTS,
+      '*',
       { id: eventId }
     );
 
-    if (eventResult.error || !eventResult.data?.[0]) {
+    if (eventResult.error || !eventResult.data) {
       return NextResponse.json(
         { error: 'Event not found', code: 'NOT_FOUND' },
         { status: 404 }
       );
     }
 
-    const event = eventResult.data[0];
+    const event = eventResult.data as any; // Type assertion to handle dynamic event properties
 
     // Check if event is still active
     if (event.status !== 'active') {
@@ -96,9 +97,10 @@ export async function POST(
     }
 
     // Check if user has already voted
-    const existingVoteResult = await WolfpackBackendService.get(
-      WOLFPACK_TABLES.DJ_EVENT_VOTES,
-      { event_id: eventId, user_id: user.id }
+    const existingVoteResult = await WolfpackBackendService.query(
+      'wolf_pack_votes',
+      '*',
+      { event_id: eventId, voter_id: user.id }
     );
 
     if (existingVoteResult.data && existingVoteResult.data.length > 0) {
@@ -111,46 +113,45 @@ export async function POST(
     // Create the vote
     const voteData = {
       event_id: eventId,
-      user_id: user.id,
-      vote_option: option || null,
-      vote_value: vote_value || null,
+      voter_id: user.id,
+      contest_id: null, // For DJ events, not contests
+      participant_id: null,
+      voted_for_id: option || null, // Store option in voted_for_id field
       created_at: new Date().toISOString()
     };
 
     const voteResult = await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.DJ_EVENT_VOTES,
+      'wolf_pack_votes',
       voteData,
-      'id, created_at'
+      '*'
     );
 
     if (voteResult.error) {
       throw new Error(voteResult.error);
     }
 
-    // Get updated vote counts
-    const voteCountsResult = await supabase
-      .from(WOLFPACK_TABLES.DJ_EVENT_VOTES)
-      .select('vote_option, vote_value')
+    // Get updated vote counts using type assertion
+    const voteCountsResult = await (supabase as any)
+      .from('wolf_pack_votes')
+      .select('voted_for_id')
       .eq('event_id', eventId);
 
     let voteCounts = {};
     if (voteCountsResult.data) {
       if (event.event_type === 'poll') {
         // Count votes per option
-        voteCounts = voteCountsResult.data.reduce((acc, vote) => {
-          if (vote.vote_option) {
-            acc[vote.vote_option] = (acc[vote.vote_option] || 0) + 1;
+        voteCounts = voteCountsResult.data.reduce((acc: Record<string, number>, vote: any) => {
+          if (vote.voted_for_id) {
+            acc[vote.voted_for_id] = (acc[vote.voted_for_id] || 0) + 1;
           }
           return acc;
         }, {} as Record<string, number>);
       } else if (event.event_type === 'contest') {
-        // Calculate average rating
-        const validVotes = voteCountsResult.data.filter(vote => vote.vote_value !== null);
-        const totalVotes = validVotes.length;
-        const totalScore = validVotes.reduce((sum, vote) => sum + (vote.vote_value || 0), 0);
+        // For contests, just count total votes
+        const totalVotes = voteCountsResult.data.length;
         voteCounts = {
           total_votes: totalVotes,
-          average_rating: totalVotes > 0 ? (totalScore / totalVotes).toFixed(1) : 0
+          average_rating: 0 // Wolf pack votes don't have numeric ratings
         };
       }
     }
@@ -177,12 +178,12 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      vote_id: voteResult.data?.[0]?.id,
+      vote_id: (voteResult.data?.[0] as any)?.id || crypto.randomUUID(),
       event_id: eventId,
       vote_option: option || null,
       vote_value: vote_value || null,
       vote_counts: voteCounts,
-      created_at: voteResult.data?.[0]?.created_at
+      created_at: (voteResult.data?.[0] as any)?.created_at
     });
 
   } catch (error) {
@@ -203,7 +204,7 @@ export async function GET(
   { params }: { params: { eventId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -217,43 +218,41 @@ export async function GET(
 
     // Get event details and vote counts
     const [eventResult, voteCountsResult] = await Promise.all([
-      WolfpackBackendService.get(WOLFPACK_TABLES.DJ_EVENTS, { id: eventId }),
-      supabase
-        .from(WOLFPACK_TABLES.DJ_EVENT_VOTES)
-        .select('vote_option, vote_value, user_id')
+      WolfpackBackendService.queryOne(WOLFPACK_TABLES.DJ_EVENTS, '*', { id: eventId }),
+      (supabase as any)
+        .from('wolf_pack_votes')
+        .select('voted_for_id, voter_id')
         .eq('event_id', eventId)
     ]);
 
-    if (eventResult.error || !eventResult.data?.[0]) {
+    if (eventResult.error || !eventResult.data) {
       return NextResponse.json(
         { error: 'Event not found', code: 'NOT_FOUND' },
         { status: 404 }
       );
     }
 
-    const event = eventResult.data[0];
+    const event = eventResult.data as any; // Type assertion to handle dynamic event properties
     const votes = voteCountsResult.data || [];
 
     // Check if current user has voted
-    const userVote = votes.find(vote => vote.user_id === user.id);
+    const userVote = votes.find((vote: any) => vote.voter_id === user.id);
 
     let voteCounts = {};
     if (event.event_type === 'poll') {
       // Count votes per option
-      voteCounts = votes.reduce((acc, vote) => {
-        if (vote.vote_option) {
-          acc[vote.vote_option] = (acc[vote.vote_option] || 0) + 1;
+      voteCounts = votes.reduce((acc: Record<string, number>, vote: any) => {
+        if (vote.voted_for_id) {
+          acc[vote.voted_for_id] = (acc[vote.voted_for_id] || 0) + 1;
         }
         return acc;
       }, {} as Record<string, number>);
     } else if (event.event_type === 'contest') {
-      // Calculate average rating
-      const validVotes = votes.filter(vote => vote.vote_value !== null);
-      const totalVotes = validVotes.length;
-      const totalScore = validVotes.reduce((sum, vote) => sum + (vote.vote_value || 0), 0);
+      // For contests, just count total votes
+      const totalVotes = votes.length;
       voteCounts = {
         total_votes: totalVotes,
-        average_rating: totalVotes > 0 ? (totalScore / totalVotes).toFixed(1) : 0
+        average_rating: 0 // Wolf pack votes don't have numeric ratings
       };
     }
 
@@ -268,8 +267,8 @@ export async function GET(
       },
       vote_counts: voteCounts,
       user_vote: userVote ? {
-        vote_option: userVote.vote_option,
-        vote_value: userVote.vote_value
+        vote_option: userVote.voted_for_id,
+        vote_value: null // Wolf pack votes don't have numeric values
       } : null,
       has_voted: !!userVote
     });

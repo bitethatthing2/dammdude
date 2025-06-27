@@ -76,7 +76,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     try {
       // Get active membership for this user and location
       const { data: membershipData, error: membershipError } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select('*')
         .eq('user_id', user.id)
         .eq('location_id', locationId)

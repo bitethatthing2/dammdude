@@ -5,7 +5,7 @@ import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message_id: result.data?.[0]?.id,
-        created_at: result.data?.[0]?.created_at
+        message_id: (result.data?.[0] as any)?.id,
+        created_at: (result.data?.[0] as any)?.created_at
       });
 
     } else {
@@ -107,9 +107,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        interaction_id: result.data?.[0]?.id,
+        interaction_id: (result.data?.[0] as any)?.id,
         type,
-        created_at: result.data?.[0]?.created_at
+        created_at: (result.data?.[0] as any)?.created_at
       });
     }
 

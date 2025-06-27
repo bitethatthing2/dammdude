@@ -28,7 +28,7 @@ const supabase = createClient();
 
 // Type aliases for easier use - using actual database tables
 type WolfpackMember = Database['public']['Views']['wolfpack_members_at_location']['Row'];
-type WolfpackMembership = Database['public']['Tables']['wolfpack_memberships']['Row'];
+type WolfpackMembership = Database['public']['Tables']['wolf_pack_members']['Row'];
 type Location = Database['public']['Tables']['locations']['Row'];
 
 interface MembershipState {
@@ -85,9 +85,9 @@ export function WolfpackMembershipManager() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Get active membership from wolfpack_memberships table
+      // Get active membership from wolf_pack_members table
       const { data: membershipData, error: membershipError } = await supabase
-        .from('wolfpack_memberships')
+        .from('wolf_pack_members')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
@@ -149,7 +149,7 @@ export function WolfpackMembershipManager() {
         {
           event: '*',
           schema: 'public',
-          table: 'wolfpack_memberships',
+          table: 'wolf_pack_members',
           filter: `location_id=eq.${locationId}`
         },
         () => {
@@ -221,7 +221,7 @@ export function WolfpackMembershipManager() {
       setState(prev => ({ ...prev, isLoading: true }));
 
       const { error } = await supabase
-        .from('wolfpack_memberships')
+        .from('wolf_pack_members')
         .update({ 
           status: 'inactive',
           last_active: new Date().toISOString()
@@ -253,7 +253,7 @@ export function WolfpackMembershipManager() {
 
     try {
       const { error } = await supabase
-        .from('wolfpack_memberships')
+        .from('wolf_pack_members')
         .update({ 
           table_location: tableLocation,
           last_active: new Date().toISOString()

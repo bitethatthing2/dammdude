@@ -82,7 +82,7 @@ export async function loadWolfpackMembers(
   
   // Build base query
   let query = supabase
-    .from('wolfpack_memberships')
+    .from("wolf_pack_members")
     .select(
       includeProfiles 
         ? `
@@ -162,7 +162,7 @@ export async function countWolfpackMembers(
   const sanitizedLocationId = sanitizeLocationId(locationId);
   
   let query = supabase
-    .from('wolfpack_memberships')
+    .from("wolf_pack_members")
     .select('id', { count: 'exact', head: true });
 
   if (activeOnly) {

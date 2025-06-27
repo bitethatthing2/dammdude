@@ -101,7 +101,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
         // Try the full query first
         let memberQuery = supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select(`
             *,
             user:users (
@@ -125,7 +125,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           if (memberError.code === 'PGRST200') {
             console.log('Wolf profiles relationship not found, trying simpler query...');
             let simpleMemberQuery = supabase
-              .from('wolfpack_memberships')
+              .from("wolf_pack_members")
               .select(`
                 *,
                 user:users (*)

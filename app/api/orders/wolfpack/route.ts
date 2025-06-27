@@ -7,7 +7,7 @@ import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 // Get recent orders for wolfpack members at current location
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user is wolfpack member at this location
-    const membershipResult = await WolfpackBackendService.get(
-      WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
-      { user_id: user.id, location_id: locationId, status: 'active' }
+    const membershipResult = await WolfpackBackendService.query(
+      WOLFPACK_TABLES.WOLFPACK_MEMBERS_UNIFIED,
+      '*',
+      { user_id: user.id, location_id: locationId, is_active: true }
     );
 
     if (membershipResult.error || !membershipResult.data?.[0]) {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Get recent orders from wolfpack members at this location
     const { data: orders, error } = await supabase
-      .from('orders')
+      .from('bartender_orders')
       .select(`
         id,
         status,
@@ -78,25 +79,25 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    // Transform the data for frontend consumption
-    const transformedOrders = orders?.map(order => ({
+    // Transform the data for frontend consumption (with type assertions)
+    const transformedOrders = (orders as any[])?.map((order: any) => ({
       id: order.id,
       status: order.status,
       total_amount: order.total_amount,
       created_at: order.created_at,
       customer: {
-        id: order.users.id,
-        display_name: order.users.first_name || 'Anonymous Wolf',
-        avatar_url: order.users.avatar_url
+        id: order.users?.id,
+        display_name: order.users?.first_name || 'Anonymous Wolf',
+        avatar_url: order.users?.avatar_url
       },
-      items: order.order_items?.map(item => ({
+      items: order.order_items?.map((item: any) => ({
         id: item.id,
         quantity: item.quantity,
         unit_price: item.unit_price,
         name: item.menu_items?.name || 'Unknown Item',
         image_url: item.menu_items?.image_url
       })) || [],
-      item_count: order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0
+      item_count: order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
     })) || [];
 
     return NextResponse.json({
@@ -122,7 +123,7 @@ export async function GET(request: NextRequest) {
 // Place order as wolfpack member with shared visibility
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -143,9 +144,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is wolfpack member at this location
-    const membershipResult = await WolfpackBackendService.get(
-      WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
-      { user_id: user.id, location_id: location_id, status: 'active' }
+    const membershipResult = await WolfpackBackendService.query(
+      WOLFPACK_TABLES.WOLFPACK_MEMBERS_UNIFIED,
+      '*',
+      { user_id: user.id, location_id: location_id, is_active: true }
     );
 
     const membership = membershipResult.data?.[0];
@@ -161,8 +163,8 @@ export async function POST(request: NextRequest) {
     const processedItems = [];
 
     for (const item of items) {
-      const { data: menuItem } = await supabase
-        .from('menu_items')
+      const { data: menuItem } = await (supabase as any)
+        .from("food_drink_items")
         .select('id, name, price, available')
         .eq('id', item.menu_item_id)
         .single();
@@ -185,16 +187,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create the order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    // Create the order (use type assertion for flexibility)
+    const { data: order, error: orderError } = await (supabase as any)
+      .from('bartender_orders')
       .insert({
-        user_id: user.id,
+        customer_id: user.id,
         location_id: location_id,
         status: 'pending',
         total_amount: totalAmount,
         order_type: 'wolfpack',
-        table_location: table_location || membership.table_location,
+        table_location: table_location || (membership as any)?.table_location,
         created_at: new Date().toISOString()
       })
       .select('id, created_at')
@@ -212,13 +214,13 @@ export async function POST(request: NextRequest) {
       unit_price: item.unit_price
     }));
 
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await (supabase as any)
       .from('order_items')
       .insert(orderItems);
 
     if (itemsError) {
       // Clean up the order if items failed
-      await supabase.from('orders').delete().eq('id', order.id);
+      await supabase.from('bartender_orders').delete().eq('id', order.id);
       throw itemsError;
     }
 

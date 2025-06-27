@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createServerClient();
+    const supabase = await createClient();
 
     // Get current user (for admin operations)
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     const imageType = searchParams.get('imageType');
     const itemId = searchParams.get('itemId');
 
-    const supabase = await createServerClient();
+    const supabase = await createClient();
 
     let query = supabase
       .from('images')

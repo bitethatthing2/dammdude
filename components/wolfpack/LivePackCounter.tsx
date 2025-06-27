@@ -32,7 +32,7 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
         
         // Fetch total members
         let totalQuery = supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select('id', { count: 'exact' });
         
         // Handle location filter correctly - avoid NULL query issues
@@ -46,7 +46,7 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
         
         // Fetch active members
         let activeQuery = supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select('id', { count: 'exact' })
           .eq('status', 'active');
         

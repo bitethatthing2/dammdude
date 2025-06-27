@@ -60,7 +60,7 @@ export function GeolocationActivation() {
 
       try {
         const { data, error } = await supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select(`
             id,
             location_id,

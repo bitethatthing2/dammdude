@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     
     if (authHeader !== `Bearer ${cronSecret}`) {
       // Try admin user verification
-      const supabase = createClient();
+      const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !user) {
@@ -199,7 +199,7 @@ export async function GET() {
     }
 
     // Get last reset info from system messages
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: lastResetMessage } = await supabase
       .from(WOLFPACK_TABLES.WOLF_CHAT)
       .select('created_at, content')

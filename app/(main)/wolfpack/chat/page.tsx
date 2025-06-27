@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BackButton } from '@/components/shared/BackButton';
 import { WolfpackRealTimeChat } from '@/components/wolfpack/WolfpackRealTimeChat';
+import { WolfpackIsometricView } from '@/components/wolfpack/WolfpackIsometricView';
 import { 
   Users, 
   MessageCircle, 
@@ -127,7 +128,7 @@ export default function WolfPackChatPage() {
   const [activeEvents, setActiveEvents] = useState<WolfpackEvent[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [userMembership, setUserMembership] = useState<WolfpackMemberUnified | null>(null);
-  const [selectedTab, setSelectedTab] = useState('chat');
+  const [selectedTab, setSelectedTab] = useState('spatial');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -479,20 +480,34 @@ export default function WolfPackChatPage() {
 
         {/* Main Content */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4 flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="spatial">
+              <MapPin className="h-4 w-4 mr-2" />
+              3D View
+            </TabsTrigger>
             <TabsTrigger value="chat">
               <MessageCircle className="h-4 w-4 mr-2" />
-              Pack Chat
+              Chat
             </TabsTrigger>
             <TabsTrigger value="members">
               <Users className="h-4 w-4 mr-2" />
-              Members ({packMembers.length})
+              Members
             </TabsTrigger>
             <TabsTrigger value="events">
               <Calendar className="h-4 w-4 mr-2" />
               Events
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="spatial" className="space-y-4 flex-1">
+            {/* 3D Isometric Wolf Pack View */}
+            {userMembership && (
+              <WolfpackIsometricView 
+                locationId={userMembership.location_id || 'default'}
+                currentUserId={user.id}
+              />
+            )}
+          </TabsContent>
 
           <TabsContent value="chat" className="space-y-4 flex-1 flex flex-col">
             {/* Chat Interface with proper spacing */}

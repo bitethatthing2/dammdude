@@ -13,11 +13,11 @@ const updateOrderStatusSchema = z.object({
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: { orderId: string } }
 ) {
   try {
     // Get order ID from params
-    const { orderId } = await params;
+    const { orderId } = params;
     
     if (!orderId) {
       return NextResponse.json({
@@ -46,7 +46,7 @@ export async function PATCH(
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase
       .from('bartender_orders')
-      .select('id, status, table_id')
+      .select('id, status, table_location')
       .eq('id', orderId)
       .single();
     
@@ -78,7 +78,7 @@ export async function PATCH(
     
     if (notify && status === 'ready') {
       try {
-        // Get table information (using table_location as string identifier)
+        // Get table information
         const tableLocation = order.table_location || null;
         
         // Find registered devices for this table if device_registrations table exists
@@ -90,7 +90,7 @@ export async function PATCH(
               .select('device_id')
               .eq('table_location', tableLocation)
               .eq('type', 'customer');
-            devices = deviceData;
+            devices = deviceData || [];
           } catch {
             // device_registrations table may not exist yet
             devices = [];
@@ -98,12 +98,14 @@ export async function PATCH(
         }
         
         if (devices && devices.length > 0) {
-          // Create notifications for each device
+          // Create push notifications for each device
           const notifications = devices.map((device: { device_id: string }) => ({
-            recipient_id: device.device_id,
-            message: `Your order for ${tableLocation || 'your table'} is ready for pickup!`,
-            type: 'info',
-            status: 'unread'
+            user_id: null, // No specific user, using device token
+            device_token_id: device.device_id,
+            title: 'Order Ready',
+            body: `Your order for ${tableLocation || 'your table'} is ready for pickup!`,
+            data: { orderId, tableLocation },
+            status: 'pending'
           }));
           
           // Insert notifications (use push_notifications table instead)

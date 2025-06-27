@@ -20,15 +20,13 @@ export async function createNotification(data: NotificationData) {
     const supabase = await createServerClient();
     
     const { data: notification, error } = await supabase
-      .from('notifications')
+      .from('push_notifications')
       .insert({
         user_id: data.userId,
-        type: data.type,
+        title: data.type.charAt(0).toUpperCase() + data.type.slice(1), // Convert type to title
         body: data.body,
-        link: data.link,
-        expires_at: data.expiresAt?.toISOString(),
-        created_at: new Date().toISOString(),
-        read: false
+        type: data.type,
+        link: data.link
       })
       .select()
       .single();
@@ -51,16 +49,14 @@ export async function createBulkNotifications(userIds: string[], data: BulkNotif
     
     const notifications = userIds.map(userId => ({
       user_id: userId,
-      type: data.type,
+      title: data.type.charAt(0).toUpperCase() + data.type.slice(1), // Convert type to title
       body: data.body,
-      link: data.link,
-      expires_at: data.expiresAt?.toISOString(),
-      created_at: new Date().toISOString(),
-      read: false
+      type: data.type,
+      link: data.link
     }));
     
     const { data: insertedNotifications, error } = await supabase
-      .from('notifications')
+      .from('push_notifications')
       .insert(notifications)
       .select();
     

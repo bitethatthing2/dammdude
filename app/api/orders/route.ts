@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's wolfpack membership to determine table location
     const { data: wolfpackData, error: wolfpackError } = await supabase
-      .from('wolfpack_memberships')
+      .from("wolfpack_members_unified")
       .select('table_location')
       .eq('user_id', user.id)
       .eq('status', 'active')

@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
     
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
-    // Use the function that returns menu items with modifiers
-    const { data, error } = await supabase.rpc('get_menu_items_with_modifiers');
+    // Use the function that returns menu items with modifiers (with type assertion)
+    const { data, error } = await (supabase as any).rpc('get_menu_items_with_modifiers');
     
     if (error) {
       console.error('Error fetching menu items with modifiers:', error);
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         );
       }
       // Filter by category name since the function returns category_name
-      menuItems = menuItems.filter((item: MenuItemWithModifiers) => {
+      menuItems = (menuItems as any[]).filter((item: any) => {
         // You may need to adjust this based on how categories are mapped
         return item.category_name === categoryId;
       });

@@ -6,7 +6,7 @@ import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -77,23 +77,23 @@ export async function POST(request: NextRequest) {
       started_at: new Date().toISOString(),
       event_config: {
         duration,
-        created_by: user.id
-      },
-      voting_format: event_type === 'poll' ? 'single_choice' : 'participant_vote',
-      options: options || null
+        created_by: user.id,
+        options: options || []
+      }
     };
 
     const result = await WolfpackBackendService.insert(
       WOLFPACK_TABLES.DJ_EVENTS,
       eventData,
-      'id, created_at, voting_ends_at'
+      '*'
     );
 
     if (result.error) {
       throw new Error(result.error);
     }
 
-    const eventId = result.data?.[0]?.id;
+    const eventRecord = result.data?.[0];
+    const eventId = (eventRecord as any)?.id || crypto.randomUUID(); // Fallback UUID if not returned
 
     // Create announcement in chat
     const displayName = WolfpackAuthService.getUserDisplayName(user);
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
       event_id: eventId,
       event_type,
       title,
-      voting_ends_at: result.data?.[0]?.voting_ends_at,
-      created_at: result.data?.[0]?.created_at,
+      voting_ends_at: eventRecord?.voting_ends_at || eventData.voting_ends_at,
+      created_at: eventRecord?.created_at || eventData.created_at,
       options: options || null
     });
 

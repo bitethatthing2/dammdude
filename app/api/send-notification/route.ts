@@ -338,7 +338,7 @@ async function cleanupInvalidTokens(supabase: Awaited<ReturnType<typeof createSe
       .update({
         is_active: false,
         last_error: 'Token invalid or unregistered',
-        error_count: supabase.raw('error_count + 1'),
+        error_count: 1, // Simple increment, or we could fetch current value first
         updated_at: new Date().toISOString()
       })
       .in('token', invalidTokens);

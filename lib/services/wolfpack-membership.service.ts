@@ -62,7 +62,7 @@ export class WolfpackMembershipService {
   ): Promise<MembershipStatus> {
     try {
       let query = supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select(`
           id,
           user_id,
@@ -229,7 +229,7 @@ export class WolfpackMembershipService {
   static async leavePack(membershipId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .update({ 
           status: 'inactive',
           left_at: new Date().toISOString()
@@ -343,7 +343,7 @@ export class WolfpackMembershipService {
   static async getLocationMembers(locationId: string) {
     try {
       const { data, error } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select(`
           *,
           user:users(
@@ -370,7 +370,7 @@ export class WolfpackMembershipService {
     try {
       // Check for recent membership activity
       const { data: recentMembership, error } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select('left_at, joined_at')
         .eq('user_id', userId)
         .order('joined_at', { ascending: false })
@@ -408,7 +408,7 @@ export class WolfpackMembershipService {
   static async getLocationStats(locationId: string) {
     try {
       const { data, error } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select('id, joined_at, status')
         .eq('location_id', locationId);
 

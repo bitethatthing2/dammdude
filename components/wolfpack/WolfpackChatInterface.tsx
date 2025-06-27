@@ -44,7 +44,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
       try {
         // Get location ID and membership data
         const { data: memberData, error } = await supabase
-          .from('wolfpack_memberships')
+          .from("wolf_pack_members")
           .select(`
             id,
             location_id,

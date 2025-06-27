@@ -1,12 +1,13 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
-    const { data, error } = await supabase
-      .from('categories')
+    // Use type assertion to handle tables not in restricted type
+    const { data, error } = await (supabase as any)
+      .from('food_drink_categories')
       .select('*')
       .order('display_order', { ascending: true });
     

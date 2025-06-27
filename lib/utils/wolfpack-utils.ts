@@ -83,7 +83,7 @@ export const debugWolfPackMembership = async (userId: string, locationId?: strin
     
     // Test 2: Check wolfpack_memberships table
     const { error: tableError } = await supabase
-      .from('wolfpack_memberships')
+      .from("wolf_pack_members")
       .select('*')
       .limit(0);
     console.log('Table Access:', tableError ? '❌ Failed' : '✅ Success');
@@ -91,14 +91,14 @@ export const debugWolfPackMembership = async (userId: string, locationId?: strin
     
     // Test 3: Count total memberships
     const { count, error: countError } = await supabase
-      .from('wolfpack_memberships')
+      .from("wolf_pack_members")
       .select('*', { count: 'exact', head: true });
     console.log('Total Memberships:', count);
     if (countError) console.error('Count Error:', countError);
     
     // Test 4: Try to find user's membership
     const { data: userMembership, error: userError } = await supabase
-      .from('wolfpack_memberships')
+      .from("wolf_pack_members")
       .select('*')
       .eq('user_id', userId);
     console.log('User Memberships Found:', userMembership?.length || 0);
@@ -108,7 +108,7 @@ export const debugWolfPackMembership = async (userId: string, locationId?: strin
     // Test 5: Check specific location membership if provided
     if (locationId) {
       const { data: locationMembership, error: locationError } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .select('*')
         .eq('user_id', userId)
         .eq('location_id', locationId)
@@ -206,7 +206,7 @@ export const joinWolfPackFromLocation = async (
 
     // Step 4: Check if already a pack member
     const { data: existingMember, error: memberCheckError } = await supabase
-      .from('wolfpack_memberships')
+      .from("wolf_pack_members")
       .select('*')
       .eq('user_id', user.id)
       .eq('location_id', locationId)
@@ -227,7 +227,7 @@ export const joinWolfPackFromLocation = async (
       };
 
       const { data: memberEntry, error: memberError } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .insert(memberData)
         .select()
         .single();
@@ -241,7 +241,7 @@ export const joinWolfPackFromLocation = async (
     } else {
       // Update existing membership
       const { error: updateError } = await supabase
-        .from('wolfpack_memberships')
+        .from("wolf_pack_members")
         .update({ 
           status: 'active', 
           last_active: new Date().toISOString() 

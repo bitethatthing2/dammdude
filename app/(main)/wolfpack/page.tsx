@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -10,15 +10,14 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { WolfpackHeader } from '@/components/shared/AppHeader';
 import { DynamicLogo } from '@/components/shared/DynamicLogo';
 import { useWolfpack } from '@/hooks/useWolfpack';
+import { BackButton } from '@/components/shared/BackButton';
 import { 
   Shield, 
-  Users, 
   MessageCircle, 
   Star, 
   CheckCircle, 
   AlertCircle,
   Loader2,
-  ArrowRight,
   UtensilsCrossed
 } from 'lucide-react';
 

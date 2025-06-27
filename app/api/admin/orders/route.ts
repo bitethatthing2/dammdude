@@ -47,7 +47,7 @@ export async function PATCH(
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase
       .from('bartender_orders')
-      .select('id, status, table_id, customer_id, location_id')
+      .select('id, status, table_location, customer_id, location_id')
       .eq('id', orderId)
       .single();
     
@@ -79,29 +79,27 @@ export async function PATCH(
     
     if (notify && status === 'ready' && order.customer_id) {
       try {
-        // Get table information if available
-        const { data: table } = order.table_id ? await supabase
-          .from('tables')
-          .select('name')
-          .eq('id', order.table_id)
-          .single() : { data: null };
+        // Get table information from table_location string
+        const tableName = order.table_location;
         
         // Create notification for the customer
-        const notificationMessage = table?.name 
-          ? `Your order for ${table.name} is ready for pickup!`
+        const notificationMessage = tableName 
+          ? `Your order for ${tableName} is ready for pickup!`
           : 'Your order is ready for pickup!';
         
+        // Use push_notifications table 
         await supabase
-          .from('notifications')
+          .from('push_notifications')
           .insert({
-            recipient_id: order.customer_id,
-            message: notificationMessage,
+            title: 'Order Ready!',
+            body: notificationMessage,
             type: 'info',
-            status: 'unread',
-            metadata: {
+            user_id: null, // For anonymous orders
+            data: {
               order_id: orderId,
               order_status: status,
-              table_name: table?.name || null
+              table_name: tableName || null,
+              customer_id: order.customer_id
             }
           });
         

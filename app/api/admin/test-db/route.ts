@@ -38,20 +38,13 @@ export async function GET() {
       .select('id')
       .limit(1);
 
-    // Test 4: Try different query approach for orders
-    console.log("[TEST API] Trying alternative orders query");
-    let altOrdersData = null;
-    let altOrdersError = null;
-    try {
-      const result = await supabase.rpc(
-        'get_orders',
-        { status_filter: ['pending', 'ready'] }
-      );
-      altOrdersData = result.data;
-      altOrdersError = result.error;
-    } catch (err) {
-      altOrdersError = { message: `RPC not found: ${err instanceof Error ? err.message : String(err)}` };
-    }
+    // Test 4: Try simple query for orders with filters
+    console.log("[TEST API] Trying filtered orders query");
+    const { data: filteredOrdersData, error: filteredOrdersError } = await supabase
+      .from('bartender_orders')
+      .select('id, status, table_location')
+      .in('status', ['pending', 'ready'])
+      .limit(5);
     
     // Return all test results
     return NextResponse.json({
@@ -61,22 +54,22 @@ export async function GET() {
         basicQueryResult: {
           success: !testError,
           rowCount: testData?.length || 0,
-          error: testError?.message || null
+          error: (testError as any)?.message || null
         },
         tablesQuery: {
           success: !tableError,
           exists: (tableData?.length || 0) > 0,
-          error: tableError?.message || null
+          error: (tableError as any)?.message || null
         },
         orderItemsQuery: {
           success: !orderItemsError,
           exists: (orderItemsData?.length || 0) > 0,
-          error: orderItemsError?.message || null
+          error: (orderItemsError as any)?.message || null
         },
-        rpcQuery: {
-          success: !altOrdersError,
-          exists: altOrdersData !== null,
-          error: altOrdersError?.message || null
+        filteredQuery: {
+          success: !filteredOrdersError,
+          rowCount: filteredOrdersData?.length || 0,
+          error: filteredOrdersError?.message || null
         }
       },
       tables: {
