@@ -21,7 +21,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
-import type { Database } from '@/types/database';
+import type { Database } from '@/lib/database.types';
 
 // Use centralized Supabase client
 const supabase = createClient();

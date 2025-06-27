@@ -163,22 +163,24 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
   return (
     <div className="w-full">
       {/* Category Navigation */}
-      <div className="wolfpack-category-nav sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="wolfpack-category-scroll">
+      <div className="menu-category-nav sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="menu-category-scroll">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setActiveCategory(category.id)}
-              className={`wolfpack-category-card ${
-                activeCategory === category.id ? 'wolfpack-category-active' : ''
-              } ${category.color_class || 'menu-category-orange'}`}
+              className={`menu-category-button ${
+                activeCategory === category.id ? 
+                  (category.color_class || 'menu-category-orange') : 
+                  'menu-category-inactive'
+              }`}
             >
               {category.emoji && (
-                <span className="wolfpack-category-emoji">{category.emoji}</span>
+                <span className="text-lg">{category.emoji}</span>
               )}
-              <h3 className="wolfpack-category-name">{category.name}</h3>
-              <span className="wolfpack-category-count">
-                {menuItems.filter((item: MenuItemWithModifiers) => item.category_id === category.id).length} items
+              <span className="font-medium">{category.name}</span>
+              <span className="text-xs opacity-75">
+                {menuItems.filter((item: MenuItemWithModifiers) => item.category_id === category.id).length}
               </span>
             </button>
           ))}
@@ -199,7 +201,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
             <p className="text-lg text-muted-foreground">No items found in this category.</p>
           </div>
         ) : (
-          <div className="wolfpack-menu-grid">
+          <div className="menu-grid">
             {sortedItems.map((item) => (
               <MenuItemCard
                 key={item.id}

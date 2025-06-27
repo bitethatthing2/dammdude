@@ -1,7 +1,7 @@
 // types/wolfpack-unified.ts
 // Single source of truth for all Wolf Pack ordering types
 
-import { Database, Json } from '@/types/database';
+import { Database, Json } from '@/lib/database.types';
 
 // Base types from Supabase - using bartender_orders table as it exists in schema
 export type BartenderOrderRow = Database['public']['Tables']['bartender_orders']['Row'];
@@ -396,4 +396,4 @@ export type AdminOrder = WolfPackOrder;
 export type BartenderOrder = WolfPackOrder;
 
 // Re-export database types
-export type { Json } from '@/types/database';
+export type { Json } from '@/lib/database.types';

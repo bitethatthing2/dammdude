@@ -11,7 +11,12 @@
       "Bash(rm:*)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx supabase db inspect tables:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(supabase:*)",
+      "Bash(npx supabase:*)"
     ]
   },
   "enableAllProjectMcpServers": false

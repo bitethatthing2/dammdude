@@ -1,7 +1,7 @@
 // lib/types/adapters.ts
 // Type adapters to handle null/undefined mismatches between database and frontend
 
-import type { Database } from '@/types/database';
+import type { Database } from '@/lib/database.types';
 
 // Database types (with null)
 type DatabaseUser = Database['public']['Tables']['users']['Row'];

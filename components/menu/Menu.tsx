@@ -67,6 +67,8 @@ export default function Menu() {
       setLoading(true);
       setError(null);
 
+      console.log('🍽️ Fetching menu data...');
+
       // Fetch categories using direct Supabase query
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('food_drink_categories')
@@ -75,44 +77,90 @@ export default function Menu() {
         .order('display_order', { ascending: true });
 
       if (categoriesError) throw categoriesError;
+      
+      console.log('📂 Categories loaded:', categoriesData?.length || 0, categoriesData);
 
-      // Fetch items with modifiers using RPC function
-      const { data: rpcItemsData, error: itemsError } = await supabase
+      // First try the RPC function, then fallback to direct query
+      let itemsData: any[] = [];
+      const { data: rpcItemsData, error: rpcError } = await supabase
         .rpc('get_menu_items_with_modifiers');
 
-      if (itemsError) throw itemsError;
+      if (rpcError) {
+        console.warn('RPC function failed, falling back to direct query:', rpcError);
+        // Fallback to direct query
+        const { data: directItemsData, error: directError } = await supabase
+          .from('food_drink_items')
+          .select(`
+            *,
+            category:food_drink_categories(
+              id,
+              name,
+              type
+            )
+          `)
+          .eq('is_available', true)
+          .order('display_order', { ascending: true });
+        
+        if (directError) throw directError;
+        itemsData = directItemsData || [];
+        console.log('🍕 Items loaded via direct query:', itemsData.length);
+      } else {
+        itemsData = rpcItemsData || [];
+        console.log('🍕 Items loaded via RPC:', itemsData.length);
+      }
       
-      // Convert RPC items to MenuItemWithModifiers format
+      // Convert items to MenuItemWithModifiers format
       const convertedItems: MenuItemWithModifiers[] = [];
       
-      if (rpcItemsData && Array.isArray(rpcItemsData)) {
-        for (const rpcItem of rpcItemsData) {
+      if (itemsData && Array.isArray(itemsData)) {
+        for (const item of itemsData) {
           try {
-            // Extract category_id from the item id pattern or use a default
-            const categoryId = rpcItem.category_icon || rpcItem.id.split('-')[0] || 'default';
+            let convertedItem: MenuItemWithModifiers;
             
-            // Direct conversion from RPC format to MenuItemWithModifiers
-            const convertedItem: MenuItemWithModifiers = {
-              id: rpcItem.id,
-              name: rpcItem.name,
-              description: rpcItem.description,
-              price: typeof rpcItem.price === 'string' ? parseFloat(rpcItem.price) : rpcItem.price,
-              is_available: rpcItem.is_available,
-              display_order: 0, // Default display order
-              category_id: categoryId,
-              category: {
-                id: categoryId,
-                name: rpcItem.category_name,
-                type: rpcItem.menu_type as 'food' | 'drink'
-              },
-              modifiers: rpcItem.modifiers && typeof rpcItem.modifiers === 'object' && rpcItem.modifiers !== null
-                ? (rpcItem.modifiers as unknown as APIModifierGroup[])
-                : undefined,
-              image_url: undefined // RPC doesn't include image_url
-            };
+            // Check if this is RPC data or direct query data
+            if (item.category_name) {
+              // RPC format
+              const categoryId = item.category_icon || item.id.split('-')[0] || 'default';
+              convertedItem = {
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+                is_available: item.is_available,
+                display_order: item.display_order || 0,
+                category_id: categoryId,
+                category: {
+                  id: categoryId,
+                  name: item.category_name,
+                  type: item.menu_type as 'food' | 'drink'
+                },
+                modifiers: item.modifiers && typeof item.modifiers === 'object' && item.modifiers !== null
+                  ? (item.modifiers as unknown as APIModifierGroup[])
+                  : undefined,
+                image_url: undefined
+              };
+            } else {
+              // Direct query format
+              convertedItem = {
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                price: item.price,
+                is_available: item.is_available,
+                display_order: item.display_order || 0,
+                category_id: item.category_id,
+                category: item.category ? {
+                  id: item.category.id,
+                  name: item.category.name,
+                  type: item.category.type as 'food' | 'drink'
+                } : undefined,
+                image_url: item.image_url
+              };
+            }
+            
             convertedItems.push(convertedItem);
           } catch (e) {
-            console.error('Error converting menu item:', e, rpcItem);
+            console.error('Error converting menu item:', e, item);
           }
         }
       }
@@ -130,11 +178,18 @@ export default function Menu() {
       setCategories(categoriesWithCount);
       setItems(convertedItems);
 
+      console.log('✅ Menu data processed:');
+      console.log('  - Categories:', categoriesWithCount.length);
+      console.log('  - Items:', convertedItems.length);
+      console.log('  - Categories with counts:', categoriesWithCount.map(c => `${c.name}: ${c.item_count}`));
+
       // Set initial active category
       setActiveCategory(prevCategory => {
         if (!prevCategory && categoriesWithCount.length > 0) {
           const firstFoodCategory = categoriesWithCount.find(cat => cat.type === 'food');
-          return firstFoodCategory?.id || categoriesWithCount[0].id;
+          const selectedCategory = firstFoodCategory?.id || categoriesWithCount[0].id;
+          console.log('🎯 Setting active category:', selectedCategory);
+          return selectedCategory;
         }
         return prevCategory;
       });
