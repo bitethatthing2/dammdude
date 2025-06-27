@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { adaptWolfChatMessage, adaptWolfpackMembership } from '@/lib/types/adapters';
-import { WolfpackBackendService, WOLFPACK_TABLES } from '@/lib/services/wolfpack-backend.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
+import { supabase } from '@/lib/supabase/client';
 
-const supabase = createClient();
+// Database row types from generated types
+type DatabaseChatMessage = Database['public']['Tables']['wolfpack_chat_messages']['Row'];
+type DatabaseChatReaction = Database['public']['Tables']['wolfpack_chat_reactions']['Row'];
+type DatabaseMember = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+type DatabaseEvent = Database['public']['Tables']['dj_events']['Row'];
 
 export interface WolfChatMessage {
   id: string;
@@ -68,8 +70,68 @@ interface RealtimeActions {
   refreshData: () => Promise<void>;
 }
 
+// Adapter functions to convert database types to frontend types
+function adaptDatabaseChatMessage(dbMessage: DatabaseChatMessage): WolfChatMessage {
+  return {
+    id: dbMessage.id,
+    session_id: dbMessage.session_id,
+    user_id: dbMessage.user_id || '',
+    display_name: dbMessage.display_name,
+    avatar_url: dbMessage.avatar_url || undefined,
+    content: dbMessage.content,
+    message_type: (dbMessage.message_type as 'text' | 'image' | 'dj_broadcast') || 'text',
+    image_url: dbMessage.image_url || undefined,
+    created_at: dbMessage.created_at || new Date().toISOString(),
+    is_flagged: dbMessage.is_flagged || false,
+    reactions: []
+  };
+}
+
+function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReaction {
+  return {
+    id: dbReaction.id,
+    message_id: dbReaction.message_id || '',
+    user_id: dbReaction.user_id || '',
+    emoji: dbReaction.emoji,
+    created_at: dbReaction.created_at || new Date().toISOString()
+  };
+}
+
+function adaptDatabaseMember(dbMember: DatabaseMember): WolfPackMember {
+  return {
+    id: dbMember.id,
+    user_id: dbMember.user_id,
+    location_id: dbMember.location_id || '',
+    status: dbMember.status || 'active',
+    joined_at: dbMember.joined_at,
+    table_location: dbMember.table_location || undefined,
+    display_name: dbMember.display_name || undefined,
+    avatar_url: dbMember.avatar_url || undefined
+  };
+}
+
+function adaptDatabaseEvent(dbEvent: DatabaseEvent): DJEvent {
+  return {
+    id: dbEvent.id,
+    dj_id: dbEvent.dj_id || '',
+    location_id: dbEvent.location_id || '',
+    event_type: dbEvent.event_type,
+    title: dbEvent.title,
+    description: dbEvent.description || undefined,
+    status: dbEvent.status || 'active',
+    voting_ends_at: dbEvent.voting_ends_at || undefined,
+    created_at: dbEvent.created_at || new Date().toISOString(),
+    options: dbEvent.options 
+      ? Array.isArray(dbEvent.options) 
+        ? dbEvent.options as string[]
+        : (dbEvent.options as { options?: string[] })?.options || []
+      : []
+  };
+}
+
 /**
  * Comprehensive realtime hook for Wolfpack chat and events
+ * Fixed to work with actual database schema without unused backend services
  */
 export function useWolfpackRealtime(
   sessionId: string | null,
@@ -95,32 +157,83 @@ export function useWolfpackRealtime(
     };
   }, []);
 
-  // Load initial data
+  // Load initial data directly from database
   const loadInitialData = useCallback(async () => {
     if (!sessionId || !locationId) return;
 
     try {
       setState(prev => ({ ...prev, error: null }));
 
-      // Load messages, members, and events in parallel
-      const [messagesResult, membersResult, eventsResult] = await Promise.all([
-        WolfpackBackendService.getChatMessages(sessionId, 100),
-        WolfpackBackendService.getActiveMembers(locationId),
-        WolfpackBackendService.getActiveEvents(locationId)
-      ]);
+      // Load messages directly from the database
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('wolfpack_chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (messagesError) {
+        console.error('Error loading messages:', messagesError);
+        throw messagesError;
+      }
+
+      // Load reactions for messages
+      const messageIds = messagesData?.map(m => m.id) || [];
+      const { data: reactionsData } = await supabase
+        .from('wolfpack_chat_reactions')
+        .select('*')
+        .in('message_id', messageIds);
+
+      // Load members directly from the database  
+      const { data: membersData, error: membersError } = await supabase
+        .from('wolfpack_members_unified')
+        .select('*')
+        .eq('location_id', locationId)
+        .eq('is_active', true);
+
+      if (membersError) {
+        console.error('Error loading members:', membersError);
+        throw membersError;
+      }
+
+      // Load events directly from the database
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('dj_events')
+        .select('*')
+        .eq('location_id', locationId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (eventsError) {
+        console.error('Error loading events:', eventsError);
+        throw eventsError;
+      }
+
+      // Process messages with reactions
+      const messagesWithReactions = (messagesData || []).map(message => {
+        const messageReactions = (reactionsData || [])
+          .filter(r => r.message_id === message.id)
+          .map(adaptDatabaseReaction);
+        
+        return {
+          ...adaptDatabaseChatMessage(message),
+          reactions: messageReactions
+        };
+      });
 
       setState(prev => ({
         ...prev,
-        messages: messagesResult.data?.map(adaptWolfChatMessage) || [],
-        members: membersResult.data?.map(adaptWolfpackMembership) || [],
-        events: eventsResult.data || []
+        messages: messagesWithReactions,
+        members: (membersData || []).map(adaptDatabaseMember),
+        events: (eventsData || []).map(adaptDatabaseEvent)
       }));
 
     } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: 'load_realtime_data'
-      });
-      setState(prev => ({ ...prev, error: userError.message }));
+      console.error('Error loading initial data:', error);
+      setState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Failed to load data'
+      }));
     }
   }, [sessionId, locationId]);
 
@@ -134,20 +247,20 @@ export function useWolfpackRealtime(
 
     // Chat messages subscription
     const chatChannel = supabase
-      .channel(`wolf_chat_${sessionId}`)
+      .channel(`wolfpack_chat_${sessionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: WOLFPACK_TABLES.WOLF_CHAT,
+          table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          const newMessage = adaptWolfChatMessage(payload.new);
+          const newMessage = adaptDatabaseChatMessage(payload.new as DatabaseChatMessage);
           setState(prev => ({
             ...prev,
-            messages: [...prev.messages, newMessage]
+            messages: [newMessage, ...prev.messages]
           }));
         }
       )
@@ -156,11 +269,11 @@ export function useWolfpackRealtime(
         {
           event: 'UPDATE',
           schema: 'public',
-          table: WOLFPACK_TABLES.WOLF_CHAT,
+          table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          const updatedMessage = adaptWolfChatMessage(payload.new);
+          const updatedMessage = adaptDatabaseChatMessage(payload.new as DatabaseChatMessage);
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -175,16 +288,16 @@ export function useWolfpackRealtime(
 
     // Reactions subscription
     const reactionsChannel = supabase
-      .channel(`wolf_reactions_${sessionId}`)
+      .channel(`wolfpack_reactions_${sessionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: WOLFPACK_TABLES.WOLF_REACTIONS
+          table: 'wolfpack_chat_reactions'
         },
         (payload) => {
-          const newReaction = payload.new as MessageReaction;
+          const newReaction = adaptDatabaseReaction(payload.new as DatabaseChatReaction);
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -200,10 +313,10 @@ export function useWolfpackRealtime(
         {
           event: 'DELETE',
           schema: 'public',
-          table: WOLFPACK_TABLES.WOLF_REACTIONS
+          table: 'wolfpack_chat_reactions'
         },
         (payload) => {
-          const deletedReaction = payload.old as MessageReaction;
+          const deletedReaction = adaptDatabaseReaction(payload.old as DatabaseChatReaction);
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -221,13 +334,13 @@ export function useWolfpackRealtime(
 
     // Members subscription
     const membersChannel = supabase
-      .channel(`wolf_members_${locationId}`)
+      .channel(`wolfpack_members_${locationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
+          table: 'wolfpack_members_unified',
           filter: `location_id=eq.${locationId}`
         },
         () => {
@@ -239,24 +352,24 @@ export function useWolfpackRealtime(
 
     // Events subscription
     const eventsChannel = supabase
-      .channel(`wolf_events_${locationId}`)
+      .channel(`wolfpack_events_${locationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: WOLFPACK_TABLES.DJ_EVENTS,
+          table: 'dj_events',
           filter: `location_id=eq.${locationId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newEvent = payload.new as DJEvent;
+            const newEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
               events: [newEvent, ...prev.events]
             }));
           } else if (payload.eventType === 'UPDATE') {
-            const updatedEvent = payload.new as DJEvent;
+            const updatedEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
               events: prev.events.map(event =>
@@ -264,7 +377,7 @@ export function useWolfpackRealtime(
               )
             }));
           } else if (payload.eventType === 'DELETE') {
-            const deletedEvent = payload.old as DJEvent;
+            const deletedEvent = adaptDatabaseEvent(payload.old as DatabaseEvent);
             setState(prev => ({
               ...prev,
               events: prev.events.filter(event => event.id !== deletedEvent.id)
@@ -287,19 +400,35 @@ export function useWolfpackRealtime(
     if (!sessionId) return false;
 
     try {
-      const result = await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_CHAT,
-        {
+      // Get current user from auth
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      // Get user profile for display name and avatar
+      const { data: profile } = await supabase
+        .from('users')
+        .select('first_name, last_name, avatar_url')
+        .eq('auth_id', user.id)
+        .single();
+
+      const displayName = profile 
+        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email?.split('@')[0] || 'Anonymous'
+        : user.email?.split('@')[0] || 'Anonymous';
+
+      const { error } = await supabase
+        .from('wolfpack_chat_messages')
+        .insert({
           session_id: sessionId,
+          user_id: user.id,
+          display_name: displayName,
+          avatar_url: profile?.avatar_url,
           content,
           image_url: imageUrl,
           message_type: imageUrl ? 'image' : 'text',
-          created_at: new Date().toISOString(),
           is_flagged: false
-        }
-      );
+        });
 
-      return !result.error;
+      return !error;
     } catch (error) {
       console.error('Send message error:', error);
       return false;
@@ -309,16 +438,18 @@ export function useWolfpackRealtime(
   // Add reaction action
   const addReaction = useCallback(async (messageId: string, emoji: string): Promise<boolean> => {
     try {
-      const result = await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_REACTIONS,
-        {
-          message_id: messageId,
-          emoji,
-          created_at: new Date().toISOString()
-        }
-      );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
 
-      return !result.error;
+      const { error } = await supabase
+        .from('wolfpack_chat_reactions')
+        .insert({
+          message_id: messageId,
+          user_id: user.id,
+          emoji
+        });
+
+      return !error;
     } catch (error) {
       console.error('Add reaction error:', error);
       return false;
@@ -328,12 +459,12 @@ export function useWolfpackRealtime(
   // Remove reaction action
   const removeReaction = useCallback(async (reactionId: string): Promise<boolean> => {
     try {
-      const result = await WolfpackBackendService.delete(
-        WOLFPACK_TABLES.WOLF_REACTIONS,
-        { id: reactionId }
-      );
+      const { error } = await supabase
+        .from('wolfpack_chat_reactions')
+        .delete()
+        .eq('id', reactionId);
 
-      return result.success;
+      return !error;
     } catch (error) {
       console.error('Remove reaction error:', error);
       return false;
@@ -355,7 +486,7 @@ export function useWolfpackRealtime(
   return { state, actions };
 }
 
-// Typing indicator hook
+// Typing indicator hook - simplified and working
 export function useTypingIndicators(sessionId: string | null) {
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
   const typingTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
@@ -383,15 +514,17 @@ export function useTypingIndicators(sessionId: string | null) {
           // Set new timeout
           typingTimeoutRef.current[user_id] = setTimeout(() => {
             setTypingUsers(prev => {
-              const { [user_id]: removed, ...rest } = prev;
-              return rest;
+              const newState = { ...prev };
+              delete newState[user_id];
+              return newState;
             });
             delete typingTimeoutRef.current[user_id];
           }, 3000);
         } else {
           setTypingUsers(prev => {
-            const { [user_id]: removed, ...rest } = prev;
-            return rest;
+            const newState = { ...prev };
+            delete newState[user_id];
+            return newState;
           });
           
           if (typingTimeoutRef.current[user_id]) {

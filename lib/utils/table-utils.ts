@@ -1,6 +1,5 @@
+import { supabase } from '@/lib/supabase/client';
 // Import the actual function to derive the type
-import { createClient } from '@supabase/supabase-js';
-
 // Derive the type from the return type of createClient
 type SupabaseClientType = ReturnType<typeof createClient>;
 
@@ -233,7 +232,7 @@ export function clearTableSession(): void {
  * Generates a unique session ID
  */
 function generateSessionId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { 
   WolfpackStatus, 
   WolfpackStatusType, 
@@ -119,10 +119,7 @@ export function useWolfpackAccess(): UseWolfpackAccessReturn & WolfpackStatus {
       return;
     }
 
-    try {
-      const supabase = getSupabaseBrowserClient();
-      
-      // Request location permissions (this would trigger browser API in real implementation)
+    try {      // Request location permissions (this would trigger browser API in real implementation)
       if ('geolocation' in navigator) {
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
@@ -162,10 +159,7 @@ export function useWolfpackAccess(): UseWolfpackAccessReturn & WolfpackStatus {
 
     setWolfpackStatus('loading');
     
-    try {
-      const supabase = getSupabaseBrowserClient();
-      
-      // Update user's wolfpack status to pending
+    try {      // Update user's wolfpack status to pending
       const { error } = await supabase
         .from('users')
         .update({ 

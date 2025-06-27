@@ -6,6 +6,9 @@
 /* Import consolidated menu styles - single source of truth */
 @import '../styles/consolidated-menu.css';
 
+/* Import wolfpack component styles */
+@import '../styles/wolfpack.css';
+
 /* Global animations and utilities */
 @layer utilities {
   .animate-in {

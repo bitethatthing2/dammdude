@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuItemCard from './MenuItemCard';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
 
@@ -26,11 +26,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
   const [menuItems, setMenuItems] = useState<MenuItemWithModifiers[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId || null);
-  
-  const supabase = getSupabaseBrowserClient();
-
-  // Fetch categories
+  const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId || null);  // Fetch categories
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -218,11 +214,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
 
 // Example usage in a page component:
 /*
-// app/menu/page.tsx or pages/menu.tsx
-
-'use client';
-
-import { useState } from 'react';
+// app/menu/page.tsx or pages/menu.tsximport { useState } from 'react';
 import MenuGrid from '@/components/MenuGrid';
 import { toast } from '@/components/ui/use-toast';
 

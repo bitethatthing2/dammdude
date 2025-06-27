@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,25 +18,65 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
-import type { Database } from '@/lib/database.types';
 
 // Use centralized Supabase client
-const supabase = createClient();
+// Interfaces based on actual database structure
+interface WolfpackMemberAtLocation {
+  id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  wolfpack_tier: string | null;
+  display_name: string | null;
+  wolf_emoji: string | null;
+  vibe_status: string | null;
+  location_id: string | null;
+  last_seen: string | null;
+}
 
-// Type aliases for easier use - using actual database tables
-type WolfpackMember = Database['public']['Views']['wolfpack_members_at_location']['Row'];
-type WolfpackMembership = Database['public']['Tables']['wolf_pack_members']['Row'];
-type Location = Database['public']['Tables']['locations']['Row'];
+// RPC response interface
+interface JoinWolfpackResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  membership_id?: string;
+  is_vip?: boolean;
+}
+
+interface WolfpackMembership {
+  id: string | null;
+  user_id: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  table_location: string | null;
+  joined_at: string | null;
+  last_active: string | null;
+  status: string | null;
+  is_host: boolean | null;
+  session_id: string | null;
+  location_id: string | null;
+  is_active: boolean | null;
+  left_at: string | null;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  latitude: number;
+  longitude: number;
+}
 
 interface MembershipState {
   isLoading: boolean;
   isMember: boolean;
   currentMembership: WolfpackMembership | null;
   currentLocation: Location | null;
-  members: WolfpackMember[];
+  members: WolfpackMemberAtLocation[];
   error: string | null;
 }
 
@@ -85,9 +125,9 @@ export function WolfpackMembershipManager() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Get active membership from wolf_pack_members table
+      // Get active membership from wolfpack_memberships view
       const { data: membershipData, error: membershipError } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_memberships')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
@@ -105,11 +145,15 @@ export function WolfpackMembershipManager() {
 
       if (membershipData && membershipData.location_id) {
         // Get location details
-        const { data: locationData, error: locationError } = await supabase
+        const { data: locationData, error } = await supabase
           .from('locations')
           .select('*')
           .eq('id', membershipData.location_id)
           .maybeSingle();
+
+        if (error) {
+          console.error('Error loading location:', error);
+        }
 
         setState(prev => ({
           ...prev,
@@ -149,7 +193,7 @@ export function WolfpackMembershipManager() {
         {
           event: '*',
           schema: 'public',
-          table: 'wolf_pack_members',
+          table: 'wolfpack_members_unified',
           filter: `location_id=eq.${locationId}`
         },
         () => {
@@ -175,7 +219,7 @@ export function WolfpackMembershipManager() {
       // Get current position
       const position = await getCurrentPosition();
       
-      // Find nearby locations
+      // Find nearby locations using the correct RPC function
       const { data: locations, error: locError } = await supabase
         .rpc('find_nearest_location', {
           user_lat: position.coords.latitude,
@@ -189,9 +233,7 @@ export function WolfpackMembershipManager() {
         return;
       }
 
-      const nearestLocation = locations[0] as { location_id: string; location_name: string; distance_meters: number };
-
-      // Join wolfpack using RPC function
+      // Join wolfpack using the correct RPC function with optional table location
       const { data: result, error: joinError } = await supabase
         .rpc('join_wolfpack_membership');
 
@@ -199,7 +241,17 @@ export function WolfpackMembershipManager() {
         throw new Error(joinError.message || 'Failed to join WolfPack');
       }
 
-      toast.success('Joined WolfPack!');
+      // Type check and assertion for the RPC response
+      const response = result as unknown as JoinWolfpackResponse;
+
+      // Check if the result indicates success
+      if (response && typeof response === 'object' && 'success' in response && response.success) {
+        toast.success(response.message || 'Joined WolfPack!');
+      } else if (response && typeof response === 'object' && 'error' in response) {
+        throw new Error(response.error || 'Failed to join WolfPack');
+      } else {
+        throw new Error('Failed to join WolfPack');
+      }
       
       // Reload membership status
       await loadMembershipStatus();
@@ -214,19 +266,19 @@ export function WolfpackMembershipManager() {
   };
 
   const leaveWolfPack = async () => {
-    const membershipId = state.currentMembership?.id;
-    if (!membershipId) return;
+    if (!user?.id) return;
 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
+      // Update in the actual base table
       const { error } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_members_unified')
         .update({ 
           status: 'inactive',
           last_active: new Date().toISOString()
         })
-        .eq('id', membershipId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -248,17 +300,17 @@ export function WolfpackMembershipManager() {
   };
 
   const updateTableLocation = async (tableLocation: string) => {
-    const membershipId = state.currentMembership?.id;
-    if (!membershipId) return;
+    if (!user?.id) return;
 
     try {
+      // Update in the actual base table
       const { error } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_members_unified')
         .update({ 
           table_location: tableLocation,
           last_active: new Date().toISOString()
         })
-        .eq('id', membershipId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -464,7 +516,7 @@ export function WolfpackMembershipManager() {
               const memberEmoji = member.wolf_emoji || '🐺';
               
               return (
-                <div key={member.id}>
+                <div key={member.id || index}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">

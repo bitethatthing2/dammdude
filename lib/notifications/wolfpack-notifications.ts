@@ -1,5 +1,4 @@
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 export interface WolfPackNotificationData {
   type: 'chat_message' | 'order_update' | 'member_joined' | 'member_left' | 'event_announcement' | 'wink_received';
   sessionId?: string;
@@ -33,10 +32,7 @@ export async function sendChatMessageNotification(
   messageContent: string,
   excludeUserId?: string
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    // Get all active WolfPack members except sender
+  try {    // Get all active WolfPack members except sender
     const { data: members, error: membersError } = await supabase
       .from('wolfpack_members_unified')
       .select('user_id, display_name')
@@ -138,10 +134,7 @@ export async function sendOrderUpdateNotification(
   status: string,
   estimatedTime?: number
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    // Get user preferences
+  try {    // Get user preferences
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, notification_preferences')
@@ -244,10 +237,7 @@ export async function sendMemberJoinedNotification(
   newMemberName: string,
   newMemberUserId: string
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    // Get all other active members
+  try {    // Get all other active members
     const { data: members, error: membersError } = await supabase
       .from('wolfpack_members_unified')
       .select('user_id')
@@ -335,10 +325,7 @@ export async function sendEventAnnouncementNotification(
   eventDescription: string,
   eventTime?: string
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    // Get all active members
+  try {    // Get all active members
     const { data: members, error: membersError } = await supabase
       .from('wolfpack_members_unified')
       .select('user_id')
@@ -430,10 +417,7 @@ export async function sendWinkNotification(
   senderUserId: string,
   sessionId?: string
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    // Get recipient preferences and privacy settings
+  try {    // Get recipient preferences and privacy settings
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, notification_preferences, privacy_settings')
@@ -505,10 +489,7 @@ export async function sendWinkNotification(
  * Get user's notification preferences
  */
 export async function getUserNotificationPreferences(userId: string): Promise<NotificationPreferences | null> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    const { data, error } = await supabase
+  try {    const { data, error } = await supabase
       .from('users')
       .select('notification_preferences')
       .eq('id', userId)
@@ -541,10 +522,7 @@ export async function updateNotificationPreferences(
   userId: string,
   preferences: Partial<NotificationPreferences>
 ): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    // Use the database function to properly merge preferences
+  try {    // Use the database function to properly merge preferences
     const { data, error } = await supabase
       .rpc('update_notification_preferences', {
         p_user_id: userId,
@@ -567,10 +545,7 @@ export async function updateNotificationPreferences(
  * Register a device token for push notifications
  */
 export async function registerDeviceToken(token: string, platform: 'ios' | 'android' | 'web' = 'web'): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    // Get current user
+  try {    // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('User not authenticated');
@@ -641,10 +616,7 @@ export async function registerDeviceToken(token: string, platform: 'ios' | 'andr
  * Unregister a device token
  */
 export async function unregisterDeviceToken(token: string): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    const { error } = await supabase
+  try {    const { error } = await supabase
       .from('device_tokens')
       .update({
         is_active: false,
@@ -668,10 +640,7 @@ export async function unregisterDeviceToken(token: string): Promise<boolean> {
  * Get notification history for a user
  */
 export async function getNotificationHistory(userId: string, limit: number = 50) {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    const { data, error } = await supabase
+  try {    const { data, error } = await supabase
       .from('push_notifications')
       .select(`
         id,
@@ -706,10 +675,7 @@ export async function getNotificationHistory(userId: string, limit: number = 50)
  * Mark notification as read
  */
 export async function markNotificationAsRead(notificationId: string): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    const { error } = await supabase
+  try {    const { error } = await supabase
       .from('push_notifications')
       .update({
         read_at: new Date().toISOString()
@@ -732,10 +698,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<bo
  * Mark notification as clicked
  */
 export async function markNotificationAsClicked(notificationId: string): Promise<boolean> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-    
-    const { error } = await supabase
+  try {    const { error } = await supabase
       .from('push_notifications')
       .update({
         clicked_at: new Date().toISOString()

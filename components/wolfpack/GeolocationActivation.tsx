@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MapPin, Shield, AlertTriangle, Check, X, Users } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 import { 
@@ -49,11 +49,7 @@ export function GeolocationActivation() {
   });
   const [isWolfPackMember, setIsWolfPackMember] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
-  const [watchId, setWatchId] = useState<number | null>(null);
-
-  const supabase = getSupabaseBrowserClient();
-
-  // Check if user is already an active WolfPack member
+  const [watchId, setWatchId] = useState<number | null>(null);  // Check if user is already an active WolfPack member
   useEffect(() => {
     async function checkMembershipStatus() {
       if (!user) return;
@@ -64,7 +60,7 @@ export function GeolocationActivation() {
           .select(`
             id,
             location_id,
-            locations!inner(name)
+            locations:location_id(name)
           `)
           .eq('user_id', user.id)
           .eq('status', 'active')
@@ -72,7 +68,9 @@ export function GeolocationActivation() {
 
         if (!error && data) {
           setIsWolfPackMember(true);
-          setCurrentLocation(data.locations?.name || null);
+          // Type assertion for the joined data
+          const locationData = data as any;
+          setCurrentLocation(locationData.locations?.name || null);
         } else {
           setIsWolfPackMember(false);
           setCurrentLocation(null);

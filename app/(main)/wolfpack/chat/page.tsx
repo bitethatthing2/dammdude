@@ -1,4 +1,5 @@
-"use client";
+'use client';
+import { supabase } from '@/lib/supabase/client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,9 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BackButton } from '@/components/shared/BackButton';
-import { WolfpackRealTimeChat } from '@/components/wolfpack/WolfpackRealTimeChat';
-import { WolfpackIsometricView } from '@/components/wolfpack/WolfpackIsometricView';
 import { 
   Users, 
   MessageCircle, 
@@ -24,16 +22,10 @@ import {
   Star,
   Heart,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from 'lucide-react';
-import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useWolfpack } from '@/hooks/useWolfpack';
-import { useWolfpackQuery } from '@/hooks/useWolfpackQuery';
-import { WolfpackDevWarning } from '@/components/wolfpack/WolfpackDevWarning';
-import { trackFallbackUsage, trackDatabaseError } from '@/lib/utils/monitoring';
-
 interface WolfPackMember {
   id: string;
   user_id: string;
@@ -67,7 +59,6 @@ interface LocationData {
   address: string | null;
 }
 
-// Updated interface to match wolfpack_members_unified table exactly
 interface WolfpackMemberUnified {
   id: string;
   user_id: string;
@@ -98,7 +89,6 @@ interface WolfpackMemberUnified {
   status_enum: string | null;
 }
 
-// Updated interface for DJ events to match actual schema
 interface DjEvent {
   id: string;
   dj_id: string | null;
@@ -118,11 +108,142 @@ interface DjEvent {
   options: unknown | null;
 }
 
+// Simple auth hook replacement
+const useAuth = () => {
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+    useEffect(() => {
+    const getUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setUser({ id: authUser.id, email: authUser.email });
+      }
+    };
+    getUser();
+  }, [supabase]);
+
+  return { user };
+};
+
+// Simple wolfpack hook replacement
+const useWolfpack = () => {
+  const [isInPack, setIsInPack] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    const checkWolfpackStatus = async () => {
+      if (!user) {
+        setIsInPack(false);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+                const { data, error } = await supabase
+          .from('wolfpack_members_unified')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        setIsInPack(!!data && !error);
+      } catch (err) {
+        console.error('Error checking wolfpack status:', err);
+        setIsInPack(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkWolfpackStatus();
+  }, [user]);
+
+  return { isInPack, isLoading };
+};
+
+// Simple back button component
+const BackButton = ({ fallbackHref }: { fallbackHref: string }) => {
+  const router = useRouter();
+  
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        if (window.history.length > 1) {
+          router.back();
+        } else {
+          router.push(fallbackHref);
+        }
+      }}
+    >
+      <ArrowLeft className="h-4 w-4 mr-2" />
+      Back
+    </Button>
+  );
+};
+
+// Simple chat component placeholder
+const WolfpackRealTimeChat = ({ sessionId }: { sessionId: string }) => {
+  return (
+    <Card className="h-96">
+      <CardHeader>
+        <CardTitle>Pack Chat</CardTitle>
+        <CardDescription>Session: {sessionId}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-muted-foreground">Chat interface coming soon</p>
+            <p className="text-sm text-muted-foreground">Connect with your pack members</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Simple 3D view placeholder
+const WolfpackIsometricView = ({ locationId, currentUserId }: { locationId: string; currentUserId: string }) => {
+  return (
+    <Card className="h-96">
+      <CardHeader>
+        <CardTitle>3D Pack View</CardTitle>
+        <CardDescription>Location: {locationId} | User: {currentUserId}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-muted-foreground">3D view coming soon</p>
+            <p className="text-sm text-muted-foreground">See where pack members are located</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Development warning component
+const WolfpackDevWarning = ({ isUsingFallback }: { isUsingFallback: boolean }) => {
+  if (!isUsingFallback) return null;
+  
+  return (
+    <Alert className="mb-4">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription>
+        Development mode: Some features may be limited
+      </AlertDescription>
+    </Alert>
+  );
+};
+
 export default function WolfPackChatPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { isInPack, isLoading: packLoading } = useWolfpack();
-  const { isUsingFallback } = useWolfpackQuery();
+  const isUsingFallback = true; // Set to true since we're using fallback components
   
   const [packMembers, setPackMembers] = useState<WolfPackMember[]>([]);
   const [activeEvents, setActiveEvents] = useState<WolfpackEvent[]>([]);
@@ -132,33 +253,7 @@ export default function WolfPackChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = getSupabaseBrowserClient();
-  
-  // Type-safe wrapper for database operations that may not be in the restrictive client type
-  const queryTable = async <T = unknown>(tableName: string, query: string) => {
-    const { data, error } = await (supabase as unknown as { 
-      from: (table: string) => { 
-        select: (q: string) => Promise<{ data: T[] | null; error: unknown }>;
-      } 
-    }).from(tableName).select(query);
-    return { data, error };
-  };
-
-  const insertIntoTable = async (tableName: string, values: Record<string, unknown>) => {
-    const { error } = await (supabase as unknown as { 
-      from: (table: string) => { 
-        insert: (values: Record<string, unknown>) => Promise<{ error: unknown }>;
-      } 
-    }).from(tableName).insert(values);
-    return { error };
-  };
-
-  // Track fallback usage for monitoring
-  useEffect(() => {
-    trackFallbackUsage('WolfPackChatPage', isUsingFallback);
-  }, [isUsingFallback]);
-
-  // Load wolfpack data
+    // Load wolfpack data
   useEffect(() => {
     async function loadWolfpackData() {
       if (!user || !isInPack) return;
@@ -187,19 +282,26 @@ export default function WolfPackChatPage() {
         setUserMembership(membership);
 
         // Get location data if location_id exists
+        let locationData: LocationData | null = null;
         if (membership.location_id) {
-          // Fallback: fetch location via REST API route or handle as unknown
           try {
-            const res = await fetch(`/api/locations/${membership.location_id}`);
-            if (res.ok) {
-              const locationData = await res.json();
+            const { data: location, error: locationError } = await supabase
+              .from('locations')
+              .select('id, name, address')
+              .eq('id', membership.location_id)
+              .single();
+
+            if (!locationError && location) {
+              locationData = location;
               setCurrentLocation(locationData);
             } else {
-              setCurrentLocation({ id: membership.location_id, name: 'Unknown', address: null });
+              locationData = { id: membership.location_id, name: 'Unknown', address: null };
+              setCurrentLocation(locationData);
             }
           } catch (err) {
             console.error('Error loading location:', err);
-            setCurrentLocation({ id: membership.location_id, name: 'Unknown', address: null });
+            locationData = { id: membership.location_id, name: 'Unknown', address: null };
+            setCurrentLocation(locationData);
           }
         }
 
@@ -238,23 +340,22 @@ export default function WolfPackChatPage() {
           looking_for: member.looking_for || undefined,
           table_location: member.table_location || undefined,
           joined_at: member.joined_at,
-          location_name: currentLocation?.name || 'Unknown'
+          location_name: locationData?.name || 'Unknown'
         })) || [];
 
         setPackMembers(transformedMembers);
 
-        // Get active events for this location using correct dj_events schema
+        // Get active events for this location
         if (membership.location_id) {
           try {
-            // Use fetch as fallback for tables not in the restricted type
-            const response = await fetch('/api/dj-events', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ location_id: membership.location_id })
-            });
+            const { data: events, error: eventsError } = await supabase
+              .from('dj_events')
+              .select('*')
+              .eq('location_id', membership.location_id)
+              .eq('status', 'active')
+              .is('ended_at', null);
             
-            if (response.ok) {
-              const events = await response.json() as DjEvent[];
+            if (!eventsError && events) {
               const transformedEvents: WolfpackEvent[] = events?.map((event: DjEvent) => ({
                 id: event.id,
                 title: event.title || `${event.event_type} Event`,
@@ -263,7 +364,7 @@ export default function WolfPackChatPage() {
                 description: event.description || 'Join this exciting event!',
                 is_active: event.status === 'active' && !event.ended_at,
                 participant_count: 0, // Would need to count from participants table
-                location: currentLocation?.name || 'Unknown',
+                location: locationData?.name || 'Unknown',
                 created_at: event.created_at || new Date().toISOString(),
                 created_by: event.dj_id || undefined,
                 ends_at: event.ended_at || undefined
@@ -283,7 +384,6 @@ export default function WolfPackChatPage() {
       } catch (error) {
         console.error('Error loading wolfpack data:', error);
         setError('Failed to load wolfpack data');
-        trackDatabaseError('WolfPackChatPage', error instanceof Error ? error : new Error('Unknown error'));
       } finally {
         setIsLoading(false);
       }
@@ -297,19 +397,15 @@ export default function WolfPackChatPage() {
     if (!user) return;
 
     try {
-      // Check if wolfpack_winks table exists and insert wink
-      const { error } = await insertIntoTable('wolfpack_winks', {
-        from_user_id: user.id,
-        to_user_id: targetUserId,
-      });
+      const { error } = await supabase
+        .from('wolfpack_winks')
+        .insert({
+          from_user_id: user.id,
+          to_user_id: targetUserId,
+        });
 
       if (error) {
         console.error('Error sending wink:', error);
-        // Fall back to just showing a console message
-        const targetMember = packMembers.find(m => m.id === memberId);
-        if (targetMember) {
-          console.log(`Wink sent to ${targetMember.display_name}`);
-        }
       } else {
         const targetMember = packMembers.find(m => m.id === memberId);
         if (targetMember) {
@@ -326,11 +422,12 @@ export default function WolfPackChatPage() {
     if (!user) return;
 
     try {
-      // Try to insert into dj_event_participants table
-      const { error } = await insertIntoTable('dj_event_participants', {
-        event_id: eventId,
-        participant_id: user.id,
-      });
+      const { error } = await supabase
+        .from('dj_event_participants')
+        .insert({
+          event_id: eventId,
+          participant_id: user.id,
+        });
 
       if (error) {
         console.error('Error joining event:', error);

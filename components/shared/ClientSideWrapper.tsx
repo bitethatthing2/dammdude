@@ -6,8 +6,7 @@ import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 import { PwaStatusToast } from '@/components/shared/PwaStatusToast';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 // This is to prevent "window is not defined" errors during server-side rendering
 // Define the event type for beforeinstallprompt as it's not standard TS yet
 interface BeforeInstallPromptEvent extends Event {
@@ -51,9 +50,7 @@ export default function ClientSideWrapper({ children }: ClientSideWrapperProps):
 
     // Get the actual user ID
     const initializeAuth = async (): Promise<() => void> => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const { data: { session } }: { data: { session: { user?: { id: string } } | null } } = await supabase.auth.getSession();
+      try {        const { data: { session } }: { data: { session: { user?: { id: string } } | null } } = await supabase.auth.getSession();
         
         if (session?.user?.id) {
           setUserId(session.user.id);

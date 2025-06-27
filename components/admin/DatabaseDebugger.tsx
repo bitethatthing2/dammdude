@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Loader2, Check, X, AlertTriangle, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -46,9 +46,7 @@ export function DatabaseDebugger() {
       const data = await response.json();
       setHealthStatus(data);
       
-      // Try direct Supabase query
-      const supabase = getSupabaseBrowserClient();
-      const { data: queryData, error: queryError } = await supabase
+      // Try direct Supabase query      const { data: queryData, error: queryError } = await supabase
         .from('bartender_orders')
         .select('count')
         .limit(1);

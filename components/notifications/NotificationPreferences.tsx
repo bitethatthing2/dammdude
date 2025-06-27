@@ -1,206 +1,224 @@
 'use client';
 
+import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
-import { Save, X, Loader2, Shield, MapPin, Bell, Volume2, Gift, Megaphone } from 'lucide-react';
+import { Bell, Check, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  getTopicsForRole, 
-  getSubscribedTopics, 
-  updateNotificationPreferences 
-} from '@/lib/notifications';
-import type { NotificationTopic, UserRole } from '@/types/notifications';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+// Create Supabase client
+// Define UserRole type to match your backend
+type UserRole = 'admin' | 'bartender' | 'dj' | 'user';
 
 interface NotificationPreferencesProps {
-  fcmToken: string;
   userRole?: UserRole;
+  userId?: string;
   onClose?: () => void;
 }
 
-const topicIcons = {
-  all_users: Bell,
-  wolfpack_salem: MapPin,
-  wolfpack_portland: MapPin,
-  new_orders: Shield,
-  order_updates: Bell,
-  dj_events: Volume2,
-  promotions: Gift,
-  announcements: Megaphone,
-  staff_alerts: Shield
-};
+interface NotificationPreferences {
+  events: boolean;
+  marketing: boolean;
+  announcements: boolean;
+  chat_messages: boolean;
+  order_updates: boolean;
+  member_activity: boolean;
+  social_interactions: boolean;
+}
 
-export default function NotificationPreferences({
-  fcmToken,
-  userRole,
-  onClose
+interface NotificationCategory {
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+  roles?: UserRole[];
+}
+
+const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
+  {
+    key: 'announcements',
+    label: 'Announcements',
+    description: 'Important announcements from management'
+  },
+  {
+    key: 'events',
+    label: 'Events',
+    description: 'DJ events, contests, and special activities'
+  },
+  {
+    key: 'order_updates',
+    label: 'Order Updates',
+    description: 'Status updates for your food and drink orders'
+  },
+  {
+    key: 'chat_messages',
+    label: 'Chat Messages',
+    description: 'New messages and mentions in Wolf Pack chat'
+  },
+  {
+    key: 'member_activity',
+    label: 'Member Activity',
+    description: 'New members, check-ins, and pack activity'
+  },
+  {
+    key: 'social_interactions',
+    label: 'Social Interactions',
+    description: 'Winks, reactions, and other social features'
+  },
+  {
+    key: 'marketing',
+    label: 'Promotions & Marketing',
+    description: 'Special offers, deals, and promotional content'
+  }
+];
+
+export function NotificationPreferences({ 
+  userRole = 'user', 
+  userId,
+  onClose 
 }: NotificationPreferencesProps) {
-  const [availableTopics, setAvailableTopics] = useState<NotificationTopic[]>([]);
-  const [subscribedTopics, setSubscribedTopics] = useState<string[]>([]);
-  const [preferences, setPreferences] = useState<Record<string, boolean>>({});
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    events: true,
+    marketing: false,
+    announcements: true,
+    chat_messages: true,
+    order_updates: true,
+    member_activity: true,
+    social_interactions: true
+  });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Load available topics and current subscriptions
+  // Load current preferences from the user's notification_preferences column
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-
+    const loadPreferences = async () => {
       try {
-        // Get topics available for user's role
-        const { topics, error: topicsError } = await getTopicsForRole(userRole);
-        if (topicsError) {
-          throw new Error(topicsError.toString());
+        setLoading(true);
+        setError(null);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('User not authenticated');
         }
 
-        // Get current subscriptions
-        const { topics: subscribed, error: subscriptionsError } = await getSubscribedTopics(fcmToken);
-        if (subscriptionsError) {
-          throw new Error(subscriptionsError.toString());
+        const { data, error: dbError } = await supabase
+          .from('users')
+          .select('notification_preferences')
+          .eq('auth_id', user.id)
+          .single();
+
+        if (dbError) {
+          throw new Error(`Failed to load preferences: ${dbError.message}`);
         }
 
-        setAvailableTopics(topics);
-        setSubscribedTopics(subscribed);
-
-        // Initialize preferences state
-        const initialPreferences: Record<string, boolean> = {};
-        topics.forEach(topic => {
-          initialPreferences[topic.topic_key] = subscribed.includes(topic.topic_key);
-        });
-        setPreferences(initialPreferences);
-
+        if (data?.notification_preferences) {
+          setPreferences(data.notification_preferences as NotificationPreferences);
+        }
+        
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load preferences';
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load notification preferences';
+        console.error('Failed to load notification preferences:', err);
         setError(errorMessage);
-        console.error('Error loading notification preferences:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (fcmToken) {
-      loadData();
-    }
-  }, [fcmToken, userRole]);
+    loadPreferences();
+  }, []);
 
-  const handleToggle = (topicKey: string, enabled: boolean) => {
-    setPreferences(prev => ({
-      ...prev,
-      [topicKey]: enabled
-    }));
-    setHasChanges(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
+  const handlePreferenceToggle = async (key: keyof NotificationPreferences, enabled: boolean) => {
+    setUpdating(key);
     setError(null);
-
+    
     try {
-      // Calculate what needs to be subscribed/unsubscribed
-      const topicsToSubscribe: string[] = [];
-      const topicsToUnsubscribe: string[] = [];
-
-      Object.entries(preferences).forEach(([topicKey, enabled]) => {
-        const wasSubscribed = subscribedTopics.includes(topicKey);
-        
-        if (enabled && !wasSubscribed) {
-          topicsToSubscribe.push(topicKey);
-        } else if (!enabled && wasSubscribed) {
-          topicsToUnsubscribe.push(topicKey);
-        }
-      });
-
-      // Update subscriptions
-      const { success, error: updateError } = await updateNotificationPreferences(
-        fcmToken,
-        topicsToSubscribe,
-        topicsToUnsubscribe
-      );
-
-      if (!success) {
-        const errorMessage = updateError instanceof Error ? updateError.message : 
-                           updateError || 'Failed to update preferences';
-        throw new Error(errorMessage);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
-      // Update local state
-      const newSubscriptions = Object.entries(preferences)
-        .filter(([, enabled]) => enabled)
-        .map(([topicKey]) => topicKey);
+      const newPreferences = {
+        ...preferences,
+        [key]: enabled
+      };
+
+      // Update preferences using the RPC function
+      const { data, error: updateError } = await supabase
+        .rpc('update_notification_preferences', {
+          p_user_id: userId || user.id,
+          p_preferences: { [key]: enabled }
+        });
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      // Update local state with the returned preferences
+      if (data) {
+        setPreferences(data as NotificationPreferences);
+      } else {
+        setPreferences(newPreferences);
+      }
       
-      setSubscribedTopics(newSubscriptions);
-      setHasChanges(false);
-
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save preferences';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update preference';
+      console.error('Failed to update preference:', err);
       setError(errorMessage);
-      console.error('Error saving notification preferences:', err);
     } finally {
-      setSaving(false);
+      setUpdating(null);
     }
   };
 
-  const handleCancel = () => {
-    // Reset preferences to current subscriptions
-    const resetPreferences: Record<string, boolean> = {};
-    availableTopics.forEach(topic => {
-      resetPreferences[topic.topic_key] = subscribedTopics.includes(topic.topic_key);
+  const getFilteredCategories = () => {
+    return NOTIFICATION_CATEGORIES.filter(category => {
+      // If category has role restrictions, check if user's role is included
+      if (category.roles && category.roles.length > 0) {
+        return category.roles.includes(userRole) || userRole === 'admin';
+      }
+      return true;
     });
-    setPreferences(resetPreferences);
-    setHasChanges(false);
-    
-    if (onClose) {
-      onClose();
-    }
   };
 
-  const getTopicIcon = (topicKey: string) => {
-    const IconComponent = topicIcons[topicKey as keyof typeof topicIcons] || Bell;
-    return IconComponent;
+  const getEnabledCount = () => {
+    return Object.values(preferences).filter(Boolean).length;
   };
-
-  const getTopicCategory = (topic: NotificationTopic) => {
-    if (topic.topic_key.startsWith('wolfpack_')) return 'Wolf Pack';
-    if (topic.requires_role) return 'Staff Only';
-    if (topic.topic_key.includes('order')) return 'Orders';
-    if (topic.topic_key.includes('event') || topic.topic_key.includes('dj')) return 'Events';
-    return 'General';
-  };
-
-  // Group topics by category
-  const groupedTopics = availableTopics.reduce((groups, topic) => {
-    const category = getTopicCategory(topic);
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(topic);
-    return groups;
-  }, {} as Record<string, NotificationTopic[]>);
 
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="ml-2">Loading preferences...</span>
+        <CardHeader>
+          <CardTitle>Loading Preferences...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                  <div className="h-3 bg-gray-100 rounded w-48 animate-pulse"></div>
+                </div>
+                <div className="h-6 w-11 bg-gray-200 rounded-full animate-pulse"></div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
   }
+
+  const filteredCategories = getFilteredCategories();
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Notification Preferences</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Preferences
+            </CardTitle>
             <CardDescription>
               Choose which notifications you want to receive
             </CardDescription>
@@ -212,128 +230,76 @@ export default function NotificationPreferences({
           )}
         </div>
       </CardHeader>
-
-      <CardContent className="space-y-6">
+      
+      <CardContent className="space-y-4">
         {error && (
           <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Role Badge */}
-        {userRole && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize">
-              {userRole} Access
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              You can access {availableTopics.length} notification topics
+        {filteredCategories.length === 0 ? (
+          <Alert>
+            <Bell className="h-4 w-4" />
+            <AlertDescription>
+              No notification preferences available for your role ({userRole}).
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-3">
+            {filteredCategories.map(category => {
+              const isEnabled = preferences[category.key];
+              const isUpdating = updating === category.key;
+              
+              return (
+                <div key={category.key} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium">{category.label}</h4>
+                      {category.roles && (
+                        <Badge variant="secondary" className="text-xs">
+                          {category.roles.join(', ')}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {category.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={isEnabled}
+                      onCheckedChange={(checked) => handlePreferenceToggle(category.key, checked)}
+                      disabled={isUpdating}
+                    />
+                    
+                    {isUpdating && (
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="pt-4 border-t space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Check className="h-3 w-3" />
+            <span>
+              {getEnabledCount()} of {filteredCategories.length} notification types enabled
             </span>
           </div>
-        )}
-
-        {/* Topic Groups */}
-        {Object.entries(groupedTopics).map(([category, topics]) => (
-          <div key={category} className="space-y-3">
-            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-              {category}
-            </h3>
-            
-            <div className="space-y-3">
-              {topics.map((topic) => {
-                const IconComponent = getTopicIcon(topic.topic_key);
-                const isEnabled = preferences[topic.topic_key] || false;
-                
-                return (
-                  <div
-                    key={topic.topic_key}
-                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <IconComponent className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Label 
-                            htmlFor={topic.topic_key}
-                            className="font-medium cursor-pointer"
-                          >
-                            {topic.display_name}
-                          </Label>
-                          {topic.requires_role && (
-                            <Badge variant="secondary" className="text-xs">
-                              {topic.requires_role}
-                            </Badge>
-                          )}
-                        </div>
-                        {topic.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {topic.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Switch
-                      id={topic.topic_key}
-                      checked={isEnabled}
-                      onCheckedChange={(checked) => handleToggle(topic.topic_key, checked)}
-                      disabled={saving}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            
-            {category !== Object.keys(groupedTopics)[Object.keys(groupedTopics).length - 1] && (
-              <Separator />
-            )}
-          </div>
-        ))}
-
-        {availableTopics.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No notification topics available for your account.</p>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {availableTopics.length > 0 && (
-          <div className="flex gap-2 pt-4 border-t">
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              className="flex items-center gap-2"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {/* Subscription Summary */}
-        <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-          <div className="flex items-center gap-2 mb-2">
-            <Bell className="h-4 w-4" />
-            <span className="font-medium">Current Subscriptions</span>
-          </div>
-          <p>
-            You are subscribed to {Object.values(preferences).filter(Boolean).length} of {availableTopics.length} available topics.
+          <p className="text-xs text-muted-foreground">
+            These preferences control what push notifications you receive. Some notifications may be required for app functionality.
           </p>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+// Export as both named and default for flexibility
+export default NotificationPreferences;

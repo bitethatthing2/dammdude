@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen } from 'lucide-react';
+import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
@@ -75,9 +75,12 @@ export const BottomNav = () => {
       { id: 'home', href: '/', icon: Home, label: 'Home' },
     ];
 
-    // If logged in but not Wolf Pack member, show profile
+    // If logged in but not Wolf Pack member, show profile and join option
     if (user) {
-      basicItems.push({ id: 'profile', href: '/profile', icon: User, label: 'Profile' });
+      basicItems.push(
+        { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
+        { id: 'join-pack', href: '/wolfpack', icon: Shield, label: 'Join the Pack' }
+      );
     } else {
       // Only show login if NOT logged in
       basicItems.push({ id: 'login', href: '/login', icon: LogIn, label: 'Log In / Sign Up' });
@@ -99,12 +102,15 @@ export const BottomNav = () => {
   const renderNavItem = (item: NavItem) => {
     const isActive = pathname === item.href;
     const Icon = item.icon;
+    const isJoinPack = item.id === 'join-pack';
 
     const linkClasses = cn(
       "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200 min-w-0 flex-1",
-      isActive 
-        ? "text-purple-400 bg-purple-500/10" 
-        : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
+      isJoinPack
+        ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+        : isActive 
+          ? "text-purple-400 bg-purple-500/10" 
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
     );
 
     return (
@@ -115,11 +121,13 @@ export const BottomNav = () => {
       >
         <Icon className={cn(
           "h-5 w-5 transition-all duration-200",
-          isActive && "drop-shadow-sm"
+          isActive && "drop-shadow-sm",
+          isJoinPack && "animate-pulse"
         )} />
         <span className={cn(
           "text-[10px] mt-1 font-medium",
-          "truncate w-full text-center"
+          "truncate w-full text-center",
+          isJoinPack && "font-bold"
         )}>
           {item.label}
         </span>

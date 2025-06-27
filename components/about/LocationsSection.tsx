@@ -1,8 +1,10 @@
-"use client";
+'use client';
 
 import { MapPin, Clock, Phone, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DynamicGoogleMaps, InstagramEmbed } from '@/components/shared/DynamicGoogleMaps';
+import { LOCATIONS } from '@/components/shared/LocationSwitcher';
 
 interface Location {
   name: string;
@@ -21,29 +23,29 @@ interface Location {
 const locations: Location[] = [
   {
     name: "Side Hustle Salem",
-    address: "123 Liberty St SE",
+    address: "1849 Lancaster Dr NE",
     city: "Salem",
     state: "OR",
-    zip: "97301",
+    zip: "97305",
     phone: "(503) 555-0123",
     hours: {
       weekdays: "11:00 AM - 12:00 AM",
       weekends: "10:00 AM - 2:00 AM"
     },
-    mapUrl: "https://maps.google.com/?q=44.9429,-123.0351"
+    mapUrl: "https://maps.google.com/?q=44.94049607107024,-123.0413951237716"
   },
   {
     name: "Side Hustle Portland",
-    address: "456 Burnside St",
+    address: "318 NW 11th Ave",
     city: "Portland",
     state: "OR",
-    zip: "97204",
+    zip: "97209",
     phone: "(503) 555-0456",
     hours: {
       weekdays: "11:00 AM - 12:00 AM",
       weekends: "10:00 AM - 2:00 AM"
     },
-    mapUrl: "https://maps.google.com/?q=45.5152,-122.6784"
+    mapUrl: "https://maps.google.com/?q=45.51853717107486,-122.67878942374"
   }
 ];
 
@@ -59,7 +61,17 @@ export function LocationsSection() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        {/* Dynamic Google Maps Section */}
+        <div className="mb-12">
+          <DynamicGoogleMaps 
+            className="max-w-4xl mx-auto" 
+            height="450px" 
+            showLocationSwitcher={true}
+          />
+        </div>
+
+        {/* Location Details Cards */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
           {locations.map((location) => (
             <Card key={location.name} className="overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
@@ -112,6 +124,11 @@ export function LocationsSection() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Instagram Embed Section */}
+        <div className="mb-12">
+          <InstagramEmbed className="max-w-2xl mx-auto" />
         </div>
 
         <div className="mt-12 text-center">

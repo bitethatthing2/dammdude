@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Location verification for non-VIP users
-    if (!authResult.isVipUser) {
+    // Location verification for non-VIP and non-permanent members
+    if (!authResult.isVipUser && !authResult.isPermanentPackMember) {
       if (!latitude || !longitude) {
         return NextResponse.json(
           { error: 'Location coordinates required', code: 'LOCATION_ERROR' },

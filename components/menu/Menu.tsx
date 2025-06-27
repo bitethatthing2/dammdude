@@ -1,6 +1,6 @@
-// components/menu/Menu.tsx
 'use client';
 
+// components/menu/Menu.tsx
 import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
@@ -24,12 +24,43 @@ import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
 import type {
-  MenuCategory,
   MenuCategoryWithCount,
   MenuItemWithModifiers,
   CartOrderData,
   APIModifierGroup
 } from '@/lib/types/menu';
+
+// Types for database items
+type RPCMenuItem = {
+  id: string;
+  name: string;
+  description: string;
+  price: string | number;
+  is_available: boolean;
+  display_order: number;
+  category_name: string;
+  category_icon: string;
+  menu_type: string;
+  modifiers?: unknown;
+};
+
+type DirectQueryMenuItem = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  is_available: boolean;
+  display_order: number;
+  category_id: string;
+  image_url?: string;
+  category?: {
+    id: string;
+    name: string;
+    type: string;
+  };
+};
+
+type DatabaseMenuItem = RPCMenuItem | DirectQueryMenuItem;
 
 export default function Menu() {
   const [activeTab, setActiveTab] = useState<'food' | 'drink'>('food');
@@ -42,10 +73,7 @@ export default function Menu() {
   const [useCompactView, setUseCompactView] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Get the Supabase client
-  const supabase = getSupabaseBrowserClient();
-  
-  // Cart management
+  // Get the Supabase client  // Cart management
   const { cartCount, addToCart } = useCart();
   const { user } = useAuth();
 
@@ -81,7 +109,7 @@ export default function Menu() {
       console.log('📂 Categories loaded:', categoriesData?.length || 0, categoriesData);
 
       // First try the RPC function, then fallback to direct query
-      let itemsData: any[] = [];
+      let itemsData: DatabaseMenuItem[] = [];
       const { data: rpcItemsData, error: rpcError } = await supabase
         .rpc('get_menu_items_with_modifiers');
 
@@ -102,10 +130,10 @@ export default function Menu() {
           .order('display_order', { ascending: true });
         
         if (directError) throw directError;
-        itemsData = directItemsData || [];
+        itemsData = (directItemsData || []) as DirectQueryMenuItem[];
         console.log('🍕 Items loaded via direct query:', itemsData.length);
       } else {
-        itemsData = rpcItemsData || [];
+        itemsData = (rpcItemsData || []) as RPCMenuItem[];
         console.log('🍕 Items loaded via RPC:', itemsData.length);
       }
       
@@ -118,43 +146,45 @@ export default function Menu() {
             let convertedItem: MenuItemWithModifiers;
             
             // Check if this is RPC data or direct query data
-            if (item.category_name) {
+            if ('category_name' in item) {
               // RPC format
-              const categoryId = item.category_icon || item.id.split('-')[0] || 'default';
+              const rpcItem = item as RPCMenuItem;
+              const categoryId = rpcItem.category_icon || rpcItem.id.split('-')[0] || 'default';
               convertedItem = {
-                id: item.id,
-                name: item.name,
-                description: item.description,
-                price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
-                is_available: item.is_available,
-                display_order: item.display_order || 0,
+                id: rpcItem.id,
+                name: rpcItem.name,
+                description: rpcItem.description,
+                price: typeof rpcItem.price === 'string' ? parseFloat(rpcItem.price) : rpcItem.price,
+                is_available: rpcItem.is_available,
+                display_order: rpcItem.display_order || 0,
                 category_id: categoryId,
                 category: {
                   id: categoryId,
-                  name: item.category_name,
-                  type: item.menu_type as 'food' | 'drink'
+                  name: rpcItem.category_name,
+                  type: rpcItem.menu_type as 'food' | 'drink'
                 },
-                modifiers: item.modifiers && typeof item.modifiers === 'object' && item.modifiers !== null
-                  ? (item.modifiers as unknown as APIModifierGroup[])
+                modifiers: rpcItem.modifiers && typeof rpcItem.modifiers === 'object' && rpcItem.modifiers !== null
+                  ? (rpcItem.modifiers as unknown as APIModifierGroup[])
                   : undefined,
                 image_url: undefined
               };
             } else {
               // Direct query format
+              const directItem = item as DirectQueryMenuItem;
               convertedItem = {
-                id: item.id,
-                name: item.name,
-                description: item.description,
-                price: item.price,
-                is_available: item.is_available,
-                display_order: item.display_order || 0,
-                category_id: item.category_id,
-                category: item.category ? {
-                  id: item.category.id,
-                  name: item.category.name,
-                  type: item.category.type as 'food' | 'drink'
+                id: directItem.id,
+                name: directItem.name,
+                description: directItem.description,
+                price: directItem.price,
+                is_available: directItem.is_available,
+                display_order: directItem.display_order || 0,
+                category_id: directItem.category_id,
+                category: directItem.category ? {
+                  id: directItem.category.id,
+                  name: directItem.category.name,
+                  type: directItem.category.type as 'food' | 'drink'
                 } : undefined,
-                image_url: item.image_url
+                image_url: directItem.image_url
               };
             }
             

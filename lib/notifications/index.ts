@@ -1,27 +1,38 @@
 // Main notification exports - single source of truth
-export * from './topic-management';
 export * from './wolfpack-notifications';
 
-// Re-export for backward compatibility
-export {
-  subscribeToTopic,
-  unsubscribeFromTopic,
-  getSubscribedTopics,
-  getAvailableTopics,
-  subscribeToWolfPackLocation,
-  unsubscribeFromAllWolfPackLocations,
-  updateNotificationPreferences,
-  canSubscribeToTopic,
-  getUserNotificationPreferences,
-  getTopicsForRole
-} from './topic-management';
-
+// Re-export specific functions with proper typing
 export {
   sendChatMessageNotification,
   sendOrderUpdateNotification,
   sendMemberJoinedNotification,
   sendEventAnnouncementNotification,
   sendWinkNotification,
-  getUserNotificationPreferences as getWolfPackNotificationPreferences,
-  updateNotificationPreferences as updateWolfPackNotificationPreferences
+  getUserNotificationPreferences,
+  updateNotificationPreferences,
+  registerDeviceToken,
+  unregisterDeviceToken,
+  getNotificationHistory,
+  markNotificationAsRead,
+  markNotificationAsClicked
+} from './wolfpack-notifications';
+
+// Topic management exports
+export {
+  TopicManagement,
+  createTopicManagement,
+  getTopicsForRole,
+  getSubscribedTopics,
+  type NotificationTopic,
+  type TopicSubscription,
+  type NotificationTopicInsert,
+  type NotificationTopicUpdate,
+  type TopicSubscriptionInsert,
+  type TopicSubscriptionUpdate
+} from './topic-management';
+
+// Types
+export type {
+  WolfPackNotificationData,
+  NotificationPreferences
 } from './wolfpack-notifications';

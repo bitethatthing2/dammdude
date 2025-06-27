@@ -1,7 +1,7 @@
 // lib/utils/wolfpack-utils.ts
 // Consolidated utility functions for wolfpack operations
 
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { 
   AuthUser, 
   SupabaseError, 
@@ -68,10 +68,7 @@ export async function ensureUserExists(
 }
 
 // Debug wolfpack membership function
-export const debugWolfPackMembership = async (userId: string, locationId?: string): Promise<DebugResult> => {
-  const supabase = getSupabaseBrowserClient();
-  
-  console.log('🔍 DEBUGGING WOLFPACK MEMBERSHIP');
+export const debugWolfPackMembership = async (userId: string, locationId?: string): Promise<DebugResult> => {  console.log('🔍 DEBUGGING WOLFPACK MEMBERSHIP');
   console.log('User ID:', userId);
   console.log('Location ID:', locationId || 'Not specified');
   
@@ -262,10 +259,7 @@ export const joinWolfPackFromLocation = async (
 };
 
 // Check wolfpack status with correct column names
-export async function checkWolfPackStatus(userId: string) {
-  const supabase = getSupabaseBrowserClient();
-  
-  try {
+export async function checkWolfPackStatus(userId: string) {  try {
     // Query wolfpack_status from users table correctly
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -311,10 +305,7 @@ export async function checkWolfPackStatus(userId: string) {
 }
 
 // Get wolfpack locations with proper join syntax
-export async function getWolfPackLocations(userId: string) {
-  const supabase = getSupabaseBrowserClient();
-  
-  try {
+export async function getWolfPackLocations(userId: string) {  try {
     // Correct join syntax for locations
     const { data, error } = await supabase
       .from('wolfpack_members_unified')

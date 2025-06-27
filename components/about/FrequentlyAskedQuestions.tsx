@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { FaqItem } from "@/lib/types/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";

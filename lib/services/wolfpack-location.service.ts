@@ -1,7 +1,3 @@
-import { createClient } from '@/lib/supabase/client';
-
-const supabase = createClient();
-
 // Centralized location configuration - from scattered definitions
 export const SIDE_HUSTLE_LOCATIONS = {
   salem: {
@@ -373,7 +369,7 @@ export class WolfpackLocationService {
   /**
    * Get all locations for UI components
    */
-  static getAllLocations() {
+  static getAllLocationData() {
     return Object.entries(SIDE_HUSTLE_LOCATIONS).map(([key, data]) => ({
       key: key as LocationKey,
       ...data

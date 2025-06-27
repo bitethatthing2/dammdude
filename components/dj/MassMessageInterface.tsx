@@ -8,8 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Megaphone, AlertTriangle, Music, Send, Clock } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 interface MassMessageInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
@@ -85,10 +84,7 @@ export function MassMessageInterface({ isOpen, onClose, packMemberCount, locatio
 
     setIsSending(true);
     
-    try {
-      const supabase = getSupabaseBrowserClient();
-      
-      const messageData = {
+    try {      const messageData = {
         content: messageContent,
         type: messageType,
         location: location,

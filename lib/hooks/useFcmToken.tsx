@@ -1,18 +1,15 @@
-"use client";
+'use client';
 
+import { supabase } from '@/lib/supabase/client';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Unsubscribe } from 'firebase/messaging';
 import { getMessagingInstance, fetchToken, requestNotificationPermission, setupForegroundMessageHandler } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import React from 'react';
-import { createClient } from '@supabase/supabase-js';
-
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 // Global flags to prevent multiple operations
 let isRegistrationInProgress = false;
 let registrationPromise: Promise<string | null> | null = null;

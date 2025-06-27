@@ -23,6 +23,7 @@
     "fix:unused": "eslint . --fix --rule '{\"@typescript-eslint/no-unused-vars\": \"error\"}'",
     "fix:entities": "node scripts/fix-unescaped-entities.js",
     "fix:any": "eslint . --fix --rule '{\"@typescript-eslint/no-explicit-any\": \"error\"}'",
+    "fix:supabase": "node scripts/fix-supabase-clients.js",
     "clean": "rimraf .next && rimraf node_modules/.cache",
     "clean:lint": "rimraf eslint-report.json",
     "migrate": "powershell -ExecutionPolicy Bypass -File ./migrate_orders.ps1",

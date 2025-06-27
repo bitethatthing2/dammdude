@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     results.push({
       operation: 'archive_old_chat',
       success: !chatArchiveResult.error,
-      error: chatArchiveResult.error,
+      error: chatArchiveResult.error || undefined,
       affected_rows: chatArchiveResult.data?.length || 0
     });
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     results.push({
       operation: 'reset_memberships',
       success: !membershipResetResult.error,
-      error: membershipResetResult.error,
+      error: membershipResetResult.error || undefined,
       affected_rows: membershipResetResult.data?.length || 0
     });
 
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     results.push({
       operation: 'end_dj_events',
       success: !eventsResetResult.error,
-      error: eventsResetResult.error,
+      error: eventsResetResult.error || undefined,
       affected_rows: eventsResetResult.data?.length || 0
     });
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       operation: 'cleanup_old_reactions',
       success: reactionsCleanupResult.success,
       error: reactionsCleanupResult.error,
-      affected_rows: reactionsCleanupResult.deletedCount || 0
+      affected_rows: (reactionsCleanupResult as any).deletedCount || 0
     });
 
     // Create system reset announcement
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     if (location_id) {
       locationsToReset = [{ id: location_id }];
     } else {
-      const { data: locations } = await WolfpackBackendService.get('locations', {});
+      const { data: locations } = await (WolfpackBackendService as any).select('locations', {});
       locationsToReset = locations || [];
     }
 

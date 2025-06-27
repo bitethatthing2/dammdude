@@ -1,6 +1,7 @@
 /* ========================================
    CONSOLIDATED MENU STYLES
    Single source of truth for all menu styling
+   Browser compatible version
    ======================================== */
 
 /* ========================================
@@ -88,19 +89,24 @@ a,
    UTILITY CLASSES (Standardized)
    ======================================== */
 
-/* Scrollbar Hiding - Single Implementation */
+/* Scrollbar Hiding - Compatible Implementation */
 .menu-scrollbar-hide {
   /* Enable scrolling */
   overflow-x: auto;
   overflow-y: hidden;
   
-  /* Hide scrollbar for IE and Edge */
+  /* Hide scrollbar for IE and Edge (legacy) */
   -ms-overflow-style: none;
-  
-  /* Hide scrollbar for Firefox */
-  scrollbar-width: none;
 }
 
+/* Modern browsers (Chrome 121+, Firefox) */
+@supports (scrollbar-width: none) {
+  .menu-scrollbar-hide {
+    scrollbar-width: none;
+  }
+}
+
+/* Webkit browsers (Safari, older Chrome) */
 .menu-scrollbar-hide::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -122,12 +128,22 @@ a,
   backface-visibility: hidden;
 }
 
-/* Safe area support */
+/* Safe area support with fallbacks */
 .menu-safe-area {
-  padding-top: max(1rem, env(safe-area-inset-top));
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Modern browsers with safe-area support */
+@supports (padding: max(0px)) {
+  .menu-safe-area {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
 
 /* ========================================
@@ -141,7 +157,13 @@ a,
   overflow-x: hidden;
   padding: 0 var(--mobile-spacing-base);
   min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height */
+}
+
+/* Dynamic viewport height for modern browsers */
+@supports (height: 100dvh) {
+  .menu-container {
+    min-height: 100dvh;
+  }
 }
 
 /* Responsive grid system */
@@ -197,8 +219,14 @@ a,
   z-index: var(--z-header);
   background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  -webkit-overflow-scrolling: touch;
   transform: translateZ(0);
+}
+
+/* Legacy iOS smooth scrolling support */
+@supports (-webkit-overflow-scrolling: touch) {
+  .menu-header {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Tab system */
@@ -226,13 +254,37 @@ a,
   gap: var(--mobile-spacing-sm);
   padding: 0.75rem var(--mobile-spacing-base);
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-  /* Use our standardized scrollbar hiding */
+  /* Performance optimizations */
+  will-change: scroll-position;
+  scroll-padding-inline: 12px;
+  /* Scrolling setup */
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+}
+
+/* Modern browsers scroll snap */
+@supports (scroll-snap-type: x mandatory) {
+  .menu-category-scroll {
+    scroll-snap-type: x mandatory;
+  }
+}
+
+/* Legacy iOS smooth scrolling */
+@supports (-webkit-overflow-scrolling: touch) {
+  .menu-category-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Hide scrollbars */
+.menu-category-scroll {
   -ms-overflow-style: none;
+}
+
+@supports (scrollbar-width: none) {
+  .menu-category-scroll {
+    scrollbar-width: none;
+  }
 }
 
 .menu-category-scroll::-webkit-scrollbar {
@@ -252,7 +304,6 @@ a,
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
-  scroll-snap-align: start;
   transition: all 200ms ease;
   
   /* Touch optimization */
@@ -260,6 +311,13 @@ a,
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Modern browsers scroll snap */
+@supports (scroll-snap-align: start) {
+  .menu-category-button {
+    scroll-snap-align: start;
+  }
 }
 
 /* Mobile adjustments */
@@ -274,6 +332,12 @@ a,
 .menu-category-button:active {
   transform: scale(0.97);
   transition: transform 0.1s ease;
+}
+
+/* Touch optimization class */
+.menu-category-button-touch {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Category inactive state */
@@ -474,11 +538,29 @@ a,
 .menu-modal-content {
   border-radius: 0.75rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   max-width: 32rem !important; /* 512px - smaller than before */
   max-height: calc(100vh - 6rem) !important;
-  max-height: calc(100dvh - 6rem) !important;
+}
+
+/* Modern browsers with dynamic viewport height */
+@supports (height: 100dvh) {
+  .menu-modal-content {
+    max-height: calc(100dvh - 6rem) !important;
+  }
+}
+
+/* Legacy iOS smooth scrolling */
+@supports (-webkit-overflow-scrolling: touch) {
+  .menu-modal-content {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Modern browsers with overscroll behavior */
+@supports (overscroll-behavior: contain) {
+  .menu-modal-content {
+    overscroll-behavior: contain;
+  }
 }
 
 /* Menu item modal specific sizing */
@@ -486,8 +568,14 @@ a,
   width: 100% !important;
   max-width: 28rem !important; /* 448px - even smaller for mobile */
   max-height: calc(100vh - 6rem) !important;
-  max-height: calc(100dvh - 6rem) !important;
   margin-bottom: 5rem !important; /* Space for bottom nav */
+}
+
+/* Modern browsers with dynamic viewport height */
+@supports (height: 100dvh) {
+  .menu-item-modal-container {
+    max-height: calc(100dvh - 6rem) !important;
+  }
 }
 
 @media (min-width: 640px) {
@@ -532,8 +620,20 @@ a,
 
 .menu-modal-overlay {
   background-color: rgba(0, 0, 0, 0.6);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+}
+
+/* Modern browsers with backdrop filter */
+@supports (backdrop-filter: blur(2px)) {
+  .menu-modal-overlay {
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* Webkit browsers with backdrop filter */
+@supports (-webkit-backdrop-filter: blur(2px)) {
+  .menu-modal-overlay {
+    -webkit-backdrop-filter: blur(2px);
+  }
 }
 
 /* ========================================
@@ -600,10 +700,20 @@ a,
   .menu-item-card {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Modern browsers with backdrop filter in dark mode */
+@media (prefers-color-scheme: dark) {
+  @supports (backdrop-filter: blur(8px)) {
+    .menu-category-button {
+      backdrop-filter: blur(8px);
+    }
+  }
   
-  .menu-category-button {
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+  @supports (-webkit-backdrop-filter: blur(8px)) {
+    .menu-category-button {
+      -webkit-backdrop-filter: blur(8px);
+    }
   }
 }
 
@@ -618,4 +728,13 @@ a,
   .menu-item-card {
     break-inside: avoid;
   }
+}
+
+/* ========================================
+   LIVE EVENTS PROGRESS BAR
+   ======================================== */
+
+/* Progress bar using CSS custom properties */
+.bg-primary.h-2.rounded-full.transition-all.duration-300 {
+  width: var(--progress-width, 0%);
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { DynamicLogo } from './DynamicLogo';
 import { LocationSwitcher } from './LocationSwitcher';
@@ -23,7 +23,6 @@ export function AppHeader({
   showNavigation = true,
   className = ''
 }: AppHeaderProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 

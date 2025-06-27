@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/contexts/AuthContext'
 import type { Database } from '@/lib/database.types'
+import { supabase } from '@/lib/supabase/client';
 
 // Use centralized Supabase client
-const supabase = createClient()
-
 // Location IDs from database
 const LOCATION_IDS = {
   salem: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
@@ -14,13 +12,28 @@ const LOCATION_IDS = {
 
 export type LocationKey = keyof typeof LOCATION_IDS
 
-// Type aliases from database - using correct table names
-type WolfPackMemberRow = Database['public']['Tables']['wolf_pack_members']['Row']
-type WolfpackMembership = Database['public']['Tables']['wolfpack_memberships']['Row']
+// Type aliases from database - using CORRECT table names that exist
+type WolfPackMemberRow = Database['public']['Tables']['wolfpack_members_unified']['Row']
+// wolfpack_memberships is a view, so we'll define its type based on the view structure
+type WolfpackMembership = {
+  id: string | null
+  user_id: string | null
+  display_name: string | null
+  avatar_url: string | null
+  table_location: string | null
+  joined_at: string | null
+  last_active: string | null
+  status: string | null
+  is_host: boolean | null
+  session_id: string | null
+  location_id: string | null
+  is_active: boolean | null
+  left_at: string | null
+}
 type DjEvent = Database['public']['Tables']['dj_events']['Row']
 type Location = Database['public']['Tables']['locations']['Row']
 
-// Extended types for our use
+// Extended types for our use based on actual backend structure
 export interface WolfPackMember extends WolfPackMemberRow {
   users?: {
     id: string
@@ -49,11 +62,6 @@ interface UseWolfPackReturn {
   error: string | null
   joinPack: (profileData: Partial<{
     display_name: string
-    emoji: string
-    current_vibe: string
-    favorite_drink: string
-    looking_for: string
-    instagram_handle: string
     table_location: string
   }>) => Promise<{ data?: WolfPackMember; error?: string }>
   leavePack: () => Promise<void>
@@ -74,13 +82,13 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     if (!user || !locationId) return
 
     try {
-      // Get active membership for this user and location
+      // Check wolfpack_memberships view for active membership
       const { data: membershipData, error: membershipError } = await supabase
-        .from("wolf_pack_members")
+        .from("wolfpack_memberships")
         .select('*')
         .eq('user_id', user.id)
         .eq('location_id', locationId)
-        .eq('status', 'active')
+        .eq('is_active', true)
         .maybeSingle()
 
       if (membershipError) throw membershipError
@@ -94,11 +102,6 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
   // Join the wolf pack
   const joinPack = async (profileData: Partial<{
     display_name: string
-    emoji: string
-    current_vibe: string
-    favorite_drink: string
-    looking_for: string
-    instagram_handle: string
     table_location: string
   }>) => {
     if (!user || !locationId) return { error: 'User or location not available' }
@@ -120,18 +123,13 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         throw new Error(String(result.error) || 'Failed to join wolfpack')
       }
 
-      // Update member profile with additional data
+      // Update member profile with additional data if we have wolfpack_members_unified
       if (Object.keys(profileData).length > 0) {
         const { error: updateError } = await supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_members_unified')
           .update({
-            display_name: profileData.display_name,
-            emoji: profileData.emoji,
-            current_vibe: profileData.current_vibe,
-            favorite_drink: profileData.favorite_drink,
-            looking_for: profileData.looking_for,
-            instagram_handle: profileData.instagram_handle,
-            table_location: profileData.table_location
+            table_location: profileData.table_location,
+            display_name: profileData.display_name
           })
           .eq('user_id', user.id)
           .eq('location_id', locationId)
@@ -155,9 +153,9 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     if (!user || !locationId) return
 
     try {
-      // Update member to inactive
+      // Update member to inactive in wolfpack_members_unified
       const { error: leaveError } = await supabase
-        .from('wolf_pack_members')
+        .from('wolfpack_members_unified')
         .update({ 
           is_active: false,
           left_at: new Date().toISOString()
@@ -182,7 +180,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     const fetchMembers = async () => {
       try {
         const { data, error } = await supabase
-          .from('wolf_pack_members')
+          .from('wolfpack_members_unified')
           .select(`
             *,
             users!user_id (
@@ -218,7 +216,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         {
           event: '*',
           schema: 'public',
-          table: 'wolfpack_members_unified',
+          table: 'wolfpack_members_unified', // Use the table that actually exists
           filter: `location_id=eq.${locationId}`
         },
         (payload) => {
@@ -257,7 +255,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         // Add participant count (would need to be calculated separately)
         const eventsWithCount = (data || []).map(event => ({
           ...event,
-          participant_count: 0 // You'd need to fetch this separately
+          participant_count: 0 // You'd need to fetch this separately from dj_event_participants
         }))
         
         setActiveEvents(eventsWithCount)
@@ -407,28 +405,28 @@ export function useWolfPackActions() {
   }
 }
 
+// Side Hustle Bar locations - CORRECTED coordinates from earlier
+const VERIFICATION_LOCATIONS = {
+  salem: {
+    lat: 44.9431, // 145 Liberty St NE Salem
+    lng: -123.0351,
+    radius: 100 // meters
+  },
+  portland: {
+    lat: 45.5152, // 327 SW Morrison St Portland
+    lng: -122.6784,
+    radius: 100 // meters
+  }
+} as const
+
 // Location Verification Hook for Side Hustle Bar
 export function useLocationVerification() {
   const [location, setLocation] = useState<LocationKey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Side Hustle Bar locations from database
-  const LOCATIONS = {
-    salem: {
-      lat: 44.9429,
-      lng: -123.0351,
-      radius: 100 // meters
-    },
-    portland: {
-      lat: 45.5152,
-      lng: -122.6784,
-      radius: 100 // meters
-    }
-  }
-
   // Haversine formula to calculate distance between two points
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371e3 // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180
     const φ2 = (lat2 * Math.PI) / 180
@@ -441,7 +439,7 @@ export function useLocationVerification() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
     return R * c
-  }
+  }, [])
 
   const verifyLocation = useCallback(async () => {
     setLoading(true)
@@ -462,11 +460,11 @@ export function useLocationVerification() {
       const salemDistance = calculateDistance(
         latitude,
         longitude,
-        LOCATIONS.salem.lat,
-        LOCATIONS.salem.lng
+        VERIFICATION_LOCATIONS.salem.lat,
+        VERIFICATION_LOCATIONS.salem.lng
       )
 
-      if (salemDistance <= LOCATIONS.salem.radius) {
+      if (salemDistance <= VERIFICATION_LOCATIONS.salem.radius) {
         setLocation('salem')
         return
       }
@@ -475,11 +473,11 @@ export function useLocationVerification() {
       const portlandDistance = calculateDistance(
         latitude,
         longitude,
-        LOCATIONS.portland.lat,
-        LOCATIONS.portland.lng
+        VERIFICATION_LOCATIONS.portland.lat,
+        VERIFICATION_LOCATIONS.portland.lng
       )
 
-      if (portlandDistance <= LOCATIONS.portland.radius) {
+      if (portlandDistance <= VERIFICATION_LOCATIONS.portland.radius) {
         setLocation('portland')
         return
       }
@@ -491,7 +489,7 @@ export function useLocationVerification() {
     } finally {
       setLoading(false)
     }
-  }, [LOCATIONS.salem.lat, LOCATIONS.salem.lng, LOCATIONS.salem.radius, LOCATIONS.portland.lat, LOCATIONS.portland.lng, LOCATIONS.portland.radius])
+  }, [calculateDistance])
 
   useEffect(() => {
     verifyLocation()

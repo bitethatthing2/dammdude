@@ -1,7 +1,9 @@
+'use client';
+
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client' // Use shared instance
 
 // Define basic user type based on what Supabase auth returns
 interface AuthUser {
@@ -61,8 +63,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    
     // Get initial session
     supabase.auth.getSession().then((result: AuthSessionResult) => {
       const { data: { session }, error } = result
@@ -80,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       (_event: string, session: AuthSession | null) => {
         setUser(session?.user ?? null)
         setError(null)
+        setLoading(false)
       }
     )
 

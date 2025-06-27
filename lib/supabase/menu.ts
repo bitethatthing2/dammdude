@@ -41,6 +41,67 @@ interface ModifierOption {
   display_order: number;
 }
 
+// Database response types
+interface FoodDrinkItemDB {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  category_id: string | null;
+  is_available: boolean | null;
+  display_order: number | null;
+  food_drink_categories: {
+    id: string;
+    name: string;
+    type: string;
+    display_order: number | null;
+    icon: string | null;
+  } | null;
+}
+
+interface MenuItemModifierDB {
+  id: string;
+  name: string;
+  modifier_type: string;
+  price_adjustment: number | null;
+  is_available: boolean | null;
+  is_popular: boolean | null;
+  display_order: number | null;
+  created_at: string | null;
+  description: string | null;
+  spice_level: number | null;
+}
+
+interface MenuItemModifierDetailsDB {
+  category: string | null;
+  category_order: number | null;
+  description: string | null;
+  group_name: string | null;
+  is_available: boolean | null;
+  is_required: boolean | null;
+  item_id: string | null;
+  modifier_id?: string | null;
+  modifier_name?: string | null;
+  modifier_type: string | null;
+  price: number | null;
+  // Additional fields that might be in the view
+  id?: string;
+  name?: string;
+  price_adjustment?: number | null;
+  is_default?: boolean | null;
+  display_order?: number | null;
+}
+
+interface ItemModifierGroupDB {
+  id: string;
+  item_id: string | null;
+  modifier_type: string;
+  is_required: boolean | null;
+  max_selections: number | null;
+  group_name: string | null;
+}
+
 export async function getMenuCategories(): Promise<MenuCategory[]> {
   try {
     const supabase = getSupabaseBrowserClient();
@@ -63,9 +124,16 @@ export async function getMenuCategories(): Promise<MenuCategory[]> {
     }
 
     // Transform to MenuCategory format with required icon field
-    const categories: MenuCategory[] = (data || []).map((category: FoodDrinkCategory) => ({
-      ...category,
+    // Cast the data to ensure TypeScript knows the type field contains valid literals
+    const categories: MenuCategory[] = (data || []).map((category) => ({
+      id: category.id,
+      name: category.name,
+      type: category.type as 'food' | 'drink', // Cast to literal type
+      display_order: category.display_order || 0, // Default to 0 if null
+      is_active: category.is_active ?? true, // Default to true if null
       icon: category.icon || '🍽️', // Default icon if none provided
+      description: category.description,
+      color: category.color || null, // Add missing color property
       items: [] // Will be populated later
     }));
 
@@ -101,6 +169,7 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
         food_drink_categories!category_id(
           id,
           name,
+          type,
           display_order,
           icon
         )
@@ -117,38 +186,8 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
 
     if (error) {
       console.error('Error fetching from food_drink_items:', error);
-      
-      // Fallback to old menu_items table
-      console.log('Falling back to menu_items table...');
-      let fallbackQuery = supabase
-        .from('food_drink_items')
-        .select(`
-          id,
-          name,
-          description,
-          price,
-          image_url,
-          menu_category_id as category_id,
-          available as is_available,
-          display_order,
-          created_at
-        `)
-        .eq('available', true)
-        .order('display_order', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (categoryId) {
-        fallbackQuery = fallbackQuery.eq('menu_category_id', categoryId);
-      }
-
-      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-      
-      if (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError);
-        return [];
-      }
-      
-      return fallbackData || [];
+      // Return empty array on error instead of trying a fallback with incorrect column names
+      return [];
     }
 
     console.log('Menu items fetched successfully:', {
@@ -157,12 +196,21 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
     });
 
     // Transform data to match expected interface
-    const items = data?.map((item: MenuItemWithCategory & { category_id?: string; is_available?: boolean }) => ({
-      ...item,
-      category: item.food_drink_categories,
-      menu_category_id: item.category_id, // For backward compatibility
-      available: item.is_available // For backward compatibility
-    })) || [];
+    const items: MenuItemWithModifiers[] = (data || []).map((item: FoodDrinkItemDB) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description || undefined,
+      price: item.price,
+      is_available: item.is_available ?? true,
+      display_order: item.display_order || 0,
+      category_id: item.category_id,
+      image_url: item.image_url,
+      category: item.food_drink_categories ? {
+        id: item.food_drink_categories.id,
+        name: item.food_drink_categories.name,
+        type: item.food_drink_categories.type
+      } : undefined
+    }));
 
     return items;
   } catch (error) {
@@ -190,7 +238,18 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
         return [];
       }
       
-      return data || [];
+      // Transform data to ensure it matches MenuItemModifier interface
+      const modifiers: MenuItemModifier[] = (data || []).map((mod: MenuItemModifierDetailsDB) => ({
+        id: mod.modifier_id || mod.id || '',
+        name: mod.modifier_name || mod.name || '',
+        modifier_type: mod.modifier_type || '',
+        price_adjustment: mod.price_adjustment ?? mod.price ?? 0,
+        is_available: mod.is_available ?? true,
+        is_default: mod.is_default ?? false,
+        display_order: mod.display_order ?? 0
+      }));
+      
+      return modifiers;
     } else {
       // Get all available modifiers
       const { data, error } = await supabase
@@ -205,7 +264,18 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
         return [];
       }
       
-      return data || [];
+      // Transform data to ensure it matches MenuItemModifier interface
+      const modifiers: MenuItemModifier[] = (data || []).map((mod: MenuItemModifierDB) => ({
+        id: mod.id,
+        name: mod.name,
+        modifier_type: mod.modifier_type,
+        price_adjustment: mod.price_adjustment || 0,
+        is_available: mod.is_available ?? true,
+        is_default: false,
+        display_order: mod.display_order || 0
+      }));
+      
+      return modifiers;
     }
   } catch (error) {
     console.error('Unexpected error in getMenuModifiers:', error);
@@ -228,7 +298,19 @@ export async function getItemModifierGroups(itemId: string): Promise<ModifierGro
       return [];
     }
     
-    return data || [];
+    // Transform and filter data to ensure it matches ModifierGroup interface
+    const groups: ModifierGroup[] = (data || [])
+      .filter((group: ItemModifierGroupDB) => group.item_id && group.modifier_type && group.group_name)
+      .map((group: ItemModifierGroupDB) => ({
+        id: group.id,
+        item_id: group.item_id as string, // We filtered for non-null above
+        modifier_type: group.modifier_type as 'meat' | 'sauce',
+        is_required: group.is_required ?? false,
+        max_selections: group.max_selections || 1,
+        group_name: group.group_name as string // We filtered for non-null above
+      }));
+    
+    return groups;
   } catch (error) {
     console.error('Unexpected error in getItemModifierGroups:', error);
     return [];
@@ -253,7 +335,17 @@ export async function getModifierOptionsByType(modifierType: 'meat' | 'sauce'): 
       return [];
     }
     
-    return data || [];
+    // Transform data to ensure it matches ModifierOption interface
+    const options: ModifierOption[] = (data || []).map((opt: MenuItemModifierDB) => ({
+      id: opt.id,
+      name: opt.name,
+      modifier_type: modifierType, // Use the passed parameter to ensure correct type
+      price_adjustment: opt.price_adjustment || 0,
+      is_available: opt.is_available ?? true,
+      display_order: opt.display_order || 0
+    }));
+    
+    return options;
   } catch (error) {
     console.error('Unexpected error in getModifierOptionsByType:', error);
     return [];

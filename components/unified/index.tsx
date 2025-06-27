@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Barrel export file for unified components
 // Allows for cleaner imports in consuming components

@@ -51,7 +51,7 @@ export default function MenuItemModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
-  const { isActive: isWolfPackMember } = useWolfpack();
+  const { isInPack: isWolfPackMember } = useWolfpack();
 
   // Process modifiers from API data
   const { meatGroup, sauceGroup, meatOptions, sauceOptions } = useMemo(() => {

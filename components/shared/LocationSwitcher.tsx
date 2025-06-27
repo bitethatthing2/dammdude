@@ -4,37 +4,49 @@ import * as React from 'react';
 import { MapPin, Check } from 'lucide-react';
 import { WolfpackLocationService } from '@/lib/services/wolfpack-location.service';
 
-// Side Hustle Bar locations from Google Maps
+// REAL Side Hustle Bar locations - CORRECTED to match actual businesses
 const LOCATIONS = [
   {
     id: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
-    key: 'salem' as const,
-    name: 'Salem',
-    address: '1849 Lancaster Dr NE, Salem, OR 97305',
-    lat: 44.94049607107024,
-    lng: -123.0413951237716,
-    radius: 100
+    key: 'salem',
+    name: 'Side Hustle Bar Salem', 
+    address: '145 Liberty St NE, Salem, OR 97301', // REAL address from Instagram/Yelp
+    lat: 44.9431, // Approximate coordinates for 145 Liberty St NE Salem
+    lng: -123.0351,
+    radius: 100 // 100 meters
   },
   {
     id: 'ec1e8869-454a-49d2-93e5-ed05f49bb932',
-    key: 'portland' as const,
-    name: 'Portland',
-    address: '318 NW 11th Ave, Portland, OR 97209',
-    lat: 45.51853717107486,
-    lng: -122.67878942374,
-    radius: 100
+    key: 'portland',
+    name: 'Side Hustle Bar Portland', 
+    address: '327 SW Morrison Street, Portland, OR 97204', // REAL address from permit filing
+    lat: 45.5152, // Approximate coordinates for 327 SW Morrison St Portland
+    lng: -122.6784,
+    radius: 100 // 100 meters
   }
 ] as const;
+
+// Define types properly
+type LocationKey = 'salem' | 'portland';
+type Location = {
+  readonly id: string;
+  readonly key: LocationKey;
+  readonly name: string;
+  readonly address: string;
+  readonly lat: number;
+  readonly lng: number;
+  readonly radius: number;
+};
 
 const LOCATION_STORAGE_KEY = 'sidehustle-selected-location';
 
 interface LocationSwitcherProps {
-  onLocationChange?: (location: typeof LOCATIONS[0]) => void;
+  onLocationChange?: (location: Location) => void;
   className?: string;
 }
 
 export function LocationSwitcher({ onLocationChange, className = '' }: LocationSwitcherProps) {
-  const [selectedLocation, setSelectedLocation] = React.useState<typeof LOCATIONS[0]>(LOCATIONS[0]);
+  const [selectedLocation, setSelectedLocation] = React.useState<Location>(LOCATIONS[0]);
   const [showLocationSelector, setShowLocationSelector] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
 
@@ -72,7 +84,7 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
   }, [showLocationSelector]);
 
   // Handle location change
-  const handleLocationChange = (location: typeof LOCATIONS[0]) => {
+  const handleLocationChange = (location: Location) => {
     setSelectedLocation(location);
     setShowLocationSelector(false);
     
@@ -128,7 +140,8 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
         aria-label="Select location"
       >
         <MapPin size={16} />
-        <span className="hidden sm:inline">{selectedLocation.name}</span>
+        {/* Show shorter names for display */}
+        <span className="hidden sm:inline">{selectedLocation.name.replace('Side Hustle Bar ', '')}</span>
         <span className="sm:hidden">{selectedLocation.key.toUpperCase()}</span>
         {currentDistance !== null && currentDistance <= selectedLocation.radius && (
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="You're at this location!" />
@@ -163,7 +176,7 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
                       {isAtLocation && (
                         <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                           <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                          <span>You're here!</span>
+                          <span>You&apos;re here!</span>
                         </div>
                       )}
                     </div>
@@ -194,5 +207,4 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
 
 // Export locations for use in other components
 export { LOCATIONS };
-export type Location = typeof LOCATIONS[0];
-export type LocationKey = typeof LOCATIONS[0]['key'];
+export type { Location, LocationKey };

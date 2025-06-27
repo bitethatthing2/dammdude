@@ -9,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Trophy, Music, Star, Plus, X } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 interface Member {
   id: string;
   displayName: string;
@@ -144,10 +143,7 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
     if (!eventTitle.trim()) return;
 
     setIsCreating(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      
-      const eventData = {
+    try {      const eventData = {
         title: eventTitle,
         description: eventDescription,
         duration: duration,

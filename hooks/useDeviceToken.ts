@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import type { DeviceToken, FCMTokenData, DeviceInfo } from '@/types/notifications';
 
 /**
@@ -98,9 +98,7 @@ export function useDeviceToken(userId?: string) {
    * Save device token to database
    */
   const saveDeviceToken = useCallback(async (tokenData: FCMTokenData, userId: string): Promise<DeviceToken | null> => {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const deviceInfo = getDeviceInfo();
+    try {      const deviceInfo = getDeviceInfo();
 
       // First, deactivate any existing tokens for this user
       await supabase
@@ -147,9 +145,7 @@ export function useDeviceToken(userId?: string) {
    * Load existing device token for user
    */
   const loadDeviceToken = useCallback(async (userId: string): Promise<DeviceToken | null> => {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
+    try {      const { data, error } = await supabase
         .from('device_tokens')
         .select('*')
         .eq('user_id', userId)
@@ -186,9 +182,7 @@ export function useDeviceToken(userId?: string) {
         setDeviceToken(existingToken);
         setFcmToken(existingToken.token);
         
-        // Update last used timestamp
-        const supabase = getSupabaseBrowserClient();
-        if (existingToken.id) {
+        // Update last used timestamp        if (existingToken.id) {
           await supabase
             .from('device_tokens')
             .update({
@@ -254,9 +248,7 @@ export function useDeviceToken(userId?: string) {
   const deactivateToken = useCallback(async (): Promise<boolean> => {
     if (!deviceToken) return false;
 
-    try {
-      const supabase = getSupabaseBrowserClient();
-      if (!deviceToken.id) {
+    try {      if (!deviceToken.id) {
         throw new Error('Device token ID is missing');
       }
       

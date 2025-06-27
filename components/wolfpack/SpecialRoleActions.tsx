@@ -1,8 +1,7 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
@@ -167,7 +166,7 @@ export function SpecialRoleActions({ isOpen, onClose, memberData }: SpecialRoleA
                 </div>
                 <div>
                   <h3 className="font-bold text-purple-800">{memberData.display_name}</h3>
-                  <p className="text-sm text-purple-600">Tonight's DJ</p>
+                  <p className="text-sm text-purple-600">Tonight&#39;s DJ</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,6 @@ import {
   PartyPopper,
   AlertTriangle
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -165,18 +164,6 @@ const EVENT_EMOJIS: Record<string, string> = {
   'dance-contest': '🕺'
 };
 
-const EVENT_COLORS: Record<string, string> = {
-  freestyle_friday: 'from-purple-500 to-pink-500',
-  rap_battle: 'from-red-500 to-orange-500',
-  costume_contest: 'from-blue-500 to-cyan-500',
-  karaoke: 'from-green-500 to-emerald-500',
-  dance_off: 'from-yellow-500 to-orange-500',
-  trivia: 'from-indigo-500 to-purple-500',
-  'dj-battle': 'from-purple-600 to-indigo-600',
-  'crowd-favorite': 'from-pink-500 to-rose-500',
-  'best-dressed': 'from-teal-500 to-cyan-500',
-  'dance-contest': 'from-orange-500 to-red-500'
-};
 
 export function LiveEventsDisplay({ locationId, userId }: { locationId: string; userId: string }) {
   const { user } = useAuth();
@@ -185,9 +172,7 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
   const [error, setError] = useState<string | null>(null);
   const [votingFor, setVotingFor] = useState<string | null>(null);
 
-  const supabase = createClient();
-
-  // Load active events
+    // Load active events
   useEffect(() => {
     async function loadEvents() {
       try {
@@ -527,10 +512,6 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
     return EVENT_EMOJIS[eventType] || '🎉';
   };
 
-  // Get event gradient
-  const getEventGradient = (eventType: string) => {
-    return EVENT_COLORS[eventType] || 'from-gray-500 to-gray-600';
-  };
 
   if (isLoading) {
     return (
@@ -612,7 +593,7 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
           >
             <Card className={`overflow-hidden border-2 ${event.status === 'active' ? 'border-green-500/50' : 'border-blue-500/50'}`}>
               {/* Event Header */}
-              <div className={`bg-gradient-to-r ${getEventGradient(event.event_type)} p-4 text-white`}>
+              <div className={`event-gradient-${event.event_type.replace(/_/g, '-')} p-4 text-white`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="text-3xl">
@@ -627,7 +608,7 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
                   </div>
                   <div className="text-right">
                     <Badge variant="secondary" className="mb-2">
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(event.status || 'active')} mr-2`}></div>
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(event.status || 'active')} mr-2 status-dot`} />
                       {(event.status || 'active').toUpperCase()}
                     </Badge>
                     <div className="text-sm opacity-90">
@@ -690,11 +671,11 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
                           return (
                             <div
                               key={contestant.id}
-                              className={`p-4 border rounded-lg transition-all hover:scale-102 ${
-                                isWinner 
-                                  ? 'border-yellow-500 bg-yellow-50 shadow-lg' 
-                                  : isLeading 
-                                    ? 'border-green-500 bg-green-50' 
+                              className={`p-4 border rounded-lg transition-all event-card-wrapper ${
+                                isWinner
+                                  ? 'winner-card'
+                                  : isLeading
+                                    ? 'leading-card'
                                     : 'border-border hover:border-primary/50'
                               }`}
                             >
@@ -746,11 +727,11 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
                               {/* Vote Progress Bar */}
                               {event.total_votes > 0 && (
                                 <div className="mt-3">
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                                      style={{ width: `${votePercentage}%` }}
-                                    ></div>
+                                  <div className="vote-progress-container">
+                                    <div
+                                      className="vote-progress-bar"
+                                      style={{ '--progress-width': `${votePercentage}%` } as React.CSSProperties}
+                                    />
                                   </div>
                                 </div>
                               )}

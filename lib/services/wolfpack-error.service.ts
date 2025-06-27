@@ -1,4 +1,5 @@
 import { PostgrestError } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 
 export interface UserFriendlyError {
   message: string;

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { UnifiedNotificationProvider } from '@/lib/contexts/unified-notification-context';
+import { NotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { CartProvider } from '@/components/cart/CartContext';
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -323,14 +323,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <ThemeProviderWrapper>
           <AuthProvider>
             <CartProvider>
-              <UnifiedNotificationProvider>
+              <NotificationProvider>
                 <NuqsAdapter>
                   <LogoPreloader />
                   <PwaInitializer />
                   {children}
                   <BottomNav />
                 </NuqsAdapter>
-              </UnifiedNotificationProvider>
+              </NotificationProvider>
             </CartProvider>
           </AuthProvider>
         </ThemeProviderWrapper>

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Music, Users, MessageSquare, Trophy, Plus, Clock, MapPin } from 'lucide-react';
-import { useWolfpack } from '@/hooks/useWolfpack';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { EventCreator } from './EventCreator';
 import { MassMessageInterface } from './MassMessageInterface';
 
@@ -32,13 +32,6 @@ interface ActiveEvent {
   votingOptions: string[];
 }
 
-interface RecentActivity {
-  type: 'member_joined' | 'event_ended' | 'event_started';
-  user?: string;
-  event?: string;
-  timestamp: string;
-}
-
 interface CreatedEventData {
   id: string;
   title: string;
@@ -54,15 +47,24 @@ interface CreatedEventData {
   voting_options: string[];
 }
 
+interface PackMember {
+  id: string;
+  displayName: string;
+  profilePicture: string;
+  vibeStatus: string;
+  isOnline: boolean;
+  lastSeen: string;
+}
+
 export function DJDashboard({ location }: DJDashboardProps) {
   const { assignedLocation } = useDJPermissions();
   const currentLocation = location || assignedLocation || 'salem';
   const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [showEventCreator, setShowEventCreator] = useState(false);
   const [showMassMessage, setShowMassMessage] = useState(false);
   const [showQuickPoll, setShowQuickPoll] = useState(false);
   const [packMemberCount, setPackMemberCount] = useState(0);
+  const [packMembers, setPackMembers] = useState<PackMember[]>([]);
   const [isLive, setIsLive] = useState(true);
   const [currentVibes, setCurrentVibes] = useState({
     energy: 75,
@@ -70,57 +72,176 @@ export function DJDashboard({ location }: DJDashboardProps) {
     requests: 12
   });
 
-  // Mock data for now - in real implementation this would come from useWolfpackMembership
-  const mockMembers = [
-    {
-      id: '1',
-      displayName: 'Wolf Alpha',
-      profilePicture: '/images/avatar-placeholder.png',
-      vibeStatus: '🔥',
-      isOnline: true,
-      lastSeen: new Date().toISOString()
-    },
-    {
-      id: '2', 
-      displayName: 'Pack Leader',
-      profilePicture: '/images/avatar-placeholder.png',
-      vibeStatus: '🎵',
-      isOnline: true,
-      lastSeen: new Date().toISOString()
-    },
-    {
-      id: '3',
-      displayName: 'Night Howler',
-      profilePicture: '/images/avatar-placeholder.png', 
-      vibeStatus: '🐺',
-      isOnline: true,
-      lastSeen: new Date().toISOString()
+  // Get location ID based on current location
+  const getLocationId = (locationName: string) => {
+    if (locationName === 'salem') {
+      return '50d17782-3f4a-43a1-b6b6-608171ca3c7c';
+    } else if (locationName === 'portland') {
+      return 'ec1e8869-454a-49d2-93e5-ed05f49bb932';
     }
-  ];
+    return null;
+  };
 
   useEffect(() => {
-    // Fetch active events and pack data
     const fetchDashboardData = async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
+      try {        const locationId = getLocationId(currentLocation);
         
-        // Fetch active events (mock for now)
-        setActiveEvents([]);
+        if (!locationId) {
+          console.error('Invalid location:', currentLocation);
+          return;
+        }
+
+        // Fetch active events for this location
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('dj_events')
+          .select(`
+            id,
+            title,
+            event_type,
+            status,
+            created_at,
+            voting_ends_at,
+            options,
+            event_config
+          `)
+          .eq('location_id', locationId)
+          .in('status', ['active', 'voting'])
+          .gt('voting_ends_at', new Date().toISOString());
+
+        let formattedEvents: ActiveEvent[] = [];
+        if (eventsError) {
+          console.error('Error fetching events:', eventsError);
+        } else {
+          formattedEvents = eventsData?.map(event => ({
+            id: event.id,
+            title: event.title,
+            eventType: event.event_type,
+            status: event.status as 'active' | 'paused' | 'ended',
+            createdAt: event.created_at || new Date().toISOString(),
+            duration: (event.event_config as { duration?: number })?.duration || 10,
+            contestants: [], // You can expand this based on dj_event_participants
+            votingOptions: Array.isArray(event.options) 
+              ? event.options.filter((option): option is string => typeof option === 'string')
+              : []
+          })) || [];
+          
+          setActiveEvents(formattedEvents);
+        }
+
+        // Fetch wolfpack members for this location - using the unified table structure
+        const { data: membersData, error: membersError } = await supabase
+          .from('wolfpack_members_unified')
+          .select(`
+            user_id,
+            display_name,
+            avatar_url,
+            emoji,
+            current_vibe,
+            last_active,
+            is_active,
+            status
+          `)
+          .eq('location_id', locationId)
+          .eq('is_active', true)
+          .eq('status', 'active');
+
+        // Get user details separately to avoid relationship issues
+        let userDetails: { [key: string]: { first_name: string | null; last_name: string | null; avatar_url: string | null } } = {};
+        if (membersData && membersData.length > 0) {
+          const userIds = membersData.map(m => m.user_id);
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, avatar_url')
+            .in('id', userIds);
+          
+          if (usersData) {
+            userDetails = usersData.reduce((acc, user) => {
+              acc[user.id] = user;
+              return acc;
+            }, {} as { [key: string]: { first_name: string | null; last_name: string | null; avatar_url: string | null } });
+          }
+        }
+
+        let formattedMembers: PackMember[] = [];
+        if (membersError) {
+          console.error('Error fetching members:', membersError);
+        } else {
+          formattedMembers = membersData?.map(member => {
+            const userDetail = userDetails[member.user_id];
+            const firstName = userDetail?.first_name || '';
+            const lastName = userDetail?.last_name || '';
+            return {
+              id: member.user_id,
+              displayName: member.display_name || 
+                          `${firstName} ${lastName}`.trim() || 'Unknown User',
+              profilePicture: member.avatar_url || userDetail?.avatar_url || '/images/avatar-placeholder.png',
+              vibeStatus: member.emoji || '🐺',
+              isOnline: true, // You can determine this based on last_active
+              lastSeen: member.last_active || new Date().toISOString()
+            };
+          }) || [];
+          
+          setPackMembers(formattedMembers);
+          setPackMemberCount(formattedMembers.length);
+        }
+
+        // Update vibes based on real data
+        const memberCount = formattedMembers.length;
+        const eventCount = formattedEvents.length;
         
-        // Set mock pack member count
-        setPackMemberCount(mockMembers.length);
-        
-        // Fetch recent activity (mock for now)
-        setRecentActivity([
-          { type: 'member_joined', user: 'Wolf Alpha', timestamp: new Date().toISOString() },
-          { type: 'event_ended', event: 'Freestyle Friday', timestamp: new Date().toISOString() }
-        ]);
+        setCurrentVibes({
+          energy: Math.min(100, memberCount * 15 + 25), // Calculate based on member count
+          dance: Math.min(100, eventCount * 20 + 40), // Calculate based on active events
+          requests: Math.floor(Math.random() * 20) + 5 // This could come from a song_requests table
+        });
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       }
     };
 
     fetchDashboardData();
+    
+    // Set up real-time subscriptions    const locationId = getLocationId(currentLocation);
+    
+    if (locationId) {
+      // Subscribe to events changes
+      const eventsSubscription = supabase
+        .channel('dj_events_changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'dj_events',
+            filter: `location_id=eq.${locationId}`
+          }, 
+          () => {
+            fetchDashboardData(); // Refresh data when events change
+          }
+        )
+        .subscribe();
+
+      // Subscribe to member changes
+      const membersSubscription = supabase
+        .channel('wolfpack_members_changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'wolfpack_members_unified',
+            filter: `location_id=eq.${locationId}`
+          }, 
+          () => {
+            fetchDashboardData(); // Refresh data when members change
+          }
+        )
+        .subscribe();
+
+      return () => {
+        eventsSubscription.unsubscribe();
+        membersSubscription.unsubscribe();
+      };
+    }
   }, [currentLocation]);
 
   const handleCreateEvent = () => {
@@ -146,37 +267,22 @@ export function DJDashboard({ location }: DJDashboardProps) {
       })),
       votingOptions: event.voting_options
     }]);
-    
     // Add to recent activity
-    setRecentActivity(prev => [{
-      type: 'event_started',
-      event: event.title,
-      timestamp: new Date().toISOString()
-    }, ...prev.slice(0, 4)]);
+    setActiveEvents(prev => [...prev, {
+      id: event.id,
+      title: event.title,
+      eventType: event.event_type,
+      status: event.status as 'active' | 'paused' | 'ended',
+      createdAt: event.created_at,
+      duration: event.duration,
+      contestants: event.contestants.map((c) => ({
+        id: c.id,
+        displayName: c.displayName,
+        profilePicture: c.profilePicture || '/images/avatar-placeholder.png'
+      })),
+      votingOptions: event.voting_options
+    }]);
   };
-
-  const EventCard = ({ event }: { event: ActiveEvent }) => (
-    <Card className="mb-3">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-medium">{event.title}</h4>
-          <Badge variant={event.status === 'active' ? 'default' : 'secondary'}>
-            {event.status.toUpperCase()}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {event.contestants.length} contestants
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {event.duration}min
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="dj-dashboard min-h-screen bg-gradient-to-br from-slate-900 to-purple-900 text-white p-4 lg:p-6">
@@ -375,18 +481,19 @@ export function DJDashboard({ location }: DJDashboardProps) {
         </Card>
       </div>
 
-      {/* Pack Members Grid - Tablet Optimized */}
+      {/* Pack Members Grid - Tablet Optimized - NOW WITH REAL DATA */}
       <Card className="bg-slate-800 border-slate-700 text-white">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-green-400" />
-              Pack Members ({mockMembers.length})
+              Pack Members ({packMembers.length})
             </div>
             <Button 
               variant="outline" 
               size="sm"
               className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              onClick={() => window.location.reload()}
             >
               Refresh
             </Button>
@@ -394,14 +501,19 @@ export function DJDashboard({ location }: DJDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {mockMembers.map(member => (
+            {packMembers.map(member => (
               <div key={member.id} className="bg-slate-700 rounded-lg p-3 hover:bg-slate-600 transition-colors cursor-pointer">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="relative">
-                    <img 
+                    <Image
                       src={member.profilePicture} 
                       alt={member.displayName}
-                      className="w-8 h-8 rounded-full bg-slate-600"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full bg-slate-600 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/images/avatar-placeholder.png';
+                      }}
                     />
                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border border-slate-700 rounded-full"></div>
                   </div>
@@ -417,10 +529,11 @@ export function DJDashboard({ location }: DJDashboardProps) {
             ))}
           </div>
           
-          {mockMembers.length === 0 && (
+          {packMembers.length === 0 && (
             <div className="text-center py-8 text-slate-400">
               <Users className="w-12 h-12 mx-auto mb-4" />
-              <p>No pack members online</p>
+              <p>No pack members online in {currentLocation}</p>
+              <p className="text-xs mt-2">Switch locations or check connection</p>
             </div>
           )}
         </CardContent>
@@ -490,7 +603,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
         isOpen={showEventCreator}
         onClose={() => setShowEventCreator(false)}
         onEventCreated={handleEventCreated}
-        availableMembers={mockMembers}
+        availableMembers={packMembers}
         location={currentLocation}
       />
 

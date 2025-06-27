@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import { Button } from "@/components/ui/button";

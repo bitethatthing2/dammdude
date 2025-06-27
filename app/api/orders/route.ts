@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { notifyStaffOfNewOrder } from '@/lib/actions/order-actions';
 import { CartItem } from '@/types/wolfpack-unified';
+import { createClient } from '@/lib/supabase/server';
 
 interface CreateOrderRequest {
   items: CartItem[];

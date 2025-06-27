@@ -150,13 +150,6 @@ export default function MenuCategoryNav({
           "scroll-smooth snap-x snap-mandatory",
           isScrolling && "pointer-events-none" // Prevent accidental taps while scrolling
         )}
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          // Improve scroll performance
-          willChange: 'scroll-position',
-          // Add padding for edge items
-          scrollPaddingInline: '12px'
-        }}
       >
         {categories.map((category) => {
           const isActive = category.id === activeCategory;
@@ -186,13 +179,11 @@ export default function MenuCategoryNav({
                 "min-h-[44px] min-w-fit",
                 
                 // Focus styles for accessibility
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                
+                // Touch optimization
+                "menu-category-button-touch"
               )}
-              // Improve touch performance
-              style={{
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation'
-              }}
             >
               <span>{category.name}</span>
               {category.item_count !== undefined && category.item_count > 0 && (

@@ -1,6 +1,5 @@
 // Authentication debugging utilities
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 export interface AuthDebugInfo {
   supabaseConnection: boolean;
   environmentVars: boolean;
@@ -9,9 +8,7 @@ export interface AuthDebugInfo {
   error: string | null;
 }
 
-export async function debugAuthenticationIssue(email: string): Promise<AuthDebugInfo> {
-  const supabase = getSupabaseBrowserClient();
-  const debugInfo: AuthDebugInfo = {
+export async function debugAuthenticationIssue(email: string): Promise<AuthDebugInfo> {  const debugInfo: AuthDebugInfo = {
     supabaseConnection: false,
     environmentVars: false,
     userExists: null,
@@ -144,10 +141,7 @@ interface AuthTestDetails {
   sessionTest: SessionTestResult | null;
 }
 
-export async function testSupabaseAuth(): Promise<{success: boolean, details: AuthTestDetails | { error: string }}> {
-  const supabase = getSupabaseBrowserClient();
-  
-  try {
+export async function testSupabaseAuth(): Promise<{success: boolean, details: AuthTestDetails | { error: string }}> {  try {
     const tests: AuthTestDetails = {
       environmentCheck: {
         url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,

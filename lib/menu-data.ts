@@ -1,11 +1,9 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { createServerClient } from './supabase/server';
-import type { Database } from '@/lib/database.types';
+import type { Database } from './database.types';
 
 type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row'];
 type MenuItem = Database['public']['Tables']['food_drink_items']['Row'];
-type ModifierGroup = Database['public']['Tables']['item_modifier_groups']['Row'];
-type Modifier = Database['public']['Tables']['menu_item_modifiers']['Row'];
 
 /**
  * Fetches all menu categories from Supabase.
@@ -108,15 +106,39 @@ export async function getMenuItemsByCategory(categoryId: string): Promise<MenuIt
           return { ...item, modifier_groups: [] };
         }
 
-        // Transform the modifiers data to match our interface
-        const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => ({
-          group_name: group.group_name,
-          modifier_type: group.modifier_type,
-          is_required: group.is_required,
-          min_selections: group.min_selections,
-          max_selections: group.max_selections,
-          modifiers: group.modifiers as ModifierOption[]
-        }));
+        // Transform the modifiers data to match our interface with proper typing
+        const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => {
+          // Type the RPC response properly
+          const typedGroup = group as {
+            group_name: string;
+            modifier_type: string;
+            is_required: boolean;
+            min_selections: number;
+            max_selections: number;
+            modifiers: Array<{
+              id: string;
+              name: string;
+              price_adjustment: number;
+              display_order: number;
+              is_default: boolean;
+            }>;
+          };
+
+          return {
+            group_name: typedGroup.group_name || '',
+            modifier_type: typedGroup.modifier_type || '',
+            is_required: typedGroup.is_required || false,
+            min_selections: typedGroup.min_selections || 0,
+            max_selections: typedGroup.max_selections || 1,
+            modifiers: (typedGroup.modifiers || []).map(mod => ({
+              id: mod.id,
+              name: mod.name,
+              price_adjustment: mod.price_adjustment || 0,
+              display_order: mod.display_order || 0,
+              is_default: mod.is_default || false
+            }))
+          };
+        });
 
         return {
           ...item,
@@ -176,25 +198,70 @@ export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promi
 
     // Transform the nested structure to match our interface
     const transformedItems: MenuItemWithModifiers[] = (items || []).map(item => {
-      const modifierGroups: ModifierGroupWithOptions[] = (item.item_modifier_groups || []).map(group => ({
-        group_name: group.group_name,
-        modifier_type: group.modifier_type,
-        is_required: group.is_required,
-        min_selections: group.min_selections,
-        max_selections: group.max_selections,
+      // Type the joined data properly
+      const itemWithJoins = item as MenuItem & {
+        item_modifier_groups?: Array<{
+          id: string;
+          group_name: string;
+          modifier_type: string;
+          is_required: boolean;
+          min_selections: number;
+          max_selections: number;
+          modifier_group_items?: Array<{
+            display_order: number;
+            is_default: boolean;
+            menu_item_modifiers: {
+              id: string;
+              name: string;
+              price_adjustment: number | null;
+            };
+          }>;
+        }>;
+      };
+
+      const modifierGroups: ModifierGroupWithOptions[] = (itemWithJoins.item_modifier_groups || []).map((group: {
+        id: string;
+        group_name: string;
+        modifier_type: string;
+        is_required: boolean;
+        min_selections: number;
+        max_selections: number;
+        modifier_group_items?: Array<{
+          display_order: number;
+          is_default: boolean;
+          menu_item_modifiers: {
+            id: string;
+            name: string;
+            price_adjustment: number | null;
+          };
+        }>;
+      }) => ({
+        group_name: group.group_name || '',
+        modifier_type: group.modifier_type || '',
+        is_required: group.is_required || false,
+        min_selections: group.min_selections || 0,
+        max_selections: group.max_selections || 1,
         modifiers: (group.modifier_group_items || [])
-          .sort((a, b) => a.display_order - b.display_order)
-          .map(mgi => ({
+          .sort((a: { display_order: number }, b: { display_order: number }) => (a.display_order || 0) - (b.display_order || 0))
+          .map((mgi: {
+            display_order: number;
+            is_default: boolean;
+            menu_item_modifiers: {
+              id: string;
+              name: string;
+              price_adjustment: number | null;
+            };
+          }) => ({
             id: mgi.menu_item_modifiers.id,
             name: mgi.menu_item_modifiers.name,
-            price_adjustment: mgi.menu_item_modifiers.price_adjustment,
-            display_order: mgi.display_order,
-            is_default: mgi.is_default
+            price_adjustment: mgi.menu_item_modifiers.price_adjustment || 0,
+            display_order: mgi.display_order || 0,
+            is_default: mgi.is_default || false
           }))
       }));
 
       // Remove the joined data and add transformed modifier_groups
-      const { item_modifier_groups, ...itemData } = item;
+      const { item_modifier_groups: _, ...itemData } = itemWithJoins;
       return {
         ...itemData,
         modifier_groups: modifierGroups
@@ -261,15 +328,38 @@ export async function getMenuItemById(itemId: string): Promise<MenuItemWithModif
       return { ...item, modifier_groups: [] };
     }
     
-    // Transform the modifiers
-    const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => ({
-      group_name: group.group_name,
-      modifier_type: group.modifier_type,
-      is_required: group.is_required,
-      min_selections: group.min_selections,
-      max_selections: group.max_selections,
-      modifiers: group.modifiers as ModifierOption[]
-    }));
+    // Transform the modifiers with proper typing
+    const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => {
+      const typedGroup = group as {
+        group_name: string;
+        modifier_type: string;
+        is_required: boolean;
+        min_selections: number;
+        max_selections: number;
+        modifiers: Array<{
+          id: string;
+          name: string;
+          price_adjustment: number;
+          display_order: number;
+          is_default: boolean;
+        }>;
+      };
+
+      return {
+        group_name: typedGroup.group_name || '',
+        modifier_type: typedGroup.modifier_type || '',
+        is_required: typedGroup.is_required || false,
+        min_selections: typedGroup.min_selections || 0,
+        max_selections: typedGroup.max_selections || 1,
+        modifiers: (typedGroup.modifiers || []).map(mod => ({
+          id: mod.id,
+          name: mod.name,
+          price_adjustment: mod.price_adjustment || 0,
+          display_order: mod.display_order || 0,
+          is_default: mod.is_default || false
+        }))
+      };
+    });
     
     return {
       ...item,

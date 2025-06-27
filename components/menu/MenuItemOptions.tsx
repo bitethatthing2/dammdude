@@ -3,9 +3,6 @@
 import React, { useState } from 'react';
 import { 
   MENU_OPTIONS_CONFIG, 
-  shouldShowWingFlavors, 
-  shouldShowMeatChoices, 
-  shouldShowChefaSauce,
   detectItemOptions
 } from './MenuOptionsConfig';
 

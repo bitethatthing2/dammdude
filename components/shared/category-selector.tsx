@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Import all icons as a namespace
 import * as LucideIcons from 'lucide-react';
@@ -56,7 +54,7 @@ export function CategorySelector({
     }
     // Drink categories
     else if (lowerName.includes('board')) {
-      iconName = 'Cocktail';
+      iconName = 'GlassWater';
     } else if (lowerName.includes('flight')) {
       iconName = 'Wine';
     } else if (lowerName.includes('tower')) {
@@ -66,7 +64,7 @@ export function CategorySelector({
     } else if (lowerName.includes('martini')) {
       iconName = 'Martini';
     } else if (lowerName.includes('margarita') || lowerName.includes('cocktail')) {
-      iconName = 'Cocktail';
+      iconName = 'GlassWater';
     } else if (lowerName.includes('bucket')) {
       iconName = 'Palmtree';
     } else if (lowerName.includes('refresh')) {

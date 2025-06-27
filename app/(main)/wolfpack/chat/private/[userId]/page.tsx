@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Send, Shield, UserX } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 
@@ -53,18 +53,6 @@ interface ChatUser {
 }
 
 // Updated interface to match wolf_pack_interactions schema
-interface WolfPackInteraction {
-  id: string;
-  from_user_id?: string;
-  to_user_id?: string;
-  interaction_type?: string;
-  created_at: string;
-  is_flirt: boolean;
-  flirt_type?: string;
-  sender_id?: string;
-  receiver_id?: string;
-  location_id?: string;
-}
 
 export default function PrivateChatPage() {
   const params = useParams();
@@ -80,11 +68,7 @@ export default function PrivateChatPage() {
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
-
-  const supabase = getSupabaseBrowserClient();
-
-  // Load chat data
+  const [isBlocked, setIsBlocked] = useState(false);  // Load chat data
   useEffect(() => {
     async function loadChatData() {
       if (!user || !otherUserId) return;
@@ -109,10 +93,20 @@ export default function PrivateChatPage() {
           .single();
 
         if (userError) throw userError;
+        // Defensive check: only assign wolf_profiles if it's an object (not an error)
+        let wolfProfileObj = null;
+        if (
+          userData.wolf_profiles &&
+          typeof userData.wolf_profiles === 'object' &&
+          !('code' in userData.wolf_profiles) // not a SelectQueryError
+        ) {
+          wolfProfileObj = userData.wolf_profiles;
+        }
         setOtherUser({
           ...userData,
           first_name: userData.first_name ?? undefined,
-          last_name: userData.last_name ?? undefined
+          last_name: userData.last_name ?? undefined,
+          wolf_profiles: wolfProfileObj
         });
 
         // Check if messaging is allowed (handle potential query error)

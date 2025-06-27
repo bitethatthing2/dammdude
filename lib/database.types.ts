@@ -94,6 +94,13 @@ export type Database = {
             foreignKeyName: "admin_logs_admin_id_fkey"
             columns: ["admin_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -200,6 +207,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "announcements_created_by_fkey"
@@ -353,6 +367,13 @@ export type Database = {
             foreignKeyName: "bartender_orders_bartender_id_fkey"
             columns: ["bartender_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_bartender_id_fkey"
+            columns: ["bartender_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -383,6 +404,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_orders_customer_id_fkey"
@@ -489,6 +517,13 @@ export type Database = {
             foreignKeyName: "bartender_quick_replies_bartender_id_fkey"
             columns: ["bartender_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_quick_replies_bartender_id_fkey"
+            columns: ["bartender_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -553,6 +588,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "bartender_tabs_bartender_id_fkey"
+            columns: ["bartender_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_tabs_bartender_id_fkey"
@@ -663,6 +705,13 @@ export type Database = {
             foreignKeyName: "content_flags_flagged_by_fkey"
             columns: ["flagged_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_flags_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -693,6 +742,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "content_flags_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "content_flags_resolved_by_fkey"
@@ -797,6 +853,13 @@ export type Database = {
             foreignKeyName: "device_registrations_staff_id_fkey"
             columns: ["staff_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_registrations_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -894,6 +957,13 @@ export type Database = {
             foreignKeyName: "device_tokens_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -963,6 +1033,13 @@ export type Database = {
             foreignKeyName: "dj_broadcast_templates_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_templates_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -1021,6 +1098,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
@@ -1124,6 +1208,13 @@ export type Database = {
             foreignKeyName: "dj_event_participants_participant_id_fkey"
             columns: ["participant_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_event_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -1217,6 +1308,13 @@ export type Database = {
             foreignKeyName: "dj_events_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_events_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -1275,6 +1373,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_events_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_events_winner_id_fkey"
@@ -1382,6 +1487,13 @@ export type Database = {
             foreignKeyName: "food_drink_categories_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -1477,6 +1589,13 @@ export type Database = {
             foreignKeyName: "food_drink_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -1560,6 +1679,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "images_uploaded_by_fkey"
@@ -2061,6 +2187,13 @@ export type Database = {
             foreignKeyName: "push_notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -2441,6 +2574,13 @@ export type Database = {
             foreignKeyName: "topic_subscriptions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -2511,6 +2651,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_app_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_app_settings_user_id_fkey"
@@ -2610,6 +2757,13 @@ export type Database = {
             foreignKeyName: "user_location_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_location_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -2643,6 +2797,7 @@ export type Database = {
           first_name: string | null
           id: string
           is_approved: boolean | null
+          is_permanent_pack_member: boolean | null
           last_login: string | null
           last_name: string | null
           location_id: string | null
@@ -2650,6 +2805,9 @@ export type Database = {
           notes: string | null
           notification_preferences: Json | null
           password_hash: string | null
+          permanent_member_benefits: Json | null
+          permanent_member_notes: string | null
+          permanent_member_since: string | null
           permissions: Json | null
           phone: string | null
           phone_verification_code: string | null
@@ -2677,6 +2835,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_approved?: boolean | null
+          is_permanent_pack_member?: boolean | null
           last_login?: string | null
           last_name?: string | null
           location_id?: string | null
@@ -2684,6 +2843,9 @@ export type Database = {
           notes?: string | null
           notification_preferences?: Json | null
           password_hash?: string | null
+          permanent_member_benefits?: Json | null
+          permanent_member_notes?: string | null
+          permanent_member_since?: string | null
           permissions?: Json | null
           phone?: string | null
           phone_verification_code?: string | null
@@ -2711,6 +2873,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_approved?: boolean | null
+          is_permanent_pack_member?: boolean | null
           last_login?: string | null
           last_name?: string | null
           location_id?: string | null
@@ -2718,6 +2881,9 @@ export type Database = {
           notes?: string | null
           notification_preferences?: Json | null
           password_hash?: string | null
+          permanent_member_benefits?: Json | null
+          permanent_member_notes?: string | null
+          permanent_member_since?: string | null
           permissions?: Json | null
           phone?: string | null
           phone_verification_code?: string | null
@@ -2746,6 +2912,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_users_blocked_by"
@@ -2851,6 +3024,13 @@ export type Database = {
             foreignKeyName: "wolf_chat_flagged_by_fkey"
             columns: ["flagged_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_chat_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -2916,6 +3096,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_chat_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_chat_user_id_fkey"
@@ -3012,6 +3199,13 @@ export type Database = {
             foreignKeyName: "wolf_check_ins_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_check_ins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3078,6 +3272,13 @@ export type Database = {
             foreignKeyName: "wolf_connections_user_one_id_fkey"
             columns: ["user_one_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_connections_user_one_id_fkey"
+            columns: ["user_one_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3108,6 +3309,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_connections_user_two_id_fkey"
+            columns: ["user_two_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_connections_user_two_id_fkey"
@@ -3175,6 +3383,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_avatars_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_avatars_user_id_fkey"
@@ -3255,6 +3470,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_contests_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_contests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3313,6 +3535,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_contests_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_contests_winner_id_fkey"
@@ -3426,6 +3655,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_from_user_id_fkey"
             columns: ["from_user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3489,6 +3725,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
             columns: ["receiver_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3524,6 +3767,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3554,6 +3804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_to_user_id_fkey"
@@ -3649,6 +3906,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_votes_voted_for_id_fkey"
             columns: ["voted_for_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voted_for_id_fkey"
+            columns: ["voted_for_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3679,6 +3943,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_votes_voter_id_fkey"
@@ -3774,6 +4045,13 @@ export type Database = {
             foreignKeyName: "fk_wolf_private_messages_from_user"
             columns: ["from_user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolf_private_messages_from_user"
+            columns: ["from_user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3809,6 +4087,13 @@ export type Database = {
             foreignKeyName: "fk_wolf_private_messages_to_user"
             columns: ["to_user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolf_private_messages_to_user"
+            columns: ["to_user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3844,6 +4129,13 @@ export type Database = {
             foreignKeyName: "wolf_private_messages_flagged_by_fkey"
             columns: ["flagged_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_private_messages_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -3874,6 +4166,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_private_messages_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_from_user_id_fkey"
@@ -3916,6 +4215,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_private_messages_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_to_user_id_fkey"
@@ -4042,6 +4348,13 @@ export type Database = {
             foreignKeyName: "wolf_profiles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4104,6 +4417,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_reactions_user_id_fkey"
@@ -4212,6 +4532,13 @@ export type Database = {
             foreignKeyName: "wolfpack_analytics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_analytics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4315,6 +4642,13 @@ export type Database = {
             foreignKeyName: "wolfpack_bar_tabs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_bar_tabs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4396,6 +4730,13 @@ export type Database = {
             foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4458,6 +4799,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
@@ -4717,6 +5065,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4775,6 +5130,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -4910,6 +5272,13 @@ export type Database = {
             foreignKeyName: "wolfpack_sessions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -4976,6 +5345,13 @@ export type Database = {
             foreignKeyName: "wolfpack_whitelist_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_whitelist_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5006,6 +5382,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_whitelist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_whitelist_user_id_fkey"
@@ -5168,6 +5551,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5226,6 +5616,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -5336,6 +5733,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5399,6 +5803,13 @@ export type Database = {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5449,6 +5860,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_profiles_user_id_fkey"
@@ -5811,6 +6229,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5846,6 +6271,13 @@ export type Database = {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -5864,6 +6296,23 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      permanent_pack_members: {
+        Row: {
+          avatar_url: string | null
+          days_as_permanent_member: number | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          instagram_handle: string | null
+          last_name: string | null
+          permanent_member_benefits: Json | null
+          permanent_member_notes: string | null
+          permanent_member_since: string | null
+          vibe_status: string | null
+          wolfpack_display_name: string | null
+        }
+        Relationships: []
       }
       rls_optimization_summary: {
         Row: {
@@ -6053,6 +6502,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -6111,6 +6567,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -6242,6 +6705,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -6300,6 +6770,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -6414,6 +6891,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -6472,6 +6956,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -6621,6 +7112,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -6679,6 +7177,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -6768,6 +7273,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -6798,6 +7310,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -6958,6 +7477,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -7016,6 +7542,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -7126,6 +7659,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -7184,6 +7724,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -7279,6 +7826,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -7337,6 +7891,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -7461,6 +8022,13 @@ export type Database = {
             foreignKeyName: "fk_wolfpack_members_unified_user_id"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wolfpack_members_unified_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
@@ -7519,6 +8087,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "image_usage_summary"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_members_unified_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "permanent_pack_members"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_members_unified_user_id_fkey"
@@ -8165,6 +8740,10 @@ export type Database = {
       can_access_wolf_chat: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      can_bypass_location_verification: {
+        Args: { p_user_id?: string }
+        Returns: boolean
       }
       can_message_user: {
         Args: { p_target_user_id: string }
@@ -8910,6 +9489,7 @@ export type Database = {
           first_name: string | null
           id: string
           is_approved: boolean | null
+          is_permanent_pack_member: boolean | null
           last_login: string | null
           last_name: string | null
           location_id: string | null
@@ -8917,6 +9497,9 @@ export type Database = {
           notes: string | null
           notification_preferences: Json | null
           password_hash: string | null
+          permanent_member_benefits: Json | null
+          permanent_member_notes: string | null
+          permanent_member_since: string | null
           permissions: Json | null
           phone: string | null
           phone_verification_code: string | null
@@ -9415,6 +9998,10 @@ export type Database = {
           last_activity: string
         }[]
       }
+      get_wolfpack_access_status: {
+        Args: { p_user_id?: string }
+        Returns: Json
+      }
       get_wolfpack_dashboard: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -9442,6 +10029,10 @@ export type Database = {
       gidx_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      grant_permanent_pack_member_status: {
+        Args: { p_user_email: string; p_admin_notes?: string }
+        Returns: Json
       }
       handle_image_upload: {
         Args: {
@@ -9562,8 +10153,21 @@ export type Database = {
         }
         Returns: Json
       }
+      join_wolfpack_enhanced: {
+        Args: { p_location_id?: string }
+        Returns: Json
+      }
       join_wolfpack_membership: {
         Args: { p_table_location?: string }
+        Returns: Json
+      }
+      join_wolfpack_permanent_safe: {
+        Args: {
+          p_location_id?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_table_location?: string
+        }
         Returns: Json
       }
       join_wolfpack_simple: {
@@ -9645,6 +10249,10 @@ export type Database = {
           scans: number
           status: string
         }[]
+      }
+      needs_location_verification: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       open_wolfpack_bar_tab: {
         Args: { location_id: string }

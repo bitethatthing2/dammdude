@@ -1,7 +1,12 @@
-import { createClient } from '@/lib/supabase/client';
+import type { PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import { WolfpackErrorHandler } from './wolfpack-error.service';
+import type { Database } from '../database.types';
+import { supabase } from '@/lib/supabase/client';
 
-const supabase = createClient();
+// Create a properly typed client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Standardized table names - consolidates scattered references
 export const WOLFPACK_TABLES = {
@@ -97,6 +102,14 @@ export interface SingleQueryResult<T> {
   error: string | null;
 }
 
+// Better typing for filters and data
+type FilterValue = string | number | boolean | null | string[] | number[];
+type QueryFilters = Record<string, FilterValue>;
+type InsertData<T = Record<string, unknown>> = Partial<T> | Partial<T>[];
+type RpcParams = Record<string, unknown>;
+
+// Using properly typed supabase client directly
+
 export class WolfpackBackendService {
   /**
    * Standardized query method with consistent error handling
@@ -104,11 +117,13 @@ export class WolfpackBackendService {
   static async query<T>(
     table: string,
     selectQuery: string = '*',
-    filters: Record<string, any> = {},
+    filters: QueryFilters = {},
     options: QueryOptions = {}
   ): Promise<QueryResult<T>> {
     try {
-      let query = supabase
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (client as any)
         .from(table)
         .select(selectQuery, { count: 'exact' });
 
@@ -175,10 +190,12 @@ export class WolfpackBackendService {
   static async queryOne<T>(
     table: string,
     selectQuery: string = '*',
-    filters: Record<string, any> = {}
+    filters: QueryFilters = {}
   ): Promise<SingleQueryResult<T>> {
     try {
-      let query = supabase
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (client as any)
         .from(table)
         .select(selectQuery);
 
@@ -222,15 +239,18 @@ export class WolfpackBackendService {
    */
   static async insert<T>(
     table: string,
-    data: Partial<T> | Partial<T>[],
+    data: InsertData<T>,
     selectQuery?: string
   ): Promise<QueryResult<T>> {
     try {
-      let query = supabase.from(table).insert(data);
-
-      if (selectQuery) {
-        query = query.select(selectQuery);
-      }
+      const client = supabase;
+      // Type assertion needed for dynamic table names and generic data types
+      // The Supabase client expects literal table names, but this service handles dynamic tables
+      const query = selectQuery 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (client as any).from(table).insert(data).select(selectQuery)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        : (client as any).from(table).insert(data);
 
       const { data: result, error } = await query;
 
@@ -246,7 +266,7 @@ export class WolfpackBackendService {
       }
 
       return {
-        data: result as T[],
+        data: (result as T[]) || ([] as T[]),
         error: null
       };
     } catch (error) {
@@ -266,11 +286,13 @@ export class WolfpackBackendService {
   static async update<T>(
     table: string,
     data: Partial<T>,
-    filters: Record<string, any>,
+    filters: QueryFilters,
     selectQuery?: string
   ): Promise<QueryResult<T>> {
     try {
-      let query = supabase.from(table).update(data);
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (client as any).from(table).update(data);
 
       // Apply filters
       Object.entries(filters).forEach(([key, value]) => {
@@ -279,16 +301,13 @@ export class WolfpackBackendService {
         }
       });
 
-      if (selectQuery) {
-        query = query.select(selectQuery);
-      }
-
-      const { data: result, error } = await query;
+      const finalQuery = selectQuery ? query.select(selectQuery) : query;
+      const { data: result, error } = await finalQuery;
 
       if (error) {
         const userError = WolfpackErrorHandler.handleSupabaseError(error, {
           operation: `update_${table}`,
-          additional: { updateKeys: Object.keys(data), filters }
+          additional: { updateKeys: Object.keys(data as Record<string, unknown>), filters }
         });
         return {
           data: null,
@@ -297,7 +316,7 @@ export class WolfpackBackendService {
       }
 
       return {
-        data: result as T[],
+        data: (result as T[]) || ([] as T[]),
         error: null
       };
     } catch (error) {
@@ -316,10 +335,12 @@ export class WolfpackBackendService {
    */
   static async delete(
     table: string,
-    filters: Record<string, any>
+    filters: QueryFilters
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      let query = supabase.from(table).delete();
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (client as any).from(table).delete();
 
       // Apply filters
       Object.entries(filters).forEach(([key, value]) => {
@@ -358,20 +379,19 @@ export class WolfpackBackendService {
    */
   static async upsert<T>(
     table: string,
-    data: Partial<T> | Partial<T>[],
+    data: InsertData<T>,
     conflictColumns?: string[],
     selectQuery?: string
   ): Promise<QueryResult<T>> {
     try {
-      let query = supabase.from(table).upsert(data, {
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const query = (client as any).from(table).upsert(data, {
         onConflict: conflictColumns?.join(',')
       });
 
-      if (selectQuery) {
-        query = query.select(selectQuery);
-      }
-
-      const { data: result, error } = await query;
+      const finalQuery = selectQuery ? query.select(selectQuery) : query;
+      const { data: result, error } = await finalQuery;
 
       if (error) {
         const userError = WolfpackErrorHandler.handleSupabaseError(error, {
@@ -385,7 +405,7 @@ export class WolfpackBackendService {
       }
 
       return {
-        data: result as T[],
+        data: (result as T[]) || ([] as T[]),
         error: null
       };
     } catch (error) {
@@ -404,10 +424,12 @@ export class WolfpackBackendService {
    */
   static async callRpc<T>(
     functionName: string,
-    params: Record<string, any> = {}
+    params: RpcParams = {}
   ): Promise<SingleQueryResult<T>> {
     try {
-      const { data, error } = await supabase.rpc(functionName, params);
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (client as any).rpc(functionName, params);
 
       if (error) {
         const userError = WolfpackErrorHandler.handleSupabaseError(error, {
@@ -496,7 +518,9 @@ export class WolfpackBackendService {
    */
   static async checkTableExists(tableName: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const client = supabase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (client as any)
         .from(tableName)
         .select('*')
         .limit(1);

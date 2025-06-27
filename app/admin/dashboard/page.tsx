@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function AdminDashboard() {
@@ -23,9 +23,7 @@ export default function AdminDashboard() {
 
   const handleSignOut = async () => {
     try {
-      setIsSigningOut(true);
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      setIsSigningOut(true);      await supabase.auth.signOut();
       router.push('/login');
     } catch {
       toast({

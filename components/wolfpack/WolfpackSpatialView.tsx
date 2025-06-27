@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +14,7 @@ import {
   UserX,
   Users
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -23,52 +23,38 @@ interface WolfPackMember {
   id: string;
   user_id: string;
   location_id: string | null;
-  table_location?: string | null;
-  joined_at: string | null;
+  status: string | null;
+  joined_at: string;
   last_active: string | null;
-  status: string;
-  position_x?: number;
-  position_y?: number;
-  user?: {
-    email: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    role: string | null;
-    wolf_profile?: {
-      display_name: string | null;
-      wolf_emoji: string | null;
-      favorite_drink?: string | null;
-      instagram_handle?: string | null;
-      looking_for?: string | null;
-      bio?: string | null;
-      is_visible: boolean | null;
-      profile_image_url?: string | null;
-      allow_messages: boolean | null;
-    } | null;
-  };
-}
-
-interface SimpleSpatialMemberData {
-  id: string;
-  user_id: string;
-  location_id: string | null;
-  table_location?: string | null;
-  joined_at: string | null;
-  last_active: string | null;
-  status: string;
-  position_x?: number;
-  position_y?: number;
-  user?: {
-    email: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    role: string | null;
-  };
+  latitude: number | null;
+  longitude: number | null;
+  position_x: number | null;
+  position_y: number | null;
+  table_location: string | null;
+  is_active: boolean | null;
+  username: string | null;
+  avatar_url: string | null;
+  favorite_drink: string | null;
+  current_vibe: string | null;
+  looking_for: string | null;
+  instagram_handle: string | null;
+  emoji: string | null;
+  role: string | null;
+  display_name: string | null;
+  is_host: boolean | null;
+  left_at: string | null;
+  status_enum: string | null;
 }
 
 interface WolfpackSpatialViewProps {
   locationId: string;
   currentUserId: string;
+}
+
+// Add missing interface for special role dialog
+interface SpecialRoleDialog {
+  role: 'bartender' | 'dj';
+  member: WolfPackMember;
 }
 
 export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpatialViewProps) {
@@ -79,10 +65,8 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
   const [isLoading, setIsLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'spatial' | 'list'>('spatial');
-
-  const supabase = getSupabaseBrowserClient();
-
-  // Click handler for wolf interactions
+  // Add the missing showSpecialRole state
+  const [showSpecialRole, setShowSpecialRole] = useState<SpecialRoleDialog | null>(null);  // Click handler for wolf interactions
   const handleWolfClick = useCallback((member: WolfPackMember) => {
     setSelectedMember(member);
   }, []);
@@ -99,19 +83,13 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
       try {
         setIsLoading(true);
 
-        // Try the full query first
+        // Query the correct table: wolfpack_members_unified
         let memberQuery = supabase
-          .from("wolf_pack_members")
-          .select(`
-            *,
-            user:users (
-              *,
-              wolf_profile:wolf_profiles (*)
-            )
-          `)
-          .eq('status', 'active');
+          .from("wolfpack_members_unified")
+          .select('*')
+          .eq('is_active', true);
 
-        // Handle location filter correctly - avoid NULL query issues
+        // Handle location filter correctly
         if (locationId === null || locationId === undefined) {
           memberQuery = memberQuery.is('location_id', null);
         } else {
@@ -121,54 +99,11 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
         const { data: memberData, error: memberError } = await memberQuery.order('joined_at', { ascending: false });
 
         if (memberError) {
-          // If it's a relationship error, try a simpler query
-          if (memberError.code === 'PGRST200') {
-            console.log('Wolf profiles relationship not found, trying simpler query...');
-            let simpleMemberQuery = supabase
-              .from("wolf_pack_members")
-              .select(`
-                *,
-                user:users (*)
-              `)
-              .eq('status', 'active');
-
-            // Handle location filter correctly for fallback query too
-            if (locationId === null || locationId === undefined) {
-              simpleMemberQuery = simpleMemberQuery.is('location_id', null);
-            } else {
-              simpleMemberQuery = simpleMemberQuery.eq('location_id', locationId);
-            }
-
-            const { data: simpleData, error: simpleError } = await simpleMemberQuery.order('joined_at', { ascending: false });
-
-            if (simpleError) throw simpleError;
-
-            // Transform data to match expected interface (without wolf_profile)
-            const transformedData = simpleData?.map((member: SimpleSpatialMemberData) => ({
-              ...member,
-              user: member.user ? {
-                ...member.user,
-                wolf_profile: {
-                  display_name: 'Anonymous Wolf',
-                  wolf_emoji: '🐺',
-                  favorite_drink: null,
-                  instagram_handle: null,
-                  looking_for: null,
-                  bio: null,
-                  is_visible: true,
-                  profile_image_url: null,
-                  allow_messages: true
-                }
-              } : undefined
-            })) || [];
-
-            setMembers(transformedData);
-          } else {
-            throw memberError;
-          }
-        } else {
-          setMembers(memberData || []);
+          console.error('Error loading wolfpack members:', memberError);
+          throw memberError;
         }
+
+        setMembers(memberData || []);
 
         // Load blocked users
         const { data: blockData } = await supabase
@@ -189,7 +124,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
     if (locationId) {
       loadData();
 
-      // Set up real-time subscription
+      // Set up real-time subscription for the correct table
       const memberSubscription = supabase
         .channel(`wolfpack_spatial_${locationId}`)
         .on(
@@ -197,7 +132,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
           {
             event: '*',
             schema: 'public',
-            table: 'wolfpack_memberships',
+            table: 'wolfpack_members_unified',
             filter: `location_id=eq.${locationId}`
           },
           () => {
@@ -214,15 +149,15 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
   // Get member icon based on role with exclusive wolf emojis
   const getMemberIcon = (member: WolfPackMember) => {
-    const role = member.user?.role;
+    const role = member.role;
     if (role === 'dj') return '🎵'; // DJ gets music emoji
     if (role === 'bartender') return '🐺'; // Bartender gets exclusive wolf emoji
-    return member.user?.wolf_profile?.wolf_emoji || '🐾'; // Default wolf paw
+    return member.emoji || '🐾'; // Default wolf paw
   };
 
   // Get member bubble color based on role
   const getMemberBubbleColor = (member: WolfPackMember, isCurrentUser: boolean) => {
-    const role = member.user?.role;
+    const role = member.role;
     if (role === 'dj') return { bg: '#9333ea', border: '#7c3aed' }; // Purple for DJ
     if (role === 'bartender') return { bg: '#059669', border: '#047857' }; // Green for bartender
     if (isCurrentUser) return { bg: '#3b82f6', border: '#1d4ed8' }; // Blue for current user
@@ -297,8 +232,8 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
     }
   };
 
+  // Filter visible members - no wolf_profile needed since data is directly in the table
   const visibleMembers = members.filter(member => 
-    member.user?.wolf_profile?.is_visible !== false && 
     !blockedUsers.includes(member.user_id)
   );
 
@@ -359,15 +294,15 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold">
-                        {member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf'}
+                        {member.display_name || member.username || 'Wolf'}
                         {isCurrentUser && <span className="text-sm text-muted-foreground ml-2">(You)</span>}
                       </h4>
                       <p className="text-sm text-muted-foreground">
                         {member.table_location || 'Roaming the bar'}
                       </p>
-                      {member.user?.role && (
+                      {member.role && (
                         <Badge variant="secondary" className="text-xs mt-1">
-                          {member.user.role === 'dj' ? 'DJ' : member.user.role === 'bartender' ? 'Bartender' : 'Member'}
+                          {member.role === 'dj' ? 'DJ' : member.role === 'bartender' ? 'Bartender' : 'Member'}
                         </Badge>
                       )}
                     </div>
@@ -516,13 +451,13 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                   />
                   
                   {/* Role indicator ring for special roles */}
-                  {(member.user?.role === 'dj' || member.user?.role === 'bartender') && (
+                  {(member.role === 'dj' || member.role === 'bartender') && (
                     <circle 
                       cx={x} 
                       cy={y} 
                       r="26" 
                       fill="none" 
-                      stroke={member.user.role === 'dj' ? '#fbbf24' : '#10b981'} 
+                      stroke={member.role === 'dj' ? '#fbbf24' : '#10b981'} 
                       strokeWidth="2"
                       strokeDasharray="4 4"
                       className="animate-pulse"
@@ -561,18 +496,18 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                     fontFamily="system-ui"
                     className="select-none font-medium"
                   >
-                    {(member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf').slice(0, 10)}
+                    {(member.display_name || member.username || 'Wolf').slice(0, 10)}
                   </text>
                   
                   {/* Role badge for special users */}
-                  {member.user?.role && (member.user.role === 'dj' || member.user.role === 'bartender') && (
+                  {member.role && (member.role === 'dj' || member.role === 'bartender') && (
                     <>
                       <rect
                         x={x - 15}
                         y={y - 55}
                         width="30"
                         height="12"
-                        fill={member.user.role === 'dj' ? '#9333ea' : '#059669'}
+                        fill={member.role === 'dj' ? '#9333ea' : '#059669'}
                         rx="6"
                         ry="6"
                       />
@@ -585,7 +520,7 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
                         fontFamily="system-ui"
                         className="select-none font-bold"
                       >
-                        {member.user.role === 'dj' ? 'DJ' : 'BAR'}
+                        {member.role === 'dj' ? 'DJ' : 'BAR'}
                       </text>
                     </>
                   )}
@@ -642,13 +577,13 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
         
         {/* Special Role Quick Access Overlay */}
         <div className="absolute top-4 left-4 space-y-2">
-          {visibleMembers.filter(m => m.user?.role === 'bartender').length > 0 && (
+          {visibleMembers.filter(m => m.role === 'bartender').length > 0 && (
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-2 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-all"
               onClick={() => {
-                const bartender = visibleMembers.find(m => m.user?.role === 'bartender');
+                const bartender = visibleMembers.find(m => m.role === 'bartender');
                 if (bartender) handleWolfClick(bartender);
               }}
             >
@@ -659,14 +594,14 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
             </motion.div>
           )}
           
-          {visibleMembers.filter(m => m.user?.role === 'dj').length > 0 && (
+          {visibleMembers.filter(m => m.role === 'dj').length > 0 && (
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2 }}
               className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-all"
               onClick={() => {
-                const dj = visibleMembers.find(m => m.user?.role === 'dj');
+                const dj = visibleMembers.find(m => m.role === 'dj');
                 if (dj) handleWolfClick(dj);
               }}
             >
@@ -713,8 +648,8 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               {showSpecialRole.role === 'bartender' ? '🐺 Bartender Actions' : '🎵 DJ Actions'}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Special actions for {showSpecialRole.member.user?.wolf_profile?.display_name || 
-                                  showSpecialRole.member.user?.first_name || 'Wolf'}
+              Special actions for {showSpecialRole.member.display_name || 
+                                  showSpecialRole.member.username || 'Wolf'}
             </p>
             <button 
               onClick={() => setShowSpecialRole(null)}
@@ -741,25 +676,25 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               {/* Profile Header */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url || undefined} />
+                  <AvatarImage src={selectedMember.avatar_url || undefined} />
                   <AvatarFallback className="text-lg">
-                    {selectedMember.user?.wolf_profile?.wolf_emoji || 
-                     selectedMember.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
+                    {selectedMember.emoji || 
+                     selectedMember.display_name?.charAt(0)?.toUpperCase() || 
                      'W'}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1">
                   <h3 className="text-xl font-bold">
-                    {selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'}
+                    {selectedMember.display_name || selectedMember.username || 'Anonymous Wolf'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Ready to party! 🎉
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary">
-                      {selectedMember.user?.role === 'dj' ? 'DJ' : 
-                       selectedMember.user?.role === 'bartender' ? 'Bartender' : 'Wolf'}
+                      {selectedMember.role === 'dj' ? 'DJ' : 
+                       selectedMember.role === 'bartender' ? 'Bartender' : 'Wolf'}
                     </Badge>
                     {selectedMember.table_location && (
                       <Badge variant="outline" className="text-xs">
@@ -772,29 +707,38 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
 
               {/* Profile Details */}
               <div className="space-y-3">
-                {selectedMember.user?.wolf_profile?.bio && (
+                {selectedMember.current_vibe && (
                   <div>
-                    <h4 className="font-medium mb-1">About</h4>
+                    <h4 className="font-medium mb-1">Current Vibe</h4>
                     <p className="text-sm text-muted-foreground">
-                      {selectedMember.user.wolf_profile.bio}
+                      {selectedMember.current_vibe}
                     </p>
                   </div>
                 )}
 
-                {selectedMember.user?.wolf_profile?.favorite_drink && (
+                {selectedMember.favorite_drink && (
                   <div>
                     <h4 className="font-medium mb-1">Favorite Drink</h4>
                     <p className="text-sm text-muted-foreground">
-                      {selectedMember.user.wolf_profile.favorite_drink}
+                      {selectedMember.favorite_drink}
                     </p>
                   </div>
                 )}
 
-                {selectedMember.user?.wolf_profile?.looking_for && (
+                {selectedMember.looking_for && (
                   <div>
                     <h4 className="font-medium mb-1">Looking For</h4>
                     <p className="text-sm text-muted-foreground">
-                      {selectedMember.user.wolf_profile.looking_for}
+                      {selectedMember.looking_for}
+                    </p>
+                  </div>
+                )}
+
+                {selectedMember.instagram_handle && (
+                  <div>
+                    <h4 className="font-medium mb-1">Instagram</h4>
+                    <p className="text-sm text-muted-foreground">
+                      @{selectedMember.instagram_handle}
                     </p>
                   </div>
                 )}
@@ -803,25 +747,23 @@ export function WolfpackSpatialView({ locationId, currentUserId }: WolfpackSpati
               {/* Action Buttons */}
               {selectedMember.user_id !== currentUserId && (
                 <div className="space-y-2">
-                  {selectedMember.user?.wolf_profile?.allow_messages !== false && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => sendInteraction(selectedMember.user_id, 'wink')}
-                        className="flex-1"
-                      >
-                        <Heart className="h-4 w-4 mr-2" />
-                        Send Wink
-                      </Button>
-                      <Button
-                        onClick={() => sendInteraction(selectedMember.user_id, 'message')}
-                        className="flex-1"
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Message
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => sendInteraction(selectedMember.user_id, 'wink')}
+                      className="flex-1"
+                    >
+                      <Heart className="h-4 w-4 mr-2" />
+                      Send Wink
+                    </Button>
+                    <Button
+                      onClick={() => sendInteraction(selectedMember.user_id, 'message')}
+                      className="flex-1"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                    </Button>
+                  </div>
 
                   {blockedUsers.includes(selectedMember.user_id) ? (
                     <Button

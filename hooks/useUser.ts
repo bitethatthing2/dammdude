@@ -1,6 +1,6 @@
 // lib/hooks/useUser.ts
 import { useEffect, useState } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 // Define auth user type to avoid Supabase namespace issues
@@ -14,10 +14,7 @@ interface AuthUser {
 
 export function useUser() {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = getSupabaseBrowserClient();
-
-  useEffect(() => {
+  const [loading, setLoading] = useState(true);  useEffect(() => {
     // Get initial user
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user as AuthUser | null;

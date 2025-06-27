@@ -1,296 +1,146 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase/client'; // Use shared instance
 
-// Define notification type
-export type NotificationType = "info" | "warning" | "error" | "order_new" | "order_ready";
-
-// Define notification interface
-export interface Notification {
+/**
+ * Notification interface matching your fetch_notifications function return type
+ */
+interface Notification {
   id: string;
-  recipient_id: string;
+  user_id: string;
+  type: string;
+  title: string;
   message: string;
-  type: NotificationType;
-  status: "unread" | "read" | "dismissed";
+  read: boolean;
+  data: Record<string, unknown>;
   created_at: string;
-  link?: string;
-  metadata?: Record<string, unknown>;
+  updated_at: string;
 }
 
-// Define Supabase real-time payload type
-interface SupabasePayload {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new?: Notification;
-  old?: { id: string };
-}
-
-// Context type definition
+/**
+ * Notification context interface
+ */
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
-  error: Error | null;
+  refreshNotifications: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   dismissAllNotifications: () => Promise<void>;
-  refreshNotifications: () => Promise<void>;
-  playNotificationSound: (soundType?: 'notification' | 'new-order' | 'status-change') => void;
-}
-
-// Create context
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-// Provider props
-interface NotificationProviderProps {
-  children: ReactNode;
-  recipientId?: string;
 }
 
 /**
- * Unified notification provider component
- * Handles notifications for all user types (customer, staff, admin)
+ * Notification context
  */
-export function UnifiedNotificationProvider({
-  children,
-  recipientId
-}: NotificationProviderProps) {
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
+/**
+ * Notification provider props
+ */
+interface NotificationProviderProps {
+  children: ReactNode;
+}
+
+/**
+ * Notification provider component
+ * Provides notification state and actions to child components
+ */
+export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseBrowserClient> | null>(null);
-  
-  // Calculate unread count
-  const unreadCount = notifications.filter(n => n.status === 'unread').length;
-  
-  // Initialize Supabase on client side
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setSupabase(getSupabaseBrowserClient());
-    }
-  }, []);
-  
-  // Fetch notifications
-  const fetchNotifications = async () => {
-    // IMPORTANT: Only fetch if we have a valid UUID recipientId
-    // This prevents the 'customer' string from being used
-    if (!supabase || !recipientId || recipientId === 'customer' || recipientId === 'admin') {
-      console.log('[NotificationContext] Skipping fetch - no valid recipient ID', { recipientId });
-      setNotifications([]);
-      setIsLoading(false);
-      return;
-    }
-    
-    // Validate that recipientId looks like a UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(recipientId)) {
-      console.warn('[NotificationContext] Invalid recipient ID format:', recipientId);
-      setNotifications([]);
-      setIsLoading(false);
-      return;
-    }
-    
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch notifications from Supabase
+  const fetchNotifications = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('[NotificationContext] Fetching notifications for:', recipientId);
-      
-      // Fetch notifications for this recipient
-      const { data, error: fetchError } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('recipient_id', recipientId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (fetchError) {
-        console.error('[NotificationContext] Fetch error:', fetchError);
-        throw fetchError;
+      const { data, error } = await supabase.rpc('fetch_notifications', {
+        p_user_id: null, // null means current user
+        p_limit: 50,
+        p_offset: 0
+      });
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return;
       }
-      
-      console.log('[NotificationContext] Fetched notifications:', data?.length || 0);
+
       setNotifications(data || []);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch notifications'));
+      console.error('Failed to fetch notifications:', err);
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  // Load notifications when recipientId or supabase changes
-  useEffect(() => {
-    // Only fetch if we have a valid recipient ID
-    if (recipientId && supabase && recipientId !== 'customer' && recipientId !== 'admin') {
-      fetchNotifications();
-    } else {
-      // Clear notifications if no valid recipient
-      setNotifications([]);
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipientId, supabase]);
-  
-  // Play notification sound
-  const playNotificationSound = (soundType: 'notification' | 'new-order' | 'status-change' = 'notification') => {
+  }, []);
+
+  // Mark notification as read
+  const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      // Only try to play sounds in browser environment
-      if (typeof window === 'undefined') {
-        return;
-      }
-      
-      const soundMap = {
-        'notification': '/sounds/notification.mp3',
-        'new-order': '/sounds/new-order.mp3',
-        'status-change': '/sounds/status-change.mp3'
-      };
-      
-      const soundUrl = soundMap[soundType];
-      
-      // Check if audio is supported
-      if (!window.Audio) {
-        console.warn('Audio not supported in this browser');
-        return;
-      }
-      
-      const audio = new Audio(soundUrl);
-      
-      // Set up error handling before attempting to play
-      audio.addEventListener('error', (err) => {
-        console.warn(`Could not load sound file: ${soundUrl}`, err);
+      const { error } = await supabase.rpc('mark_notification_read', {
+        p_notification_id: notificationId
       });
-      
-      // Attempt to play with proper error handling
-      const playPromise = audio.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          // This is normal - browsers often block autoplay
-          console.debug(`Sound play blocked or failed for ${soundType}:`, err.name);
-        });
+
+      if (error) {
+        console.error('Failed to mark notification as read:', error);
+        return;
       }
+
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
     } catch (err) {
-      console.warn('Error setting up notification sound:', err);
+      console.error('Failed to mark notification as read:', err);
     }
-  };
-  
-  // Set up real-time subscription
+  }, []);
+
+  // Dismiss notification (same as mark as read)
+  const dismissNotification = useCallback(async (notificationId: string) => {
+    await markAsRead(notificationId);
+  }, [markAsRead]);
+
+  // Mark all notifications as read
+  const dismissAllNotifications = useCallback(async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      // Mark all unread notifications as read
+      for (const id of unreadIds) {
+        await markAsRead(id);
+      }
+      
+      // Refresh notifications to get updated state
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  }, [notifications, markAsRead, fetchNotifications]);
+
+  // Refresh notifications
+  const refreshNotifications = useCallback(async () => {
+    await fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Load notifications on mount
   useEffect(() => {
-    // Only subscribe if we have a valid recipient ID
-    if (!supabase || !recipientId || recipientId === 'customer' || recipientId === 'admin') {
-      return;
-    }
-    
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(recipientId)) {
-      return;
-    }
-    
-    console.log('[NotificationContext] Setting up real-time subscription for:', recipientId);
-    
-    // Create channel for notifications
-    const channel = supabase.channel(`notifications-${recipientId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${recipientId}`
-      }, (payload: SupabasePayload) => {
-        console.log('Notification change received:', payload);
-        
-        // Handle different change types
-        if (payload.eventType === 'INSERT' && payload.new) {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          
-          // Play sound for new notifications
-          playNotificationSound(
-            newNotification.type === 'order_new' 
-              ? 'new-order' 
-              : newNotification.type === 'order_ready'
-                ? 'status-change'
-                : 'notification'
-          );
-        } else if (payload.eventType === 'UPDATE' && payload.new) {
-          setNotifications(prev => 
-            prev.map(n => n.id === payload.new!.id ? payload.new as Notification : n)
-          );
-        } else if (payload.eventType === 'DELETE' && payload.old) {
-          setNotifications(prev => 
-            prev.filter(n => n.id !== payload.old!.id)
-          );
-        }
-      })
-      .subscribe();
-    
-    // Cleanup subscription
-    return () => {
-      console.log('[NotificationContext] Cleaning up subscription for:', recipientId);
-      channel.unsubscribe();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipientId, supabase]);
-  
-  // Dismiss a notification
-  const dismissNotification = async (id: string) => {
-    if (!supabase) return;
-    
-    try {
-      // Update in database
-      const { error: updateError } = await supabase
-        .from('announcements')
-        .update({ status: 'dismissed' as const })
-        .eq('id', id);
-      
-      if (updateError) throw updateError;
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, status: 'dismissed' as const } : n)
-      );
-    } catch (err) {
-      console.error('Error dismissing notification:', err);
-      throw err;
-    }
-  };
-  
-  // Dismiss all notifications
-  const dismissAllNotifications = async () => {
-    if (!supabase || !recipientId) return;
-    
-    try {
-      // Update all unread notifications
-      const { error: updateError } = await supabase
-        .from('announcements')
-        .update({ status: 'dismissed' as const })
-        .eq('recipient_id', recipientId)
-        .eq('status', 'unread');
-      
-      if (updateError) throw updateError;
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, status: 'dismissed' as const }))
-      );
-    } catch (err) {
-      console.error('Error dismissing all notifications:', err);
-      throw err;
-    }
-  };
-  
-  // Create context value
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Context value
   const contextValue: NotificationContextType = {
     notifications,
     unreadCount,
     isLoading,
-    error,
+    refreshNotifications,
+    markAsRead,
     dismissNotification,
     dismissAllNotifications,
-    refreshNotifications: fetchNotifications,
-    playNotificationSound
   };
-  
+
   return (
     <NotificationContext.Provider value={contextValue}>
       {children}
@@ -299,23 +149,24 @@ export function UnifiedNotificationProvider({
 }
 
 /**
- * Hook to use the notification context
+ * Hook to use notification context
+ * Throws an error if used outside of NotificationProvider
  */
 export function useNotifications() {
   const context = useContext(NotificationContext);
-  
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a UnifiedNotificationProvider');
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
   }
-  
   return context;
 }
 
 /**
- * Safe hook to use the notification context
- * Returns null if context is not available instead of throwing an error
+ * Safe hook to use notification context
+ * Returns null if used outside of NotificationProvider (doesn't throw)
  */
-export function useSafeNotifications(): NotificationContextType | null {
+export function useSafeNotifications() {
   const context = useContext(NotificationContext);
-  return context || null;
+  return context;
 }
+
+export default NotificationProvider;

@@ -4,6 +4,7 @@ import { initializeFirebaseAdmin, getAdminMessaging, isFirebaseAdminInitialized 
 import { NOTIFICATION_TOPICS } from '@/lib/types/firebase';
 import type { NotificationTopicKey, FcmResponse, BulkNotificationResult } from '@/lib/types/firebase';
 import type { TopicMessage, MulticastMessage } from 'firebase-admin/messaging';
+import { createClient } from '@/lib/supabase/server';
 
 // Define the structure for notification requests
 interface NotificationRequestBody {

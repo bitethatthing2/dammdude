@@ -16,7 +16,10 @@
       "Bash(npm run dev:*)",
       "Bash(npm install:*)",
       "Bash(supabase:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(npx eslint:*)",
+      "Bash(curl:*)",
+      "Bash(rg:*)"
     ]
   },
   "enableAllProjectMcpServers": false

@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   MessageCircle, 
@@ -19,8 +18,8 @@ import {
   AlertTriangle,
   X
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -102,6 +101,10 @@ interface ChatState {
   currentSessionId: string | null;
 }
 
+type RealtimeMessagePayload = RealtimePostgresChangesPayload<DbChatMessage>;
+
+type RealtimeReactionPayload = RealtimePostgresChangesPayload<DbMessageReaction>;
+
 const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '😡'];
 
 export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }) {
@@ -123,11 +126,7 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const channelRef = useRef<{ messagesChannel: RealtimeChannel; typingChannel: RealtimeChannel } | null>(null);
-  
-  const supabase = getSupabaseBrowserClient();
-
-  // Auto-scroll to bottom when new messages arrive
+  const channelRef = useRef<{ messagesChannel: RealtimeChannel; typingChannel: RealtimeChannel } | null>(null);  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -199,65 +198,72 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
   useEffect(() => {
     if (!sessionId) return;
 
-    // Subscribe to new messages
+    // Subscribe to new messages using INSERT event
     const messagesChannel = supabase
       .channel(`chat_${sessionId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'wolfpack_chat_messages',
-          filter: `session_id=eq.${sessionId}`
-        },
-        (payload: { new: ChatMessage }) => {
+        { event: 'INSERT', schema: 'public', table: 'wolfpack_chat_messages', filter: `session_id=eq.${sessionId}` },
+        (payload: RealtimeMessagePayload) => {
           const newMessage = payload.new;
-          setState(prev => ({
-            ...prev,
-            messages: [...prev.messages, { ...newMessage, reactions: [] }]
-          }));
-          scrollToBottom();
+          if (newMessage && 'id' in newMessage && newMessage.id) {
+            const chatMessage: ChatMessage = {
+              id: newMessage.id,
+              session_id: newMessage.session_id,
+              user_id: newMessage.user_id || '',
+              display_name: newMessage.display_name,
+              avatar_url: newMessage.avatar_url || undefined,
+              content: newMessage.content,
+              message_type: newMessage.message_type,
+              image_url: newMessage.image_url || undefined,
+              created_at: newMessage.created_at || '',
+              edited_at: newMessage.edited_at || undefined,
+              is_flagged: newMessage.is_flagged || false,
+              reactions: []
+            };
+            setState(prev => ({
+              ...prev,
+              messages: [...prev.messages, chatMessage]
+            }));
+            scrollToBottom();
+          }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'wolfpack_chat_reactions'
-        },
-        (payload: { new: MessageReaction }) => {
+        { event: 'INSERT', schema: 'public', table: 'wolfpack_chat_reactions' },
+        (payload: RealtimeReactionPayload) => {
           const newReaction = payload.new;
-          setState(prev => ({
-            ...prev,
-            messages: prev.messages.map(msg =>
-              msg.id === newReaction.message_id
-                ? { ...msg, reactions: [...msg.reactions, newReaction] }
-                : msg
-            )
-          }));
+          if (newReaction && 'id' in newReaction && newReaction.message_id && newReaction.user_id) {
+            setState(prev => ({
+              ...prev,
+              messages: prev.messages.map(msg =>
+                msg.id === newReaction.message_id
+                  ? { ...msg, reactions: [...msg.reactions, newReaction as MessageReaction] }
+                  : msg
+              )
+            }));
+          }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'wolfpack_chat_reactions'
-        },
-        (payload: { old: MessageReaction }) => {
+        { event: 'DELETE', schema: 'public', table: 'wolfpack_chat_reactions' },
+        (payload: RealtimeReactionPayload) => {
           const deletedReaction = payload.old;
-          setState(prev => ({
-            ...prev,
-            messages: prev.messages.map(msg =>
-              msg.id === deletedReaction.message_id
-                ? { 
-                    ...msg, 
-                    reactions: msg.reactions.filter(r => r.id !== deletedReaction.id) 
-                  }
-                : msg
-            )
-          }));
+          if (deletedReaction && 'id' in deletedReaction && deletedReaction.message_id && deletedReaction.id) {
+            setState(prev => ({
+              ...prev,
+              messages: prev.messages.map(msg =>
+                msg.id === deletedReaction.message_id
+                  ? { 
+                      ...msg, 
+                      reactions: msg.reactions.filter(r => r.id !== deletedReaction.id) 
+                    }
+                  : msg
+              )
+            }));
+          }
         }
       )
       .subscribe((status: string) => {
@@ -381,8 +387,8 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
       const messageData = {
         session_id: sessionId,
         user_id: user.id,
-        display_name: (user.user_metadata?.display_name as string) || user.email?.split('@')[0] || 'Anonymous',
-        avatar_url: (user.user_metadata?.avatar_url as string) || null,
+        display_name: String(user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous'),
+        avatar_url: user.user_metadata?.avatar_url ? String(user.user_metadata.avatar_url) : null,
         content: newMessage.trim(),
         message_type: 'text' as const,
         created_at: new Date().toISOString()
@@ -446,8 +452,8 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
       const messageData = {
         session_id: sessionId,
         user_id: user.id,
-        display_name: (user.user_metadata?.display_name as string) || user.email?.split('@')[0] || 'Anonymous',
-        avatar_url: (user.user_metadata?.avatar_url as string) || null,
+        display_name: String(user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous'),
+        avatar_url: user.user_metadata?.avatar_url ? String(user.user_metadata.avatar_url) : null,
         content: 'Shared an image',
         message_type: 'image' as const,
         image_url: urlData.publicUrl,
@@ -533,6 +539,11 @@ export function WolfpackRealTimeChat({ sessionId }: { sessionId: string | null }
   const getUserRole = (userId: string): string | null => {
     // This would typically come from user data or membership info
     // For now, return null as default
+    // TODO: Implement actual role lookup using userId
+    
+    // Placeholder to acknowledge the parameter until proper implementation
+    if (!userId) return null;
+    
     return null;
   };
 

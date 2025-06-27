@@ -1,10 +1,10 @@
 // app/(main)/menu/page.tsx
-import Menu from '@/components/menu/Menu';
+import MenuServer from './MenuServer';
 
 export default function MenuPage() {
   return (
     <main className="min-h-screen bg-background">
-      <Menu />
+      <MenuServer />
     </main>
   );
 }

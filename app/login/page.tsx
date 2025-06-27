@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { logAuthError, getAuthErrorSuggestions, testSupabaseAuth } from '@/lib/auth/debug';
 
 export default function UnifiedLoginPage() {
@@ -22,11 +22,7 @@ export default function UnifiedLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
-  
-  const supabase = getSupabaseBrowserClient();
-
-  // Diagnostic function to test Supabase connectivity
+  const { toast } = useToast();  // Diagnostic function to test Supabase connectivity
   const testSupabaseConnection = async () => {
     try {
       const { data, error } = await supabase.from('users').select('count').limit(1);
@@ -88,8 +84,8 @@ export default function UnifiedLoginPage() {
             const { error: profileError } = await supabase
               .from('users')
               .insert({
-                id: data.user.id,
-                email: data.user.email,
+                auth_id: data.user.id,
+                email: data.user.email || '',
                 first_name: displayName?.split(' ')[0] || '',
                 last_name: displayName?.split(' ').slice(1).join(' ') || '',
                 created_at: new Date().toISOString(),

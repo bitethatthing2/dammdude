@@ -5,7 +5,7 @@ import type { Database } from '@/lib/database.types';
 
 // Database types (with null)
 type DatabaseUser = Database['public']['Tables']['users']['Row'];
-type DatabaseWolfpackMember = Database['public']['Views']['wolfpack_memberships']['Row'];
+type DatabaseWolfpackMember = Database['public']['Tables']['wolfpack_members_unified']['Row'];
 type DatabaseLocation = Database['public']['Tables']['locations']['Row'];
 
 // Frontend types (with undefined)
@@ -97,8 +97,8 @@ export function adaptWolfpackMembership(dbMembership: DatabaseWolfpackMember): F
   return {
     id: dbMembership.id,
     user_id: dbMembership.user_id,
-    location_id: dbMembership.location_id,
-    status: dbMembership.status,
+    location_id: dbMembership.location_id || '',
+    status: dbMembership.status || 'inactive',
     display_name: nullToUndefined(dbMembership.display_name),
     emoji: nullToUndefined(dbMembership.emoji),
     current_vibe: nullToUndefined(dbMembership.current_vibe),
@@ -108,11 +108,8 @@ export function adaptWolfpackMembership(dbMembership: DatabaseWolfpackMember): F
     table_location: nullToUndefined(dbMembership.table_location),
     joined_at: dbMembership.joined_at,
     last_active: nullToUndefined(dbMembership.last_active),
-    is_visible: dbMembership.is_visible ?? true,
-    allow_messages: dbMembership.allow_messages ?? true,
-    // Nested user data will be adapted if present
-    user: dbMembership.user ? adaptUserType(dbMembership.user as any) : undefined,
-    location: dbMembership.location ? adaptLocation(dbMembership.location as any) : undefined,
+    is_visible: dbMembership.is_active ?? true,
+    allow_messages: true, // Default value since this field may not exist in unified table
   };
 }
 
@@ -131,8 +128,28 @@ export function adaptLocation(dbLocation: DatabaseLocation): FrontendLocation {
   };
 }
 
+// Database chat message type
+interface DatabaseChatMessage {
+  id: string;
+  session_id: string;
+  user_id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  content: string;
+  message_type: string;
+  image_url?: string | null;
+  created_at: string;
+  is_flagged?: boolean | null;
+  reactions?: Array<{
+    id: string;
+    user_id: string;
+    emoji: string;
+    created_at: string;
+  }> | null;
+}
+
 // Chat message adapter
-export function adaptWolfChatMessage(dbMessage: any): FrontendWolfChatMessage {
+export function adaptWolfChatMessage(dbMessage: DatabaseChatMessage): FrontendWolfChatMessage {
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
@@ -140,11 +157,11 @@ export function adaptWolfChatMessage(dbMessage: any): FrontendWolfChatMessage {
     display_name: dbMessage.display_name,
     avatar_url: nullToUndefined(dbMessage.avatar_url),
     content: dbMessage.content,
-    message_type: dbMessage.message_type,
+    message_type: dbMessage.message_type as 'text' | 'image' | 'dj_broadcast',
     image_url: nullToUndefined(dbMessage.image_url),
     created_at: dbMessage.created_at,
     is_flagged: dbMessage.is_flagged ?? false,
-    reactions: dbMessage.reactions?.map((reaction: any) => ({
+    reactions: dbMessage.reactions?.map((reaction) => ({
       id: reaction.id,
       user_id: reaction.user_id,
       emoji: reaction.emoji,
@@ -153,8 +170,16 @@ export function adaptWolfChatMessage(dbMessage: any): FrontendWolfChatMessage {
   };
 }
 
+// API Response type
+interface APIResponse<T = unknown> {
+  success?: boolean;
+  data?: T;
+  error?: string | { error?: string; code?: string };
+  code?: string;
+}
+
 // API Response adapter for consistency
-export function adaptAPIResponse<T>(response: any): {
+export function adaptAPIResponse<T>(response: APIResponse<T>): {
   success: boolean;
   data?: T;
   error?: string;
@@ -163,8 +188,8 @@ export function adaptAPIResponse<T>(response: any): {
   return {
     success: response.success ?? true,
     data: response.data,
-    error: response.error?.error || response.error,
-    code: response.error?.code || response.code,
+    error: typeof response.error === 'string' ? response.error : response.error?.error || undefined,
+    code: typeof response.error === 'object' ? response.error?.code : response.code,
   };
 }
 
@@ -177,9 +202,19 @@ export function adaptArray<TDb, TFrontend>(
   return dbArray.map(adapter);
 }
 
+// Pagination response type
+interface PaginationResponse<T = unknown> {
+  data?: T[] | null;
+  meta?: {
+    total_count?: number;
+    has_more?: boolean;
+    next_cursor?: string;
+  } | null;
+}
+
 // Pagination adapter
 export function adaptPaginatedResponse<TDb, TFrontend>(
-  response: any,
+  response: PaginationResponse<TDb>,
   adapter: (item: TDb) => TFrontend
 ): {
   data: TFrontend[];
@@ -200,19 +235,36 @@ export function adaptPaginatedResponse<TDb, TFrontend>(
 }
 
 // Type guards
-export function isValidUser(user: any): user is FrontendUser {
-  return user && typeof user.id === 'string' && typeof user.created_at === 'string';
+export function isValidUser(user: unknown): user is FrontendUser {
+  return user !== null && 
+         typeof user === 'object' && 
+         'id' in user && 
+         'created_at' in user &&
+         typeof (user as Record<string, unknown>).id === 'string' && 
+         typeof (user as Record<string, unknown>).created_at === 'string';
 }
 
-export function isValidWolfpackMembership(membership: any): membership is FrontendWolfpackMembership {
-  return membership && 
-         typeof membership.id === 'string' && 
-         typeof membership.user_id === 'string' && 
-         typeof membership.location_id === 'string';
+export function isValidWolfpackMembership(membership: unknown): membership is FrontendWolfpackMembership {
+  return membership !== null && 
+         typeof membership === 'object' && 
+         'id' in membership && 
+         'user_id' in membership && 
+         'location_id' in membership &&
+         typeof (membership as Record<string, unknown>).id === 'string' && 
+         typeof (membership as Record<string, unknown>).user_id === 'string' && 
+         typeof (membership as Record<string, unknown>).location_id === 'string';
+}
+
+// Error type for adapter
+interface ErrorInput {
+  message?: string;
+  error?: string;
+  code?: string;
+  details?: unknown;
 }
 
 // Error type adapter
-export function adaptError(error: any): {
+export function adaptError(error: unknown): {
   message: string;
   code?: string;
   details?: unknown;
@@ -221,17 +273,26 @@ export function adaptError(error: any): {
     return { message: error };
   }
   
-  if (error?.error) {
-    return {
-      message: error.error,
-      code: error.code,
-      details: error.details,
-    };
+  if (error && typeof error === 'object') {
+    const errorObj = error as ErrorInput;
+    if (errorObj.error) {
+      return {
+        message: errorObj.error,
+        code: errorObj.code,
+        details: errorObj.details,
+      };
+    }
   }
   
   return {
-    message: error?.message || 'An unexpected error occurred',
-    code: error?.code,
-    details: error?.details,
+    message: error && typeof error === 'object' && 'message' in error 
+      ? String((error as { message: unknown }).message) 
+      : 'An unexpected error occurred',
+    code: error && typeof error === 'object' && 'code' in error 
+      ? String((error as { code: unknown }).code) 
+      : undefined,
+    details: error && typeof error === 'object' && 'details' in error 
+      ? (error as { details: unknown }).details 
+      : undefined,
   };
 }

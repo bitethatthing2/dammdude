@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Disable prerendering for admin pages since they require authentication
 export const dynamic = 'force-dynamic';
@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('gthabarber1@gmail.com');
   const [password, setPassword] = useState('');
@@ -20,10 +19,7 @@ export default function AdminLoginPage() {
   // const router = useRouter() // Unused - remove if not needed;
   const { toast } = useToast();
   
-  // Use the updated Supabase client
-  const supabase = getSupabaseBrowserClient();
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Use the updated Supabase client  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);

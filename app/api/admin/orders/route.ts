@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 
 // Input validation schema
 const updateOrderStatusSchema = z.object({

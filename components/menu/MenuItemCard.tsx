@@ -7,7 +7,6 @@ import { Plus, Flame, Leaf, Star } from 'lucide-react';
 import MenuItemModal from './MenuItemModal';
 import { toast } from '@/components/ui/use-toast';
 import { useWolfpack } from '@/hooks/useWolfpack';
-import { detectItemOptions } from './MenuOptionsConfig';
 import Image from 'next/image';
 
 import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
@@ -217,7 +216,7 @@ const toBase64 = (str: string) =>
 export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isActive: isWolfPackMember } = useWolfpack();
+  const { isInPack: isWolfPackMember } = useWolfpack();
   
   const themeColor = getCategoryTheme(item.category?.name);
   
@@ -361,7 +360,7 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
 export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isActive: isWolfPackMember } = useWolfpack();
+  const { isInPack: isWolfPackMember } = useWolfpack();
   const themeColor = getCategoryTheme(item.category?.name);
   
   // Get the food image URL for this item - prioritize database images

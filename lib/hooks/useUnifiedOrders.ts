@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
   OrderStatus,
@@ -95,10 +95,7 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   
   // If you have a Database type generated, use it here:
-  // const supabase = createClientComponentClient<Database>();
-  const supabase = createClientComponentClient();
-
-  const parseOrderItems = (items: unknown): OrderItem[] => {
+  // const supabase = createClientComponentClient<Database>();  const parseOrderItems = (items: unknown): OrderItem[] => {
     if (!items) return [];
     if (typeof items === 'string') {
       try {

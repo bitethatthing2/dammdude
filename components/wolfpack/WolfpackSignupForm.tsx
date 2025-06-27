@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Shield, Mail, User, Phone } from 'lucide-react';
 
@@ -30,11 +30,7 @@ export function WolfpackSignupForm() {
     phone: '',
     agreedToTerms: false,
     marketingConsent: false
-  });
-
-  const supabase = getSupabaseBrowserClient();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  });  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.agreedToTerms) {

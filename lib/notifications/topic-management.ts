@@ -1,5 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
+import { supabase } from '@/lib/supabase/client';
 // Import or define the Database type from your generated types
 export type Json =
   | string

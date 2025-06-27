@@ -6,7 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleHeader } from '@/components/shared/AppHeader';
 import { DynamicLogo } from '@/components/shared/DynamicLogo';
+// import { useWolfpack } from '@/hooks/useWolfpack';
+// Update the import path below to the correct location of useWolfpack, for example:
 import { useWolfpack } from '@/hooks/useWolfpack';
+// If the file does not exist, create 'hooks/useWolfpack.ts' in your project root and export the hook from there.
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { 
   Shield, 

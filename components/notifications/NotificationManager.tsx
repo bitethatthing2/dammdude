@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useDeviceToken } from '@/hooks/useDeviceToken';
-import NotificationPreferences from './NotificationPreferences';
-import type { UserRole } from '@/types/notifications';
+import NotificationPreferences from './NotificationPreferences'; // Import your component
+
+// Define UserRole type to match your backend
+type UserRole = 'admin' | 'bartender' | 'dj' | 'user';
 
 interface NotificationManagerProps {
   userId?: string;
@@ -185,7 +187,6 @@ export default function NotificationManager({
               </div>
               <div className="p-4">
                 <NotificationPreferences 
-                  fcmToken={fcmToken} 
                   userRole={userRole}
                 />
               </div>
@@ -315,7 +316,6 @@ export default function NotificationManager({
       {/* Notification Preferences */}
       {showSettings && fcmToken && (
         <NotificationPreferences 
-          fcmToken={fcmToken} 
           userRole={userRole}
           onClose={() => setShowSettings(false)}
         />

@@ -57,9 +57,8 @@ export async function POST(request: NextRequest) {
       p_file_name: file.name,
       p_file_size: file.size,
       p_mime_type: file.type,
-      p_image_type: imageType,
-      p_file_data: base64Data
-    });
+      p_image_type: imageType
+    }) as { data: { image_id: string; public_url: string } | null; error: any };
 
     if (uploadError) {
       console.error('Error uploading image:', uploadError);
@@ -73,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (itemId && imageType === 'menu_item' && uploadResult?.image_id) {
       const { error: updateError } = await supabase.rpc('admin_update_item_image', {
         p_item_id: itemId,
-        p_image_id: uploadResult.image_id
+        p_image_url: uploadResult.public_url
       });
 
       if (updateError) {
@@ -84,8 +83,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      image_id: uploadResult?.image_id,
-      image_url: uploadResult?.public_url,
+      image_id: uploadResult?.image_id || null,
+      image_url: uploadResult?.public_url || null,
       message: 'Image uploaded successfully'
     });
 

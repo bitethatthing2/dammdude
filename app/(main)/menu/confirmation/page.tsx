@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import type { Tables } from '@/lib/database.types';
 
@@ -38,10 +38,7 @@ function OrderConfirmationContent() {
     async function fetchOrderDetails() {
       if (!orderId) return;
       
-      setIsLoading(true);
-      const supabase = getSupabaseBrowserClient();
-      
-      try {
+      setIsLoading(true);      try {
         // Use type assertion to bypass TypeScript restrictions - the backend is properly configured
         const { data: orderData, error: orderError } = await (supabase as unknown as {
           from: (table: string) => {
@@ -105,11 +102,7 @@ function OrderConfirmationContent() {
   
   // Set up real-time subscription for order status updates
   useEffect(() => {
-    if (!orderId) return;
-    
-    const supabase = getSupabaseBrowserClient();
-    
-    // Subscribe to changes on the order
+    if (!orderId) return;    // Subscribe to changes on the order
     const subscription = supabase
       .channel(`order-${orderId}`)
       .on('postgres_changes', {

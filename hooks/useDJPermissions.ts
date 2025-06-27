@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase/client';
 interface DJPermissions {
   canCreateEvents: boolean;
   canSendMassMessages: boolean;
@@ -38,10 +37,7 @@ export function useDJPermissions() {
     }
 
     const checkDJPermissions = async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        
-        // For now, we'll use a simple check - VIP users can be DJs
+      try {        // For now, we'll use a simple check - VIP users can be DJs
         // In production, this would check a proper DJ assignments table
         const vipUsers = ['mkahler599@gmail.com'];
         const isVipUser = user?.email && vipUsers.includes(user.email);

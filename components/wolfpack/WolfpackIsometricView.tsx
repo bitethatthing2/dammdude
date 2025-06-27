@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,44 +11,40 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { 
   MessageCircle, 
   Heart, 
-  Shield, 
-  UserX,
   Users,
   User,
   Sparkles
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+// Interface matching your actual backend structure
 interface WolfPackMember {
   id: string;
   user_id: string;
   location_id: string | null;
-  table_location?: string | null;
-  joined_at: string | null;
+  status: string | null; // Can be null in DB
+  table_location: string | null;
+  joined_at: string;
   last_active: string | null;
-  status: string;
-  position_x?: number;
-  position_y?: number;
-  user?: {
-    email: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    role: string | null;
-    wolf_profile?: {
-      display_name: string | null;
-      wolf_emoji: string | null;
-      favorite_drink?: string | null;
-      instagram_handle?: string | null;
-      looking_for?: string | null;
-      bio?: string | null;
-      is_visible: boolean | null;
-      profile_image_url?: string | null;
-      allow_messages: boolean | null;
-    } | null;
-  };
+  position_x: number | null;
+  position_y: number | null;
+  display_name: string | null; // From wolfpack_members_unified
+  emoji: string | null; // From wolfpack_members_unified
+  role: string | null; // From wolfpack_members_unified
+  is_active: boolean | null;
+  username: string | null;
+  avatar_url: string | null;
+  favorite_drink: string | null;
+  current_vibe: string | null;
+  looking_for: string | null;
+  instagram_handle: string | null;
+  session_id: string | null;
+  is_host: boolean | null;
+  left_at: string | null;
+  status_enum: string | null;
 }
 
 interface WolfpackIsometricViewProps {
@@ -62,11 +58,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
   const [members, setMembers] = useState<WolfPackMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<WolfPackMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
-
-  const supabase = getSupabaseBrowserClient();
-
-  // Load wolfpack members
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);  // Load wolfpack members
   useEffect(() => {
     async function loadData() {
       if (!locationId || !currentUserId) return;
@@ -74,30 +66,31 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
       try {
         setIsLoading(true);
 
-        // Load active members
+        // Load active members from the unified table
         const { data: memberData, error: memberError } = await supabase
           .from("wolfpack_members_unified")
-          .select(`
-            *,
-            user:users (
-              *,
-              wolf_profile:wolf_profiles (*)
-            )
-          `)
+          .select("*")
           .eq('is_active', true)
-          .eq('bar_location_id', locationId);
+          .eq('location_id', locationId);
 
         if (memberError) throw memberError;
-        setMembers(memberData || []);
+        
+        // Set members with proper null handling
+        setMembers((memberData || []) as WolfPackMember[]);
 
-        // Load blocked users
+        // Load blocked users (using the correct column names)
         const { data: blockData } = await supabase
           .from('wolf_pack_interactions')
           .select('receiver_id')
           .eq('sender_id', currentUserId)
           .eq('interaction_type', 'block');
 
-        setBlockedUsers(blockData?.map(b => b.receiver_id).filter(Boolean) || []);
+        // Filter out any null values and ensure we have strings
+        const blockedUserIds = (blockData || [])
+          .map(b => b.receiver_id)
+          .filter((id): id is string => id !== null);
+        
+        setBlockedUsers(blockedUserIds);
 
       } catch (error) {
         console.error('Error loading wolfpack data:', error);
@@ -115,7 +108,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         event: '*',
         schema: 'public',
         table: 'wolfpack_members_unified',
-        filter: `bar_location_id=eq.${locationId}`
+        filter: `location_id=eq.${locationId}`
       }, loadData)
       .subscribe();
 
@@ -124,12 +117,11 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
     };
   }, [locationId, currentUserId, supabase]);
 
-  // Get member icon based on role
+  // Get member icon based on role and emoji
   const getMemberIcon = (member: WolfPackMember) => {
-    const role = member.user?.role;
-    if (role === 'dj') return '🎵';
-    if (role === 'bartender') return '🐺';
-    return member.user?.wolf_profile?.wolf_emoji || '🐾';
+    if (member.role === 'dj') return '🎵';
+    if (member.role === 'bartender') return '🐺';
+    return member.emoji || '🐾';
   };
 
   // Send interaction
@@ -174,8 +166,8 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
     }
   };
 
+  // Filter visible members (handle null values properly)
   const visibleMembers = members.filter(member => 
-    member.user?.wolf_profile?.is_visible !== false && 
     !blockedUsers.includes(member.user_id)
   );
 
@@ -200,7 +192,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         </h3>
       </div>
 
-      {/* 3D Isometric Platform View (CRITICAL REQUIREMENT) */}
+      {/* 3D Isometric Platform View */}
       <div className="relative w-full h-[600px] bg-gradient-to-br from-black via-slate-900 to-slate-800 rounded-xl overflow-hidden shadow-2xl">
         {/* Isometric Container with 3D Transform */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -241,7 +233,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                 const icon = getMemberIcon(member);
                 
                 // Calculate isometric position based on table location
-                const getIsometricPosition = (tableLocation: string | null | undefined, index: number) => {
+                const getIsometricPosition = (tableLocation: string | null, index: number) => {
                   const positions = {
                     'bar_center': { x: 50, y: 30 },
                     'bar_left': { x: 20, y: 30 },
@@ -295,19 +287,19 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                           {/* 3D Avatar Container */}
                           <div className="relative w-16 h-16">
                             <Avatar className="w-full h-full border-2 border-background shadow-lg">
-                              <AvatarImage src={member.user?.wolf_profile?.profile_image_url || undefined} />
+                              <AvatarImage src={member.avatar_url || undefined} />
                               <AvatarFallback className="text-lg font-bold">
                                 {icon}
                               </AvatarFallback>
                             </Avatar>
                             
                             {/* Role Badge */}
-                            {member.user?.role === 'dj' && (
+                            {member.role === 'dj' && (
                               <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-purple-600">
                                 🎵
                               </Badge>
                             )}
-                            {member.user?.role === 'bartender' && (
+                            {member.role === 'bartender' && (
                               <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-green-600">
                                 🐺
                               </Badge>
@@ -321,7 +313,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                           
                           {/* Name Label */}
                           <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-                            {(member.user?.wolf_profile?.display_name || member.user?.first_name || 'Wolf').slice(0, 10)}
+                            {(member.display_name || member.username || 'Wolf').slice(0, 10)}
                           </div>
                         </div>
                       </DropdownMenuTrigger>
@@ -352,7 +344,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         </div>
         
         {/* Bartender Menu Card (Bottom Right) */}
-        {visibleMembers.filter(m => m.user?.role === 'bartender').length > 0 && (
+        {visibleMembers.filter(m => m.role === 'bartender').length > 0 && (
           <Card className="absolute bottom-4 right-4 bg-black/90 text-white border-zinc-800 w-48">
             <CardHeader className="pb-2">
               <CardTitle className="text-center text-sm">Bartender</CardTitle>
@@ -397,7 +389,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                   <CardContent>
                     <p className="text-sm font-medium">Nachos & Craft Beer</p>
                     <p className="text-xs text-muted-foreground">
-                      {member.user?.wolf_profile?.display_name || 'Wolf'}
+                      {member.display_name || member.username || 'Wolf'}
                     </p>
                   </CardContent>
                 </Card>
@@ -454,25 +446,25 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
               {/* Profile Header */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedMember.user?.wolf_profile?.profile_image_url || undefined} />
+                  <AvatarImage src={selectedMember.avatar_url || undefined} />
                   <AvatarFallback className="text-lg">
-                    {selectedMember.user?.wolf_profile?.wolf_emoji || 
-                     selectedMember.user?.wolf_profile?.display_name?.charAt(0)?.toUpperCase() || 
+                    {selectedMember.emoji || 
+                     selectedMember.display_name?.charAt(0)?.toUpperCase() || 
                      'W'}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1">
                   <h3 className="text-xl font-bold">
-                    {selectedMember.user?.wolf_profile?.display_name || 'Anonymous Wolf'}
+                    {selectedMember.display_name || selectedMember.username || 'Anonymous Wolf'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Ready to party! 🎉
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary">
-                      {selectedMember.user?.role === 'dj' ? 'DJ' : 
-                       selectedMember.user?.role === 'bartender' ? 'Bartender' : 'Wolf'}
+                      {selectedMember.role === 'dj' ? 'DJ' : 
+                       selectedMember.role === 'bartender' ? 'Bartender' : 'Wolf'}
                     </Badge>
                     {selectedMember.table_location && (
                       <Badge variant="outline" className="text-xs">

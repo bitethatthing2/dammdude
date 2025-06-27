@@ -1,7 +1,7 @@
+import { supabase } from '@/lib/supabase/client';
 // lib/api/wolfpack-client.ts
 // Centralized API client for wolfpack operations using backend validation schemas
 
-import { createClient } from '@/lib/supabase/client';
 import { adaptAPIResponse, adaptWolfpackMembership, adaptWolfChatMessage } from '@/lib/types/adapters';
 
 // Import validation schemas from backend
