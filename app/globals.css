@@ -14,6 +14,25 @@
   .animate-in {
     animation: animateIn 0.5s ease-out forwards;
   }
+  
+  /* Hexagonal wolfpack specific animations */
+  .animate-hex-pulse {
+    animation: hexPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-hex-glow {
+    animation: hexGlow 3s ease-in-out infinite alternate;
+  }
+  
+  /* 3D Isometric transforms */
+  .isometric-transform {
+    transform-style: preserve-3d;
+    transform: rotateX(60deg) rotateZ(45deg);
+  }
+  
+  .isometric-reverse {
+    transform: rotateX(-60deg) rotateZ(-45deg);
+  }
 }
 
 @keyframes animateIn {
@@ -24,6 +43,26 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes hexPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes hexGlow {
+  0% {
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  100% {
+    filter: drop-shadow(0 0 20px currentColor);
   }
 }
 
@@ -50,6 +89,12 @@
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
+    
+    /* Wolfpack specific variables */
+    --wolfpack-dj: 262.1 83.3% 57.8%;
+    --wolfpack-bartender: 142.1 76.2% 36.3%;
+    --wolfpack-member: 217.2 91.2% 59.8%;
+    --wolfpack-current-user: 221.2 83.2% 53.3%;
   }
 
   .dark {
@@ -72,6 +117,12 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+    
+    /* Wolfpack dark mode colors */
+    --wolfpack-dj: 262.1 83.3% 67.8%;
+    --wolfpack-bartender: 142.1 76.2% 46.3%;
+    --wolfpack-member: 217.2 91.2% 69.8%;
+    --wolfpack-current-user: 221.2 83.2% 63.3%;
   }
 
   /* Theme color variations */
@@ -139,6 +190,67 @@
   /* Alternative class for minimal spacing */
   .bottom-nav-minimal {
     padding-bottom: 4rem; /* 64px - exact height of bottom nav */
+  }
+
+  /* Wolfpack specific component styles */
+  .wolfpack-member-avatar {
+    @apply relative w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white border-2 shadow-lg transition-all duration-300 hover:scale-110;
+  }
+  
+  .wolfpack-member-dj {
+    background-color: hsl(var(--wolfpack-dj));
+    border-color: hsl(var(--wolfpack-dj) / 0.8);
+    box-shadow: 0 0 20px hsl(var(--wolfpack-dj) / 0.4);
+  }
+  
+  .wolfpack-member-bartender {
+    background-color: hsl(var(--wolfpack-bartender));
+    border-color: hsl(var(--wolfpack-bartender) / 0.8);
+    box-shadow: 0 0 20px hsl(var(--wolfpack-bartender) / 0.4);
+  }
+  
+  .wolfpack-member-current {
+    background-color: hsl(var(--wolfpack-current-user));
+    border-color: hsl(var(--wolfpack-current-user) / 0.8);
+    box-shadow: 0 0 20px hsl(var(--wolfpack-current-user) / 0.4);
+  }
+  
+  .wolfpack-member-default {
+    background-color: hsl(var(--wolfpack-member));
+    border-color: hsl(var(--wolfpack-member) / 0.8);
+    box-shadow: 0 0 20px hsl(var(--wolfpack-member) / 0.4);
+  }
+  
+  /* Hexagonal platform styles */
+  .hexagonal-platform {
+    background: linear-gradient(45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%), 
+                linear-gradient(-45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%);
+    background-size: 40px 40px;
+    border: 2px solid hsl(var(--border));
+    border-radius: 12px;
+  }
+  
+  /* Isometric 3D platform */
+  .isometric-platform {
+    background: linear-gradient(45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%), 
+                linear-gradient(-45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%);
+    background-size: 40px 40px;
+    border: 2px solid hsl(var(--border) / 0.3);
+    border-radius: 50px;
+    transform: rotateZ(-45deg) rotateX(-60deg);
+  }
+  
+  /* Chat interface styles */
+  .wolfpack-chat-header {
+    @apply flex items-center justify-between p-4 bg-card/80 backdrop-blur-sm border-b border-border;
+  }
+  
+  .wolfpack-chat-container {
+    @apply min-h-screen bg-background text-foreground relative overflow-hidden;
+  }
+  
+  .wolfpack-quick-replies {
+    @apply flex-1 bg-muted/50 rounded-full px-4 py-2 text-muted-foreground;
   }
 
   /* Theme colors for base elements */

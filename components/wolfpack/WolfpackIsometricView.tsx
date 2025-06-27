@@ -13,7 +13,8 @@ import {
   Heart, 
   Users,
   User,
-  Sparkles
+  Sparkles,
+  Menu
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
@@ -58,7 +59,9 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
   const [members, setMembers] = useState<WolfPackMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<WolfPackMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);  // Load wolfpack members
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+
+  // Load wolfpack members
   useEffect(() => {
     async function loadData() {
       if (!locationId || !currentUserId) return;
@@ -192,8 +195,22 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         </h3>
       </div>
 
-      {/* 3D Isometric Platform View */}
-      <div className="relative w-full h-[600px] bg-gradient-to-br from-black via-slate-900 to-slate-800 rounded-xl overflow-hidden shadow-2xl">
+      {/* 3D Isometric Platform View - Styled for hexagonal theme */}
+      <div className="relative w-full h-[600px] bg-gradient-to-br from-background via-muted/20 to-background rounded-xl overflow-hidden border border-border shadow-2xl">
+        
+        {/* Hexagonal background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <svg width="100%" height="100%" viewBox="0 0 800 600">
+            <defs>
+              <pattern id="hexPattern3D" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
+                <polygon points="30,2 54,15 54,37 30,50 6,37 6,15" 
+                         fill="none" stroke="currentColor" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hexPattern3D)" />
+          </svg>
+        </div>
+
         {/* Isometric Container with 3D Transform */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div 
@@ -205,13 +222,13 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
               transform: 'rotateX(60deg) rotateZ(45deg)'
             }}
           >
-            {/* Diamond Platform with Grid */}
+            {/* Hexagonal Platform with Grid */}
             <div 
               className="isometric-platform absolute inset-0" 
               style={{
-                background: 'linear-gradient(45deg, rgba(139, 69, 19, 0.3) 25%, transparent 25%), linear-gradient(-45deg, rgba(139, 69, 19, 0.3) 25%, transparent 25%)',
+                background: 'linear-gradient(45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%), linear-gradient(-45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%)',
                 backgroundSize: '40px 40px',
-                border: '2px solid rgba(255, 215, 0, 0.3)',
+                border: '2px solid hsl(var(--border))',
                 borderRadius: '50px',
                 transform: 'rotateZ(-45deg) rotateX(-60deg)'
               }}
@@ -220,7 +237,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
               <div 
                 className="absolute inset-0" 
                 style={{
-                  background: 'radial-gradient(circle at center, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
+                  background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)',
                   borderRadius: '50px'
                 }} 
               />
@@ -232,7 +249,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                 const isCurrentUser = member.user_id === currentUserId;
                 const icon = getMemberIcon(member);
                 
-                // Calculate isometric position based on table location
+                // Calculate isometric position based on table location or hexagonal distribution
                 const getIsometricPosition = (tableLocation: string | null, index: number) => {
                   const positions = {
                     'bar_center': { x: 50, y: 30 },
@@ -253,8 +270,17 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                     if (key) return positions[key as keyof typeof positions];
                   }
                   
-                  // Default circular distribution
-                  const angle = (index / visibleMembers.length) * 2 * Math.PI;
+                  // Hexagonal distribution (matching spatial view)
+                  if (index === 0) return { x: 50, y: 25 }; // Top center (DJ position)
+                  if (index === 1) return { x: 75, y: 37.5 }; // Top right
+                  if (index === 2) return { x: 75, y: 62.5 }; // Bottom right
+                  if (index === 3) return { x: 50, y: 75 }; // Bottom center
+                  if (index === 4) return { x: 25, y: 62.5 }; // Bottom left
+                  if (index === 5) return { x: 25, y: 37.5 }; // Top left
+                  
+                  // Outer ring for additional members
+                  const outerIndex = index - 6;
+                  const angle = (outerIndex / Math.max(1, visibleMembers.length - 6)) * 2 * Math.PI;
                   return {
                     x: 50 + Math.cos(angle) * 35,
                     y: 50 + Math.sin(angle) * 25
@@ -295,12 +321,12 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                             
                             {/* Role Badge */}
                             {member.role === 'dj' && (
-                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-purple-600">
+                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-violet-600 hover:bg-violet-600">
                                 🎵
                               </Badge>
                             )}
                             {member.role === 'bartender' && (
-                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-green-600">
+                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-green-600 hover:bg-green-600">
                                 🐺
                               </Badge>
                             )}
@@ -312,7 +338,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                           </div>
                           
                           {/* Name Label */}
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-popover/90 border border-border text-foreground px-2 py-1 rounded text-xs whitespace-nowrap">
                             {(member.display_name || member.username || 'Wolf').slice(0, 10)}
                           </div>
                         </div>
@@ -345,7 +371,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         
         {/* Bartender Menu Card (Bottom Right) */}
         {visibleMembers.filter(m => m.role === 'bartender').length > 0 && (
-          <Card className="absolute bottom-4 right-4 bg-black/90 text-white border-zinc-800 w-48">
+          <Card className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm border-border w-48">
             <CardHeader className="pb-2">
               <CardTitle className="text-center text-sm">Bartender</CardTitle>
             </CardHeader>
@@ -377,7 +403,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                 animate={{ scale: 1, x: 0 }}
                 exit={{ scale: 0, x: -50 }}
               >
-                <Card className="bg-background/95 backdrop-blur border shadow-lg">
+                <Card className="bg-card/95 backdrop-blur border border-border shadow-lg">
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
@@ -401,7 +427,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         {/* Empty State */}
         {visibleMembers.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-white/60">
+            <div className="text-center text-muted-foreground">
               <p className="text-lg mb-2">No pack members online right now</p>
               <p className="text-sm">Be the first to join the pack! 🐺</p>
             </div>
@@ -409,14 +435,14 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
+        <div className="absolute bottom-4 left-4 bg-card/70 backdrop-blur-sm border border-border rounded-lg p-3 text-foreground text-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
               <span>You</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-slate-500 rounded-full"></div>
               <span>Other Wolves</span>
             </div>
             <div className="flex items-center gap-2">
@@ -424,7 +450,7 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
               <span>Bartender</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-violet-500 rounded-full animate-pulse"></div>
               <span>DJ</span>
             </div>
           </div>
@@ -432,16 +458,16 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
       </div>
       
       {/* Member Profile Dialog */}
-      {selectedMember && (
-        <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="text-2xl">{getMemberIcon(selectedMember)}</span>
-                Wolf Profile
-              </DialogTitle>
-            </DialogHeader>
-            
+      <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">{selectedMember ? getMemberIcon(selectedMember) : ''}</span>
+              Wolf Profile
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedMember && (
             <div className="space-y-4">
               {/* Profile Header */}
               <div className="flex items-center gap-4">
@@ -496,9 +522,9 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

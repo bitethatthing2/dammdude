@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase/client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -204,26 +205,20 @@ const WolfpackRealTimeChat = ({ sessionId }: { sessionId: string }) => {
   );
 };
 
-// Simple 3D view placeholder
-const WolfpackIsometricView = ({ locationId, currentUserId }: { locationId: string; currentUserId: string }) => {
-  return (
-    <Card className="h-96">
-      <CardHeader>
-        <CardTitle>3D Pack View</CardTitle>
-        <CardDescription>Location: {locationId} | User: {currentUserId}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">3D view coming soon</p>
-            <p className="text-sm text-muted-foreground">See where pack members are located</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+// Import the hex grid component dynamically to avoid SSR issues
+const WolfpackHexGrid = dynamic(
+  () => import('@/components/wolfpack/WolfpackHexGrid'),
+  { 
+    ssr: false,
+    loading: () => (
+      <Card className="h-96">
+        <CardContent className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
 
 // Development warning component
 const WolfpackDevWarning = ({ isUsingFallback }: { isUsingFallback: boolean }) => {
@@ -597,11 +592,13 @@ export default function WolfPackChatPage() {
           </TabsList>
 
           <TabsContent value="spatial" className="space-y-4 flex-1">
-            {/* 3D Isometric Wolf Pack View */}
+            {/* 3D Hexagonal Wolf Pack View */}
             {userMembership && (
-              <WolfpackIsometricView 
-                locationId={userMembership.location_id || 'default'}
+              <WolfpackHexGrid 
+                members={packMembers}
                 currentUserId={user.id}
+                onSendWink={sendWink}
+                onSendMessage={(userId) => router.push(`/wolfpack/chat/private/${userId}`)}
               />
             )}
           </TabsContent>

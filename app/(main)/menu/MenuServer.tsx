@@ -12,10 +12,9 @@ export default async function MenuServer() {
     const [foodCategories, drinkCategories, allItems] = await Promise.all([
       getCategoriesByTypePublic('food'),
       getCategoriesByTypePublic('drink'),
-      // Get all items to count per category using admin client
+      // Get all items to count per category
       (async () => {
-        const { createClient } = await import('@supabase/supabase-js');
-                const { data } = await supabase
+        const { data } = await supabase
           .from('food_drink_items')
           .select('category_id')
           .eq('is_available', true);
@@ -44,15 +43,7 @@ export default async function MenuServer() {
       item_count: itemCountByCategory[cat.id] || 0
     }));
 
-    interface DrinkCategory extends MenuCategory {
-      // You can extend with drink-specific fields if needed
-    }
-
-    interface DrinkCategoryWithCount extends MenuCategoryWithCount {
-      // You can extend with drink-specific fields if needed
-    }
-
-    const drinkCategoriesWithCount: DrinkCategoryWithCount[] = drinkCategories.map((cat: DrinkCategory): DrinkCategoryWithCount => ({
+    const drinkCategoriesWithCount: MenuCategoryWithCount[] = drinkCategories.map((cat: MenuCategory): MenuCategoryWithCount => ({
       id: cat.id,
       name: cat.name,
       type: cat.type as 'food' | 'drink',
