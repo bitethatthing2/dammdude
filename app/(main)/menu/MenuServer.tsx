@@ -44,7 +44,15 @@ export default async function MenuServer() {
       item_count: itemCountByCategory[cat.id] || 0
     }));
 
-    const drinkCategoriesWithCount: MenuCategoryWithCount[] = drinkCategories.map(cat => ({
+    interface DrinkCategory extends MenuCategory {
+      // You can extend with drink-specific fields if needed
+    }
+
+    interface DrinkCategoryWithCount extends MenuCategoryWithCount {
+      // You can extend with drink-specific fields if needed
+    }
+
+    const drinkCategoriesWithCount: DrinkCategoryWithCount[] = drinkCategories.map((cat: DrinkCategory): DrinkCategoryWithCount => ({
       id: cat.id,
       name: cat.name,
       type: cat.type as 'food' | 'drink',

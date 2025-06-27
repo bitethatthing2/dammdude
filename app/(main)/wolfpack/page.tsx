@@ -202,7 +202,7 @@ export default function WolfpackPage() {
 
   if (authLoading || packLoading) {
     return (
-      <div className="container mx-auto p-4 max-w-4xl">
+      <div className="container mx-auto p-4 pb-20 max-w-4xl">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -215,7 +215,7 @@ export default function WolfpackPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-4 max-w-md">
+      <div className="container mx-auto p-4 pb-20 max-w-md">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -238,7 +238,7 @@ export default function WolfpackPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-4 max-w-md">
+      <div className="container mx-auto p-4 pb-20 max-w-md">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
@@ -254,7 +254,7 @@ export default function WolfpackPage() {
 
   if (!isInPack) {
     return (
-      <div className="container mx-auto p-4 max-w-4xl">
+      <div className="container mx-auto p-4 pb-20 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">🐺 Join the Wolf Pack</h1>
           <p className="text-xl text-muted-foreground">
@@ -345,7 +345,7 @@ export default function WolfpackPage() {
 
   // User is in the pack - show dashboard
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 pb-20 max-w-4xl">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4 flex items-center justify-center gap-3">
