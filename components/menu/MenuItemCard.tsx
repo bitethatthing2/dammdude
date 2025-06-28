@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Flame, Leaf, Star } from 'lucide-react';
 import MenuItemModal from './MenuItemModal';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpack } from '@/hooks/useWolfpack';
+import { useUser } from '@/hooks/useUser';
 import Image from 'next/image';
 
 import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
@@ -213,10 +213,35 @@ const toBase64 = (str: string) =>
     ? Buffer.from(str).toString('base64')
     : window.btoa(str);
 
+// Simple function to check if user is in wolfpack
+const checkWolfPackMembership = async (userId: string): Promise<boolean> => {
+  try {
+    const { supabase } = await import('@/lib/supabase/client');
+    const { data: memberData } = await supabase
+      .from('wolfpack_members_unified')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+    
+    return !!memberData;
+  } catch {
+    return false;
+  }
+};
+
 export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isInPack: isWolfPackMember } = useWolfpack();
+  const [isWolfPackMember, setIsWolfPackMember] = useState<boolean | null>(null);
+  const { user } = useUser();
+  
+  // Check wolfpack membership on component mount
+  useState(() => {
+    if (user?.id) {
+      checkWolfPackMembership(user.id).then(setIsWolfPackMember);
+    }
+  });
   
   const themeColor = getCategoryTheme(item.category?.name);
   
@@ -236,7 +261,7 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (!item.is_available) return;
 
     // Check if user is in Wolf Pack before allowing cart access
-    if (!isWolfPackMember) {
+    if (isWolfPackMember === false) {
       toast({
         title: "🐺 Wolf Pack Membership Required",
         description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
@@ -334,12 +359,14 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
               {/* Add Button - Touch-friendly size */}
               <Button
                 onClick={handleAddClick}
-                disabled={!item.is_available}
+                disabled={!item.is_available || isWolfPackMember === null}
                 variant="secondary"
                 className="w-full mt-3 h-10 sm:h-9 text-sm sm:text-base font-medium touch-manipulation"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
-                {item.is_available ? 'Add' : 'Sold Out'}
+                {!item.is_available ? 'Sold Out' : 
+                 isWolfPackMember === null ? 'Loading...' :
+                 isWolfPackMember === false ? 'Join Pack to Order' : 'Add'}
               </Button>
             </div>
           </div>
@@ -360,8 +387,16 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
 export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isInPack: isWolfPackMember } = useWolfpack();
+  const [isWolfPackMember, setIsWolfPackMember] = useState<boolean | null>(null);
+  const { user } = useUser();
   const themeColor = getCategoryTheme(item.category?.name);
+  
+  // Check wolfpack membership on component mount
+  useState(() => {
+    if (user?.id) {
+      checkWolfPackMembership(user.id).then(setIsWolfPackMember);
+    }
+  });
   
   // Get the food image URL for this item - prioritize database images
   const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
@@ -374,7 +409,7 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (!item.is_available) return;
 
     // Check if user is in Wolf Pack before allowing cart access
-    if (!isWolfPackMember) {
+    if (isWolfPackMember === false) {
       toast({
         title: "🐺 Wolf Pack Membership Required",
         description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
@@ -447,12 +482,14 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
         {/* Add Button */}
         <Button
           onClick={handleAddClick}
-          disabled={!item.is_available}
+          disabled={!item.is_available || isWolfPackMember === null}
           variant="secondary"
           className="w-16 h-9 text-sm font-medium"
         >
           <Plus className="w-4 h-4 mr-1.5" />
-          {item.is_available ? 'Add' : 'Out'}
+          {!item.is_available ? 'Out' : 
+           isWolfPackMember === null ? '...' :
+           isWolfPackMember === false ? 'Join' : 'Add'}
         </Button>
       </div>
 

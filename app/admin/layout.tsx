@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { UnifiedNotificationProvider } from '@/components/unified';
+import { NotificationProvider } from '@/components/unified';
 import { Home, ShoppingBag, Users, BarChart3, BookOpen, Table2 } from 'lucide-react';
 
 /**
@@ -36,7 +36,7 @@ export default async function AdminLayout({
   }
   
   return (
-    <UnifiedNotificationProvider recipientId={userId || undefined}>
+    <NotificationProvider recipientId={userId || undefined}>
       <div className="flex min-h-screen flex-col">
         {/* Header */}
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -120,6 +120,6 @@ export default async function AdminLayout({
           </div>
         </footer>
       </div>
-    </UnifiedNotificationProvider>
+    </NotificationProvider>
   );
 }

@@ -9,22 +9,25 @@ type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row']
 export default async function MenuServer() {
   try {
     // Fetch categories and items count on the server using the proper data functions
-    const [foodCategories, drinkCategories, allItems] = await Promise.all([
+    const [foodCategories, drinkCategories, allItemsResponse] = await Promise.all([
       getCategoriesByTypePublic('food'),
       getCategoriesByTypePublic('drink'),
       // Get all items to count per category
       (async () => {
         const { data } = await supabase
-          .from('food_drink_items')
+          .from('menu_items_with_working_modifiers' as any)
           .select('category_id')
           .eq('is_available', true);
         return data || [];
       })()
     ]);
 
-    // Count items per category
-    const itemCountByCategory = allItems.reduce((acc: Record<string, number>, item: { category_id: string | null }) => {
-      if (item.category_id) {
+    // Ensure allItems is an array before using reduce
+    const allItems = Array.isArray(allItemsResponse) ? allItemsResponse : [];
+
+    // Count items per category with proper type checking
+    const itemCountByCategory = allItems.reduce((acc: Record<string, number>, item: any) => {
+      if (item && typeof item === 'object' && typeof item.category_id === 'string') {
         acc[item.category_id] = (acc[item.category_id] || 0) + 1;
       }
       return acc;
@@ -40,7 +43,7 @@ export default async function MenuServer() {
       icon: cat.icon,
       description: cat.description,
       color: cat.color,
-      item_count: itemCountByCategory[cat.id] || 0
+      item_count: (typeof cat.id === 'string' ? itemCountByCategory[cat.id] : 0) || 0
     }));
 
     const drinkCategoriesWithCount: MenuCategoryWithCount[] = drinkCategories.map((cat: MenuCategory): MenuCategoryWithCount => ({
@@ -52,7 +55,7 @@ export default async function MenuServer() {
       icon: cat.icon,
       description: cat.description,
       color: cat.color,
-      item_count: itemCountByCategory[cat.id] || 0
+      item_count: (typeof cat.id === 'string' ? itemCountByCategory[cat.id] : 0) || 0
     }));
 
     const allCategories = [...foodCategoriesWithCount, ...drinkCategoriesWithCount];

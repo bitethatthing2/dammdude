@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, createContext, useContext } from 'react';
-import { UnifiedNotificationProvider } from '@/components/unified';
+import { NotificationProvider } from '@/components/unified';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 import { PwaStatusToast } from '@/components/shared/PwaStatusToast';
@@ -124,13 +124,13 @@ export default function ClientSideWrapper({ children }: ClientSideWrapperProps):
   return (
     <PwaInstallContext.Provider value={{ deferredPrompt, setDeferredPrompt }}>
       <TooltipProvider>
-        <UnifiedNotificationProvider recipientId={userId}>
+        <NotificationProvider recipientId={userId}>
           <FirebaseInitializer>
             {children}
             <ServiceWorkerRegister />
             <PwaStatusToast />
           </FirebaseInitializer>
-        </UnifiedNotificationProvider>
+        </NotificationProvider>
       </TooltipProvider>
     </PwaInstallContext.Provider>
   );

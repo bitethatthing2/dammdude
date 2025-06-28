@@ -6,26 +6,44 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SimpleHeader } from '@/components/shared/AppHeader';
 import { DynamicLogo } from '@/components/shared/DynamicLogo';
-// import { useWolfpack } from '@/hooks/useWolfpack';
-// Update the import path below to the correct location of useWolfpack, for example:
-import { useWolfpack } from '@/hooks/useWolfpack';
-// If the file does not exist, create 'hooks/useWolfpack.ts' in your project root and export the hook from there.
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
+import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
+import { wolfpackAPI } from '@/lib/api/wolfpack-client';
+import { WolfpackLocationService, SIDE_HUSTLE_LOCATIONS } from '@/lib/services/wolfpack-location.service';
 import { 
   Shield, 
-  Users, 
   UtensilsCrossed,
   Loader2,
   CheckCircle
 } from 'lucide-react';
 
+// Type definitions based on your Supabase schema
+type LocationStatus = 'checking' | 'verified' | 'denied' | 'error';
+
+interface DetectedLocation {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+interface JoinPackParams {
+  location_id: string;
+  display_name: string;
+  wolf_emoji?: string;
+  vibe_status?: string;
+}
+
 export default function WolfpackWelcomePage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isInPack, isLoading, joinPack } = useWolfpack();
+  const { user, loading: authLoading } = useConsistentAuth();
+  const { isMember: isInPack, isLoading: packLoading } = useConsistentWolfpackAccess();
   const [isJoining, setIsJoining] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<'checking' | 'verified' | 'denied' | 'error'>('checking');
-  const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('checking');
+  const [detectedLocation, setDetectedLocation] = useState<DetectedLocation | null>(null);
+  
+  // Combined loading state
+  const isLoading = authLoading || packLoading;
 
   useEffect(() => {
     // If already in pack, redirect immediately
@@ -34,58 +52,61 @@ export default function WolfpackWelcomePage() {
     }
   }, [isInPack, isLoading, router]);
 
-  // Auto location verification on mount
-  useEffect(() => {
-    if (user && !isInPack) {
-      verifyLocation();
-    }
-  }, [user, isInPack]);
+  // Auto location verification using the location service
+  const verifyLocation = useCallback(async () => {
+    setLocationStatus('checking');
+    
+    try {
+      const result = await WolfpackLocationService.verifyUserLocation();
+      
+      if (result.isAtLocation && result.locationId && result.locationName) {
+        const locationData = result.nearestLocation ? 
+          SIDE_HUSTLE_LOCATIONS[result.nearestLocation] : null;
+        
+        if (locationData) {
+          setDetectedLocation({
+            id: locationData.id,
+            name: locationData.name,
+            lat: locationData.lat,
+            lng: locationData.lng
+          });
+          setLocationStatus('verified');
+          // Auto-join pack after brief delay
+          setTimeout(() => {
+            handleQuickJoin();
+          }, 1500);
+        } else {
+          setLocationStatus('denied');
+        }
+      } else {
+  // (moved above and wrapped in useCallback)
 
-  // Redirect to login if not authenticated
-  if (!user && !isLoading) {
-    router.push('/login');
-    return null;
-  }
-
-  // Auto location verification
+  // Auto location verification using the location service
   const verifyLocation = async () => {
     setLocationStatus('checking');
     
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
+      const result = await WolfpackLocationService.verifyUserLocation();
       
-      // Side Hustle Bar locations (using prompt coordinates)
-      const locations = {
-        salem: { lat: 44.9429, lng: -123.0351, name: 'Salem' },
-        portland: { lat: 45.5152, lng: -122.6784, name: 'Portland' }
-      };
-
-      let nearestLocation = null;
-      let minDistance = Infinity;
-
-      for (const [key, loc] of Object.entries(locations)) {
-        const distance = calculateDistance(latitude, longitude, loc.lat, loc.lng);
-        if (distance < minDistance && distance <= 100) { // 100 meter radius
-          minDistance = distance;
-          nearestLocation = loc.name;
+      if (result.isAtLocation && result.locationId && result.locationName) {
+        const locationData = result.nearestLocation ? 
+          SIDE_HUSTLE_LOCATIONS[result.nearestLocation] : null;
+        
+        if (locationData) {
+          setDetectedLocation({
+            id: locationData.id,
+            name: locationData.name,
+            lat: locationData.lat,
+            lng: locationData.lng
+          });
+          setLocationStatus('verified');
+          // Auto-join pack after brief delay
+          setTimeout(() => {
+            handleQuickJoin();
+          }, 1500);
+        } else {
+          setLocationStatus('denied');
         }
-      }
-
-      if (nearestLocation) {
-        setDetectedLocation(nearestLocation);
-        setLocationStatus('verified');
-        // Auto-join pack after brief delay
-        setTimeout(() => {
-          handleQuickJoin();
-        }, 1500);
       } else {
         setLocationStatus('denied');
       }
@@ -112,22 +133,31 @@ export default function WolfpackWelcomePage() {
 
   // Quick join without additional form
   const handleQuickJoin = async () => {
-    if (isJoining) return;
+    if (isJoining || !detectedLocation || !user) return;
     
     setIsJoining(true);
     try {
-      const result = await joinPack({
-        display_name: (user?.user_metadata?.display_name as string) || user?.email?.split('@')[0] || 'Wolf',
-        emoji: '🐺',
-        current_vibe: 'Ready to party!',
-        table_location: 'Just arrived'
-      });
+      // Generate display name from user data
+      const displayName = user.first_name || user.email?.split('@')[0] || 'Wolf';
       
-      if (!result.error) {
+      const joinParams: JoinPackParams = {
+        location_id: detectedLocation.id,
+        display_name: displayName,
+        wolf_emoji: '🐺',
+        vibe_status: 'Ready to party!'
+      };
+      
+      const result = await wolfpackAPI.joinPack(joinParams);
+      
+      if (result.success) {
         router.push('/wolfpack');
+      } else {
+        console.error('Failed to join pack:', result.error);
+        setLocationStatus('error');
       }
     } catch (error) {
       console.error('Failed to join pack:', error);
+      setLocationStatus('error');
     } finally {
       setIsJoining(false);
     }
@@ -186,14 +216,14 @@ export default function WolfpackWelcomePage() {
 
   if (locationStatus === 'verified') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 pb-20">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 mb-4">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold mb-2">🎉 Welcome to {detectedLocation}!</h1>
+          <h1 className="text-2xl font-bold mb-2">🎉 Welcome to {detectedLocation?.name}!</h1>
           <p className="text-muted-foreground mb-6">
             Automatically joining the Wolf Pack...
           </p>
@@ -210,7 +240,7 @@ export default function WolfpackWelcomePage() {
 
   if (locationStatus === 'denied') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 pb-20">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-orange-500 to-red-500 mb-4">
@@ -227,11 +257,11 @@ export default function WolfpackWelcomePage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span>Salem: 123 Main St</span>
+                    <span>Salem: {SIDE_HUSTLE_LOCATIONS.salem.address}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span>Portland: 456 Oak Ave</span>
+                    <span>Portland: {SIDE_HUSTLE_LOCATIONS.portland.address}</span>
                   </div>
                 </div>
               </CardContent>
@@ -243,6 +273,62 @@ export default function WolfpackWelcomePage() {
             >
               Try Again
             </Button>
+            
+            {/* Manual location selection for development */}
+            {process.env.NODE_ENV === 'development' && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Development Mode
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Select a location manually:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() => {
+                        setDetectedLocation({
+                          id: SIDE_HUSTLE_LOCATIONS.salem.id,
+                          name: SIDE_HUSTLE_LOCATIONS.salem.name,
+                          lat: SIDE_HUSTLE_LOCATIONS.salem.lat,
+                          lng: SIDE_HUSTLE_LOCATIONS.salem.lng
+                        });
+                        setLocationStatus('verified');
+                        setTimeout(() => handleQuickJoin(), 500);
+                      }}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Salem
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setDetectedLocation({
+                          id: SIDE_HUSTLE_LOCATIONS.portland.id,
+                          name: SIDE_HUSTLE_LOCATIONS.portland.name,
+                          lat: SIDE_HUSTLE_LOCATIONS.portland.lat,
+                          lng: SIDE_HUSTLE_LOCATIONS.portland.lng
+                        });
+                        setLocationStatus('verified');
+                        setTimeout(() => handleQuickJoin(), 500);
+                      }}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Portland
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+            
             <Button 
               onClick={() => router.push('/')}
               className="w-full"
@@ -257,7 +343,7 @@ export default function WolfpackWelcomePage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50 pb-20">
       <div className="text-center max-w-md mx-auto px-4">
         <div className="mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-red-500 to-pink-500 mb-4">

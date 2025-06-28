@@ -19,7 +19,8 @@ export default function AdminLoginPage() {
   // const router = useRouter() // Unused - remove if not needed;
   const { toast } = useToast();
   
-  // Use the updated Supabase client  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Use the updated Supabase client
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);

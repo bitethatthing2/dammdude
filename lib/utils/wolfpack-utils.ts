@@ -1,7 +1,7 @@
 // lib/utils/wolfpack-utils.ts
 // Consolidated utility functions for wolfpack operations
 
-import { supabase } from '@/lib/supabase/client';
+import { supabase, createClient } from '@/lib/supabase/client';
 import { 
   AuthUser, 
   SupabaseError, 
@@ -15,7 +15,7 @@ const VIP_USERS = ['mkahler599@gmail.com'];
 
 // Helper function to ensure user exists in public.users table
 export async function ensureUserExists(
-  supabase: ReturnType<typeof getSupabaseBrowserClient>, 
+  supabase: ReturnType<typeof createClient>, 
   authUser: AuthUser
 ): Promise<boolean> {
   try {
@@ -143,7 +143,7 @@ export const isVipUser = (user: AuthUser | null): boolean => {
 export const joinWolfPackFromLocation = async (
   locationId: string, 
   user: AuthUser, 
-  supabase: ReturnType<typeof getSupabaseBrowserClient>
+  supabase: ReturnType<typeof createClient>
 ) => {
   if (!user) {
     throw new Error('User not authenticated');
@@ -243,7 +243,7 @@ export const joinWolfPackFromLocation = async (
           status: 'active', 
           last_active: new Date().toISOString() 
         })
-        .eq('id', existingMember.id);
+        .eq('id', existingMember.id!);
 
       if (updateError) {
         console.error('Error updating pack membership:', updateError);

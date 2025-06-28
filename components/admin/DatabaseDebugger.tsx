@@ -46,7 +46,8 @@ export function DatabaseDebugger() {
       const data = await response.json();
       setHealthStatus(data);
       
-      // Try direct Supabase query      const { data: queryData, error: queryError } = await supabase
+      // Try direct Supabase query
+      const { data: queryData, error: queryError } = await supabase
         .from('bartender_orders')
         .select('count')
         .limit(1);

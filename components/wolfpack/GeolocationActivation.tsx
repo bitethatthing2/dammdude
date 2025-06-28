@@ -8,22 +8,93 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MapPin, Shield, AlertTriangle, Check, X, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-import { useUser } from '@/hooks/useUser';
+import { useUser, type DatabaseUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
-import { 
-  Location, 
-  GeolocationState, 
-  WolfPackInvitation 
-} from '@/types/wolfpack-interfaces';
-import { 
-  joinWolfPackFromLocation, 
-  checkWolfPackStatus, 
-  getWolfPackLocations, 
-  clearCorruptedAuthCookies, 
-  calculateDistance 
-} from '@/lib/utils/wolfpack-utils';
 
-// Call this when you detect cookie errors
+// Interfaces for type safety
+interface Location {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radius_miles: number | null;
+  address?: string;
+  city?: string;
+  state?: string;
+}
+
+interface GeolocationState {
+  permission: 'prompt' | 'granted' | 'denied';
+  position: GeolocationPosition | null;
+  error: string | null;
+  isLoading: boolean;
+}
+
+interface WolfPackInvitation {
+  show: boolean;
+  location: Location | null;
+  distance: number;
+}
+
+interface User {
+  id: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
+// Utility functions
+const clearCorruptedAuthCookies = () => {
+  if (typeof document !== 'undefined') {
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+  }
+};
+
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+};
+
+const joinWolfPackFromLocation = async (locationId: string, user: DatabaseUser) => {
+  if (!user?.id || !locationId) {
+    throw new Error('Invalid user reference or location ID');
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('wolf_pack_members')
+      .insert({
+        user_id: user.id,
+        location_id: locationId,
+        status: 'active',
+        joined_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error joining wolf pack:', error);
+    throw error;
+  }
+};
+
+// Initialize error handling for corrupted cookies
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     if (event.message?.includes('Failed to parse cookie')) {
@@ -49,30 +120,40 @@ export function GeolocationActivation() {
   });
   const [isWolfPackMember, setIsWolfPackMember] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
-  const [watchId, setWatchId] = useState<number | null>(null);  // Check if user is already an active WolfPack member
+  const [watchId, setWatchId] = useState<number | null>(null);
+
+  // Check if user is already an active WolfPack member
   useEffect(() => {
     async function checkMembershipStatus() {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
+        // First get the member data
+        const { data: memberData, error: memberError } = await supabase
           .from("wolf_pack_members")
-          .select(`
-            id,
-            location_id,
-            locations:location_id(name)
-          `)
+          .select("id, location_id")
           .eq('user_id', user.id)
           .eq('status', 'active')
           .maybeSingle();
 
-        if (!error && data) {
-          setIsWolfPackMember(true);
-          // Type assertion for the joined data
-          const locationData = data as any;
-          setCurrentLocation(locationData.locations?.name || null);
-        } else {
+        if (memberError || !memberData) {
           setIsWolfPackMember(false);
+          setCurrentLocation(null);
+          return;
+        }
+
+        // Then get the location name separately
+        const { data: locationData, error: locationError } = await supabase
+          .from("locations")
+          .select("name")
+          .eq('id', memberData.location_id!)
+          .single();
+
+        if (!locationError && locationData) {
+          setIsWolfPackMember(true);
+          setCurrentLocation(locationData.name);
+        } else {
+          setIsWolfPackMember(true);
           setCurrentLocation(null);
         }
       } catch (error) {
@@ -82,10 +163,89 @@ export function GeolocationActivation() {
       }
     }
 
-    if (!userLoading) {
-      checkMembershipStatus();
+    if (!userLoading && user) {
+      void checkMembershipStatus();
     }
-  }, [user, userLoading, supabase]);
+  }, [user, userLoading]);
+
+  // Stop location monitoring
+  const stopLocationMonitoring = useCallback(() => {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+  }, [watchId]);
+
+  // Check proximity to Side Hustle locations
+  const checkProximityToBar = useCallback(async (position: GeolocationPosition) => {
+    try {
+      // Check if wolfpack is available (11 AM - 2:30 AM)
+      const now = new Date();
+      const hour = now.getHours();
+      const isWolfpackActive = hour >= 11 || hour < 2 || (hour === 2 && now.getMinutes() < 30);
+      
+      if (!isWolfpackActive) return;
+
+      const { data: locations, error } = await supabase
+        .from('locations')
+        .select('*');
+
+      if (error || !locations) return;
+
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+
+      for (const location of locations as Location[]) {
+        const distance = calculateDistance(userLat, userLng, location.latitude, location.longitude);
+        
+        // Skip location if radius_miles is null or undefined
+        if (location.radius_miles == null) {
+          continue;
+        }
+        
+        const radiusInMeters = location.radius_miles * 1609.34; // Convert miles to meters
+        
+        // Check if user is within geofence and not already a member
+        if (distance <= radiusInMeters && !isWolfPackMember) {
+          setInvitation({
+            show: true,
+            location: location,
+            distance: Math.round(distance)
+          });
+          
+          // Show notification
+          toast.info(`You're near ${location.name}!`, {
+            description: 'Join the WolfPack to unlock exclusive features'
+          });
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking location proximity:', error);
+    }
+  }, [isWolfPackMember]);
+
+  // Start monitoring location
+  const startLocationMonitoring = useCallback(() => {
+    if (!navigator.geolocation) return;
+
+    const id = navigator.geolocation.watchPosition(
+      (position) => {
+        setGeoState(prev => ({ ...prev, position, error: null }));
+        void checkProximityToBar(position);
+      },
+      (error) => {
+        setGeoState(prev => ({ ...prev, error: error.message }));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 60000 // Cache position for 1 minute
+      }
+    );
+
+    setWatchId(id);
+  }, [checkProximityToBar]);
 
   // Request location permission
   const requestLocationPermission = async () => {
@@ -140,101 +300,6 @@ export function GeolocationActivation() {
     }
   };
 
-  // Start monitoring location
-  const startLocationMonitoring = () => {
-    if (!navigator.geolocation) return;
-
-    const id = navigator.geolocation.watchPosition(
-      (position) => {
-        setGeoState(prev => ({ ...prev, position, error: null }));
-        checkProximityToBar(position);
-      },
-      (error) => {
-        setGeoState(prev => ({ ...prev, error: error.message }));
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 30000,
-        maximumAge: 60000 // Cache position for 1 minute
-      }
-    );
-
-    setWatchId(id);
-  };
-
-  // Stop location monitoring
-  const stopLocationMonitoring = useCallback(() => {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
-    }
-  }, [watchId]);
-
-  // Check proximity to Side Hustle locations
-  const checkProximityToBar = async (position: GeolocationPosition) => {
-    try {
-      // Check if wolfpack is available (11 AM - 2:30 AM)
-      const now = new Date();
-      const hour = now.getHours();
-      const isWolfpackActive = hour >= 11 || hour < 2 || (hour === 2 && now.getMinutes() < 30);
-      
-      if (!isWolfpackActive) return;
-
-      const { data: locations, error } = await supabase
-        .from('locations')
-        .select('*');
-
-      if (error || !locations) return;
-
-      const userLat = position.coords.latitude;
-      const userLng = position.coords.longitude;
-
-      for (const location of locations) {
-        const distance = calculateDistance(userLat, userLng, location.latitude, location.longitude);
-        
-        // Skip location if radius_miles is null or undefined
-        if (location.radius_miles == null) {
-          continue;
-        }
-        
-        const radiusInMeters = location.radius_miles * 1609.34; // Convert miles to meters
-        
-        // Check if user is within geofence and not already a member
-        if (distance <= radiusInMeters && !isWolfPackMember) {
-          setInvitation({
-            show: true,
-            location: location,
-            distance: Math.round(distance)
-          });
-          
-          // Show notification
-          toast.info(`You're near ${location.name}!`, {
-            description: 'Join the WolfPack to unlock exclusive features'
-          });
-          break;
-        }
-      }
-    } catch (error) {
-      console.error('Error checking location proximity:', error);
-    }
-  };
-
-  // Calculate distance between two coordinates (Haversine formula)
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lng2 - lng1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-  };
-
   // Join WolfPack from geolocation invitation
   const handleJoinWolfPack = async () => {
     if (!user || !invitation.location) {
@@ -243,7 +308,7 @@ export function GeolocationActivation() {
     }
 
     try {
-      await joinWolfPackFromLocation(invitation.location.id, user, supabase);
+      await joinWolfPackFromLocation(invitation.location.id, user);
       
       // Update local state
       setIsWolfPackMember(true);

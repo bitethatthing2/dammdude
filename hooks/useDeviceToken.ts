@@ -182,7 +182,8 @@ export function useDeviceToken(userId?: string) {
         setDeviceToken(existingToken);
         setFcmToken(existingToken.token);
         
-        // Update last used timestamp        if (existingToken.id) {
+        // Update last used timestamp
+        if (existingToken.id) {
           await supabase
             .from('device_tokens')
             .update({
@@ -248,7 +249,8 @@ export function useDeviceToken(userId?: string) {
   const deactivateToken = useCallback(async (): Promise<boolean> => {
     if (!deviceToken) return false;
 
-    try {      if (!deviceToken.id) {
+    try {
+      if (!deviceToken.id) {
         throw new Error('Device token ID is missing');
       }
       

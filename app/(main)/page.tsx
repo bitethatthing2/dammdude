@@ -177,7 +177,7 @@ export default function Page() {
       </div>
 
       {/* Quick Links Section */}
-      <div className="w-full max-w-md px-4 mt-6 mb-24">
+      <div className="w-full max-w-md px-4 mt-6 mb-32">
         <h2 className="text-lg font-semibold mb-4 text-center">Quick Links</h2>
         <div className="grid grid-cols-2 gap-4">
           <QuickLink 

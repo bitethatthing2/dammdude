@@ -41,13 +41,14 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
  */
 interface NotificationProviderProps {
   children: ReactNode;
+  recipientId?: string;
 }
 
 /**
  * Notification provider component
  * Provides notification state and actions to child components
  */
-export function NotificationProvider({ children }: NotificationProviderProps) {
+export function NotificationProvider({ children, recipientId }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,7 +57,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: null, // null means current user
+        p_user_id: undefined, // null means current user
         p_limit: 50,
         p_offset: 0
       });
@@ -66,7 +67,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         return;
       }
 
-      setNotifications(data || []);
+      setNotifications((data as unknown as Notification[]) || []);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {

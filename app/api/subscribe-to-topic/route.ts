@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeFirebaseAdmin, getAdminMessaging, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 // Define the structure for the expected request body
 interface SubscribeRequestBody {
@@ -61,7 +61,9 @@ export async function POST(request: NextRequest) {
     await messaging.subscribeToTopic(token, topic);
     
     // If successful, store the subscription in Supabase
-    const supabase = await createClient();// Check if a record exists for this token and topic
+    const supabaseAdmin = createAdminClient();
+    
+    // Check if a record exists for this token and topic
     const { data: existingData, error: fetchError } = await supabaseAdmin
       .from('topic_subscriptions')
       .select('*')

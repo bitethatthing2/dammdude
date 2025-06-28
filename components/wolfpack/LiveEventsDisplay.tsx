@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -427,7 +428,7 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
         eventsSubscription.unsubscribe();
       };
     }
-  }, [locationId, userId, supabase]);
+  }, [locationId, userId]);
 
   // Vote for contestant
   const voteForContestant = async (eventId: string, optionId: string) => {
@@ -440,8 +441,8 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
         .from('wolf_pack_votes')
         .insert({
           event_id: eventId,
-          user_id: user.id,
-          option_id: optionId, // This is a varchar field
+          voter_id: user.id,
+          voted_for_id: optionId,
           created_at: new Date().toISOString()
         });
 

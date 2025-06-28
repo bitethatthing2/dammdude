@@ -1,152 +1,222 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   MessageCircle, 
   Heart, 
   Users,
-  User,
-  Sparkles,
-  Menu
+  RefreshCw,
+  Coffee,
+  Wine
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-// Interface matching your actual backend structure
+// Database response type for wolfpack_members_unified
+interface DatabaseMember {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  status: string | null;
+  is_active: boolean | null;
+  joined_at: string;
+  last_active: string | null;
+  location_id: string | null;
+  emoji: string | null;
+  current_vibe: string | null;
+  role: string | null;
+  favorite_drink: string | null;
+}
+
+// Match your existing database structure exactly
 interface WolfPackMember {
   id: string;
   user_id: string;
-  location_id: string | null;
-  status: string | null; // Can be null in DB
-  table_location: string | null;
-  joined_at: string;
-  last_active: string | null;
-  position_x: number | null;
-  position_y: number | null;
-  display_name: string | null; // From wolfpack_members_unified
-  emoji: string | null; // From wolfpack_members_unified
-  role: string | null; // From wolfpack_members_unified
-  is_active: boolean | null;
-  username: string | null;
+  display_name: string | null;
+  wolf_emoji: string | null;
+  bio: string | null;
+  current_activity: string | null;
   avatar_url: string | null;
-  favorite_drink: string | null;
-  current_vibe: string | null;
-  looking_for: string | null;
-  instagram_handle: string | null;
-  session_id: string | null;
-  is_host: boolean | null;
-  left_at: string | null;
-  status_enum: string | null;
+  role: string | null;
+  vibe_status: string | null;
+  last_activity_at: string;
+  favorite_drink?: string | null;
+  isCurrentUser?: boolean;
 }
 
-interface WolfpackIsometricViewProps {
+interface MembersByArea {
+  dj_booth: WolfPackMember[];
+  bar: WolfPackMember[];
+  pack_general: WolfPackMember[];
+}
+
+interface WolfpackAreaBasedViewProps {
   locationId: string;
   currentUserId: string;
 }
 
-export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIsometricViewProps) {
+// Area configuration
+const areaConfig = {
+  dj_booth: {
+    title: 'DJ BOOTH',
+    icon: '🎵',
+    color: 'bg-purple-600',
+    textColor: 'text-purple-400',
+    description: 'Where the beats drop'
+  },
+  bar: {
+    title: 'THE BAR',
+    icon: '🍺',
+    color: 'bg-green-600',
+    textColor: 'text-green-400',
+    description: 'Bartenders serving up magic'
+  },
+  pack_general: {
+    title: 'WOLFPACK AREA',
+    icon: '🐺',
+    color: 'bg-blue-600',
+    textColor: 'text-blue-400',
+    description: 'Where the pack gathers'
+  }
+} as const;
+
+export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAreaBasedViewProps) {
   const { user } = useUser();
   const router = useRouter();
-  const [members, setMembers] = useState<WolfPackMember[]>([]);
+  const [membersByArea, setMembersByArea] = useState<MembersByArea>({
+    dj_booth: [],
+    bar: [],
+    pack_general: []
+  });
   const [selectedMember, setSelectedMember] = useState<WolfPackMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load wolfpack members
-  useEffect(() => {
-    async function loadData() {
-      if (!locationId || !currentUserId) return;
+  // Load members - use your existing unified table instead of the simplified functions
+  const loadMembers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // Use your existing wolfpack_members_unified table
+      const { data: memberData, error } = await supabase
+        .from("wolfpack_members_unified")
+        .select(`
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          status,
+          is_active,
+          joined_at,
+          last_active,
+          location_id,
+          emoji,
+          current_vibe,
+          role,
+          favorite_drink
+        `)
+        .eq('is_active', true)
+        .eq('location_id', locationId);
 
-      try {
-        setIsLoading(true);
-
-        // Load active members from the unified table
-        const { data: memberData, error: memberError } = await supabase
-          .from("wolfpack_members_unified")
-          .select("*")
-          .eq('is_active', true)
-          .eq('location_id', locationId);
-
-        if (memberError) throw memberError;
-        
-        // Set members with proper null handling
-        setMembers((memberData || []) as WolfPackMember[]);
-
-        // Load blocked users (using the correct column names)
-        const { data: blockData } = await supabase
-          .from('wolf_pack_interactions')
-          .select('receiver_id')
-          .eq('sender_id', currentUserId)
-          .eq('interaction_type', 'block');
-
-        // Filter out any null values and ensure we have strings
-        const blockedUserIds = (blockData || [])
-          .map(b => b.receiver_id)
-          .filter((id): id is string => id !== null);
-        
-        setBlockedUsers(blockedUserIds);
-
-      } catch (error) {
-        console.error('Error loading wolfpack data:', error);
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        console.error('Error loading members:', error);
+        throw error;
       }
+
+      // Group members by role into areas
+      const members = (memberData || []).map((member: DatabaseMember) => ({
+        id: member.id,
+        user_id: member.user_id,
+        display_name: member.display_name,
+        wolf_emoji: member.emoji,
+        bio: null, // Add if you have this field
+        current_activity: member.status || 'Vibing',
+        avatar_url: member.avatar_url,
+        role: member.role,
+        vibe_status: member.current_vibe,
+        last_activity_at: member.last_active || member.joined_at,
+        favorite_drink: member.favorite_drink,
+        isCurrentUser: member.user_id === currentUserId
+      }));
+
+      // Group by role-based areas
+      const groupedMembers: MembersByArea = {
+        dj_booth: members.filter((m: WolfPackMember) => m.role === 'dj'),
+        bar: members.filter((m: WolfPackMember) => m.role === 'bartender'),
+        pack_general: members.filter((m: WolfPackMember) => !m.role || (m.role !== 'dj' && m.role !== 'bartender'))
+      };
+
+      setMembersByArea(groupedMembers);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error loading wolfpack members:', error);
+      toast.error('Failed to load wolfpack members');
+    } finally {
+      setIsLoading(false);
     }
+  }, [locationId, currentUserId]);
 
-    loadData();
+  // Join location - simplified to just update the unified table
+  const joinLocation = useCallback(async () => {
+    if (!user) return;
 
-    // Set up real-time subscription
-    const memberSubscription = supabase
-      .channel(`wolfpack_isometric_${locationId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'wolfpack_members_unified',
-        filter: `location_id=eq.${locationId}`
-      }, loadData)
-      .subscribe();
+    try {
+      // Check if user is already in the location
+      const { data: existingMember } = await supabase
+        .from('wolfpack_members_unified')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('location_id', locationId)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    return () => {
-      memberSubscription.unsubscribe();
-    };
-  }, [locationId, currentUserId, supabase]);
+      if (existingMember) {
+        // User already in location, just refresh
+        await loadMembers();
+        return;
+      }
 
-  // Get member icon based on role and emoji
-  const getMemberIcon = (member: WolfPackMember) => {
-    if (member.role === 'dj') return '🎵';
-    if (member.role === 'bartender') return '🐺';
-    return member.emoji || '🐾';
-  };
+      // Add user to location
+      const { error } = await supabase
+        .from('wolfpack_members_unified')
+        .upsert({
+          user_id: user.id,
+          location_id: locationId,
+          is_active: true,
+          joined_at: new Date().toISOString(),
+          last_active: new Date().toISOString(),
+          status: 'Just joined'
+        });
+
+      if (error) {
+        console.error('Error joining location:', error);
+        throw error;
+      }
+
+      toast.success('Welcome to the Wolfpack!');
+      await loadMembers();
+    } catch (error) {
+      console.error('Error joining location:', error);
+      toast.error('Failed to join location');
+    }
+  }, [user, locationId, loadMembers]);
 
   // Send interaction
-  const sendInteraction = async (targetUserId: string, type: 'wink' | 'message' | 'block') => {
+  const sendInteraction = useCallback(async (targetUserId: string, type: 'wink' | 'message') => {
     if (!user || targetUserId === currentUserId) return;
 
     try {
-      if (type === 'block') {
-        const { error } = await supabase
-          .from('wolf_pack_interactions')
-          .upsert({
-            sender_id: user.id,
-            receiver_id: targetUserId,
-            interaction_type: 'block',
-            location_id: locationId,
-            created_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-        setBlockedUsers(prev => [...prev, targetUserId]);
-        toast.success('User blocked');
-        setSelectedMember(null);
+      if (type === 'message') {
+        router.push(`/wolfpack/chat/private/${targetUserId}`);
       } else if (type === 'wink') {
         const { error } = await supabase
           .from('wolf_pack_interactions')
@@ -155,30 +225,152 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
             receiver_id: targetUserId,
             interaction_type: 'wink',
             location_id: locationId,
+            status: 'sent',
             created_at: new Date().toISOString()
           });
 
         if (error) throw error;
         toast.success('Wink sent! 😉');
-      } else if (type === 'message') {
-        router.push(`/wolfpack/chat/private/${targetUserId}`);
       }
     } catch (error) {
       console.error('Error sending interaction:', error);
       toast.error('Failed to send interaction');
     }
-  };
+  }, [user, currentUserId, router, locationId]);
 
-  // Filter visible members (handle null values properly)
-  const visibleMembers = members.filter(member => 
-    !blockedUsers.includes(member.user_id)
+  // Get total member count
+  const getTotalMembers = useCallback(() => {
+    return membersByArea.dj_booth.length + membersByArea.bar.length + membersByArea.pack_general.length;
+  }, [membersByArea]);
+
+  // Initial data load
+  useEffect(() => {
+    if (locationId && currentUserId) {
+      loadMembers();
+      joinLocation();
+    }
+  }, [locationId, currentUserId, loadMembers, joinLocation]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!locationId) return;
+
+    const channel = supabase
+      .channel(`wolfpack_${locationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wolfpack_members_unified',
+          filter: `location_id=eq.${locationId}`
+        },
+        () => {
+          void loadMembers();
+        }
+      )
+      .subscribe();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      void loadMembers();
+    }, 30000);
+
+    return () => {
+      void supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [locationId, loadMembers]);
+
+  // Member card component
+  const MemberCard = ({ member, area }: { member: WolfPackMember; area: keyof MembersByArea }) => (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      whileHover={{ scale: 1.02 }}
+      onClick={() => setSelectedMember(member)}
+      className={`${areaConfig[area].color} p-3 rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200`}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar className="w-12 h-12 border-2 border-white/30">
+          <AvatarImage src={member.avatar_url || undefined} />
+          <AvatarFallback className="bg-white/20 text-white font-bold">
+            {member.wolf_emoji || member.display_name?.charAt(0) || '🐺'}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-white text-sm truncate">
+              {member.display_name || 'Anonymous Wolf'}
+            </h3>
+            {member.isCurrentUser && (
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+            )}
+          </div>
+          
+          {member.role && member.role !== 'user' && (
+            <Badge className="bg-white/20 text-white text-xs mt-1">
+              {member.role === 'dj' ? 'DJ' : member.role === 'bartender' ? 'BAR' : member.role.toUpperCase()}
+            </Badge>
+          )}
+          
+          <p className="text-white/80 text-xs mt-1 truncate">
+            {member.current_activity || 'Vibing'}
+          </p>
+        </div>
+      </div>
+    </motion.div>
   );
+
+  // Area section component
+  const AreaSection = ({ areaKey, members }: { areaKey: keyof MembersByArea; members: WolfPackMember[] }) => {
+    const config = areaConfig[areaKey];
+    
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{config.icon}</span>
+            <h2 className={`font-bold text-sm ${config.textColor}`}>
+              {config.title}
+            </h2>
+            <Badge variant="secondary" className="text-xs">
+              {members.length}
+            </Badge>
+          </div>
+        </div>
+        
+        <p className="text-muted-foreground text-xs mb-3">{config.description}</p>
+        
+        <div className="space-y-2">
+          <AnimatePresence>
+            {members.length > 0 ? (
+              members.map((member) => (
+                <MemberCard 
+                  key={member.id} 
+                  member={member} 
+                  area={areaKey}
+                />
+              ))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                No one in this area right now
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
-      <div className="h-[600px] flex items-center justify-center">
+      <div className="min-h-[400px] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <RefreshCw className="animate-spin h-8 w-8 mx-auto mb-2" />
           <p className="text-muted-foreground">Loading Wolf Pack...</p>
         </div>
       </div>
@@ -191,278 +383,83 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Users className="h-5 w-5" />
-          3D Wolf Pack View ({visibleMembers.length})
+          Wolf Pack ({getTotalMembers()})
         </h3>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void loadMembers()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* 3D Isometric Platform View - Styled for hexagonal theme */}
-      <div className="relative w-full h-[600px] bg-gradient-to-br from-background via-muted/20 to-background rounded-xl overflow-hidden border border-border shadow-2xl">
-        
-        {/* Hexagonal background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <svg width="100%" height="100%" viewBox="0 0 800 600">
-            <defs>
-              <pattern id="hexPattern3D" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
-                <polygon points="30,2 54,15 54,37 30,50 6,37 6,15" 
-                         fill="none" stroke="currentColor" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hexPattern3D)" />
-          </svg>
-        </div>
+      {/* Stats Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{getTotalMembers()}</span>
+                <span className="text-muted-foreground">active</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span className="text-muted-foreground">DJ: {membersByArea.dj_booth.length}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-muted-foreground">Bar: {membersByArea.bar.length}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-muted-foreground">Pack: {membersByArea.pack_general.length}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Isometric Container with 3D Transform */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div 
-            className="isometric-container relative" 
-            style={{
-              width: '400px',
-              height: '400px',
-              transformStyle: 'preserve-3d',
-              transform: 'rotateX(60deg) rotateZ(45deg)'
-            }}
-          >
-            {/* Hexagonal Platform with Grid */}
-            <div 
-              className="isometric-platform absolute inset-0" 
-              style={{
-                background: 'linear-gradient(45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%), linear-gradient(-45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%)',
-                backgroundSize: '40px 40px',
-                border: '2px solid hsl(var(--border))',
-                borderRadius: '50px',
-                transform: 'rotateZ(-45deg) rotateX(-60deg)'
-              }}
+      {/* Members by Area */}
+      <div className="space-y-6">
+        <AreaSection areaKey="dj_booth" members={membersByArea.dj_booth} />
+        <AreaSection areaKey="bar" members={membersByArea.bar} />
+        <AreaSection areaKey="pack_general" members={membersByArea.pack_general} />
+      </div>
+
+      {/* Food & Drink Menu Card (if bartenders present) */}
+      {membersByArea.bar.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-center text-sm flex items-center justify-center gap-2">
+              🍺 Bartender Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center">
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={() => router.push('/menu')}
             >
-              {/* Grid overlay for depth */}
-              <div 
-                className="absolute inset-0" 
-                style={{
-                  background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)',
-                  borderRadius: '50px'
-                }} 
-              />
-            </div>
+              View Food & Drink Menu
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-            {/* User Avatars in 3D Space */}
-            <AnimatePresence>
-              {visibleMembers.map((member, index) => {
-                const isCurrentUser = member.user_id === currentUserId;
-                const icon = getMemberIcon(member);
-                
-                // Calculate isometric position based on table location or hexagonal distribution
-                const getIsometricPosition = (tableLocation: string | null, index: number) => {
-                  const positions = {
-                    'bar_center': { x: 50, y: 30 },
-                    'bar_left': { x: 20, y: 30 },
-                    'bar_right': { x: 80, y: 30 },
-                    'table_1': { x: 30, y: 60 },
-                    'table_2': { x: 70, y: 60 },
-                    'dj_booth': { x: 50, y: 10 },
-                    'entrance': { x: 50, y: 90 },
-                    'upstairs': { x: 25, y: 25 },
-                    'patio': { x: 75, y: 85 }
-                  };
-                  
-                  if (tableLocation) {
-                    const key = Object.keys(positions).find(k => 
-                      tableLocation.toLowerCase().includes(k.split('_')[0])
-                    );
-                    if (key) return positions[key as keyof typeof positions];
-                  }
-                  
-                  // Hexagonal distribution (matching spatial view)
-                  if (index === 0) return { x: 50, y: 25 }; // Top center (DJ position)
-                  if (index === 1) return { x: 75, y: 37.5 }; // Top right
-                  if (index === 2) return { x: 75, y: 62.5 }; // Bottom right
-                  if (index === 3) return { x: 50, y: 75 }; // Bottom center
-                  if (index === 4) return { x: 25, y: 62.5 }; // Bottom left
-                  if (index === 5) return { x: 25, y: 37.5 }; // Top left
-                  
-                  // Outer ring for additional members
-                  const outerIndex = index - 6;
-                  const angle = (outerIndex / Math.max(1, visibleMembers.length - 6)) * 2 * Math.PI;
-                  return {
-                    x: 50 + Math.cos(angle) * 35,
-                    y: 50 + Math.sin(angle) * 25
-                  };
-                };
-                
-                const position = getIsometricPosition(member.table_location, index);
-                
-                return (
-                  <motion.div
-                    key={member.id}
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-                    style={{
-                      left: `${position.x}%`,
-                      top: `${position.y}%`,
-                      transformStyle: 'preserve-3d',
-                      transform: 'translate(-50%, -50%) rotateX(-60deg) rotateZ(-45deg)'
-                    }}
-                    initial={{ scale: 0, y: -50, opacity: 0 }}
-                    animate={{ scale: 1, y: 0, opacity: 1 }}
-                    exit={{ scale: 0, y: -50, opacity: 0 }}
-                    whileHover={{ scale: 1.2, z: 10 }}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    {/* Avatar with interaction menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <div className="relative">
-                          {/* 3D Avatar Container */}
-                          <div className="relative w-16 h-16">
-                            <Avatar className="w-full h-full border-2 border-background shadow-lg">
-                              <AvatarImage src={member.avatar_url || undefined} />
-                              <AvatarFallback className="text-lg font-bold">
-                                {icon}
-                              </AvatarFallback>
-                            </Avatar>
-                            
-                            {/* Role Badge */}
-                            {member.role === 'dj' && (
-                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-violet-600 hover:bg-violet-600">
-                                🎵
-                              </Badge>
-                            )}
-                            {member.role === 'bartender' && (
-                              <Badge className="absolute -bottom-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-green-600 hover:bg-green-600">
-                                🐺
-                              </Badge>
-                            )}
-                            
-                            {/* Current User Indicator */}
-                            {isCurrentUser && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded-full" />
-                            )}
-                          </div>
-                          
-                          {/* Name Label */}
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-popover/90 border border-border text-foreground px-2 py-1 rounded text-xs whitespace-nowrap">
-                            {(member.display_name || member.username || 'Wolf').slice(0, 10)}
-                          </div>
-                        </div>
-                      </DropdownMenuTrigger>
-                      
-                      {/* Interaction Menu */}
-                      {!isCurrentUser && (
-                        <DropdownMenuContent align="start" className="w-48">
-                          <DropdownMenuItem onClick={() => setSelectedMember(member)}>
-                            <User className="mr-2 h-4 w-4" />
-                            View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendInteraction(member.user_id, 'message')}>
-                            <MessageCircle className="mr-2 h-4 w-4" />
-                            Send Message
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendInteraction(member.user_id, 'wink')}>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Send Wink
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      )}
-                    </DropdownMenu>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </div>
-        
-        {/* Bartender Menu Card (Bottom Right) */}
-        {visibleMembers.filter(m => m.role === 'bartender').length > 0 && (
-          <Card className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm border-border w-48">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-center text-sm">Bartender</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <Avatar className="h-12 w-12 mb-3">
-                <AvatarFallback className="bg-green-600">🐺</AvatarFallback>
-              </Avatar>
-              <Button 
-                variant="secondary" 
-                className="w-full text-xs"
-                onClick={() => router.push('/menu')}
-              >
-                Food & Drink Menu
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Order Display Bubbles */}
-        <AnimatePresence>
-          {visibleMembers
-            .filter(m => m.table_location?.toLowerCase().includes('ordered'))
-            .map((member, index) => (
-              <motion.div
-                key={`order-${member.id}`}
-                className="absolute top-4 left-4"
-                style={{ top: `${20 + index * 60}px` }}
-                initial={{ scale: 0, x: -50 }}
-                animate={{ scale: 1, x: 0 }}
-                exit={{ scale: 0, x: -50 }}
-              >
-                <Card className="bg-card/95 backdrop-blur border border-border shadow-lg">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getMemberIcon(member)}</AvatarFallback>
-                      </Avatar>
-                      <CardTitle className="text-sm">Recent Order</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm font-medium">Nachos & Craft Beer</p>
-                    <p className="text-xs text-muted-foreground">
-                      {member.display_name || member.username || 'Wolf'}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          }
-        </AnimatePresence>
-
-        {/* Empty State */}
-        {visibleMembers.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <p className="text-lg mb-2">No pack members online right now</p>
-              <p className="text-sm">Be the first to join the pack! 🐺</p>
-            </div>
-          </div>
-        )}
-
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-card/70 backdrop-blur-sm border border-border rounded-lg p-3 text-foreground text-xs">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>You</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-slate-500 rounded-full"></div>
-              <span>Other Wolves</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Bartender</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-violet-500 rounded-full animate-pulse"></div>
-              <span>DJ</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       {/* Member Profile Dialog */}
       <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">{selectedMember ? getMemberIcon(selectedMember) : ''}</span>
+              <span className="text-2xl">{selectedMember?.wolf_emoji || '🐺'}</span>
               Wolf Profile
             </DialogTitle>
           </DialogHeader>
@@ -474,46 +471,66 @@ export function WolfpackIsometricView({ locationId, currentUserId }: WolfpackIso
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={selectedMember.avatar_url || undefined} />
                   <AvatarFallback className="text-lg">
-                    {selectedMember.emoji || 
-                     selectedMember.display_name?.charAt(0)?.toUpperCase() || 
-                     'W'}
+                    {selectedMember.wolf_emoji || selectedMember.display_name?.charAt(0) || 'W'}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1">
                   <h3 className="text-xl font-bold">
-                    {selectedMember.display_name || selectedMember.username || 'Anonymous Wolf'}
+                    {selectedMember.display_name || 'Anonymous Wolf'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Ready to party! 🎉
+                    {selectedMember.vibe_status || 'Ready to party! 🎉'}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary">
                       {selectedMember.role === 'dj' ? 'DJ' : 
                        selectedMember.role === 'bartender' ? 'Bartender' : 'Wolf'}
                     </Badge>
-                    {selectedMember.table_location && (
-                      <Badge variant="outline" className="text-xs">
-                        {selectedMember.table_location}
-                      </Badge>
-                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Bio */}
+              {selectedMember.bio && (
+                <div>
+                  <p className="text-sm text-muted-foreground">{selectedMember.bio}</p>
+                </div>
+              )}
+
+              {/* Current Activity */}
+              <div className="p-3 bg-muted rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Coffee className="h-4 w-4" />
+                  Currently
+                </h4>
+                <p className="text-sm">{selectedMember.current_activity || 'Vibing'}</p>
+              </div>
+
+              {/* Favorite Drink */}
+              {selectedMember.favorite_drink && (
+                <div className="p-3 bg-amber-50 rounded-lg">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Wine className="h-4 w-4" />
+                    Favorite Drink
+                  </h4>
+                  <p className="text-sm">{selectedMember.favorite_drink}</p>
+                </div>
+              )}
 
               {/* Action Buttons */}
               {selectedMember.user_id !== currentUserId && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => sendInteraction(selectedMember.user_id, 'wink')}
+                    onClick={() => void sendInteraction(selectedMember.user_id, 'wink')}
                     className="flex-1"
                   >
                     <Heart className="h-4 w-4 mr-2" />
                     Send Wink
                   </Button>
                   <Button
-                    onClick={() => sendInteraction(selectedMember.user_id, 'message')}
+                    onClick={() => void sendInteraction(selectedMember.user_id, 'message')}
                     className="flex-1"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />

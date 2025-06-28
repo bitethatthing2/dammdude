@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function POST() {
   try {
     console.log('🧹 Removing sample menu data...');
     
     // Use admin client to remove the sample data I added
-    const supabase = await createClient();// Remove the specific sample categories I added (these were the IDs from my populate script)
+    const supabaseAdmin = createAdminClient();
+    
+    // Remove the specific sample categories I added (these were the IDs from my populate script)
     const sampleCategoryIds = [
       '550e8400-e29b-41d4-a716-446655440001', // Appetizers
       '550e8400-e29b-41d4-a716-446655440002', // Burgers

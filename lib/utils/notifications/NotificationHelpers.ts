@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase, createClient } from '@/lib/supabase/client';
 // utils/notifications/NotificationHelpers.ts
 // Use actual database types based on your schema
 type NotificationType = 'info' | 'warning' | 'error' | 'order_new' | 'order_ready';
@@ -10,7 +10,7 @@ interface NotificationRow {
   title: string;
   message: string;
   read: boolean;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,7 +20,7 @@ interface CreateNotificationParams {
   message: string;
   type?: NotificationType;
   link?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface BulkNotificationParams {
@@ -28,7 +28,7 @@ interface BulkNotificationParams {
   message: string;
   type?: NotificationType;
   link?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
 }
 
 /**
@@ -36,10 +36,7 @@ interface BulkNotificationParams {
  */
 export class NotificationHelpers {
   private static getSupabaseClient() {
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    return createClient();
   }
 
   /**
@@ -59,8 +56,8 @@ export class NotificationHelpers {
         p_recipient_id: recipientId,
         p_message: message,
         p_type: type,
-        p_link: link || null,
-        p_metadata: metadata
+        p_link: link || undefined,
+        p_metadata: metadata as any
       });
 
       if (error) {
@@ -96,8 +93,8 @@ export class NotificationHelpers {
           p_recipient_id: recipientId,
           p_message: message,
           p_type: type,
-          p_link: link || null,
-          p_metadata: metadata
+          p_link: link || undefined,
+          p_metadata: metadata as any
         });
 
         if (error) {
@@ -296,7 +293,7 @@ export class NotificationHelpers {
       const supabase = this.getSupabaseClient();
       
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: userId || null,
+        p_user_id: userId || undefined,
         p_limit: limit,
         p_offset: 0
       });
@@ -306,7 +303,7 @@ export class NotificationHelpers {
         return [];
       }
 
-      return data || [];
+      return (data as any) || [];
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       return [];

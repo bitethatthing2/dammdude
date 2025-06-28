@@ -1,8 +1,11 @@
 'use client';
-import { supabase } from '@/lib/supabase/client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import type { Database } from '@/lib/database.types';
 import dynamic from 'next/dynamic';
+import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
+import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +30,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 interface WolfPackMember {
   id: string;
   user_id: string;
@@ -60,107 +65,17 @@ interface LocationData {
   address: string | null;
 }
 
-interface WolfpackMemberUnified {
+// Use generated Supabase types for wolfpack_members_unified
+type WolfpackMemberUnified = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+
+// Use generated Supabase types for dj_events
+type DjEventRow = Database['public']['Tables']['dj_events']['Row'];
+
+// User type from Supabase Auth
+interface AuthUser {
   id: string;
-  user_id: string;
-  location_id: string | null;
-  status: string | null;
-  joined_at: string;
-  last_active: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  position_x: number | null;
-  position_y: number | null;
-  table_location: string | null;
-  is_active: boolean | null;
-  username: string | null;
-  avatar_url: string | null;
-  favorite_drink: string | null;
-  current_vibe: string | null;
-  looking_for: string | null;
-  instagram_handle: string | null;
-  emoji: string | null;
-  role: string | null;
-  created_at: string;
-  updated_at: string;
-  session_id: string | null;
-  display_name: string | null;
-  is_host: boolean | null;
-  left_at: string | null;
-  status_enum: string | null;
+  email?: string;
 }
-
-interface DjEvent {
-  id: string;
-  dj_id: string | null;
-  location_id: string | null;
-  event_type: string;
-  title: string;
-  description: string | null;
-  status: string | null;
-  voting_ends_at: string | null;
-  created_at: string | null;
-  started_at: string | null;
-  ended_at: string | null;
-  winner_id: string | null;
-  winner_data: unknown | null;
-  event_config: Record<string, unknown> | null;
-  voting_format: string | null;
-  options: unknown | null;
-}
-
-// Simple auth hook replacement
-const useAuth = () => {
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-    useEffect(() => {
-    const getUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        setUser({ id: authUser.id, email: authUser.email });
-      }
-    };
-    getUser();
-  }, [supabase]);
-
-  return { user };
-};
-
-// Simple wolfpack hook replacement
-const useWolfpack = () => {
-  const [isInPack, setIsInPack] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  
-  useEffect(() => {
-    const checkWolfpackStatus = async () => {
-      if (!user) {
-        setIsInPack(false);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-                const { data, error } = await supabase
-          .from('wolfpack_members_unified')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        setIsInPack(!!data && !error);
-      } catch (err) {
-        console.error('Error checking wolfpack status:', err);
-        setIsInPack(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkWolfpackStatus();
-  }, [user]);
-
-  return { isInPack, isLoading };
-};
 
 // Simple back button component
 const BackButton = ({ fallbackHref }: { fallbackHref: string }) => {
@@ -171,7 +86,7 @@ const BackButton = ({ fallbackHref }: { fallbackHref: string }) => {
       variant="ghost"
       size="sm"
       onClick={() => {
-        if (window.history.length > 1) {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
           router.back();
         } else {
           router.push(fallbackHref);
@@ -206,7 +121,7 @@ const WolfpackRealTimeChat = ({ sessionId }: { sessionId: string }) => {
 };
 
 // Import the hex grid component dynamically to avoid SSR issues
-const WolfpackHexGrid = dynamic(
+const DynamicWolfpackHexGrid = dynamic(
   () => import('@/components/wolfpack/WolfpackHexGrid'),
   { 
     ssr: false,
@@ -218,7 +133,30 @@ const WolfpackHexGrid = dynamic(
       </Card>
     )
   }
-);
+) as unknown as React.ComponentType<{
+  sessionId: string | null;
+  currentUserId?: string;
+  locationId: string | null;
+  supabase: SupabaseClient;
+}>;
+
+// Wrapper component to handle prop mapping - simplified typing
+const WolfpackHexGrid = (props: {
+  sessionId: string | null;
+  currentUserId?: string;
+  locationId: string | null;
+}) => {
+  const { sessionId, currentUserId, locationId } = props;
+  
+  return (
+    <DynamicWolfpackHexGrid 
+      sessionId={sessionId}
+      currentUserId={currentUserId}
+      locationId={locationId}
+      supabase={supabase}
+    />
+  );
+};
 
 // Development warning component
 const WolfpackDevWarning = ({ isUsingFallback }: { isUsingFallback: boolean }) => {
@@ -236,8 +174,8 @@ const WolfpackDevWarning = ({ isUsingFallback }: { isUsingFallback: boolean }) =
 
 export default function WolfPackChatPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isInPack, isLoading: packLoading } = useWolfpack();
+  const { user, loading: authLoading } = useConsistentAuth();
+  const { isMember: isInPack, isLoading: packLoading, membership, locationId, locationName } = useConsistentWolfpackAccess();
   const isUsingFallback = true; // Set to true since we're using fallback components
   
   const [packMembers, setPackMembers] = useState<WolfPackMember[]>([]);
@@ -248,7 +186,7 @@ export default function WolfPackChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-    // Load wolfpack data
+  // Load wolfpack data
   useEffect(() => {
     async function loadWolfpackData() {
       if (!user || !isInPack) return;
@@ -276,28 +214,15 @@ export default function WolfPackChatPage() {
 
         setUserMembership(membership);
 
-        // Get location data if location_id exists
+        // Use location data from the wolfpack access hook
         let locationData: LocationData | null = null;
-        if (membership.location_id) {
-          try {
-            const { data: location, error: locationError } = await supabase
-              .from('locations')
-              .select('id, name, address')
-              .eq('id', membership.location_id)
-              .single();
-
-            if (!locationError && location) {
-              locationData = location;
-              setCurrentLocation(locationData);
-            } else {
-              locationData = { id: membership.location_id, name: 'Unknown', address: null };
-              setCurrentLocation(locationData);
-            }
-          } catch (err) {
-            console.error('Error loading location:', err);
-            locationData = { id: membership.location_id, name: 'Unknown', address: null };
-            setCurrentLocation(locationData);
-          }
+        if (locationId) {
+          locationData = { 
+            id: locationId, 
+            name: locationName || 'Unknown', 
+            address: null 
+          };
+          setCurrentLocation(locationData);
         }
 
         // Get all pack members at the same location using wolfpack_members_unified
@@ -351,19 +276,33 @@ export default function WolfPackChatPage() {
               .is('ended_at', null);
             
             if (!eventsError && events) {
-              const transformedEvents: WolfpackEvent[] = events?.map((event: DjEvent) => ({
-                id: event.id,
-                title: event.title || `${event.event_type} Event`,
-                type: event.event_type === 'trivia' ? 'trivia' : 
-                      event.event_type === 'contest' ? 'contest' : 'special',
-                description: event.description || 'Join this exciting event!',
-                is_active: event.status === 'active' && !event.ended_at,
-                participant_count: 0, // Would need to count from participants table
-                location: locationData?.name || 'Unknown',
-                created_at: event.created_at || new Date().toISOString(),
-                created_by: event.dj_id || undefined,
-                ends_at: event.ended_at || undefined
-              })) || [];
+              // Transform database rows to UI events with proper null handling
+              const transformedEvents: WolfpackEvent[] = events.map((event: DjEventRow) => {
+                // Handle nullable fields with safe defaults
+                const description = event.description || 'Join this exciting event!';
+                const createdAt = event.created_at || new Date().toISOString();
+                
+                // Determine event type with proper type casting
+                let eventType: 'contest' | 'trivia' | 'special' = 'special';
+                if (event.event_type === 'trivia') {
+                  eventType = 'trivia';
+                } else if (event.event_type === 'contest') {
+                  eventType = 'contest';
+                }
+                
+                return {
+                  id: event.id,
+                  title: event.title || `${event.event_type} Event`,
+                  type: eventType,
+                  description,
+                  is_active: event.status === 'active' && !event.ended_at,
+                  participant_count: 0, // Would need to count from participants table
+                  location: locationData?.name || 'Unknown',
+                  created_at: createdAt,
+                  created_by: event.dj_id || undefined,
+                  ends_at: event.ended_at || undefined
+                };
+              });
               
               setActiveEvents(transformedEvents);
             } else {
@@ -385,7 +324,7 @@ export default function WolfPackChatPage() {
     }
 
     loadWolfpackData();
-  }, [user, isInPack, supabase]);
+  }, [user, isInPack]);
 
   // Handle winking at another member
   const sendWink = async (memberId: string, targetUserId: string) => {
@@ -393,10 +332,12 @@ export default function WolfPackChatPage() {
 
     try {
       const { error } = await supabase
-        .from('wolfpack_winks')
+        .from('wolf_pack_interactions')
         .insert({
-          from_user_id: user.id,
-          to_user_id: targetUserId,
+          sender_id: user.id,
+          receiver_id: targetUserId,
+          interaction_type: 'wink',
+          status: 'sent'
         });
 
       if (error) {
@@ -447,7 +388,7 @@ export default function WolfPackChatPage() {
     return date.toLocaleDateString();
   };
 
-  if (packLoading || isLoading) {
+  if (authLoading || packLoading || isLoading) {
     return (
       <div className="container mx-auto p-4 pb-20 max-w-4xl">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -593,22 +534,34 @@ export default function WolfPackChatPage() {
 
           <TabsContent value="spatial" className="space-y-4 flex-1">
             {/* 3D Hexagonal Wolf Pack View */}
-            {userMembership && (
+            {membership && locationId && (
               <WolfpackHexGrid 
-                members={packMembers}
+                sessionId={membership.session_id || `location_${locationId}`}
                 currentUserId={user.id}
-                onSendWink={sendWink}
-                onSendMessage={(userId) => router.push(`/wolfpack/chat/private/${userId}`)}
+                locationId={locationId}
               />
+            )}
+
+            {/* Show message if no location */}
+            {membership && !locationId && (
+              <Card className="h-96">
+                <CardContent className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-muted-foreground">No location assigned</p>
+                    <p className="text-sm text-muted-foreground">Ask staff to assign you to a location</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-4 flex-1 flex flex-col">
             {/* Chat Interface with proper spacing */}
             <div className="flex-1 min-h-0">
-              {userMembership && (
+              {membership && locationId && (
                 <WolfpackRealTimeChat
-                  sessionId={`location_${userMembership.location_id}`}
+                  sessionId={membership.session_id || `location_${locationId}`}
                 />
               )}
             </div>
@@ -661,144 +614,144 @@ export default function WolfPackChatPage() {
 
           <TabsContent value="members" className="space-y-4 flex-1 overflow-y-auto">
             <div className="grid gap-4 pb-6">
-            {packMembers.map((member) => (
-              <Card key={member.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <Avatar>
-                        <AvatarImage src={member.avatar_url} />
-                        <AvatarFallback>
-                          {member.display_name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{member.display_name}</h3>
-                          <Badge variant="secondary" className="text-xs">
-                            {member.status}
-                          </Badge>
-                          {member.user_id === user.id && (
-                            <Badge variant="outline" className="text-xs">
-                              You
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          {member.favorite_drink && (
-                            <p className="flex items-center gap-1">
-                              🍹 {member.favorite_drink}
-                            </p>
-                          )}
-                          {member.current_vibe && (
-                            <p className="flex items-center gap-1">
-                              ✨ {member.current_vibe}
-                            </p>
-                          )}
-                          {member.looking_for && (
-                            <p className="flex items-center gap-1">
-                              👋 {member.looking_for}
-                            </p>
-                          )}
-                          {member.table_location && (
-                            <p className="flex items-center gap-1">
-                              📍 Table: {member.table_location}
-                            </p>
-                          )}
-                          <p className="text-xs">
-                            Joined: {formatTime(member.joined_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    {member.user_id !== user.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => sendWink(member.id, member.user_id)}
-                        className="flex items-center gap-1"
-                      >
-                        <Heart className="h-3 w-3" />
-                        Wink
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="events" className="space-y-4 flex-1 overflow-y-auto">
-          <div className="grid gap-4 pb-6">
-            {activeEvents.length === 0 ? (
-              <Card>
-                <CardContent className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground">No active events right now</p>
-                    <p className="text-sm text-muted-foreground">Check back later for contests and trivia!</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              activeEvents.map((event) => (
-                <Card key={event.id}>
-                  <CardHeader>
+              {packMembers.map((member) => (
+                <Card key={member.id}>
+                  <CardContent className="p-4">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {event.title}
-                          {event.is_active && (
-                            <Badge variant="default" className="animate-pulse">
-                              LIVE
+                      <div className="flex items-start gap-3">
+                        <Avatar>
+                          <AvatarImage src={member.avatar_url} />
+                          <AvatarFallback>
+                            {member.display_name.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{member.display_name}</h3>
+                            <Badge variant="secondary" className="text-xs">
+                              {member.status}
                             </Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription>{event.description}</CardDescription>
+                            {member.user_id === user.id && (
+                              <Badge variant="outline" className="text-xs">
+                                You
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            {member.favorite_drink && (
+                              <p className="flex items-center gap-1">
+                                🍹 {member.favorite_drink}
+                              </p>
+                            )}
+                            {member.current_vibe && (
+                              <p className="flex items-center gap-1">
+                                ✨ {member.current_vibe}
+                              </p>
+                            )}
+                            {member.looking_for && (
+                              <p className="flex items-center gap-1">
+                                👋 {member.looking_for}
+                              </p>
+                            )}
+                            {member.table_location && (
+                              <p className="flex items-center gap-1">
+                                📍 Table: {member.table_location}
+                              </p>
+                            )}
+                            <p className="text-xs">
+                              Joined: {formatTime(member.joined_at)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <Badge variant="outline">
-                        {event.type === 'contest' && (
-                          <>
-                            <Trophy className="h-3 w-3 mr-1" />
-                            Contest
-                          </>
-                        )}
-                        {event.type === 'trivia' && (
-                          <>
-                            <Brain className="h-3 w-3 mr-1" />
-                            Trivia
-                          </>
-                        )}
-                        {event.type === 'special' && (
-                          <>
-                            <Star className="h-3 w-3 mr-1" />
-                            Special
-                          </>
-                        )}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {event.participant_count} participants
-                      </span>
-                      {event.is_active && (
-                        <Button 
+                      {member.user_id !== user.id && (
+                        <Button
                           size="sm"
-                          onClick={() => joinEvent(event.id)}
+                          variant="outline"
+                          onClick={() => sendWink(member.id, member.user_id)}
+                          className="flex items-center gap-1"
                         >
-                          Join Event
+                          <Heart className="h-3 w-3" />
+                          Wink
                         </Button>
                       )}
                     </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="events" className="space-y-4 flex-1 overflow-y-auto">
+            <div className="grid gap-4 pb-6">
+              {activeEvents.length === 0 ? (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-muted-foreground">No active events right now</p>
+                      <p className="text-sm text-muted-foreground">Check back later for contests and trivia!</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                activeEvents.map((event) => (
+                  <Card key={event.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {event.title}
+                            {event.is_active && (
+                              <Badge variant="default" className="animate-pulse">
+                                LIVE
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription>{event.description}</CardDescription>
+                        </div>
+                        <Badge variant="outline">
+                          {event.type === 'contest' && (
+                            <>
+                              <Trophy className="h-3 w-3 mr-1" />
+                              Contest
+                            </>
+                          )}
+                          {event.type === 'trivia' && (
+                            <>
+                              <Brain className="h-3 w-3 mr-1" />
+                              Trivia
+                            </>
+                          )}
+                          {event.type === 'special' && (
+                            <>
+                              <Star className="h-3 w-3 mr-1" />
+                              Special
+                            </>
+                          )}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          {event.participant_count} participants
+                        </span>
+                        {event.is_active && (
+                          <Button 
+                            size="sm"
+                            onClick={() => joinEvent(event.id)}
+                          >
+                            Join Event
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* DJ Announcement Banner */}

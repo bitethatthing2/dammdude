@@ -1,0 +1,83 @@
+// app/api/wolfpack/members/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { getDatabaseUserId } from '@/lib/utils/user-mapping';
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'AUTH_ERROR' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('location_id');
+
+    if (!locationId) {
+      return NextResponse.json(
+        { error: 'Location ID is required', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    // Get database user ID
+    const databaseUserId = await getDatabaseUserId(user.id);
+    if (!databaseUserId) {
+      return NextResponse.json(
+        { error: 'User not found in database', code: 'USER_NOT_FOUND' },
+        { status: 404 }
+      );
+    }
+
+    // Verify user is member of this location
+    const { data: userMembership } = await supabase
+      .from('wolfpack_members_unified')
+      .select('id')
+      .eq('user_id', databaseUserId)
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!userMembership) {
+      return NextResponse.json(
+        { error: 'Not a member of this wolfpack', code: 'ACCESS_DENIED' },
+        { status: 403 }
+      );
+    }
+
+    // Get all members at this location
+    const { data: members, error: membersError } = await supabase
+      .from('wolfpack_members_unified')
+      .select('*')
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false });
+
+    if (membersError) {
+      console.error('Members error:', membersError);
+      return NextResponse.json(
+        { error: 'Failed to load members', code: 'MEMBERS_ERROR' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      members: members || [],
+      location_id: locationId,
+      current_user_id: databaseUserId
+    });
+
+  } catch (error) {
+    console.error('Get wolfpack members error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', code: 'SERVER_ERROR' },
+      { status: 500 }
+    );
+  }
+}

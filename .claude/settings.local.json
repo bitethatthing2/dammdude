@@ -19,7 +19,10 @@
       "Bash(npx supabase:*)",
       "Bash(npx eslint:*)",
       "Bash(curl:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(git checkout:*)"
     ]
   },
   "enableAllProjectMcpServers": false

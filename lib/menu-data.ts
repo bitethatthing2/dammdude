@@ -78,9 +78,9 @@ export async function getMenuItemsByCategory(categoryId: string): Promise<MenuIt
   const supabase = await createServerClient();
    
   try {
-    // First, fetch all items in the category
+    // Fetch items with modifiers from the view
     const { data: items, error: itemsError } = await supabase
-      .from('food_drink_items')
+      .from('menu_items_with_working_modifiers' as any)
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
@@ -95,57 +95,18 @@ export async function getMenuItemsByCategory(categoryId: string): Promise<MenuIt
       return [];
     }
 
-    // Then fetch modifiers for each item using the RPC function
-    const itemsWithModifiers = await Promise.all(
-      items.map(async (item) => {
-        const { data: modifierGroups, error: modifiersError } = await supabase
-          .rpc('get_item_modifiers', { p_item_id: item.id });
-
-        if (modifiersError) {
-          console.error(`Error fetching modifiers for item ${item.id}:`, modifiersError);
-          return { ...item, modifier_groups: [] };
-        }
-
-        // Transform the modifiers data to match our interface with proper typing
-        const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => {
-          // Type the RPC response properly
-          const typedGroup = group as {
-            group_name: string;
-            modifier_type: string;
-            is_required: boolean;
-            min_selections: number;
-            max_selections: number;
-            modifiers: Array<{
-              id: string;
-              name: string;
-              price_adjustment: number;
-              display_order: number;
-              is_default: boolean;
-            }>;
-          };
-
-          return {
-            group_name: typedGroup.group_name || '',
-            modifier_type: typedGroup.modifier_type || '',
-            is_required: typedGroup.is_required || false,
-            min_selections: typedGroup.min_selections || 0,
-            max_selections: typedGroup.max_selections || 1,
-            modifiers: (typedGroup.modifiers || []).map(mod => ({
-              id: mod.id,
-              name: mod.name,
-              price_adjustment: mod.price_adjustment || 0,
-              display_order: mod.display_order || 0,
-              is_default: mod.is_default || false
-            }))
-          };
-        });
-
-        return {
-          ...item,
-          modifier_groups: transformedGroups
-        };
-      })
-    );
+    // The view returns data with modifiers already included
+    const itemsWithModifiers = items.map(item => {
+      // Handle potential query errors
+      if (!item || typeof item !== 'object') {
+        return { modifier_groups: [] } as any;
+      }
+      
+      return {
+        ...(item as any),
+        modifier_groups: (item as any).modifiers || []
+      };
+    });
 
     return itemsWithModifiers;
   } catch (error) {
@@ -164,29 +125,10 @@ export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promi
   const supabase = await createServerClient();
    
   try {
-    // Fetch items with their modifier groups
+    // Fetch items with modifiers from the view
     const { data: items, error } = await supabase
-      .from('food_drink_items')
-      .select(`
-        *,
-        item_modifier_groups (
-          id,
-          group_name,
-          modifier_type,
-          is_required,
-          min_selections,
-          max_selections,
-          modifier_group_items (
-            display_order,
-            is_default,
-            menu_item_modifiers (
-              id,
-              name,
-              price_adjustment
-            )
-          )
-        )
-      `)
+      .from('menu_items_with_working_modifiers' as any)
+      .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
       .order('display_order', { ascending: true });
@@ -196,75 +138,16 @@ export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promi
       return [];
     }
 
-    // Transform the nested structure to match our interface
+    // The view returns data with modifiers already properly formatted
     const transformedItems: MenuItemWithModifiers[] = (items || []).map(item => {
-      // Type the joined data properly
-      const itemWithJoins = item as MenuItem & {
-        item_modifier_groups?: Array<{
-          id: string;
-          group_name: string;
-          modifier_type: string;
-          is_required: boolean;
-          min_selections: number;
-          max_selections: number;
-          modifier_group_items?: Array<{
-            display_order: number;
-            is_default: boolean;
-            menu_item_modifiers: {
-              id: string;
-              name: string;
-              price_adjustment: number | null;
-            };
-          }>;
-        }>;
-      };
-
-      const modifierGroups: ModifierGroupWithOptions[] = (itemWithJoins.item_modifier_groups || []).map((group: {
-        id: string;
-        group_name: string;
-        modifier_type: string;
-        is_required: boolean;
-        min_selections: number;
-        max_selections: number;
-        modifier_group_items?: Array<{
-          display_order: number;
-          is_default: boolean;
-          menu_item_modifiers: {
-            id: string;
-            name: string;
-            price_adjustment: number | null;
-          };
-        }>;
-      }) => ({
-        group_name: group.group_name || '',
-        modifier_type: group.modifier_type || '',
-        is_required: group.is_required || false,
-        min_selections: group.min_selections || 0,
-        max_selections: group.max_selections || 1,
-        modifiers: (group.modifier_group_items || [])
-          .sort((a: { display_order: number }, b: { display_order: number }) => (a.display_order || 0) - (b.display_order || 0))
-          .map((mgi: {
-            display_order: number;
-            is_default: boolean;
-            menu_item_modifiers: {
-              id: string;
-              name: string;
-              price_adjustment: number | null;
-            };
-          }) => ({
-            id: mgi.menu_item_modifiers.id,
-            name: mgi.menu_item_modifiers.name,
-            price_adjustment: mgi.menu_item_modifiers.price_adjustment || 0,
-            display_order: mgi.display_order || 0,
-            is_default: mgi.is_default || false
-          }))
-      }));
-
-      // Remove the joined data and add transformed modifier_groups
-      const { item_modifier_groups: _, ...itemData } = itemWithJoins;
+      // Handle potential query errors
+      if (!item || typeof item !== 'object') {
+        return { modifier_groups: [] } as any;
+      }
+      
       return {
-        ...itemData,
-        modifier_groups: modifierGroups
+        ...(item as any),
+        modifier_groups: (item as any).modifiers || []
       };
     });
 
@@ -307,9 +190,9 @@ export async function getMenuItemById(itemId: string): Promise<MenuItemWithModif
   const supabase = await createServerClient();
   
   try {
-    // Fetch the item
+    // Fetch the item with modifiers from the view
     const { data: item, error: itemError } = await supabase
-      .from('food_drink_items')
+      .from('menu_items_with_working_modifiers' as any)
       .select('*')
       .eq('id', itemId)
       .single();
@@ -319,51 +202,14 @@ export async function getMenuItemById(itemId: string): Promise<MenuItemWithModif
       return null;
     }
     
-    // Fetch modifiers using RPC
-    const { data: modifierGroups, error: modifiersError } = await supabase
-      .rpc('get_item_modifiers', { p_item_id: itemId });
-      
-    if (modifiersError) {
-      console.error('Error fetching modifiers:', modifiersError);
-      return { ...item, modifier_groups: [] };
+    // The view returns data with modifiers already included
+    if (!item || typeof item !== 'object') {
+      return null;
     }
     
-    // Transform the modifiers with proper typing
-    const transformedGroups: ModifierGroupWithOptions[] = (modifierGroups || []).map(group => {
-      const typedGroup = group as {
-        group_name: string;
-        modifier_type: string;
-        is_required: boolean;
-        min_selections: number;
-        max_selections: number;
-        modifiers: Array<{
-          id: string;
-          name: string;
-          price_adjustment: number;
-          display_order: number;
-          is_default: boolean;
-        }>;
-      };
-
-      return {
-        group_name: typedGroup.group_name || '',
-        modifier_type: typedGroup.modifier_type || '',
-        is_required: typedGroup.is_required || false,
-        min_selections: typedGroup.min_selections || 0,
-        max_selections: typedGroup.max_selections || 1,
-        modifiers: (typedGroup.modifiers || []).map(mod => ({
-          id: mod.id,
-          name: mod.name,
-          price_adjustment: mod.price_adjustment || 0,
-          display_order: mod.display_order || 0,
-          is_default: mod.is_default || false
-        }))
-      };
-    });
-    
     return {
-      ...item,
-      modifier_groups: transformedGroups
+      ...(item as any),
+      modifier_groups: (item as any).modifiers || []
     };
   } catch (error) {
     console.error(`Error fetching menu item ${itemId}:`, error);

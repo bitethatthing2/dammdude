@@ -1,12 +1,7 @@
 import type { PostgrestQueryBuilder } from '@supabase/postgrest-js';
-import { WolfpackErrorHandler } from './wolfpack-error.service';
-import type { Database } from '../database.types';
+import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
+import type { Database } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase/client';
-
-// Create a properly typed client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Standardized table names - consolidates scattered references
 export const WOLFPACK_TABLES = {

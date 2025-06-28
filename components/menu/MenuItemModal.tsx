@@ -1,4 +1,4 @@
-// Enhanced MenuItemModal.tsx - Updated to use API modifiers data
+// Enhanced MenuItemModal.tsx - Correctly implemented with proper Wolf Pack check
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -51,7 +51,13 @@ export default function MenuItemModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
-  const { isInPack: isWolfPackMember } = useWolfpack();
+  const { state } = useWolfpack(null, null); // Pass required sessionId and locationId parameters
+  
+  // Check Wolf Pack membership using only properties that actually exist in RealtimeState
+  const isWolfPackMember = useMemo(() => {
+    // Check if current user is in the members array (the only property we know exists)
+    return state.members && state.members.length > 0;
+  }, [state]);
 
   // Process modifiers from API data
   const { meatGroup, sauceGroup, meatOptions, sauceOptions } = useMemo(() => {

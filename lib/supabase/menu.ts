@@ -152,28 +152,12 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
   try {
     const supabase = getSupabaseBrowserClient();
     
-    // Try to fetch from the new food_drink_items table
-    console.log('Fetching menu items from food_drink_items table...');
+    // Fetch from the new menu_items_with_working_modifiers view
+    console.log('Fetching menu items from menu_items_with_working_modifiers view...');
     
     let query = supabase
-      .from('food_drink_items')
-      .select(`
-        id,
-        name,
-        description,
-        price,
-        image_url,
-        category_id,
-        is_available,
-        display_order,
-        food_drink_categories!category_id(
-          id,
-          name,
-          type,
-          display_order,
-          icon
-        )
-      `)
+      .from('menu_items_with_working_modifiers' as any)
+      .select('*')
       .eq('is_available', true)
       .order('display_order', { ascending: true })
       .order('name', { ascending: true });
@@ -185,8 +169,7 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching from food_drink_items:', error);
-      // Return empty array on error instead of trying a fallback with incorrect column names
+      console.error('Error fetching from menu_items_with_working_modifiers:', error);
       return [];
     }
 
@@ -195,8 +178,8 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
       categoryId
     });
 
-    // Transform data to match expected interface
-    const items: MenuItemWithModifiers[] = (data || []).map((item: FoodDrinkItemDB) => ({
+    // The view returns data already properly formatted with modifiers
+    const items: MenuItemWithModifiers[] = (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       description: item.description || undefined,
@@ -205,11 +188,8 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
       display_order: item.display_order || 0,
       category_id: item.category_id,
       image_url: item.image_url,
-      category: item.food_drink_categories ? {
-        id: item.food_drink_categories.id,
-        name: item.food_drink_categories.name,
-        type: item.food_drink_categories.type
-      } : undefined
+      category: item.category || undefined,
+      modifiers: item.modifiers || []
     }));
 
     return items;

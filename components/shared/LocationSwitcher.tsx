@@ -41,7 +41,7 @@ type Location = {
 const LOCATION_STORAGE_KEY = 'sidehustle-selected-location';
 
 interface LocationSwitcherProps {
-  onLocationChange?: (location: Location) => void;
+  onLocationChange?: (location: any) => void;
   className?: string;
 }
 

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function POST() {
   try {
     console.log('🔐 Admin menu data population...');
     
     // Use admin/service role client that bypasses RLS
-    const supabase = await createClient();console.log('🔧 Using service role key for admin access');
+    const supabaseAdmin = createAdminClient();
+    console.log('🔧 Using service role key for admin access');
 
     // Food Categories
     const foodCategories = [

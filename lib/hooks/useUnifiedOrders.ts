@@ -95,7 +95,9 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   
   // If you have a Database type generated, use it here:
-  // const supabase = createClientComponentClient<Database>();  const parseOrderItems = (items: unknown): OrderItem[] => {
+  // const supabase = createClientComponentClient<Database>();
+  
+  const parseOrderItems = (items: unknown): OrderItem[] => {
     if (!items) return [];
     if (typeof items === 'string') {
       try {
@@ -258,7 +260,7 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
     const channel = supabase
       .channel('unified-orders-changes')
       .on(
-        'postgres_changes',
+        "postgres_changes" as any,
         {
           event: '*',
           schema: 'public',

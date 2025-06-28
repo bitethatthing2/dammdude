@@ -1,5 +1,6 @@
 // types/wolfpack-interfaces.ts
 // Consolidated interfaces from all wolfpack components and hooks
+import { Database } from '@/lib/database.types';
 
 export interface AuthUser {
   id: string;
@@ -141,6 +142,71 @@ export const createDefaultWolfProfile = (user: {
   allow_messages: true,
   bio: '',
 });
+
+// API Request/Response types for wolfpack-client.ts
+export interface JoinPackParams {
+  location_id: string;
+  display_name: string;
+  wolf_emoji?: string;
+  vibe_status?: string;
+  bio?: string;
+}
+
+export interface JoinPackResponse {
+  success: boolean;
+  error?: string;
+  data?: {
+    user_id: string;
+    wolf_profile_id: string;
+    status: string;
+  };
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
+
+// Use actual Supabase types for wolfpack members
+export type WolfpackMemberRow = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+export type WolfpackMemberInsert = Database['public']['Tables']['wolfpack_members_unified']['Insert'];
+export type WolfpackMemberUpdate = Database['public']['Tables']['wolfpack_members_unified']['Update'];
+
+// Map to our component interface for backward compatibility
+export interface WolfpackMemberProfile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  wolf_emoji: string | null; // Maps to 'emoji' in database
+  vibe_status: string | null; // Maps to 'current_vibe' in database
+  bio?: string | null;
+  is_visible?: boolean; // Not in database, will be handled at app level
+  allow_messages?: boolean; // Not in database, will be handled at app level
+  location_permissions_granted?: boolean;
+  last_active?: string | null;
+  avatar_url?: string | null;
+  instagram_handle?: string | null;
+  looking_for?: string | null;
+  favorite_drink?: string | null;
+  location_id?: string | null;
+  status?: string | null;
+  joined_at?: string;
+}
+
+export interface LocationVerificationResult {
+  isValid: boolean;
+  error?: string;
+  location?: DetectedLocation;
+}
+
+export interface DetectedLocation {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  distance?: number;
+}
 
 // Helper function to transform data
 export const transformMembershipData = (membership: unknown): WolfpackMembershipWithProfile => {

@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 // Create admin client for public menu access (bypasses RLS)
 function createAdminClient() {
@@ -60,15 +61,8 @@ export async function getMenuItemsByCategoryPublic(categoryId: string) {
    
   try {
     const { data: items, error: itemsError } = await supabase
-      .from('food_drink_items')
-      .select(`
-        *,
-        category:food_drink_categories(
-          id,
-          name,
-          type
-        )
-      `)
+      .from('menu_items_with_working_modifiers' as any)
+      .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
       .order('display_order', { ascending: true });
@@ -82,7 +76,7 @@ export async function getMenuItemsByCategoryPublic(categoryId: string) {
       return [];
     }
 
-    // Transform to the expected format
+    // The view already returns properly formatted data with modifiers
     const transformedItems = items.map((item) => ({
       id: item.id,
       name: item.name,
@@ -91,12 +85,9 @@ export async function getMenuItemsByCategoryPublic(categoryId: string) {
       is_available: item.is_available || false,
       display_order: item.display_order || 0,
       category_id: item.category_id,
-      category: item.category ? {
-        id: item.category.id,
-        name: item.category.name,
-        type: item.category.type as 'food' | 'drink'
-      } : undefined,
-      image_url: item.image_url || undefined
+      category: item.category || undefined,
+      image_url: item.image_url || undefined,
+      modifiers: item.modifiers || []
     }));
 
     console.log(`✅ Public items loaded for category ${categoryId}: ${transformedItems.length}`);

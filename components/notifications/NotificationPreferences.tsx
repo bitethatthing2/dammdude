@@ -114,7 +114,7 @@ export function NotificationPreferences({
         }
 
         if (data?.notification_preferences) {
-          setPreferences(data.notification_preferences as NotificationPreferences);
+          setPreferences(data.notification_preferences as unknown as NotificationPreferences);
         }
         
       } catch (err) {
@@ -157,7 +157,7 @@ export function NotificationPreferences({
 
       // Update local state with the returned preferences
       if (data) {
-        setPreferences(data as NotificationPreferences);
+        setPreferences(data as unknown as NotificationPreferences);
       } else {
         setPreferences(newPreferences);
       }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WOLFPACK_TABLES } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
+import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-sanitization';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +22,36 @@ export async function POST(request: NextRequest) {
     if (!to_user_id || !message) {
       return NextResponse.json(
         { error: 'Recipient and message required', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting check
+    if (!checkRateLimit(user.id, 10, 60000)) {
+      return NextResponse.json(
+        { error: 'Too many messages sent recently. Please slow down.', code: 'RATE_LIMIT_ERROR' },
+        { status: 429 }
+      );
+    }
+
+    // Sanitize the message
+    const sanitizedMessage = sanitizeMessage(message, {
+      maxLength: 500,
+      allowLineBreaks: true,
+      trimWhitespace: true
+    });
+
+    if (!sanitizedMessage) {
+      return NextResponse.json(
+        { error: 'Message content is invalid or empty after sanitization', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    // Check for spam content
+    if (detectSpam(sanitizedMessage)) {
+      return NextResponse.json(
+        { error: 'Message appears to contain spam or inappropriate content', code: 'SPAM_ERROR' },
         { status: 400 }
       );
     }
@@ -71,7 +102,7 @@ export async function POST(request: NextRequest) {
         {
           from_user_id: user.id,
           to_user_id,
-          message,
+          message: sanitizedMessage,
           is_read: false,
           created_at: new Date().toISOString()
         },

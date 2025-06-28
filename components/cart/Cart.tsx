@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpack } from '@/hooks/useWolfpack';
+import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCart, CartItem } from '@/components/cart/CartContext';
 
@@ -42,7 +42,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   const [orderNotes, setOrderNotes] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const { user } = useAuth();
-  const { isInPack: isWolfpackMember, isLoading: isCheckingMembership } = useWolfpack();
+  const { isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackAccess();
   
   // Use the unified cart context
   const { 

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 import { 
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Type definitions based on your Supabase schema
 interface WolfProfile {
   id?: string;
   user_id: string;
@@ -47,6 +48,27 @@ interface WolfProfile {
   phone?: string | null;
   location_permissions_granted?: boolean | null;
   favorite_bartender?: string | null;
+  created_at?: string | null;
+  last_seen_at?: string | null;
+  daily_customization?: any;
+}
+
+// Form data interface
+interface FormData {
+  display_name: string;
+  bio: string;
+  favorite_drink: string;
+  favorite_song: string;
+  instagram_handle: string;
+  vibe_status: string;
+  wolf_emoji: string;
+  looking_for: string;
+  gender: string;
+  pronouns: string;
+  is_visible: boolean;
+  allow_messages: boolean;
+  favorite_bartender: string;
+  profile_image_url: string;
 }
 
 const WOLF_EMOJIS = [
@@ -98,8 +120,13 @@ export function WolfpackProfileManager() {
   const [profile, setProfile] = useState<WolfProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);  // Form state
-  const [formData, setFormData] = useState({
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  
+  // Initialize supabase client
+  const supabase = createClient();
+  
+  // Form state with proper typing
+  const [formData, setFormData] = useState<FormData>({
     display_name: '',
     bio: '',
     favorite_drink: '',
@@ -158,11 +185,10 @@ export function WolfpackProfileManager() {
           profile_image_url: data.profile_image_url || ''
         });
       } else {
-        // Set default values for new profile
+        // Set default values for new profile - fix user property access
         const defaultName: string = 
-          (user.user_metadata?.first_name && typeof user.user_metadata.first_name === 'string' ? user.user_metadata.first_name : null) ||
-          (user.user_metadata?.display_name && typeof user.user_metadata.display_name === 'string' ? user.user_metadata.display_name : null) ||
-          (user.email ? user.email.split('@')[0] : null) ||
+          (user.first_name && typeof user.first_name === 'string' ? user.first_name : '') ||
+          (user.email ? user.email.split('@')[0] : '') ||
           'Wolf';
 
         setFormData({
@@ -188,7 +214,7 @@ export function WolfpackProfileManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.user_metadata, user?.email, supabase]);
+  }, [user?.id, user?.first_name, user?.email, supabase]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -254,15 +280,15 @@ export function WolfpackProfileManager() {
     }
   };
 
-  // Save profile
-  const saveProfile = async (data = formData, showToast = true) => {
+  // Save profile with proper typing
+  const saveProfile = async (data: FormData = formData, showToast = true) => {
     if (!user?.id) return;
 
     setSaving(true);
 
     try {
-      // Prepare profile data
-      const profileData: Record<string, unknown> = {
+      // Prepare profile data with proper typing
+      const profileData = {
         user_id: user.id,
         display_name: data.display_name || null,
         bio: data.bio || null,
@@ -277,30 +303,22 @@ export function WolfpackProfileManager() {
         pronouns: data.pronouns || null,
         is_visible: data.is_visible,
         allow_messages: data.allow_messages,
-        favorite_bartender: data.favorite_bartender || null
+        favorite_bartender: data.favorite_bartender || null,
+        // Preserve existing image URLs if they exist
+        profile_pic_url: profile?.profile_pic_url || null,
+        profile_image_url: profile?.profile_image_url || null,
+        custom_avatar_id: profile?.custom_avatar_id || null
       };
 
-      // Preserve existing image URLs if they exist
-      if (profile?.profile_pic_url) {
-        profileData.profile_pic_url = profile.profile_pic_url;
-      }
-      if (profile?.profile_image_url) {
-        profileData.profile_image_url = profile.profile_image_url;
-      }
-      if (profile?.custom_avatar_id) {
-        profileData.custom_avatar_id = profile.custom_avatar_id;
-      }
-
       // If data contains profile_image_url (from avatar upload), use it
-      if ('profile_image_url' in data && data.profile_image_url) {
+      if (data.profile_image_url) {
         profileData.profile_image_url = data.profile_image_url;
         profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
       }
 
       const { data: savedData, error } = await supabase
         .from('wolf_profiles')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .upsert(profileData as any, { 
+        .upsert(profileData, { 
           onConflict: 'user_id',
           ignoreDuplicates: false 
         })
@@ -320,24 +338,26 @@ export function WolfpackProfileManager() {
 
       setProfile(typedSavedData);
       
-      // Also update the wolfpack_members_unified table if user is active member
-      const { error: memberError } = await supabase
-        .from('wolf_pack_members')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({
-          display_name: data.display_name || null,
-          avatar_url: savedData.profile_image_url || savedData.profile_pic_url || null,
-          emoji: data.wolf_emoji,
-          favorite_drink: data.favorite_drink || null,
-          current_vibe: data.vibe_status || null,
-          looking_for: data.looking_for || null,
-          instagram_handle: data.instagram_handle ? data.instagram_handle.replace('@', '') : null
-        } as Record<string, unknown>)
-        .eq('user_id', user.id)
-        .eq('is_active', true);
+      // Try to update wolfpack_members_unified table if it exists
+      try {
+        const { error: memberError } = await supabase
+          .from('wolfpack_members_unified')
+          .update({
+            display_name: data.display_name || null,
+            avatar_url: savedData.profile_image_url || savedData.profile_pic_url || null,
+            emoji: data.wolf_emoji,
+            favorite_drink: data.favorite_drink || null,
+            current_vibe: data.vibe_status || null,
+            looking_for: data.looking_for || null,
+            instagram_handle: data.instagram_handle ? data.instagram_handle.replace('@', '') : null
+          })
+          .eq('user_id', user.id);
 
-      if (memberError) {
-        console.warn('Could not update wolfpack member data:', memberError);
+        if (memberError) {
+          console.warn('Could not update wolfpack member data:', memberError);
+        }
+      } catch (memberUpdateError) {
+        console.warn('Wolfpack member table update failed:', memberUpdateError);
       }
 
       if (showToast) {
@@ -351,7 +371,7 @@ export function WolfpackProfileManager() {
     }
   };
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

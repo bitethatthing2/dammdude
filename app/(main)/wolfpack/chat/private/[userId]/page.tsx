@@ -10,6 +10,7 @@ import { ArrowLeft, Send, Shield, UserX } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
+import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-sanitization';
 
 // Updated interface to match wolf_private_messages table schema
 interface PrivateMessage {
@@ -184,12 +185,36 @@ export default function PrivateChatPage() {
     try {
       setIsSending(true);
 
+      // Rate limiting check
+      if (!checkRateLimit(user.id, 10, 60000)) {
+        toast.error('Please slow down - too many messages');
+        return;
+      }
+
+      // Sanitize and validate the message
+      const sanitizedMessage = sanitizeMessage(newMessage, {
+        maxLength: 500,
+        allowLineBreaks: true,
+        trimWhitespace: true
+      });
+
+      if (!sanitizedMessage) {
+        toast.error('Message cannot be empty');
+        return;
+      }
+
+      // Check for spam content
+      if (detectSpam(sanitizedMessage)) {
+        toast.error('Message appears to contain spam or inappropriate content');
+        return;
+      }
+
       const { error } = await supabase
         .from('wolf_private_messages')
         .insert({
           from_user_id: user.id,
           to_user_id: otherUserId,
-          message: newMessage.trim(),
+          message: sanitizedMessage,
           is_read: false,
           is_deleted: false,
           flagged: false,

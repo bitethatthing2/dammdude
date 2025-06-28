@@ -1,12 +1,6 @@
-'use client';
-
-import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
+import { useUser } from '@/hooks/useUser';
 import { 
   Users, 
   Shield, 
@@ -18,47 +12,21 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { toast } from 'sonner';
 
-// Use centralized Supabase client
-// Interfaces based on actual database structure
-interface WolfpackMemberAtLocation {
-  id: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  wolfpack_tier: string | null;
+// Type definitions
+interface WolfpackMember {
+  id: string;
+  user_id: string;
   display_name: string | null;
-  wolf_emoji: string | null;
-  vibe_status: string | null;
-  location_id: string | null;
-  last_seen: string | null;
-}
-
-// RPC response interface
-interface JoinWolfpackResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-  membership_id?: string;
-  is_vip?: boolean;
-}
-
-interface WolfpackMembership {
-  id: string | null;
-  user_id: string | null;
-  display_name: string | null;
+  username: string | null;
   avatar_url: string | null;
   table_location: string | null;
-  joined_at: string | null;
-  last_active: string | null;
-  status: string | null;
-  is_host: boolean | null;
-  session_id: string | null;
-  location_id: string | null;
-  is_active: boolean | null;
-  left_at: string | null;
+  joined_at: string;
+  last_active: string;
+  status: string;
+  current_vibe: string | null;
+  emoji: string | null;
+  is_host: boolean;
 }
 
 interface Location {
@@ -67,275 +35,214 @@ interface Location {
   address: string | null;
   city: string | null;
   state: string | null;
-  latitude: number;
-  longitude: number;
+}
+
+interface WolfpackStatus {
+  isMember: boolean;
+  membership: WolfpackMember | null;
+  location: Location | null;
+  databaseUserId: string | null;
 }
 
 interface MembershipState {
   isLoading: boolean;
-  isMember: boolean;
-  currentMembership: WolfpackMembership | null;
-  currentLocation: Location | null;
-  members: WolfpackMemberAtLocation[];
+  status: WolfpackStatus | null;
+  members: WolfpackMember[];
   error: string | null;
 }
 
-export function WolfpackMembershipManager() {
-  const { user } = useAuth();
+export default function WolfpackMembershipManager() {
+  const { user, loading: userLoading } = useUser();
+  
   const [state, setState] = useState<MembershipState>({
     isLoading: true,
-    isMember: false,
-    currentMembership: null,
-    currentLocation: null,
+    status: null,
     members: [],
     error: null
   });
 
-  const loadMembers = useCallback(async (locationId: string | null) => {
-    if (!locationId) return;
+  // API call helper
+  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+    const response = await fetch(`/api/wolfpack${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    });
 
-    try {
-      const { data: members, error } = await supabase
-        .from('wolfpack_members_at_location')
-        .select('*')
-        .eq('location_id', locationId)
-        .order('last_seen', { ascending: false });
-
-      if (error) {
-        console.error('Error loading members:', error);
-        return;
-      }
-
-      setState(prev => ({
-        ...prev,
-        members: members || []
-      }));
-
-    } catch (error) {
-      console.error('Error loading members:', error);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'API call failed');
     }
-  }, []);
 
-  const loadMembershipStatus = useCallback(async () => {
-    if (!user) {
-      setState(prev => ({ ...prev, isLoading: false }));
+    return data;
+  };
+
+  // Load wolfpack status
+  const loadStatus = useCallback(async () => {
+    if (!user?.id) {
+      setState(prev => ({ ...prev, isLoading: false, status: null }));
       return;
     }
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Get active membership from wolfpack_memberships view
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('wolfpack_memberships')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (membershipError) {
-        console.error('Error loading membership:', membershipError);
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: 'Failed to load membership status' 
-        }));
-        return;
-      }
-
-      if (membershipData && membershipData.location_id) {
-        // Get location details
-        const { data: locationData, error } = await supabase
-          .from('locations')
-          .select('*')
-          .eq('id', membershipData.location_id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error loading location:', error);
+      
+      const statusData = await apiCall('/status');
+      
+      setState(prev => ({ 
+        ...prev, 
+        status: {
+          isMember: statusData.isMember,
+          membership: statusData.membership,
+          location: statusData.location,
+          databaseUserId: statusData.databaseUserId
         }
+      }));
 
-        setState(prev => ({
-          ...prev,
-          isMember: true,
-          currentMembership: membershipData,
-          currentLocation: locationData || null
-        }));
-
-        await loadMembers(membershipData.location_id);
-      } else {
-        setState(prev => ({ ...prev, isMember: false }));
+      // Load members if user is in a pack
+      if (statusData.isMember && statusData.membership?.location_id) {
+        await loadMembers(statusData.membership.location_id);
       }
 
     } catch (error) {
-      console.error('Error in loadMembershipStatus:', error);
+      console.error('Error loading status:', error);
       setState(prev => ({
         ...prev,
-        error: 'Failed to load membership status'
+        error: error instanceof Error ? error.message : 'Failed to load status'
       }));
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, loadMembers]);
+  }, [user?.id]);
 
-  useEffect(() => {
-    loadMembershipStatus();
-  }, [loadMembershipStatus]);
+  // Load members for location
+  const loadMembers = async (locationId: string) => {
+    try {
+      const membersData = await apiCall(`/members?location_id=${locationId}`);
+      setState(prev => ({ ...prev, members: membersData.members || [] }));
+    } catch (error) {
+      console.error('Error loading members:', error);
+      setState(prev => ({ ...prev, error: 'Failed to load members' }));
+    }
+  };
 
-  useEffect(() => {
-    const locationId = state.currentMembership?.location_id;
-    if (!locationId) return;
-
-    const channel = supabase
-      .channel(`wolfpack_${locationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wolfpack_members_unified',
-          filter: `location_id=eq.${locationId}`
-        },
-        () => {
-          loadMembers(locationId);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [state.currentMembership?.location_id, loadMembers]);
-
+  // Join wolfpack
   const joinWolfPack = async () => {
-    if (!user) {
-      toast.error('Please log in to join WolfPack');
+    if (!user?.id) {
+      alert('Please log in to join WolfPack');
       return;
     }
 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
-      // Get current position
+      // Get current position for location detection
       const position = await getCurrentPosition();
       
-      // Find nearby locations using the correct RPC function
-      const { data: locations, error: locError } = await supabase
-        .rpc('find_nearest_location', {
-          user_lat: position.coords.latitude,
-          user_lon: position.coords.longitude,
-          max_distance_meters: 100
-        });
+      // For now, let's use a simple location selection
+      // In production, you'd calculate distance to actual locations
+      const locations = [
+        { id: '50d17782-3f4a-43a1-b6b6-608171ca3c7c', name: 'THE SIDEHUSTLE BAR Salem' },
+        { id: 'ec1e8869-454a-49d2-93e5-ed05f49bb932', name: 'THE SIDEHUSTLE BAR Portland' }
+      ];
 
-      if (locError || !locations || locations.length === 0) {
-        toast.error('No Side Hustle locations found nearby');
+      const selectedLocation = prompt(
+        `Select location:\n${locations.map((loc, i) => `${i + 1}. ${loc.name}`).join('\n')}\n\nEnter number:`
+      );
+
+      if (!selectedLocation) {
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
-      // Join wolfpack using the correct RPC function with optional table location
-      const { data: result, error: joinError } = await supabase
-        .rpc('join_wolfpack_membership');
-
-      if (joinError) {
-        throw new Error(joinError.message || 'Failed to join WolfPack');
+      const locationIndex = parseInt(selectedLocation) - 1;
+      if (locationIndex < 0 || locationIndex >= locations.length) {
+        alert('Invalid location selection');
+        setState(prev => ({ ...prev, isLoading: false }));
+        return;
       }
 
-      // Type check and assertion for the RPC response
-      const response = result as unknown as JoinWolfpackResponse;
+      const chosenLocation = locations[locationIndex];
 
-      // Check if the result indicates success
-      if (response && typeof response === 'object' && 'success' in response && response.success) {
-        toast.success(response.message || 'Joined WolfPack!');
-      } else if (response && typeof response === 'object' && 'error' in response) {
-        throw new Error(response.error || 'Failed to join WolfPack');
-      } else {
-        throw new Error('Failed to join WolfPack');
-      }
+      // Join the wolfpack
+      const joinData = await apiCall('/join', {
+        method: 'POST',
+        body: JSON.stringify({
+          location_id: chosenLocation.id,
+          current_vibe: 'Ready to party! 🎉'
+        })
+      });
+
+      alert(`Joined WolfPack at ${joinData.membership.location_name}!`);
       
-      // Reload membership status
-      await loadMembershipStatus();
+      // Reload status
+      await loadStatus();
 
     } catch (error) {
-      console.error('Error joining WolfPack:', error);
+      console.error('Error joining wolfpack:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to join WolfPack';
-      toast.error(errorMessage);
+      alert(errorMessage);
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Leave wolfpack
   const leaveWolfPack = async () => {
     if (!user?.id) return;
 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
-      // Update in the actual base table
-      const { error } = await supabase
-        .from('wolfpack_members_unified')
-        .update({ 
-          status: 'inactive',
-          last_active: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+      await apiCall('/leave', {
+        method: 'DELETE'
+      });
 
-      if (error) throw error;
-
-      toast.success('Left WolfPack');
+      alert('Left WolfPack');
+      
+      // Reset state
       setState(prev => ({
         ...prev,
         isLoading: false,
-        isMember: false,
-        currentMembership: null,
-        currentLocation: null,
+        status: {
+          isMember: false,
+          membership: null,
+          location: null,
+          databaseUserId: prev.status?.databaseUserId || null
+        },
         members: []
       }));
 
     } catch (error) {
-      console.error('Error leaving WolfPack:', error);
-      toast.error('Failed to leave WolfPack');
+      console.error('Error leaving wolfpack:', error);
+      alert('Failed to leave WolfPack');
       setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Update table location
   const updateTableLocation = async (tableLocation: string) => {
-    if (!user?.id) return;
-
     try {
-      // Update in the actual base table
-      const { error } = await supabase
-        .from('wolfpack_members_unified')
-        .update({ 
-          table_location: tableLocation,
-          last_active: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+      await apiCall('/update', {
+        method: 'PATCH',
+        body: JSON.stringify({ table_location: tableLocation })
+      });
 
-      if (error) throw error;
-
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        currentMembership: prev.currentMembership ? {
-          ...prev.currentMembership,
-          table_location: tableLocation
-        } : null
-      }));
-
-      // Reload members to get updated data
-      if (state.currentMembership?.location_id) {
-        await loadMembers(state.currentMembership.location_id);
-      }
-
-      toast.success('Table location updated');
+      alert('Table location updated');
+      
+      // Reload status and members
+      await loadStatus();
 
     } catch (error) {
-      console.error('Error updating table location:', error);
-      toast.error('Failed to update table location');
+      console.error('Error updating location:', error);
+      alert('Failed to update table location');
     }
   };
 
+  // Get current position
   const getCurrentPosition = (): Promise<GeolocationPosition> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -355,6 +262,7 @@ export function WolfpackMembershipManager() {
     });
   };
 
+  // Format time ago
   const formatTimeAgo = (dateString: string | null): string => {
     if (!dateString) return 'Unknown';
     
@@ -369,43 +277,58 @@ export function WolfpackMembershipManager() {
     return `${Math.floor(diffMins / 1440)}d ago`;
   };
 
+  // Load status on mount
+  useEffect(() => {
+    if (!userLoading) {
+      loadStatus();
+    }
+  }, [userLoading, loadStatus]);
+
   // Loading state
-  if (state.isLoading) {
+  if (userLoading || state.isLoading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="bg-white rounded-lg shadow-lg">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           <span className="ml-2">Loading WolfPack status...</span>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   // Error state
   if (state.error) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>{state.error}</AlertDescription>
-      </Alert>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+          <span className="text-red-800">{state.error}</span>
+        </div>
+        <button 
+          onClick={loadStatus}
+          className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+        >
+          Try again
+        </button>
+      </div>
     );
   }
 
   // Not a member - show join UI
-  if (!state.isMember) {
+  if (!state.status?.isMember) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+      <div className="bg-white rounded-lg shadow-lg">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
             Join WolfPack
-          </CardTitle>
-          <CardDescription>
+          </h2>
+          <p className="text-gray-600 mt-1">
             Connect with other Side Hustle visitors in your area
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground">
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="text-sm text-gray-600">
             <p>When you join a WolfPack, you can:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Chat with other members in real-time</li>
@@ -415,153 +338,166 @@ export function WolfpackMembershipManager() {
             </ul>
           </div>
           
-          <Button 
+          <button 
             onClick={joinWolfPack} 
-            className="w-full" 
-            size="lg"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={state.isLoading}
           >
-            <Shield className="mr-2 h-4 w-4" />
-            Find & Join WolfPack
-          </Button>
-        </CardContent>
-      </Card>
+            <Shield className="h-4 w-4" />
+            {state.isLoading ? 'Finding WolfPack...' : 'Find & Join WolfPack'}
+          </button>
+
+          {/* Debug info */}
+          {state.status?.databaseUserId && (
+            <div className="text-xs text-gray-400 mt-2">
+              Debug: Auth ID: {user?.id}, DB ID: {state.status.databaseUserId}
+            </div>
+          )}
+        </div>
+      </div>
     );
   }
 
-  // Get location name
-  const locationName = state.currentLocation?.name || 'Unknown Location';
-
   // Member UI
+  const locationName = state.status.location?.name || 'Unknown Location';
+  const membership = state.status.membership;
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+      {/* Active WolfPack Card */}
+      <div className="bg-white rounded-lg shadow-lg">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
             Active WolfPack
-          </CardTitle>
-          <CardDescription>
-            You&#39;re part of the pack at {locationName}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h2>
+          <p className="text-gray-600 mt-1">
+            You&apos;re part of the pack at {locationName}
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                {locationName}
-              </span>
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">{locationName}</span>
             </div>
-            <Badge variant="secondary">
+            <div className="text-xs bg-gray-100 px-2 py-1 rounded">
               {state.members.length} members
-            </Badge>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-gray-500" />
             <span className="text-sm">
-              Joined {formatTimeAgo(state.currentMembership?.joined_at || null)}
+              Joined {formatTimeAgo(membership?.joined_at || null)}
             </span>
           </div>
 
-          {state.currentMembership?.table_location && (
+          {membership?.table_location && (
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Table: {state.currentMembership.table_location}</span>
+              <User className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">Table: {membership.table_location}</span>
             </div>
           )}
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <button 
               onClick={() => {
                 const table = prompt('Enter your table number or location:');
                 if (table) updateTableLocation(table);
               }}
-              size="sm"
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
             >
-              <MapPin className="mr-2 h-3 w-3" />
+              <MapPin className="h-3 w-3" />
               Update Location
-            </Button>
+            </button>
             
-            <Button 
-              variant="destructive" 
+            <button 
               onClick={leaveWolfPack} 
-              size="sm"
+              className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50"
               disabled={state.isLoading}
             >
-              <LogOut className="mr-2 h-3 w-3" />
+              <LogOut className="h-3 w-3" />
               Leave Pack
-            </Button>
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+      {/* Pack Members Card */}
+      <div className="bg-white rounded-lg shadow-lg">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-600" />
             Pack Members ({state.members.length})
-          </CardTitle>
-          <CardDescription>
+          </h2>
+          <p className="text-gray-600 mt-1">
             Other wolves currently at {locationName}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="p-6">
           <div className="space-y-3">
             {state.members.map((member, index) => {
-              const isCurrentUser = member.id === user?.id;
-              const displayName = member.display_name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Anonymous';
-              const memberEmoji = member.wolf_emoji || '🐺';
+              const isCurrentUser = member.user_id === state.status?.databaseUserId;
+              const displayName = member.display_name || member.username || 'Anonymous Wolf';
+              const memberEmoji = member.emoji || '🐺';
               
               return (
                 <div key={member.id || index}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        {member.avatar_url && <AvatarImage src={member.avatar_url} />}
-                        <AvatarFallback>
-                          {memberEmoji || displayName.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm">
+                        {member.avatar_url ? (
+                          <Image
+                            src={member.avatar_url}
+                            alt={displayName}
+                            className="w-full h-full rounded-full object-cover"
+                            width={32}
+                            height={32}
+                          />
+                        ) : (
+                          <span>{memberEmoji}</span>
+                        )}
+                      </div>
                       
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            {displayName}
-                          </span>
+                          <span className="font-medium">{displayName}</span>
                           {isCurrentUser && (
-                            <Badge variant="outline" className="text-xs">You</Badge>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">You</span>
                           )}
-                          {member.wolfpack_tier && member.wolfpack_tier !== 'basic' && (
-                            <Badge variant="secondary" className="text-xs">
-                              {member.wolfpack_tier}
-                            </Badge>
+                          {member.is_host && (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Host</span>
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {member.vibe_status && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          {member.current_vibe && (
                             <>
-                              <span>{member.vibe_status}</span>
+                              <span>{member.current_vibe}</span>
                               <span>•</span>
                             </>
                           )}
-                          <span>{formatTimeAgo(member.last_seen)}</span>
+                          <span>{formatTimeAgo(member.last_active)}</span>
+                          {member.table_location && (
+                            <>
+                              <span>•</span>
+                              <span>Table: {member.table_location}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {!isCurrentUser && (
-                      <Button variant="ghost" size="sm">
+                      <button className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Send message">
                         <MessageCircle className="h-3 w-3" />
-                      </Button>
+                      </button>
                     )}
                   </div>
                   
                   {index < state.members.length - 1 && (
-                    <Separator className="mt-3" />
+                    <hr className="mt-3" />
                   )}
                 </div>
               );
@@ -569,14 +505,14 @@ export function WolfpackMembershipManager() {
           </div>
 
           {state.members.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-500">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No other members in this WolfPack yet</p>
               <p className="text-sm">Be the first to start the conversation!</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

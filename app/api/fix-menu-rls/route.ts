@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createServerClient } from '@/lib/supabase/server';
 
 export async function POST() {
   try {
     console.log('🔐 Fixing RLS policies for menu access...');
     
     // Use admin/service role client
-    const supabase = await createClient();// Test if we can read the data with admin client first
+    const supabaseAdmin = createAdminClient();
+    
+    // Test if we can read the data with admin client first
     console.log('🔧 Testing admin access to verify data exists...');
     
     const { data: adminTest, error: adminError } = await supabaseAdmin
@@ -29,7 +31,8 @@ export async function POST() {
     console.log('🔧 Testing current public access...');
     
     // Test if we can now read the data with regular client
-    const supabase = await createClient();const { data: testCategories, error: testError } = await supabaseRegular
+    const supabase = await createServerClient();
+    const { data: testCategories, error: testError } = await supabase
       .from('food_drink_categories')
       .select('*')
       .limit(5);

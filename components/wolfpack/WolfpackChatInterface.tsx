@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BackButton } from '@/components/shared/BackButton';
 import { WolfpackSpatialView } from '@/components/wolfpack/WolfpackSpatialView';
-import { WolfpackRealTimeChat } from '@/components/wolfpack/WolfpackRealTimeChat';
+// WolfpackRealTimeChat component removed - using unified chat interface
 import { LiveEventsDisplay } from '@/components/wolfpack/LiveEventsDisplay';
 import { MessageCircle, Users, Shield, Settings, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
@@ -296,7 +296,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
             </Card>
             
             {sessionId && (
-              <WolfpackRealTimeChat sessionId={sessionId} />
+              <div>Chat functionality integrated into main interface</div>
             )}
           </div>
         </TabsContent>

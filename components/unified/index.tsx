@@ -27,7 +27,7 @@ export { StatusBadge } from './ui/StatusBadge';
 // Export notification components
 export { NotificationIndicator } from './notifications/NotificationIndicator';
 export { NotificationPopover } from './notifications/NotificationPopover';
-export { useNotifications, useSafeNotifications, UnifiedNotificationProvider } from './notifications/index';
+export { useNotifications, useSafeNotifications, NotificationProvider } from './notifications/index';
 
 // Export layout components
 export {

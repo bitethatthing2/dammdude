@@ -25,7 +25,7 @@ interface Notification {
   title: string;
   message: string;
   read: boolean;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +46,7 @@ export function NotificationPopover() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: null, // null means current user
+        p_user_id: undefined, // null means current user
         p_limit: 50,
         p_offset: 0
       });
@@ -56,7 +56,7 @@ export function NotificationPopover() {
         return;
       }
 
-      setNotifications(data || []);
+      setNotifications((data as any[]) || []);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {

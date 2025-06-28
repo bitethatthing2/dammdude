@@ -30,7 +30,7 @@ export async function GET() {
 
     // Fetch items
     const { data: items, error: itemsError } = await supabase
-      .from('food_drink_items')
+      .from('menu_items_with_working_modifiers' as any)
       .select('*')
       .limit(10);
 

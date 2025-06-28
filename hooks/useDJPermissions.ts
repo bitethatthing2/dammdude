@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import type { Database } from '@/types/supabase';
 interface DJPermissions {
   canCreateEvents: boolean;
   canSendMassMessages: boolean;
@@ -56,7 +57,7 @@ export function useDJPermissions() {
           const { data: djData } = await supabase
             .from('users')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('auth_id', user.id)
             .eq('is_active', true)
             .single();
 
