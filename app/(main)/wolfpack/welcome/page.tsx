@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,37 +52,40 @@ export default function WolfpackWelcomePage() {
     }
   }, [isInPack, isLoading, router]);
 
-  // Auto location verification using the location service
-  const verifyLocation = useCallback(async () => {
-    setLocationStatus('checking');
+  // Quick join without additional form
+  const handleQuickJoin = useCallback(async () => {
+    if (isJoining || !detectedLocation || !user) return;
     
+    setIsJoining(true);
     try {
-      const result = await WolfpackLocationService.verifyUserLocation();
+      // Generate display name from user data
+      const displayName = user.first_name || user.email?.split('@')[0] || 'Wolf';
       
-      if (result.isAtLocation && result.locationId && result.locationName) {
-        const locationData = result.nearestLocation ? 
-          SIDE_HUSTLE_LOCATIONS[result.nearestLocation] : null;
-        
-        if (locationData) {
-          setDetectedLocation({
-            id: locationData.id,
-            name: locationData.name,
-            lat: locationData.lat,
-            lng: locationData.lng
-          });
-          setLocationStatus('verified');
-          // Auto-join pack after brief delay
-          setTimeout(() => {
-            handleQuickJoin();
-          }, 1500);
-        } else {
-          setLocationStatus('denied');
-        }
+      const joinParams: JoinPackParams = {
+        location_id: detectedLocation.id,
+        display_name: displayName,
+        wolf_emoji: '🐺',
+        vibe_status: 'Ready to party!'
+      };
+      
+      const result = await wolfpackAPI.joinPack(joinParams);
+      
+      if (result.success) {
+        router.push('/wolfpack');
       } else {
-  // (moved above and wrapped in useCallback)
+        console.error('Failed to join pack:', result.error);
+        setLocationStatus('error');
+      }
+    } catch (error) {
+      console.error('Failed to join pack:', error);
+      setLocationStatus('error');
+    } finally {
+      setIsJoining(false);
+    }
+  }, [isJoining, detectedLocation, user, router]);
 
   // Auto location verification using the location service
-  const verifyLocation = async () => {
+  const verifyLocation = useCallback(async () => {
     setLocationStatus('checking');
     
     try {
@@ -114,54 +117,7 @@ export default function WolfpackWelcomePage() {
       console.error('Location verification failed:', error);
       setLocationStatus('error');
     }
-  };
-
-  // Haversine formula to calculate distance
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  // Quick join without additional form
-  const handleQuickJoin = async () => {
-    if (isJoining || !detectedLocation || !user) return;
-    
-    setIsJoining(true);
-    try {
-      // Generate display name from user data
-      const displayName = user.first_name || user.email?.split('@')[0] || 'Wolf';
-      
-      const joinParams: JoinPackParams = {
-        location_id: detectedLocation.id,
-        display_name: displayName,
-        wolf_emoji: '🐺',
-        vibe_status: 'Ready to party!'
-      };
-      
-      const result = await wolfpackAPI.joinPack(joinParams);
-      
-      if (result.success) {
-        router.push('/wolfpack');
-      } else {
-        console.error('Failed to join pack:', result.error);
-        setLocationStatus('error');
-      }
-    } catch (error) {
-      console.error('Failed to join pack:', error);
-      setLocationStatus('error');
-    } finally {
-      setIsJoining(false);
-    }
-  };
+  }, [handleQuickJoin]);
 
   if (isLoading) {
     return (
