@@ -45,7 +45,9 @@
     "precache-manifest": "workbox generateSW workbox-config.js",
     "test:pwa": "npm run build && npx serve@latest out",
     "cache:clear": "rimraf .next/cache && rimraf node_modules/.cache",
-    "prefetch:images": "node scripts/prefetch-menu-images.js"
+    "prefetch:images": "node scripts/prefetch-menu-images.js",
+    "test:build": "node scripts/test-build.js",
+    "db:cleanup": "node scripts/final-cleanup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

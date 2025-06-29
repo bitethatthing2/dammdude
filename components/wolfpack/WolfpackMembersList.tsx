@@ -13,7 +13,7 @@ const LOCATION_IDS = {
 export type LocationKey = keyof typeof LOCATION_IDS
 
 // Type aliases from database - using CORRECT table names that exist
-type WolfPackMemberRow = Database['public']['Tables']['wolfpack_members_unified']['Row']
+type WolfPackMemberRow = Database['public']['Tables']['users']['Row']
 // wolfpack_memberships is a view, so we'll define its type based on the view structure
 type WolfpackMembership = {
   id: string | null
@@ -123,10 +123,10 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         throw new Error(String(result.error) || 'Failed to join wolfpack')
       }
 
-      // Update member profile with additional data if we have wolfpack_members_unified
+      // Update member profile with additional data if we have users
       if (Object.keys(profileData).length > 0) {
         const { error: updateError } = await supabase
-          .from('wolfpack_members_unified')
+          .from('users')
           .update({
             table_location: profileData.table_location,
             display_name: profileData.display_name
@@ -153,9 +153,9 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     if (!user || !locationId) return
 
     try {
-      // Update member to inactive in wolfpack_members_unified
+      // Update member to inactive in users
       const { error: leaveError } = await supabase
-        .from('wolfpack_members_unified')
+        .from('users')
         .update({ 
           is_active: false,
           left_at: new Date().toISOString()
@@ -180,7 +180,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     const fetchMembers = async () => {
       try {
         const { data, error } = await supabase
-          .from('wolfpack_members_unified')
+          .from('users')
           .select(`
             *,
             users!user_id (
@@ -216,7 +216,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         {
           event: '*',
           schema: 'public',
-          table: 'wolfpack_members_unified', // Use the table that actually exists
+          table: 'users', // Use the table that actually exists
           filter: `location_id=eq.${locationId}`
         },
         (payload) => {

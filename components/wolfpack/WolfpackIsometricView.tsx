@@ -20,7 +20,7 @@ import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-// Database response type for wolfpack_members_unified
+// Database response type for users
 interface DatabaseMember {
   id: string;
   user_id: string;
@@ -106,9 +106,9 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
     try {
       setIsLoading(true);
       
-      // Use your existing wolfpack_members_unified table
+      // Use your existing users table
       const { data: memberData, error } = await supabase
-        .from("wolfpack_members_unified")
+        .from("users")
         .select(`
           id,
           user_id,
@@ -172,7 +172,7 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
     try {
       // Check if user is already in the location
       const { data: existingMember } = await supabase
-        .from('wolfpack_members_unified')
+        .from('users')
         .select('id')
         .eq('user_id', user.id)
         .eq('location_id', locationId)
@@ -187,7 +187,7 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
 
       // Add user to location
       const { error } = await supabase
-        .from('wolfpack_members_unified')
+        .from('users')
         .upsert({
           user_id: user.id,
           location_id: locationId,
@@ -262,7 +262,7 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
         {
           event: '*',
           schema: 'public',
-          table: 'wolfpack_members_unified',
+          table: 'users',
           filter: `location_id=eq.${locationId}`
         },
         () => {

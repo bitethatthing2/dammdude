@@ -2,7 +2,7 @@
 // Example component showing how to use the fixed realtime system
 
 import React, { useState } from 'react'
-import { useWolfpackRealtimeFixed } from '@/hooks/useWolfpackRealtime'
+// import { useWolfpackRealtimeFixed } from '@/hooks/useWolfpackRealtime' // DISABLED: Hook removed during schema migration
 
 interface WolfpackRealtimeExampleProps {
   locationId: string
@@ -221,7 +221,7 @@ export function WolfpackRealtimeExample({ locationId }: WolfpackRealtimeExampleP
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {state.members.map((member) => (
+            {state.members.map((member: any) => (
               <MemberCard 
                 key={member.id} 
                 member={member}

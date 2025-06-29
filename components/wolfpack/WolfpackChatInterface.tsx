@@ -54,9 +54,9 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
       setError(null);
       
       try {
-        // Get membership data from wolfpack_members_unified (the authoritative source)
+        // Get membership data from users (the authoritative source)
         const { data: memberData, error: memberError } = await supabase
-          .from("wolfpack_members_unified")
+          .from("users")
           .select(`
             id,
             user_id,

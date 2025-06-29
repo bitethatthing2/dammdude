@@ -42,7 +42,7 @@ export type Database = {
             foreignKeyName: "active_sessions_table_id_fkey"
             columns: ["table_id"]
             isOneToOne: false
-            referencedRelation: "tables"
+            referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
           },
         ]
@@ -437,25 +437,9 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "bartender_orders_tab_id_fkey"
-            columns: ["tab_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_tabs"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      bartender_quick_replies: {
-        Row: {
-          bartender_id: string | null
-          created_at: string | null
-          display_order: number | null
-          emoji: string | null
-          id: string
-          is_default: boolean | null
-          reply_text: string
-        }
+      
         Insert: {
           bartender_id?: string | null
           created_at?: string | null
@@ -512,17 +496,7 @@ export type Database = {
           },
         ]
       }
-      bartender_tabs: {
-        Row: {
-          bartender_id: string | null
-          closed_at: string | null
-          created_at: string | null
-          customer_name: string | null
-          id: string
-          notes: string | null
-          status: string | null
-          total_amount: number | null
-        }
+      
         Insert: {
           bartender_id?: string | null
           closed_at?: string | null
@@ -581,16 +555,7 @@ export type Database = {
           },
         ]
       }
-      bartenders: {
-        Row: {
-          created_at: string | null
-          display_name: string | null
-          id: string
-          is_active: boolean | null
-          location: string | null
-          name: string
-          updated_at: string | null
-        }
+      
         Insert: {
           created_at?: string | null
           display_name?: string | null
@@ -822,7 +787,7 @@ export type Database = {
             foreignKeyName: "device_registrations_table_id_fkey"
             columns: ["table_id"]
             isOneToOne: false
-            referencedRelation: "tables"
+            referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
           },
         ]
@@ -2385,7 +2350,7 @@ export type Database = {
         }
         Relationships: []
       }
-      tables: {
+      restaurant_tables: {
         Row: {
           created_at: string | null
           id: string
@@ -2690,7 +2655,7 @@ export type Database = {
           id: string
           is_approved: boolean | null
           is_permanent_pack_member: boolean | null
-          isinpack: boolean | null
+          is_wolfpack_member: boolean | null
           last_login: string | null
           last_name: string | null
           location_id: string | null
@@ -3259,32 +3224,7 @@ export type Database = {
           },
         ]
       }
-      wolf_profiles: {
-        Row: {
-          allow_messages: boolean | null
-          bio: string | null
-          created_at: string | null
-          custom_avatar_id: string | null
-          daily_customization: Json | null
-          display_name: string | null
-          favorite_bartender: string | null
-          favorite_drink: string | null
-          favorite_song: string | null
-          gender: string | null
-          id: string
-          instagram_handle: string | null
-          is_visible: boolean | null
-          last_seen_at: string | null
-          location_permissions_granted: boolean | null
-          looking_for: string | null
-          phone: string | null
-          profile_image_url: string | null
-          profile_pic_url: string | null
-          pronouns: string | null
-          user_id: string
-          vibe_status: string | null
-          wolf_emoji: string | null
-        }
+      
         Insert: {
           allow_messages?: boolean | null
           bio?: string | null
@@ -3490,19 +3430,7 @@ export type Database = {
           },
         ]
       }
-      wolfpack_bar_tabs: {
-        Row: {
-          closed_at: string | null
-          created_at: string | null
-          id: string
-          location_id: string
-          notes: string | null
-          opened_at: string | null
-          status: string
-          total_amount: number | null
-          updated_at: string | null
-          user_id: string
-        }
+      
         Insert: {
           closed_at?: string | null
           created_at?: string | null
@@ -3755,36 +3683,7 @@ export type Database = {
           },
         ]
       }
-      wolfpack_members_unified: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          current_vibe: string | null
-          display_name: string | null
-          emoji: string | null
-          favorite_drink: string | null
-          id: string
-          instagram_handle: string | null
-          is_active: boolean | null
-          is_host: boolean | null
-          joined_at: string
-          last_active: string | null
-          latitude: number | null
-          left_at: string | null
-          location_id: string | null
-          longitude: number | null
-          looking_for: string | null
-          position_x: number | null
-          position_y: number | null
-          role: string | null
-          session_id: string | null
-          status: string | null
-          status_enum: string | null
-          table_location: string | null
-          updated_at: string
-          user_id: string
-          username: string | null
-        }
+      
         Insert: {
           avatar_url?: string | null
           created_at?: string
@@ -6525,7 +6424,7 @@ export type Database = {
           id: string
           is_approved: boolean | null
           is_permanent_pack_member: boolean | null
-          isinpack: boolean | null
+          is_wolfpack_member: boolean | null
           last_login: string | null
           last_name: string | null
           location_id: string | null
@@ -9101,6 +9000,4 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
-  },
-} as const
+    Enums: Record<string, never>}} as const

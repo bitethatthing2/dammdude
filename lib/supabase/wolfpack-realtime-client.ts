@@ -143,7 +143,7 @@ class WolfpackRealtimeClient {
         instagram_handle: member.instagram_handle,
         joined_at: member.joined_at,
         last_active: member.last_active,
-        is_active: member.is_active,
+        is_active: member.is_active || false,
         // User data from join
         user_email: (member.users as any)?.email || null,
         user_first_name: (member.users as any)?.first_name || null,
@@ -217,17 +217,14 @@ class WolfpackRealtimeClient {
         return { data: null, error: 'Invalid user ID format' }
       }
 
-      const { data, error } = await this.supabase.rpc('check_user_membership', {
-        user_uuid: user.id,
-        location_uuid: locationId
-      })
+      const { data, error } = await RPCFallbacks.checkUserMembership(user.id, locationId)
 
       if (error) {
         console.error('❌ Error checking membership:', error)
         return { data: null, error: error.message }
       }
 
-      const result = data?.[0] || { is_member: false, membership_id: null, status: null, joined_at: null }
+      const result = (data as any)?.[0] || { is_member: false, membership_id: null, status: null, joined_at: null }
       console.log('✅ Membership check result:', result)
       return { data: result, error: null }
 
@@ -266,23 +263,14 @@ class WolfpackRealtimeClient {
         return { data: null, error: 'Invalid user ID format' }
       }
 
-      const { data: result, error } = await this.supabase.rpc('join_wolfpack', {
-        user_uuid: user.id,
-        location_uuid: data.locationId,
-        display_name_param: data.displayName || null,
-        emoji_param: data.emoji || '🐺',
-        current_vibe_param: data.currentVibe || null,
-        favorite_drink_param: data.favoriteDrink || null,
-        looking_for_param: data.lookingFor || null,
-        instagram_handle_param: data.instagramHandle || null
-      })
+      const { data: result, error } = await RPCFallbacks.joinWolfpack(user.id, data)
 
       if (error) {
         console.error('❌ Error joining wolfpack:', error)
         return { data: null, error: error.message }
       }
 
-      const joinResult = result?.[0] || { success: false, membership_id: null, message: 'Unknown error' }
+      const joinResult = (result as any)?.[0] || { success: false, membership_id: null, message: 'Unknown error' }
       console.log('✅ Join wolfpack result:', joinResult)
       return { data: joinResult, error: null }
 
@@ -313,17 +301,14 @@ class WolfpackRealtimeClient {
         return { data: null, error: 'Invalid user ID format' }
       }
 
-      const { data: result, error } = await this.supabase.rpc('leave_wolfpack', {
-        user_uuid: user.id,
-        location_uuid: locationId
-      })
+      const { data: result, error } = await RPCFallbacks.leaveWolfpack(user.id)
 
       if (error) {
         console.error('❌ Error leaving wolfpack:', error)
         return { data: null, error: error.message }
       }
 
-      const leaveResult = result?.[0] || { success: false, message: 'Unknown error' }
+      const leaveResult = (result as any)?.[0] || { success: false, message: 'Unknown error' }
       console.log('✅ Leave wolfpack result:', leaveResult)
       return { data: leaveResult, error: null }
 
@@ -455,7 +440,7 @@ class WolfpackRealtimeClient {
       }
 
       console.log('✅ Successfully fetched user profile')
-      return { data: data as RealtimeUser, error: null }
+      return { data: data as unknown as RealtimeUser, error: null }
 
     } catch (error) {
       console.error('❌ Unexpected error in getCurrentUserProfile:', error)
@@ -613,5 +598,5 @@ export function enhancedMemberToRealtimeUser(member: EnhancedWolfpackMember): Re
       favorite_bartender: null,
       last_seen_at: member.last_active || member.joined_at
     } : undefined
-  } as RealtimeUser
+  } as unknown as RealtimeUser
 }

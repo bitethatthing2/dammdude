@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Check current membership
     const { data: membership, error: membershipError } = await supabase
-      .from('wolfpack_members_unified')
+      .from('users')
       .select(`
         *,
         locations (
