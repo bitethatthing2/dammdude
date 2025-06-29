@@ -567,7 +567,7 @@ export function enhancedMemberToRealtimeUser(member: EnhancedWolfpackMember): Re
     deleted_at: null,
     is_approved: true,
     is_permanent_pack_member: false,
-    isinpack: member.is_active,
+    is_wolfpack_member: member.is_active,
     last_login: null,
     location_id: member.location_id,
     location_permissions_granted: false,

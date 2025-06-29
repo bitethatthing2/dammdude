@@ -150,27 +150,26 @@ export const joinWolfPackFromLocation = async (
   }
 
   try {
-    // Step 1: Check if profile already exists
-    console.log('Step 1: Checking for existing profile for user:', user.id);
+    // Step 1: Check if user already has profile data
+    console.log('Step 1: Checking for existing user profile for user:', user.id);
     
-    const { error: checkError } = await supabase
-      .from('wolf_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id, display_name, wolf_emoji, vibe_status')
+      .eq('id', user.id)
+      .single();
 
-    // Handle 409 conflict by updating instead of creating
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing profile:', checkError);
+    if (checkError) {
+      console.error('Error checking existing user:', checkError);
+      throw new Error(`Failed to check user: ${checkError.message}`);
     }
 
-    // Step 2: Prepare profile data
+    // Step 2: Prepare profile data for users table
     const profileData = {
-      user_id: user.id,
-      display_name: user.first_name || user.email?.split('@')[0] || 'Wolf',
-      wolf_emoji: '🐺',
-      vibe_status: 'Ready to party! 🎉',
-      is_visible: true,
+      display_name: existingUser.display_name || user.first_name || user.email?.split('@')[0] || 'Wolf',
+      wolf_emoji: existingUser.wolf_emoji || '🐺',
+      vibe_status: existingUser.vibe_status || 'Ready to party! 🎉',
+      is_profile_visible: true,
       looking_for: 'New friends',
       bio: null,
       favorite_drink: null,
@@ -182,15 +181,13 @@ export const joinWolfPackFromLocation = async (
       custom_avatar_id: null
     };
 
-    console.log('Step 2: Profile data prepared');
+    console.log('Step 2: Profile data prepared for users table');
 
-    // Step 3: Upsert profile (insert or update)
+    // Step 3: Update user profile data
     const { data: profileResult, error: profileError } = await supabase
-      .from('wolf_profiles')
-      .upsert(profileData, { 
-        onConflict: 'user_id',
-        ignoreDuplicates: false 
-      })
+      .from('users')
+      .update(profileData)
+      .eq('id', user.id)
       .select()
       .single();
 

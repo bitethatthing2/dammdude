@@ -81,7 +81,7 @@ export async function GET() {
     let tablesResult;
     try {
       tablesResult = await supabase
-        .from('tables')
+        .from('restaurant_tables')
         .select('count')
         .limit(1);
     } catch (err) {

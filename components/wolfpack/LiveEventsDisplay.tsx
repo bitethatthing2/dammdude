@@ -239,13 +239,13 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
 
               participantUsersMap = new Map(participantUsers?.map(u => [u.id, u]) || []);
 
-              // Get wolf profiles
-              const { data: wolfProfiles } = await supabase
-                .from('wolf_profiles')
-                .select('user_id, display_name, wolf_emoji, profile_image_url, vibe_status')
-                .in('user_id', participantIds);
+              // Get user profiles (now in users table)
+              const { data: userProfiles } = await supabase
+                .from('users')
+                .select('id, display_name, wolf_emoji, profile_image_url, vibe_status')
+                .in('id', participantIds);
 
-              wolfProfilesMap = new Map(wolfProfiles?.map(p => [p.user_id, p]) || []);
+              wolfProfilesMap = new Map(userProfiles?.map(p => [p.id, p]) || []);
             }
 
             // Get votes from wolfpack_event_votes table

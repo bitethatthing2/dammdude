@@ -149,9 +149,9 @@ export function WolfpackProfileManager() {
 
     try {
       const { data, error } = await supabase
-        .from('wolf_profiles')
-        .select('*')
-        .eq('user_id', user.id)
+        .from('users')
+        .select('id, display_name, wolf_emoji, bio, favorite_drink, vibe_status, profile_pic_url, instagram_handle, favorite_song, looking_for, is_profile_visible, gender, pronouns, custom_avatar_id')
+        .eq('id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -317,11 +317,9 @@ export function WolfpackProfileManager() {
       }
 
       const { data: savedData, error } = await supabase
-        .from('wolf_profiles')
-        .upsert(profileData, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        })
+        .from('users')
+        .update(profileData)
+        .eq('id', user.id)
         .select()
         .single();
 

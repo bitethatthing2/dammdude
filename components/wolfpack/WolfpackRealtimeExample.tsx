@@ -248,7 +248,7 @@ function MemberCard({ member, isCurrentUser }: MemberCardProps) {
 
   const emoji = member.wolf_profile?.wolf_emoji || '🐺'
   const vibe = member.wolf_profile?.vibe_status || 'No status'
-  const isOnline = member.isinpack && member.wolfpack_status === 'active'
+  const isOnline = member.is_wolfpack_member && member.wolfpack_status === 'active'
 
   return (
     <div className={`border rounded-lg p-4 transition-all ${

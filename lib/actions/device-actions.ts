@@ -107,7 +107,7 @@ export async function registerDevice(params: RegisterDeviceParams): Promise<Regi
   // Additional validation: ensure table exists
   if (type === 'customer' && tableId) {
     const { data: table, error: tableError } = await supabase
-      .from('tables')
+      .from('restaurant_tables')
       .select('id, is_active')
       .eq('id', tableId)
       .single();

@@ -231,6 +231,20 @@ function adaptDatabaseMember(dbMember: DatabaseMember): WolfPackMember {
   };
 }
 
+// New adapter for user-based members (since wolfpack_members_unified is consolidated)
+function adaptUserToMember(dbUser: any): WolfPackMember {
+  return {
+    id: dbUser.id,
+    user_id: dbUser.id,
+    location_id: '', // Will be set contextually
+    status: 'active',
+    joined_at: dbUser.created_at,
+    table_location: undefined,
+    display_name: dbUser.display_name || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || dbUser.email?.split('@')[0],
+    avatar_url: dbUser.avatar_url || undefined
+  };
+}
+
 function adaptDatabaseEvent(dbEvent: DatabaseEvent): DJEvent {
   return {
     id: dbEvent.id,
@@ -459,12 +473,11 @@ export function useWolfpack(
         .select('*')
         .in('message_id', messageIds) : { data: [] };
 
-      // Load members directly from the database  
+      // Load members from users table (wolfpack_members_unified has been consolidated)
       const { data: membersData, error: membersError } = await supabase
-        .from('wolfpack_members_unified')
-        .select('*')
-        .eq('location_id', locationId)
-        .eq('is_active', true);
+        .from('users')
+        .select('id, first_name, last_name, email, display_name, wolf_emoji, avatar_url, is_wolfpack_member, created_at')
+        .eq('is_wolfpack_member', true);
 
       if (membersError) {
         console.error('Error loading members:', membersError);
@@ -499,7 +512,7 @@ export function useWolfpack(
       setState(prev => ({
         ...prev,
         messages: messagesWithReactions,
-        members: (membersData || []).map(adaptDatabaseMember),
+        members: (membersData || []).map(adaptUserToMember),
         events: (eventsData || []).map(adaptDatabaseEvent)
       }));
 
@@ -607,16 +620,16 @@ export function useWolfpack(
       )
       .subscribe();
 
-    // Members subscription
+    // Members subscription (now using users table)
     const membersChannel = supabase
       .channel(`wolfpack_members_${locationId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'wolfpack_members_unified',
-          filter: `location_id=eq.${locationId}`
+          table: 'users',
+          filter: 'is_wolfpack_member=eq.true'
         },
         () => {
           // Reload members when membership changes
@@ -835,31 +848,27 @@ export function useWolfpack(
         return { success: false, error: 'Invalid location ID' };
       }
 
-      // Check if already a member
-      const { data: existingMember } = await supabase
-        .from('wolfpack_members_unified')
-        .select('id')
-        .eq('user_id', authUser.id)
-        .eq('location_id', locationId)
-        .eq('is_active', true)
+      // Check if already a member (now using users table)
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, is_wolfpack_member')
+        .eq('id', authUser.id)
         .single();
 
-      if (existingMember) {
-        return { success: false, error: 'Already a member of this wolfpack' };
+      if (existingUser?.is_wolfpack_member) {
+        return { success: false, error: 'Already a member of the wolfpack' };
       }
 
+      // Update user to be a wolfpack member
       const { error } = await supabase
-        .from('wolfpack_members_unified')
-        .insert({
-          user_id: authUser.id,
-          location_id: locationId,
+        .from('users')
+        .update({
+          is_wolfpack_member: true,
           display_name: profileData?.display_name ? 
             SecurityValidator.sanitizeDisplayName(profileData.display_name) : 
-            undefined,
-          status: 'active',
-          is_active: true,
-          joined_at: new Date().toISOString()
-        });
+            undefined
+        })
+        .eq('id', authUser.id);
 
       if (!error) {
         // Refresh membership status

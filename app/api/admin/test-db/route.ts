@@ -28,7 +28,7 @@ export async function GET() {
     // Test 2: Check foreign key constraints
     console.log("[TEST API] Checking foreign key constraints");
     const { data: tableData, error: tableError } = await supabase
-      .from('tables')
+      .from('restaurant_tables')
       .select('id')
       .limit(1);
       
