@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -94,7 +95,7 @@ function sanitizeString(input: string, maxLength = 500): string {
 // AUTHENTICATION & AUTHORIZATION
 // =============================================================================
 
-async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>): Promise<User> {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
@@ -104,9 +105,9 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
   return user;
 }
 
-async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserData> {
+async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, user: User): Promise<UserData> {
   // Verify user through auth service
-  const authResult = await WolfpackAuthService.verifyUser({ id: userId } as any);
+  const authResult = await WolfpackAuthService.verifyUser(user);
   if (!authResult.isVerified) {
     throw new Error('User verification failed');
   }
@@ -115,7 +116,7 @@ async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createCli
   const { data: userData, error } = await supabase
     .from('users')
     .select('id, role, display_name, first_name, last_name, avatar_url, email')
-    .eq('id', userId)
+    .eq('id', user.id)
     .single();
 
   if (error || !userData) {
@@ -255,7 +256,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
     }
 
     // 4. Authorization
-    const userData = await verifyDJPermissions(supabase, user.id);
+    const userData = await verifyDJPermissions(supabase, user);
 
     // 5. Get display name for DJ
     const djDisplayName = WolfpackAuthService.getUserDisplayName(user) || 
@@ -290,7 +291,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
 
     // 7. Insert event into database
     const result = await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.DJ_EVENTS,
+      WOLFPACK_TABLES.EVENTS,
       eventData,
       '*'
     );
@@ -324,7 +325,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
         },
         'id'
       );
-    } catch (chatError) {
+    } catch (chatError: unknown) {
       // Log but don't fail the event creation
       console.warn('Failed to create chat announcement:', chatError);
     }
@@ -341,7 +342,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
       status: eventRecord.status
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('DJ event creation error:', error);
     
     // Handle specific error types
@@ -368,10 +369,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
       }
     }
 
+    // Create a proper error object for WolfpackErrorHandler
+    const errorToHandle = error instanceof Error ? error : new Error(
+      typeof error === 'string' ? error : 'Unknown error occurred'
+    );
+
     // Handle Supabase errors
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+    const userError = WolfpackErrorHandler.handleSupabaseError(errorToHandle, {
       operation: 'dj_event_creation',
-      context: { user_id: 'unknown' }
+      userId: 'unknown'
     });
 
     return NextResponse.json(

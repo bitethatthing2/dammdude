@@ -253,7 +253,7 @@ export function useCheckoutAccess() {
   const access = useWolfpackAccess();
   
   return {
-    canCheckout: access.checkAccess(true),
+    isMember: canCheckout: access.checkAccess(true),
     isWolfpackMember: access.isWolfpackMember,
     needsLocationVerification: !access.isWolfpackMember && !access.isLocationVerified,
     verifyLocation: access.verifyLocation,

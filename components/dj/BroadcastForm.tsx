@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner'; // or your toast library
-import { wolfpackErrorUtils } from '@/lib/errors';
+import { captureError } from '@/lib/utils/error-utils';
 
 interface BroadcastFormProps {
   djId: string;

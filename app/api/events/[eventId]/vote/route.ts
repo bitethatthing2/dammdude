@@ -2,9 +2,159 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import type { User } from '@supabase/supabase-js'; // Import Supabase User type
 
 // =============================================================================
-// TYPE DEFINITIONS
+// TYPE DEFINITIONS - Database types (update path as needed)
+// =============================================================================
+
+// If you have generated Supabase types, uncomment and update the import path:
+// import { Database } from '@/lib/supabase/database.types';
+// OR
+// import { Database } from '@/types/supabase';
+
+// Temporary type definitions until proper database types are imported
+interface Database {
+  public: {
+    Tables: {
+      dj_events: {
+        Row: {
+          id: string;
+          dj_id: string | null;
+          location_id: string | null;
+          event_type: string;
+          title: string;
+          description: string | null;
+          status: string | null;
+          voting_ends_at: string | null;
+          created_at: string | null;
+          started_at: string | null;
+          ended_at: string | null;
+          winner_id: string | null;
+          winner_data: unknown | null;
+          event_config: unknown | null;
+          voting_format: string | null;
+          options: unknown | null;
+        };
+        Insert: {
+          id?: string;
+          dj_id?: string | null;
+          location_id?: string | null;
+          event_type: string;
+          title: string;
+          description?: string | null;
+          status?: string | null;
+          voting_ends_at?: string | null;
+          created_at?: string | null;
+          started_at?: string | null;
+          ended_at?: string | null;
+          winner_id?: string | null;
+          winner_data?: unknown | null;
+          event_config?: unknown | null;
+          voting_format?: string | null;
+          options?: unknown | null;
+        };
+        Update: {
+          id?: string;
+          dj_id?: string | null;
+          location_id?: string | null;
+          event_type?: string;
+          title?: string;
+          description?: string | null;
+          status?: string | null;
+          voting_ends_at?: string | null;
+          created_at?: string | null;
+          started_at?: string | null;
+          ended_at?: string | null;
+          winner_id?: string | null;
+          winner_data?: unknown | null;
+          event_config?: unknown | null;
+          voting_format?: string | null;
+          options?: unknown | null;
+        };
+      };
+      wolf_pack_votes: {
+        Row: {
+          id: string;
+          event_id: string | null;
+          voter_id: string | null;
+          contest_id: string | null;
+          participant_id: string | null;
+          voted_for_id: string | null;
+          vote_value: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id?: string | null;
+          voter_id?: string | null;
+          contest_id?: string | null;
+          participant_id?: string | null;
+          voted_for_id?: string | null;
+          vote_value?: number | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_id?: string | null;
+          voter_id?: string | null;
+          contest_id?: string | null;
+          participant_id?: string | null;
+          voted_for_id?: string | null;
+          vote_value?: number | null;
+          created_at?: string | null;
+        };
+      };
+      wolfpack_chat_messages: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string | null;
+          display_name: string;
+          avatar_url: string | null;
+          content: string;
+          message_type: string;
+          image_url: string | null;
+          created_at: string | null;
+          edited_at: string | null;
+          is_flagged: boolean | null;
+          is_deleted: boolean | null;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id?: string | null;
+          display_name: string;
+          avatar_url?: string | null;
+          content: string;
+          message_type?: string;
+          image_url?: string | null;
+          created_at?: string | null;
+          edited_at?: string | null;
+          is_flagged?: boolean | null;
+          is_deleted?: boolean | null;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          user_id?: string | null;
+          display_name?: string;
+          avatar_url?: string | null;
+          content?: string;
+          message_type?: string;
+          image_url?: string | null;
+          created_at?: string | null;
+          edited_at?: string | null;
+          is_flagged?: boolean | null;
+          is_deleted?: boolean | null;
+        };
+      };
+    };
+  };
+}
+
+// =============================================================================
+// TYPE DEFINITIONS - Updated to match actual database schema
 // =============================================================================
 
 interface VoteRequest {
@@ -13,34 +163,16 @@ interface VoteRequest {
   participant_id?: string;
 }
 
-interface EventData {
-  id: string;
-  dj_id: string;
-  location_id: string;
-  event_type: string;
-  title: string;
-  description: string | null;
-  status: string;
-  voting_ends_at: string | null;
-  created_at: string;
-  started_at: string | null;
-  ended_at: string | null;
-  winner_id: string | null;
-  winner_data: unknown | null;
-  event_config: unknown | null;
-  voting_format: string | null;
-  options: unknown | null;
-}
+// Using the actual database types from Supabase
+type EventData = Database['public']['Tables']['dj_events']['Row'];
+type VoteData = Database['public']['Tables']['wolf_pack_votes']['Row'];
+type ChatMessageInsert = Database['public']['Tables']['wolfpack_chat_messages']['Insert'];
 
-interface VoteData {
-  id: string;
-  event_id: string;
-  voter_id: string;
-  contest_id: string | null;
-  participant_id: string | null;
+// Type for vote query results
+interface VoteQueryResult {
   voted_for_id: string | null;
   vote_value: number | null;
-  created_at: string;
+  voter_id: string | null;
 }
 
 interface VoteCounts {
@@ -67,7 +199,7 @@ interface EventDetailsResponse {
     id: string;
     title: string;
     event_type: string;
-    status: string;
+    status: string | null;
     voting_ends_at: string | null;
     options: string[] | null;
     voting_format: string | null;
@@ -96,10 +228,6 @@ function validateUUID(id: string): boolean {
   return uuidRegex.test(id);
 }
 
-function sanitizeString(input: string, maxLength = 500): string {
-  return input.trim().slice(0, maxLength).replace(/[<>]/g, '');
-}
-
 function parseEventOptions(options: unknown): string[] {
   if (typeof options === 'string') {
     try {
@@ -119,7 +247,7 @@ function parseEventOptions(options: unknown): string[] {
 // AUTHENTICATION & AUTHORIZATION
 // =============================================================================
 
-async function authenticateUser(supabase: ReturnType<typeof createClient>) {
+async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>): Promise<User> {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
@@ -139,10 +267,11 @@ async function authenticateUser(supabase: ReturnType<typeof createClient>) {
 // =============================================================================
 
 async function getEventDetails(eventId: string): Promise<EventData> {
-  const eventResult = await WolfpackBackendService.queryOne(
-    WOLFPACK_TABLES.DJ_EVENTS,
+  const eventResult = await WolfpackBackendService.select(
+    WOLFPACK_TABLES.EVENTS, // Ensure this maps to 'dj_events'
     '*',
-    { id: eventId }
+    { id: eventId },
+    { single: true }
   );
 
   if (eventResult.error || !eventResult.data) {
@@ -208,17 +337,31 @@ async function validateVote(event: EventData, voteData: VoteRequest): Promise<vo
 }
 
 async function checkExistingVote(eventId: string, userId: string): Promise<boolean> {
-  const existingVoteResult = await WolfpackBackendService.query(
-    'wolf_pack_votes',
-    'id',
-    { event_id: eventId, voter_id: userId }
-  );
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('wolf_pack_votes')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('voter_id', userId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Error checking existing vote:', error);
+      return false;
+    }
 
-  return !!(existingVoteResult.data && existingVoteResult.data.length > 0);
+    return !!data;
+  } catch (error: unknown) {
+    console.error('Error checking existing vote:', error);
+    return false;
+  }
 }
 
 async function createVote(eventId: string, userId: string, voteData: VoteRequest): Promise<VoteData> {
-  const voteRecord = {
+  const supabase = await createClient();
+  
+  const voteRecord: Database['public']['Tables']['wolf_pack_votes']['Insert'] = {
     event_id: eventId,
     voter_id: userId,
     contest_id: null,
@@ -228,20 +371,20 @@ async function createVote(eventId: string, userId: string, voteData: VoteRequest
     created_at: new Date().toISOString()
   };
 
-  const voteResult = await WolfpackBackendService.insert(
-    'wolf_pack_votes',
-    voteRecord,
-    '*'
-  );
+  const { data, error } = await supabase
+    .from('wolf_pack_votes')
+    .insert(voteRecord)
+    .select()
+    .single();
 
-  if (voteResult.error || !voteResult.data?.[0]) {
-    throw new Error(`Failed to create vote: ${voteResult.error}`);
+  if (error || !data) {
+    throw new Error(`Failed to create vote: ${error?.message || 'Unknown error'}`);
   }
 
-  return voteResult.data[0] as VoteData;
+  return data;
 }
 
-async function getVoteCounts(supabase: ReturnType<typeof createClient>, event: EventData): Promise<VoteCounts | ContestVoteCounts> {
+async function getVoteCounts(supabase: Awaited<ReturnType<typeof createClient>>, event: EventData): Promise<VoteCounts | ContestVoteCounts> {
   const { data: votes, error } = await supabase
     .from('wolf_pack_votes')
     .select('voted_for_id, vote_value')
@@ -292,10 +435,11 @@ async function getVoteCounts(supabase: ReturnType<typeof createClient>, event: E
 
 async function sendConfirmationMessage(
   event: EventData, 
-  user: any, 
+  user: User, 
   voteData: VoteRequest
 ): Promise<void> {
   try {
+    const supabase = await createClient();
     const displayName = WolfpackAuthService.getUserDisplayName(user);
     
     let confirmationMessage: string;
@@ -321,22 +465,23 @@ async function sendConfirmationMessage(
         confirmationMessage = `${displayName} participated in: ${event.title}`;
     }
 
-    await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.WOLF_CHAT,
-      {
-        session_id: `location_${event.location_id}`,
-        user_id: user.id,
-        display_name: displayName,
-        avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
-        content: confirmationMessage,
-        message_type: 'text',
-        created_at: new Date().toISOString(),
-        is_flagged: false,
-        is_deleted: false
-      },
-      'id'
-    );
-  } catch (error) {
+    const chatMessage: ChatMessageInsert = {
+      session_id: `location_${event.location_id}`,
+      user_id: user.id,
+      display_name: displayName,
+      avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
+      content: confirmationMessage,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      is_flagged: false,
+      is_deleted: false
+    };
+
+    await supabase
+      .from('wolfpack_chat_messages')
+      .insert(chatMessage);
+      
+  } catch (error: unknown) {
     // Log but don't fail the vote
     console.warn('Failed to send confirmation message:', error);
   }
@@ -348,8 +493,10 @@ async function sendConfirmationMessage(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ): Promise<NextResponse<VoteResponse | ErrorResponse>> {
+  let eventId: string | undefined;
+  
   try {
     const supabase = await createClient();
     
@@ -357,7 +504,9 @@ export async function POST(
     const user = await authenticateUser(supabase);
     
     // 2. Validate event ID
-    const { eventId } = params;
+    const resolvedParams = await params;
+    eventId = resolvedParams.eventId;
+    
     if (!eventId || !validateUUID(eventId)) {
       return NextResponse.json(
         { error: 'Valid event ID is required', code: 'VALIDATION_ERROR' },
@@ -400,10 +549,10 @@ export async function POST(
       vote_option: body.option || null,
       vote_value: body.vote_value || null,
       vote_counts: voteCounts,
-      created_at: voteRecord.created_at
+      created_at: voteRecord.created_at || new Date().toISOString()
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Event voting error:', error);
     
     // Handle specific error types
@@ -441,9 +590,13 @@ export async function POST(
       }
     }
 
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'event_voting',
-      context: { event_id: params.eventId }
+    // Create a proper error object for WolfpackErrorHandler
+    const errorToHandle = error instanceof Error ? error : new Error(
+      typeof error === 'string' ? error : 'Unknown error occurred'
+    );
+
+    const userError = WolfpackErrorHandler.handleSupabaseError(errorToHandle, {
+      operation: 'event_voting'
     });
 
     return NextResponse.json(
@@ -455,8 +608,10 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ): Promise<NextResponse<EventDetailsResponse | ErrorResponse>> {
+  let eventId: string | undefined;
+  
   try {
     const supabase = await createClient();
     
@@ -464,7 +619,9 @@ export async function GET(
     const user = await authenticateUser(supabase);
     
     // 2. Validate event ID
-    const { eventId } = params;
+    const resolvedParams = await params;
+    eventId = resolvedParams.eventId;
+    
     if (!eventId || !validateUUID(eventId)) {
       return NextResponse.json(
         { error: 'Valid event ID is required', code: 'VALIDATION_ERROR' },
@@ -489,7 +646,7 @@ export async function GET(
     const votes = voteCountsResult.data || [];
 
     // 4. Check if current user has voted
-    const userVote = votes.find(vote => vote.voter_id === user.id);
+    const userVote = votes.find((vote: VoteQueryResult) => vote.voter_id === user.id);
 
     // 5. Calculate vote counts
     let voteCounts: VoteCounts | ContestVoteCounts;
@@ -499,10 +656,12 @@ export async function GET(
         event.event_type === 'hottest_person' || 
         event.event_type === 'best_costume') {
       
-      const validVotes = votes.filter(vote => vote.vote_value !== null);
+      const validVotes = votes.filter((vote: VoteQueryResult): vote is VoteQueryResult & { vote_value: number } => 
+        vote.vote_value !== null
+      );
       const totalVotes = validVotes.length;
       const averageRating = totalVotes > 0 
-        ? validVotes.reduce((sum, vote) => sum + (vote.vote_value || 0), 0) / totalVotes
+        ? validVotes.reduce((sum: number, vote: VoteQueryResult & { vote_value: number }) => sum + vote.vote_value, 0) / totalVotes
         : 0;
 
       voteCounts = {
@@ -512,7 +671,7 @@ export async function GET(
     } else {
       // Poll-type events
       const pollCounts: VoteCounts = {};
-      votes.forEach(vote => {
+      votes.forEach((vote: VoteQueryResult) => {
         if (vote.voted_for_id) {
           pollCounts[vote.voted_for_id] = (pollCounts[vote.voted_for_id] || 0) + 1;
         }
@@ -541,7 +700,7 @@ export async function GET(
       total_votes: votes.length
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Get event votes error:', error);
     
     if (error instanceof Error) {
@@ -560,9 +719,13 @@ export async function GET(
       }
     }
 
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'get_event_votes',
-      context: { event_id: params.eventId }
+    // Create a proper error object for WolfpackErrorHandler
+    const errorToHandle = error instanceof Error ? error : new Error(
+      typeof error === 'string' ? error : 'Unknown error occurred'
+    );
+
+    const userError = WolfpackErrorHandler.handleSupabaseError(errorToHandle, {
+      operation: 'get_event_votes'
     });
 
     return NextResponse.json(

@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/contexts/AuthContext'
 import type { Database } from '@/lib/database.types'
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client'
 
-// Use centralized Supabase client
 // Location IDs from database
 const LOCATION_IDS = {
   salem: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
@@ -12,44 +11,47 @@ const LOCATION_IDS = {
 
 export type LocationKey = keyof typeof LOCATION_IDS
 
-// Type aliases from database - using CORRECT table names that exist
-type WolfPackMemberRow = Database['public']['Tables']['users']['Row']
-// wolfpack_memberships is a view, so we'll define its type based on the view structure
-type WolfpackMembership = {
-  id: string | null
-  user_id: string | null
+// Use correct database types
+type UserRow = Database['public']['Tables']['users']['Row']
+type DjEventRow = Database['public']['Tables']['dj_events']['Row']
+type LocationRow = Database['public']['Tables']['locations']['Row']
+
+// Simplified membership type based on users table
+export interface WolfpackMembership {
+  id: string
+  user_id: string
   display_name: string | null
   avatar_url: string | null
-  table_location: string | null
-  joined_at: string | null
-  last_active: string | null
-  status: string | null
-  is_host: boolean | null
-  session_id: string | null
   location_id: string | null
-  is_active: boolean | null
-  left_at: string | null
-}
-type DjEvent = Database['public']['Tables']['dj_events']['Row']
-type Location = Database['public']['Tables']['locations']['Row']
-
-// Extended types for our use based on actual backend structure
-export interface WolfPackMember extends WolfPackMemberRow {
-  users?: {
-    id: string
-    email: string
-    first_name?: string | null
-    last_name?: string | null
-    role: string
-    avatar_url?: string | null
-  }
+  wolfpack_status: string | null
+  wolfpack_joined_at: string | null
+  wolfpack_tier: string | null
+  is_wolfpack_member: boolean | null
+  last_activity: string | null
 }
 
-export interface WolfPackEvent extends DjEvent {
+// Pack member interface
+export interface WolfPackMember {
+  id: string
+  display_name: string
+  avatar_url: string | null
+  profile_image_url: string | null
+  role: string | null
+  wolfpack_status: string | null
+  wolfpack_tier: string | null
+  is_online: boolean | null
+  last_activity: string | null
+  wolfpack_joined_at: string | null
+  location_id: string | null
+}
+
+// Event interface with participant count
+export interface WolfPackEvent extends DjEventRow {
   participant_count?: number
 }
 
-export interface WolfPackLocation extends Location {
+// Location interface with member count
+export interface WolfPackLocation extends LocationRow {
   member_count?: number
 }
 
@@ -60,11 +62,11 @@ interface UseWolfPackReturn {
   isInPack: boolean
   loading: boolean
   error: string | null
-  joinPack: (profileData: Partial<{
+  joinPack: (profileData?: Partial<{
     display_name: string
-    table_location: string
   }>) => Promise<{ data?: WolfPackMember; error?: string }>
   leavePack: () => Promise<void>
+  refreshMembership: () => Promise<void>
 }
 
 export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn {
@@ -79,90 +81,103 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
   // Check if user has an active wolf pack membership
   const checkMembership = useCallback(async () => {
-    if (!user || !locationId) return
+    if (!user) {
+      setMembership(null)
+      setLoading(false)
+      return
+    }
 
     try {
-      // Check users table for active wolfpack membership
       const { data: membershipData, error: membershipError } = await supabase
-        .from("users")
-        .select('id, display_name, avatar_url, location_id, wolfpack_status, wolfpack_joined_at, last_activity, is_wolfpack_member')
+        .from('users')
+        .select(`
+          id,
+          display_name,
+          first_name,
+          last_name,
+          avatar_url,
+          profile_image_url,
+          location_id,
+          wolfpack_status,
+          wolfpack_joined_at,
+          wolfpack_tier,
+          is_wolfpack_member,
+          last_activity
+        `)
         .eq('id', user.id)
-        .eq('location_id', locationId)
-        .eq('is_wolfpack_member', true)
-        .maybeSingle()
+        .single()
 
-      if (membershipError) throw membershipError
-      
-      // Adapt user data to WolfpackMembership format
-      if (membershipData) {
+      if (membershipError) {
+        console.error('Error checking membership:', membershipError)
+        setMembership(null)
+        return
+      }
+
+      // Check if user is an active wolfpack member
+      const isActiveMember = membershipData.is_wolfpack_member && 
+                           membershipData.wolfpack_status === 'active'
+
+      if (isActiveMember) {
         const adaptedMembership: WolfpackMembership = {
           id: membershipData.id,
           user_id: membershipData.id,
-          display_name: membershipData.display_name,
-          avatar_url: membershipData.avatar_url,
-          table_location: null, // This field doesn't exist in users table
-          joined_at: membershipData.wolfpack_joined_at,
-          last_active: membershipData.last_activity,
-          status: membershipData.wolfpack_status,
-          is_host: false, // Default value
-          session_id: null, // Not available in users table
+          display_name: membershipData.display_name || membershipData.first_name || membershipData.last_name,
+          avatar_url: membershipData.profile_image_url || membershipData.avatar_url,
           location_id: membershipData.location_id,
-          is_active: membershipData.is_wolfpack_member,
-          left_at: null // Not available in users table
-        };
-        setMembership(adaptedMembership);
+          wolfpack_status: membershipData.wolfpack_status,
+          wolfpack_joined_at: membershipData.wolfpack_joined_at,
+          wolfpack_tier: membershipData.wolfpack_tier,
+          is_wolfpack_member: membershipData.is_wolfpack_member,
+          last_activity: membershipData.last_activity
+        }
+        setMembership(adaptedMembership)
       } else {
-        setMembership(null);
+        setMembership(null)
       }
+
     } catch (err) {
       console.error('Error checking wolf pack membership:', err)
       setError(err instanceof Error ? err.message : 'Failed to check membership')
+      setMembership(null)
     }
-  }, [user, locationId])
+  }, [user])
 
   // Join the wolf pack
-  const joinPack = async (profileData: Partial<{
+  const joinPack = async (profileData?: Partial<{
     display_name: string
-    table_location: string
   }>) => {
-    if (!user || !locationId) return { error: 'User or location not available' }
+    if (!user || !locationId) {
+      return { error: 'User or location not available' }
+    }
 
     try {
-      // Call the join_wolfpack RPC function
-      const { data: result, error: joinError } = await supabase
-        .rpc('join_wolfpack', {
-          p_location_id: locationId,
-          p_latitude: undefined,
-          p_longitude: undefined,
-          p_table_location: profileData.table_location || undefined
-        })
-
-      if (joinError) throw joinError
-
-      // Check if join was successful
-      if (result && typeof result === 'object' && 'success' in result && !result.success) {
-        const errorMessage = 'error' in result ? String(result.error) : 'Failed to join wolfpack';
-        throw new Error(errorMessage);
+      // Update user to be wolfpack member
+      const updateData: any = {
+        is_wolfpack_member: true,
+        wolfpack_status: 'active',
+        wolfpack_joined_at: new Date().toISOString(),
+        location_id: locationId,
+        last_activity: new Date().toISOString()
       }
 
-      // Update member profile with additional data if we have users
-      if (Object.keys(profileData).length > 0) {
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            display_name: profileData.display_name
-          })
-          .eq('id', user.id)
-          .eq('location_id', locationId)
-          .eq('is_wolfpack_member', true)
-
-        if (updateError) console.error('Error updating profile:', updateError)
+      // Add profile data if provided
+      if (profileData?.display_name) {
+        updateData.display_name = profileData.display_name
       }
 
-      // Refresh membership and members
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      // Refresh membership
       await checkMembership()
       
-      return { data: undefined } // Will be loaded by checkMembership
+      return { data: updatedUser as WolfPackMember }
     } catch (err) {
       console.error('Error joining wolf pack:', err)
       return { error: err instanceof Error ? err.message : 'Failed to join pack' }
@@ -171,14 +186,14 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
   // Leave the wolf pack
   const leavePack = async () => {
-    if (!user || !locationId) return
+    if (!user) return
 
     try {
-      // Update user's wolfpack status to inactive using correct fields
       const { error: leaveError } = await supabase
         .from('users')
         .update({ 
           wolfpack_status: 'inactive',
+          is_wolfpack_member: false,
           wolfpack_joined_at: null,
           location_id: null
         })
@@ -190,54 +205,89 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
       setPackMembers([])
     } catch (err) {
       console.error('Error leaving wolf pack:', err)
+      setError(err instanceof Error ? err.message : 'Failed to leave pack')
     }
   }
 
+  // Refresh membership manually
+  const refreshMembership = useCallback(async () => {
+    await checkMembership()
+  }, [checkMembership])
+
   // Fetch active pack members
   useEffect(() => {
-    if (!locationId) return
-
     const fetchMembers = async () => {
       try {
-        const { data, error } = await supabase
+        // Build query for active wolfpack members
+        let query = supabase
           .from('users')
-          .select('*')
+          .select(`
+            id,
+            display_name,
+            first_name,
+            last_name,
+            avatar_url,
+            profile_image_url,
+            role,
+            wolfpack_status,
+            wolfpack_tier,
+            is_online,
+            last_activity,
+            wolfpack_joined_at,
+            location_id
+          `)
           .eq('is_wolfpack_member', true)
-          .not('wolfpack_status', 'is', null)
-          .order('wolfpack_joined_at', { ascending: false })
+          .eq('wolfpack_status', 'active')
+
+        // Filter by location if specified
+        if (locationId) {
+          query = query.eq('location_id', locationId)
+        }
+
+        query = query.order('wolfpack_joined_at', { ascending: false })
+
+        const { data, error } = await query
 
         if (error) throw error
-        setPackMembers((data || []) as WolfPackMember[])
+
+        // Transform data to WolfPackMember format
+        const transformedMembers: WolfPackMember[] = (data || []).map(member => ({
+          id: member.id,
+          display_name: member.display_name || member.first_name || member.last_name || 'Pack Member',
+          avatar_url: member.avatar_url,
+          profile_image_url: member.profile_image_url,
+          role: member.role,
+          wolfpack_status: member.wolfpack_status,
+          wolfpack_tier: member.wolfpack_tier,
+          is_online: member.is_online,
+          last_activity: member.last_activity,
+          wolfpack_joined_at: member.wolfpack_joined_at,
+          location_id: member.location_id
+        }))
+
+        setPackMembers(transformedMembers)
       } catch (err) {
         console.error('Error fetching pack members:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch members')
-      } finally {
-        setLoading(false)
       }
     }
 
     fetchMembers()
 
-    // Set up realtime subscription for members
+    // Set up real-time subscription for member changes
     const channel = supabase
-      .channel(`wolfpack_members_${locationId}`)
+      .channel('wolfpack_members_realtime')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'users', // Use the table that actually exists
-          filter: `location_id=eq.${locationId}`
+          table: 'users',
+          filter: 'is_wolfpack_member=eq.true'
         },
         (payload) => {
-          const { eventType, old: oldRecord } = payload
-          
-          if (eventType === 'INSERT' || eventType === 'UPDATE') {
-            // Refetch to get joined data
-            fetchMembers()
-          } else if (eventType === 'DELETE' && oldRecord) {
-            setPackMembers((prev) => prev.filter((member) => member.id !== oldRecord.id))
-          }
+          console.log('Wolfpack member change:', payload)
+          fetchMembers() // Refetch on any change
         }
       )
       .subscribe()
@@ -257,16 +307,25 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
           .from('dj_events')
           .select('*')
           .eq('location_id', locationId)
-          .eq('status', 'active')
+          .in('status', ['active', 'voting'])
+          .is('ended_at', null)
           .order('created_at', { ascending: false })
 
         if (error) throw error
         
-        // Add participant count (would need to be calculated separately)
-        const eventsWithCount = (data || []).map(event => ({
-          ...event,
-          participant_count: 0 // You'd need to fetch this separately from dj_event_participants
-        }))
+        // Get participant counts
+        const eventsWithCount: WolfPackEvent[] = []
+        for (const event of data || []) {
+          const { count } = await supabase
+            .from('dj_event_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id)
+
+          eventsWithCount.push({
+            ...event,
+            participant_count: count || 0
+          })
+        }
         
         setActiveEvents(eventsWithCount)
       } catch (err) {
@@ -275,7 +334,8 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     }
 
     fetchEvents()
-    // Set up realtime subscription for events
+
+    // Set up real-time subscription for events
     const channel = supabase
       .channel(`wolfpack_events_${locationId}`)
       .on(
@@ -299,7 +359,8 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
   // Check membership when user changes
   useEffect(() => {
-    checkMembership()
+    setLoading(true)
+    checkMembership().finally(() => setLoading(false))
   }, [checkMembership])
 
   return {
@@ -310,7 +371,8 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
     loading,
     error,
     joinPack,
-    leavePack
+    leavePack,
+    refreshMembership
   }
 }
 
@@ -318,7 +380,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 export function useWolfPackActions() {
   const { user } = useAuth()
 
-  const sendWink = async (recipientId: string, locationId: string) => {
+  const sendWink = async (recipientId: string, locationId?: string) => {
     if (!user) return { error: 'Not authenticated' }
 
     try {
@@ -328,7 +390,8 @@ export function useWolfPackActions() {
           sender_id: user.id,
           receiver_id: recipientId,
           interaction_type: 'wink',
-          location_id: locationId
+          location_id: locationId || null,
+          status: 'active' // Use correct status value
         })
         .select()
         .single()
@@ -350,7 +413,7 @@ export function useWolfPackActions() {
         .insert({
           sender_id: user.id,
           receiver_id: recipientId,
-          message,
+          message_content: message, // Use correct column name
           is_read: false
         })
         .select()
@@ -388,9 +451,23 @@ export function useWolfPackActions() {
   const voteInEvent = async (eventId: string, votedForId: string) => {
     if (!user) return { error: 'Not authenticated' }
 
-    // TODO: Implement voting when wolf_pack_votes table is created
-    // For now, return success to avoid breaking the interface
-    return { data: { id: 'placeholder', event_id: eventId, voter_id: user.id, voted_for_id: votedForId } }
+    try {
+      const { data, error } = await supabase
+        .from('wolf_pack_votes')
+        .insert({
+          event_id: eventId,
+          voter_id: user.id,
+          voted_for_id: votedForId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { data }
+    } catch (err) {
+      console.error('Error voting in event:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to vote' }
+    }
   }
 
   return {
@@ -401,29 +478,28 @@ export function useWolfPackActions() {
   }
 }
 
-// Side Hustle Bar locations - CORRECTED coordinates from earlier
+// Location verification coordinates
 const VERIFICATION_LOCATIONS = {
   salem: {
-    lat: 44.9431, // 145 Liberty St NE Salem
+    lat: 44.9431,
     lng: -123.0351,
-    radius: 100 // meters
+    radius: 100
   },
   portland: {
-    lat: 45.5152, // 327 SW Morrison St Portland
+    lat: 45.5152,
     lng: -122.6784,
-    radius: 100 // meters
+    radius: 100
   }
 } as const
 
-// Location Verification Hook for Side Hustle Bar
+// Location Verification Hook
 export function useLocationVerification() {
   const [location, setLocation] = useState<LocationKey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Haversine formula to calculate distance between two points
   const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371e3 // Earth's radius in meters
+    const R = 6371e3
     const φ1 = (lat1 * Math.PI) / 180
     const φ2 = (lat2 * Math.PI) / 180
     const Δφ = ((lat2 - lat1) * Math.PI) / 180
@@ -446,13 +522,13 @@ export function useLocationVerification() {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 0
+          maximumAge: 60000 // Cache for 1 minute
         })
       })
 
       const { latitude, longitude } = position.coords
 
-      // Check if user is at Salem location
+      // Check Salem location
       const salemDistance = calculateDistance(
         latitude,
         longitude,
@@ -465,7 +541,7 @@ export function useLocationVerification() {
         return
       }
 
-      // Check if user is at Portland location
+      // Check Portland location
       const portlandDistance = calculateDistance(
         latitude,
         longitude,
@@ -478,10 +554,12 @@ export function useLocationVerification() {
         return
       }
 
+      setLocation(null)
       setError('You must be at Side Hustle Bar to join the Wolf Pack')
     } catch (err) {
       console.error('Location error:', err)
       setError('Unable to verify location. Please enable location services.')
+      setLocation(null)
     } finally {
       setLoading(false)
     }
@@ -500,26 +578,61 @@ export function useLocationVerification() {
 }
 
 // Get nearest location helper
-export async function getNearestLocation(latitude: number, longitude: number) {
-  const { data, error } = await supabase
-    .rpc('find_nearest_location', {
-      user_lat: latitude,
-      user_lon: longitude,
-      max_distance_meters: 100
-    })
+export async function getNearestLocation(latitude: number, longitude: number): Promise<LocationKey | null> {
+  // Try database function first
+  try {
+    const { data, error } = await supabase
+      .rpc('find_nearest_location', {
+        user_lat: latitude,
+        user_lon: longitude,
+        max_distance_meters: 100
+      })
 
-  if (error || !data || data.length === 0) {
-    return null
+    if (!error && data && data.length > 0) {
+      const location = data[0]
+      
+      if (location.location_id === LOCATION_IDS.salem) {
+        return 'salem'
+      } else if (location.location_id === LOCATION_IDS.portland) {
+        return 'portland'
+      }
+    }
+  } catch (err) {
+    console.warn('Database location lookup failed, using fallback:', err)
   }
 
-  const location = data[0]
+  // Fallback to manual calculation
+  const salemDistance = calculateDistanceHelper(
+    latitude, longitude,
+    VERIFICATION_LOCATIONS.salem.lat, VERIFICATION_LOCATIONS.salem.lng
+  )
   
-  // Map location to our location key
-  if (location.location_id === LOCATION_IDS.salem) {
-    return 'salem' as LocationKey
-  } else if (location.location_id === LOCATION_IDS.portland) {
-    return 'portland' as LocationKey
+  const portlandDistance = calculateDistanceHelper(
+    latitude, longitude,
+    VERIFICATION_LOCATIONS.portland.lat, VERIFICATION_LOCATIONS.portland.lng
+  )
+
+  if (salemDistance <= VERIFICATION_LOCATIONS.salem.radius) {
+    return 'salem'
+  } else if (portlandDistance <= VERIFICATION_LOCATIONS.portland.radius) {
+    return 'portland'
   }
-  
+
   return null
+}
+
+// Helper function for distance calculation
+function calculateDistanceHelper(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3
+  const φ1 = (lat1 * Math.PI) / 180
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c
 }

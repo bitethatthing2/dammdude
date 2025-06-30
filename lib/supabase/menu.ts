@@ -1,106 +1,210 @@
 // lib/supabase/menu.ts
 import { getSupabaseBrowserClient } from './client';
-import { MenuCategory, MenuItemWithModifiers, MenuItemModifier } from '../types/menu';
+import { 
+  MenuCategory, 
+  MenuItemWithModifiers, 
+  APIModifierGroup,
+  APIModifierOption,
+  MenuItemModifier 
+} from '../types/menu';
 
-// Type for the food_drink_categories table
-interface FoodDrinkCategory {
+// =============================================================================
+// SUPABASE DATABASE TYPES - EXACT FROM GENERATED TYPES
+// =============================================================================
+
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+// Database types from Supabase
+type Database = {
+  public: {
+    Tables: {
+      food_drink_categories: {
+        Row: {
+          id: string;
+          name: string;
+          type: string;
+          description: string | null;
+          display_order: number | null;
+          is_active: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
+          created_by: string | null;
+          icon: string | null;
+          color: string | null;
+        };
+      };
+      food_drink_items: {
+        Row: {
+          id: string;
+          category_id: string | null;
+          name: string;
+          description: string | null;
+          price: number;
+          is_available: boolean | null;
+          image_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          created_by: string | null;
+          display_order: number | null;
+        };
+      };
+      menu_item_modifiers: {
+        Row: {
+          id: string;
+          name: string;
+          modifier_type: string;
+          price_adjustment: number | null;
+          is_available: boolean | null;
+          created_at: string | null;
+          display_order: number | null;
+          description: string | null;
+          is_popular: boolean | null;
+          spice_level: number | null;
+        };
+      };
+      item_modifier_groups: {
+        Row: {
+          id: string;
+          item_id: string | null;
+          modifier_type: string;
+          is_required: boolean | null;
+          max_selections: number | null;
+          created_at: string | null;
+          group_name: string | null;
+          min_selections: number | null;
+          description: string | null;
+        };
+      };
+    };
+    Views: {
+      menu_items_with_working_modifiers: {
+        Row: {
+          id: string | null;
+          name: string | null;
+          description: string | null;
+          price: string | null; // numeric in DB, returned as string
+          is_available: boolean | null;
+          display_order: number | null;
+          category_id: string | null;
+          image_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          image_url: string | null;
+          category: Json | null;
+          modifiers: Json | null;
+        };
+      };
+      menu_item_modifier_details: {
+        Row: {
+          modifier_id: string | null;
+          modifier_name: string | null;
+          modifier_type: string | null;
+          price_adjustment: string | null; // numeric in DB, returned as string
+          is_available: boolean | null;
+          display_order: number | null;
+          item_id: string | null;
+          group_name: string | null;
+          is_required: boolean | null;
+          max_selections: number | null;
+          min_selections: number | null;
+          category: string | null;
+          category_order: number | null;
+          description: string | null;
+          is_default: boolean | null;
+        };
+      };
+    };
+  };
+};
+
+// Type aliases for cleaner code
+type FoodDrinkCategoryRow = Database['public']['Tables']['food_drink_categories']['Row'];
+type FoodDrinkItemRow = Database['public']['Tables']['food_drink_items']['Row'];
+type MenuItemModifierRow = Database['public']['Tables']['menu_item_modifiers']['Row'];
+type ItemModifierGroupRow = Database['public']['Tables']['item_modifier_groups']['Row'];
+type MenuItemWithWorkingModifiersRow = Database['public']['Views']['menu_items_with_working_modifiers']['Row'];
+type MenuItemModifierDetailsRow = Database['public']['Views']['menu_item_modifier_details']['Row'];
+
+// =============================================================================
+// JSON STRUCTURE TYPES (From actual database inspection)
+// =============================================================================
+
+interface CategoryJsonStructure {
   id: string;
   name: string;
-  description: string | null;
-  type: 'food' | 'drink';
-  display_order: number;
-  is_active: boolean;
-  icon: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  type: string;
 }
 
-// Type for the joined query result
-interface MenuItemWithCategory extends MenuItemWithModifiers {
-  food_drink_categories: FoodDrinkCategory | null;
-}
-
-// Interface for modifier group data
-interface ModifierGroup {
-  id: string;
-  item_id: string;
-  modifier_type: 'meat' | 'sauce';
-  is_required: boolean;
-  max_selections: number;
-  group_name: string;
-}
-
-// Interface for modifier option
-interface ModifierOption {
+interface ModifierOptionJsonStructure {
   id: string;
   name: string;
-  modifier_type: 'meat' | 'sauce';
   price_adjustment: number;
-  is_available: boolean;
-  display_order: number;
 }
 
-// Database response types
-interface FoodDrinkItemDB {
+interface ModifierGroupJsonStructure {
   id: string;
   name: string;
-  description: string | null;
-  price: number;
-  image_url: string | null;
-  category_id: string | null;
-  is_available: boolean | null;
-  display_order: number | null;
-  food_drink_categories: {
-    id: string;
-    name: string;
-    type: string;
-    display_order: number | null;
-    icon: string | null;
-  } | null;
+  type: string;
+  required: boolean;
+  max_selections: number;
+  min_selections: number;
+  options: ModifierOptionJsonStructure[];
 }
 
-interface MenuItemModifierDB {
-  id: string;
-  name: string;
-  modifier_type: string;
-  price_adjustment: number | null;
-  is_available: boolean | null;
-  is_popular: boolean | null;
-  display_order: number | null;
-  created_at: string | null;
-  description: string | null;
-  spice_level: number | null;
+// Type guards for JSON validation
+function isCategoryJson(obj: Json): obj is CategoryJsonStructure {
+  return typeof obj === 'object' && 
+         obj !== null && 
+         typeof (obj as Record<string, unknown>).id === 'string' &&
+         typeof (obj as Record<string, unknown>).name === 'string' &&
+         typeof (obj as Record<string, unknown>).type === 'string';
 }
 
-interface MenuItemModifierDetailsDB {
-  category: string | null;
-  category_order: number | null;
-  description: string | null;
-  group_name: string | null;
-  is_available: boolean | null;
-  is_required: boolean | null;
-  item_id: string | null;
-  modifier_id?: string | null;
-  modifier_name?: string | null;
-  modifier_type: string | null;
-  price: number | null;
-  // Additional fields that might be in the view
-  id?: string;
-  name?: string;
-  price_adjustment?: number | null;
-  is_default?: boolean | null;
-  display_order?: number | null;
+function isModifierGroupArray(obj: Json): obj is ModifierGroupJsonStructure[] {
+  return Array.isArray(obj) && 
+         obj.every(item => 
+           typeof item === 'object' && 
+           item !== null &&
+           typeof (item as Record<string, unknown>).id === 'string' &&
+           typeof (item as Record<string, unknown>).name === 'string' &&
+           typeof (item as Record<string, unknown>).type === 'string' &&
+           typeof (item as Record<string, unknown>).required === 'boolean' &&
+           typeof (item as Record<string, unknown>).max_selections === 'number' &&
+           Array.isArray((item as Record<string, unknown>).options)
+         );
 }
 
-interface ItemModifierGroupDB {
-  id: string;
-  item_id: string | null;
-  modifier_type: string;
-  is_required: boolean | null;
-  max_selections: number | null;
-  group_name: string | null;
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+export function isValidModifierType(type: string): boolean {
+  return ['meat', 'sauce', 'salsa', 'addon', 'side'].includes(type);
 }
+
+export function isValidCategoryType(type: string): boolean {
+  return ['food', 'drink'].includes(type);
+}
+
+function safeModifierType(type: string | null | undefined): string {
+  if (!type) return 'addon';
+  return isValidModifierType(type) ? type : 'addon';
+}
+
+function safeCategoryType(type: string): 'food' | 'drink' {
+  return isValidCategoryType(type) ? (type as 'food' | 'drink') : 'food';
+}
+
+function parseNumeric(value: string | number | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+// =============================================================================
+// API FUNCTIONS
+// =============================================================================
 
 export async function getMenuCategories(): Promise<MenuCategory[]> {
   try {
@@ -110,40 +214,31 @@ export async function getMenuCategories(): Promise<MenuCategory[]> {
       .from('food_drink_categories')
       .select('*')
       .eq('is_active', true)
-      .order('display_order')
-      .order('name');
+      .order('display_order', { ascending: true })
+      .order('name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching menu categories:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+      console.error('Error fetching menu categories:', error);
       throw new Error(`Failed to fetch menu categories: ${error.message}`);
     }
 
-    // Transform to MenuCategory format with required icon field
-    // Cast the data to ensure TypeScript knows the type field contains valid literals
-    const categories: MenuCategory[] = (data || []).map((category) => ({
+    // Type assertion to the correct type
+    const typedData = data as FoodDrinkCategoryRow[] | null;
+
+    const categories: MenuCategory[] = (typedData || []).map((category) => ({
       id: category.id,
       name: category.name,
-      type: category.type as 'food' | 'drink', // Cast to literal type
-      display_order: category.display_order || 0, // Default to 0 if null
-      is_active: category.is_active ?? true, // Default to true if null
-      icon: category.icon || '🍽️', // Default icon if none provided
+      type: safeCategoryType(category.type),
+      display_order: category.display_order || 0,
+      is_active: category.is_active ?? true,
+      icon: category.icon,
       description: category.description,
-      color: category.color || null, // Add missing color property
-      items: [] // Will be populated later
+      color: category.color
     }));
 
     return categories;
   } catch (error) {
-    console.error('Error in getMenuCategories:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      error: error
-    });
+    console.error('Error in getMenuCategories:', error);
     throw error;
   }
 }
@@ -152,11 +247,10 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
   try {
     const supabase = getSupabaseBrowserClient();
     
-    // Fetch from the new menu_items_with_working_modifiers view
     console.log('Fetching menu items from menu_items_with_working_modifiers view...');
     
     let query = supabase
-      .from('menu_items_with_working_modifiers' as any)
+      .from('menu_items_with_working_modifiers')
       .select('*')
       .eq('is_available', true)
       .order('display_order', { ascending: true })
@@ -173,24 +267,62 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItemWithMod
       return [];
     }
 
+    // Type assertion to the correct type
+    const typedData = data as MenuItemWithWorkingModifiersRow[] | null;
+
     console.log('Menu items fetched successfully:', {
-      count: data?.length || 0,
+      count: typedData?.length || 0,
       categoryId
     });
 
-    // The view returns data already properly formatted with modifiers
-    const items: MenuItemWithModifiers[] = (data || []).map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || undefined,
-      price: item.price,
-      is_available: item.is_available ?? true,
-      display_order: item.display_order || 0,
-      category_id: item.category_id,
-      image_url: item.image_url,
-      category: item.category || undefined,
-      modifiers: item.modifiers || []
-    }));
+    const items: MenuItemWithModifiers[] = (typedData || []).map((item) => {
+      const modifierGroups: APIModifierGroup[] = [];
+      
+      // Parse modifiers JSON using type guards
+      if (item.modifiers && isModifierGroupArray(item.modifiers)) {
+        // TypeScript now knows item.modifiers is ModifierGroupJsonStructure[]
+        const typedModifiers = item.modifiers;
+        typedModifiers.forEach((group) => {
+          const options: APIModifierOption[] = group.options.map((option) => ({
+            id: option.id,
+            name: option.name,
+            price_adjustment: option.price_adjustment
+          }));
+
+          modifierGroups.push({
+            id: group.id,
+            type: group.type,
+            name: group.name,
+            options: options,
+            required: group.required,
+            max_selections: group.max_selections
+          });
+        });
+      }
+
+      // Parse category JSON using type guard
+      let categoryInfo: { id?: string; name: string; type: string } | undefined;
+      if (item.category && isCategoryJson(item.category)) {
+        categoryInfo = {
+          id: item.category.id,
+          name: item.category.name,
+          type: item.category.type
+        };
+      }
+
+      return {
+        id: item.id || '',
+        name: item.name || '',
+        description: item.description || undefined,
+        price: parseNumeric(item.price),
+        is_available: item.is_available ?? true,
+        display_order: item.display_order || 0,
+        category: categoryInfo,
+        category_id: item.category_id,
+        modifiers: modifierGroups.length > 0 ? modifierGroups : undefined,
+        image_url: item.image_url
+      };
+    });
 
     return items;
   } catch (error) {
@@ -204,7 +336,6 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
     const supabase = getSupabaseBrowserClient();
     
     if (itemId) {
-      // Get modifiers for a specific item using the menu_item_modifier_details view
       const { data, error } = await supabase
         .from('menu_item_modifier_details')
         .select('*')
@@ -218,12 +349,14 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
         return [];
       }
       
-      // Transform data to ensure it matches MenuItemModifier interface
-      const modifiers: MenuItemModifier[] = (data || []).map((mod: MenuItemModifierDetailsDB) => ({
-        id: mod.modifier_id || mod.id || '',
-        name: mod.modifier_name || mod.name || '',
-        modifier_type: mod.modifier_type || '',
-        price_adjustment: mod.price_adjustment ?? mod.price ?? 0,
+      // Type assertion to the correct type
+      const typedData = data as MenuItemModifierDetailsRow[] | null;
+      
+      const modifiers: MenuItemModifier[] = (typedData || []).map((mod) => ({
+        id: mod.modifier_id || '',
+        name: mod.modifier_name || '',
+        modifier_type: safeModifierType(mod.modifier_type),
+        price_adjustment: parseNumeric(mod.price_adjustment),
         is_available: mod.is_available ?? true,
         is_default: mod.is_default ?? false,
         display_order: mod.display_order ?? 0
@@ -231,7 +364,6 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
       
       return modifiers;
     } else {
-      // Get all available modifiers
       const { data, error } = await supabase
         .from('menu_item_modifiers')
         .select('*')
@@ -244,15 +376,17 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
         return [];
       }
       
-      // Transform data to ensure it matches MenuItemModifier interface
-      const modifiers: MenuItemModifier[] = (data || []).map((mod: MenuItemModifierDB) => ({
+      // Type assertion to the correct type
+      const typedData = data as MenuItemModifierRow[] | null;
+      
+      const modifiers: MenuItemModifier[] = (typedData || []).map((mod) => ({
         id: mod.id,
         name: mod.name,
-        modifier_type: mod.modifier_type,
+        modifier_type: safeModifierType(mod.modifier_type),
         price_adjustment: mod.price_adjustment || 0,
         is_available: mod.is_available ?? true,
         is_default: false,
-        display_order: mod.display_order || 0
+        display_order: mod.display_order ?? 0
       }));
       
       return modifiers;
@@ -263,8 +397,7 @@ export async function getMenuModifiers(itemId?: string): Promise<MenuItemModifie
   }
 }
 
-// Get modifier groups for a specific item
-export async function getItemModifierGroups(itemId: string): Promise<ModifierGroup[]> {
+export async function getItemModifierGroups(itemId: string): Promise<ItemModifierGroupRow[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     
@@ -278,27 +411,19 @@ export async function getItemModifierGroups(itemId: string): Promise<ModifierGro
       return [];
     }
     
-    // Transform and filter data to ensure it matches ModifierGroup interface
-    const groups: ModifierGroup[] = (data || [])
-      .filter((group: ItemModifierGroupDB) => group.item_id && group.modifier_type && group.group_name)
-      .map((group: ItemModifierGroupDB) => ({
-        id: group.id,
-        item_id: group.item_id as string, // We filtered for non-null above
-        modifier_type: group.modifier_type as 'meat' | 'sauce',
-        is_required: group.is_required ?? false,
-        max_selections: group.max_selections || 1,
-        group_name: group.group_name as string // We filtered for non-null above
-      }));
+    // Type assertion to the correct type
+    const typedData = data as ItemModifierGroupRow[] | null;
     
-    return groups;
+    return typedData || [];
   } catch (error) {
     console.error('Unexpected error in getItemModifierGroups:', error);
     return [];
   }
 }
 
-// Get available modifier options by type
-export async function getModifierOptionsByType(modifierType: 'meat' | 'sauce'): Promise<ModifierOption[]> {
+export async function getModifierOptionsByType(
+  modifierType: 'meat' | 'sauce' | 'salsa' | 'addon' | 'side'
+): Promise<MenuItemModifier[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     
@@ -315,14 +440,17 @@ export async function getModifierOptionsByType(modifierType: 'meat' | 'sauce'): 
       return [];
     }
     
-    // Transform data to ensure it matches ModifierOption interface
-    const options: ModifierOption[] = (data || []).map((opt: MenuItemModifierDB) => ({
+    // Type assertion to the correct type
+    const typedData = data as MenuItemModifierRow[] | null;
+    
+    const options: MenuItemModifier[] = (typedData || []).map((opt) => ({
       id: opt.id,
       name: opt.name,
-      modifier_type: modifierType, // Use the passed parameter to ensure correct type
+      modifier_type: safeModifierType(opt.modifier_type),
       price_adjustment: opt.price_adjustment || 0,
       is_available: opt.is_available ?? true,
-      display_order: opt.display_order || 0
+      is_default: false,
+      display_order: opt.display_order ?? 0
     }));
     
     return options;
@@ -332,11 +460,10 @@ export async function getModifierOptionsByType(modifierType: 'meat' | 'sauce'): 
   }
 }
 
-export async function getFullMenu(): Promise<{ menu: MenuCategory[]; modifiers: MenuItemModifier[] }> {
+export async function getFullMenu(): Promise<{ menu: MenuCategory[]; items: MenuItemWithModifiers[]; modifiers: MenuItemModifier[] }> {
   try {
     console.log('Starting getFullMenu...');
     
-    // Fetch all data in parallel
     const [categories, items, modifiers] = await Promise.all([
       getMenuCategories(),
       getMenuItems(),
@@ -349,31 +476,35 @@ export async function getFullMenu(): Promise<{ menu: MenuCategory[]; modifiers: 
       modifiersCount: modifiers.length
     });
 
-    // Group items by category - handle both new and old field names
-    const menu = categories.map(category => ({
-      ...category,
-      items: items.filter(item => {
-        // Handle both new and old field names for category ID
-        const itemCategoryId = (item as MenuItemWithModifiers & { category_id?: string }).category_id || item.category_id;
-        return itemCategoryId === category.id;
-      })
-    }));
-
-    console.log('Menu assembled successfully:', {
-      menuCategoriesCount: menu.length,
-      totalItemsInMenu: menu.reduce((acc, cat) => acc + (cat.items?.length || 0), 0)
-    });
-
-    return { menu, modifiers };
+    // Don't nest items inside categories for backward compatibility
+    return { menu: categories, items, modifiers };
   } catch (error) {
-    console.error('Error in getFullMenu:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown',
-      error: error
-    });
+    console.error('Error in getFullMenu:', error);
+    return { menu: [], items: [], modifiers: [] };
+  }
+}
+
+export async function getAvailableModifierTypes(): Promise<string[]> {
+  try {
+    const supabase = getSupabaseBrowserClient();
     
-    // Return empty data structure to prevent UI crashes
-    return { menu: [], modifiers: [] };
+    const { data, error } = await supabase
+      .from('menu_item_modifiers')
+      .select('modifier_type')
+      .eq('is_available', true);
+    
+    if (error) {
+      console.error('Error fetching modifier types:', error);
+      return ['meat', 'sauce', 'salsa', 'addon', 'side'];
+    }
+    
+    // Type assertion to the correct type
+    const typedData = data as { modifier_type: string }[] | null;
+    
+    const types = [...new Set((typedData || []).map(item => item.modifier_type))];
+    return types;
+  } catch (error) {
+    console.error('Unexpected error in getAvailableModifierTypes:', error);
+    return ['meat', 'sauce', 'salsa', 'addon', 'side'];
   }
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { initPwaEventListeners } from '@/lib/pwa/pwaEventHandler';
 
 // Performance metric types
 interface PerformanceMetric {
@@ -57,9 +56,6 @@ export default function ServiceWorkerRegister() {
   const registrationAttempted = useRef(false);
 
   useEffect(() => {
-    // Initialize PWA event listeners as early as possible
-    initPwaEventListeners();
-    
     // Initialize performance monitoring
     if ('PerformanceObserver' in window) {
       try {

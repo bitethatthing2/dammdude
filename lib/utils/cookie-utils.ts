@@ -122,7 +122,7 @@ export function checkAndClearCorruptedCookies(): boolean {
     const [name, value] = cookie.split('=').map(s => s.trim());
     
     // Check Supabase-related cookies
-    if (name && value && name.includes('sb-') || name.includes('supabase')) {
+    if (name && value && (name.includes('sb-') || name.includes('supabase'))) {
       if (isCookieCorrupted(value)) {
         console.warn(`Corrupted cookie detected: ${name}`);
         foundCorrupted = true;

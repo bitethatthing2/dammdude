@@ -358,7 +358,7 @@ export class WolfpackLocationService {
         locationName: isAtLocation ? selectedData.name : null,
         selectedLocation: selectedKey
       };
-    } catch (error) {
+    } catch {
       // Fall back to regular verification if GPS fails
       const fallbackResult = await this.verifyUserLocation();
       return {

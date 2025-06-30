@@ -8,7 +8,7 @@ import { RealtimeUser } from '@/types/realtime'
 type Tables = Database['public']['Tables']
 type UserRow = Tables['users']['Row']
 type WolfProfileRow = Tables['wolf_profiles']['Row']
-type WolfpackMemberRow = Tables['wolfpack_members_unified']['Row']
+type WolfpackMemberRow = Tables['wolfpack_members']['Row']
 type WolfChatMessageRow = Tables['wolfpack_chat_messages']['Row']
 type LocationRow = Tables['locations']['Row']
 type DJEventRow = Tables['dj_events']['Row']

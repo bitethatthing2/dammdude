@@ -1,19 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, createContext, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NotificationProvider } from '@/components/unified';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 import { PwaStatusToast } from '@/components/shared/PwaStatusToast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { supabase } from '@/lib/supabase/client';
-// This is to prevent "window is not defined" errors during server-side rendering
-// Define the event type for beforeinstallprompt as it's not standard TS yet
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed', platform: string }>;
-  prompt(): Promise<void>;
-}
 
 interface ClientSideWrapperProps {
   /**
@@ -22,25 +15,12 @@ interface ClientSideWrapperProps {
   children: React.ReactNode;
 }
 
-interface PwaInstallContextProps {
-  deferredPrompt: BeforeInstallPromptEvent | null;
-  setDeferredPrompt: (deferredPrompt: BeforeInstallPromptEvent | null) => void;
-}
-
-const PwaInstallContext = createContext<PwaInstallContextProps>({
-  deferredPrompt: null,
-  setDeferredPrompt: () => {},
-});
-
-export const usePwaInstall = () => useContext(PwaInstallContext);
-
 interface AuthSubscription {
   unsubscribe: () => void;
 }
 
 export default function ClientSideWrapper({ children }: ClientSideWrapperProps): React.ReactElement {
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
   const [authChecked, setAuthChecked] = useState<boolean>(false);
 
@@ -86,19 +66,6 @@ export default function ClientSideWrapper({ children }: ClientSideWrapperProps):
     };
   }, []);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event): void => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-      console.log('[ClientSideWrapper] beforeinstallprompt event captured');
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
 
   // During SSR and initial hydration, render only children to avoid "window is not defined" errors
   if (!isMounted || !authChecked) {
@@ -108,30 +75,26 @@ export default function ClientSideWrapper({ children }: ClientSideWrapperProps):
   // If auth is checked but no userId, render without notification provider
   if (!userId) {
     return (
-      <PwaInstallContext.Provider value={{ deferredPrompt, setDeferredPrompt }}>
-        <TooltipProvider>
-          <FirebaseInitializer>
-            {children}
-            <ServiceWorkerRegister />
-            <PwaStatusToast />
-          </FirebaseInitializer>
-        </TooltipProvider>
-      </PwaInstallContext.Provider>
+      <TooltipProvider>
+        <FirebaseInitializer>
+          {children}
+          <ServiceWorkerRegister />
+          <PwaStatusToast />
+        </FirebaseInitializer>
+      </TooltipProvider>
     );
   }
 
   // User is authenticated, render with notification provider
   return (
-    <PwaInstallContext.Provider value={{ deferredPrompt, setDeferredPrompt }}>
-      <TooltipProvider>
-        <NotificationProvider recipientId={userId}>
-          <FirebaseInitializer>
-            {children}
-            <ServiceWorkerRegister />
-            <PwaStatusToast />
-          </FirebaseInitializer>
-        </NotificationProvider>
-      </TooltipProvider>
-    </PwaInstallContext.Provider>
+    <TooltipProvider>
+      <NotificationProvider recipientId={userId}>
+        <FirebaseInitializer>
+          {children}
+          <ServiceWorkerRegister />
+          <PwaStatusToast />
+        </FirebaseInitializer>
+      </NotificationProvider>
+    </TooltipProvider>
   );
 }

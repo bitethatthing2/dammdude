@@ -243,33 +243,31 @@ export function WolfpackProfileManager() {
     setUploadingAvatar(true);
 
     try {
-      // Create file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      // Create FormData for upload
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('imageType', 'profile');
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // Upload through API endpoint
+      const response = await fetch('/api/upload/images', {
+        method: 'POST',
+        body: uploadFormData
+      });
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
+      if (!result.image_url) {
+        throw new Error('No image URL returned from upload');
+      }
 
       // Save profile with new avatar URL
       await saveProfile({
         ...formData,
-        profile_image_url: publicUrl
+        profile_image_url: result.image_url
       }, false);
 
       toast.success('Avatar uploaded successfully!');
@@ -340,7 +338,7 @@ export function WolfpackProfileManager() {
 
       setProfile(typedSavedData);
       
-      // Update completed - wolfpack_members_unified table has been consolidated into users
+      // Update completed - wolfpack_members table has been consolidated into users
 
       if (showToast) {
         toast.success('Profile saved successfully!');

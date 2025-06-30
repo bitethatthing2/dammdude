@@ -20,7 +20,7 @@ interface PrivateMessage {
   message: string;
   image_url?: string | null;
   is_read: boolean | null;
-  created_at: string;
+  created_at: string | null;
   read_at?: string | null;
   is_deleted: boolean | null;
   flagged: boolean | null;
@@ -29,31 +29,28 @@ interface PrivateMessage {
   flagged_at?: string | null;
   image_id?: string | null;
   from_user?: {
-    wolf_profiles?: {
-      display_name: string | null;
-      wolf_emoji: string | null;
-      profile_image_url?: string | null;
-    } | null;
+    display_name: string | null;
+    wolf_emoji: string | null;
+    profile_image_url?: string | null;
   } | null;
 }
 
-// Updated interface to match users + wolf_profiles schema
+// Updated interface to match actual users table schema
 interface ChatUser {
   id: string;
   email: string;
   first_name?: string | null;
   last_name?: string | null;
   role?: string | null;
-  wolf_profiles?: {
-    display_name: string | null;
-    wolf_emoji: string | null;
-    current_vibe: string | null;
-    profile_image_url?: string | null;
-    allow_messages: boolean | null;
-  } | null;
+  display_name?: string | null;
+  wolf_emoji?: string | null;
+  vibe_status?: string | null;
+  profile_image_url?: string | null;
+  allow_messages?: boolean | null;
+  bio?: string | null;
+  favorite_drink?: string | null;
+  is_profile_visible?: boolean | null;
 }
-
-// Updated interface to match wolf_pack_interactions schema
 
 export default function PrivateChatPage() {
   const params = useParams();
@@ -69,7 +66,9 @@ export default function PrivateChatPage() {
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);  // Load chat data
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  // Load chat data
   useEffect(() => {
     async function loadChatData() {
       if (!user || !otherUserId) return;
@@ -77,55 +76,99 @@ export default function PrivateChatPage() {
       try {
         setIsLoading(true);
 
-        // Load other user's profile
+        // Load other user's profile from users table
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
-            *,
-            wolf_profiles (
-              display_name,
-              wolf_emoji,
-              current_vibe,
-              profile_image_url,
-              allow_messages
-            )
+            id,
+            email,
+            first_name,
+            last_name,
+            role,
+            display_name,
+            wolf_emoji,
+            vibe_status,
+            profile_image_url,
+            allow_messages,
+            bio,
+            favorite_drink,
+            is_profile_visible
           `)
           .eq('id', otherUserId)
           .single();
 
-        if (userError) throw userError;
-        // Defensive check: only assign wolf_profiles if it's an object (not an error)
-        let wolfProfileObj = null;
-        if (
-          userData.wolf_profiles &&
-          typeof userData.wolf_profiles === 'object' &&
-          !('code' in userData.wolf_profiles) // not a SelectQueryError
-        ) {
-          wolfProfileObj = userData.wolf_profiles;
+        if (userError) {
+          console.error('Error loading user:', userError);
+          toast.error('User not found');
+          router.back();
+          return;
         }
-        setOtherUser({
-          ...userData,
-          first_name: userData.first_name ?? undefined,
-          last_name: userData.last_name ?? undefined,
-          wolf_profiles: wolfProfileObj
-        });
 
-        // Check if messaging is allowed (handle potential query error)
-        const wolfProfile = Array.isArray(userData.wolf_profiles) ? userData.wolf_profiles[0] : userData.wolf_profiles;
-        if (wolfProfile && typeof wolfProfile === 'object' && 'allow_messages' in wolfProfile && !wolfProfile.allow_messages) {
+        setOtherUser(userData);
+
+        // Check if messaging is allowed
+        if (userData.allow_messages === false) {
           toast.error('This user has disabled private messages');
           router.back();
           return;
         }
 
-        // Skip interaction and message checks for now - tables missing from schema
-        // TODO: Backend team needs to add wolf_pack_interactions and wolf_private_messages tables
-        
+        // Check if either user has blocked the other
+        const { data: blockData, error: blockError } = await supabase
+          .from('wolf_pack_interactions')
+          .select('*')
+          .in('interaction_type', ['block'])
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+          .eq('status', 'active');
+
+        if (blockError) {
+          console.error('Error checking block status:', blockError);
+        }
+
+        if (blockData && blockData.length > 0) {
+          setIsBlocked(true);
+          return;
+        }
+
+        // Load existing messages
+        const { data: messageData, error: messageError } = await supabase
+          .from('wolf_private_messages')
+          .select(`
+            *,
+            from_user:users!wolf_private_messages_sender_id_fkey(
+              display_name,
+              wolf_emoji,
+              profile_image_url
+            )
+          `)
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: true });
+
+        if (messageError) {
+          console.error('Error loading messages:', messageError);
+        } else {
+          setMessages(messageData || []);
+        }
+
+        // Mark messages from other user as read
+        if (messageData && messageData.length > 0) {
+          const unreadMessages = messageData.filter(
+            msg => msg.sender_id === otherUserId && !msg.is_read
+          );
+
+          if (unreadMessages.length > 0) {
+            await supabase
+              .from('wolf_private_messages')
+              .update({ 
+                is_read: true,
+                read_at: new Date().toISOString()
+              })
+              .in('id', unreadMessages.map(msg => msg.id));
+          }
+        }
+
         setIsBlocked(false);
-        setMessages([]);
-        
-        // Use placeholder data until backend implements private messaging tables
-        console.warn('Private messaging tables not available in current schema');
 
       } catch (error) {
         console.error('Error loading chat data:', error);
@@ -146,27 +189,23 @@ export default function PrivateChatPage() {
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'wolf_private_messages'
+            table: 'wolf_private_messages',
+            filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id}))`
           },
           (payload: { new: PrivateMessage }) => {
             const newMsg = payload.new as PrivateMessage;
-            if (
-              (newMsg.sender_id === user.id && newMsg.receiver_id === otherUserId) ||
-              (newMsg.sender_id === otherUserId && newMsg.receiver_id === user.id)
-            ) {
-              setMessages(prev => [...prev, newMsg]);
-              
-              // Mark as read if it's from the other user
-              if (newMsg.sender_id === otherUserId) {
-                supabase
-                  .from('wolf_private_messages')
-                  .update({ 
-                    is_read: true,
-                    read_at: new Date().toISOString()
-                  })
-                  .eq('id', newMsg.id)
-                  .then();
-              }
+            setMessages(prev => [...prev, newMsg]);
+            
+            // Mark as read if it's from the other user
+            if (newMsg.sender_id === otherUserId) {
+              supabase
+                .from('wolf_private_messages')
+                .update({ 
+                  is_read: true,
+                  read_at: new Date().toISOString()
+                })
+                .eq('id', newMsg.id)
+                .then();
             }
           }
         )
@@ -176,7 +215,7 @@ export default function PrivateChatPage() {
         messagesSubscription.unsubscribe();
       };
     }
-  }, [user, otherUserId, supabase, router]);
+  }, [user, otherUserId, router]);
 
   // Send message using correct wolf_private_messages schema
   const sendMessage = async () => {
@@ -217,13 +256,16 @@ export default function PrivateChatPage() {
           message: sanitizedMessage,
           is_read: false,
           is_deleted: false,
-          flagged: false,
-          is_flirt_message: false
+          flagged: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
 
       setNewMessage('');
+      toast.success('Message sent!');
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -242,7 +284,9 @@ export default function PrivateChatPage() {
         .upsert({
           sender_id: user.id,
           receiver_id: otherUserId,
-          interaction_type: 'block'
+          interaction_type: 'block',
+          status: 'active',
+          created_at: new Date().toISOString()
         });
 
       if (error) throw error;
@@ -290,6 +334,15 @@ export default function PrivateChatPage() {
     );
   }
 
+  const displayName = otherUser?.display_name || 
+                     `${otherUser?.first_name || ''} ${otherUser?.last_name || ''}`.trim() ||
+                     otherUserName;
+
+  const avatarFallback = otherUser?.wolf_emoji || 
+                        otherUser?.display_name?.charAt(0)?.toUpperCase() ||
+                        otherUser?.first_name?.charAt(0)?.toUpperCase() ||
+                        'W';
+
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <Card className="h-[80vh] flex flex-col">
@@ -302,20 +355,18 @@ export default function PrivateChatPage() {
               </Button>
               
               <Avatar className="h-10 w-10">
-                <AvatarImage src={otherUser?.wolf_profiles?.profile_image_url || undefined} />
+                <AvatarImage src={otherUser?.profile_image_url || undefined} />
                 <AvatarFallback>
-                  {otherUser?.wolf_profiles?.wolf_emoji || 
-                   otherUser?.wolf_profiles?.display_name?.charAt(0)?.toUpperCase() || 
-                   'W'}
+                  {avatarFallback}
                 </AvatarFallback>
               </Avatar>
               
               <div>
                 <CardTitle className="text-lg">
-                  {otherUser?.wolf_profiles?.display_name || otherUserName}
+                  {displayName}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {otherUser?.wolf_profiles?.current_vibe || 'Wolf Pack Member'}
+                  {otherUser?.vibe_status || otherUser?.bio || 'Wolf Pack Member'}
                 </p>
               </div>
             </div>
@@ -335,7 +386,10 @@ export default function PrivateChatPage() {
         <CardContent className="flex-1 overflow-y-auto space-y-4 pb-4">
           {messages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Start a conversation with {otherUser?.wolf_profiles?.display_name || otherUserName}!</p>
+              <p>Start a conversation with {displayName}!</p>
+              {otherUser?.favorite_drink && (
+                <p className="text-xs mt-1">🍹 Favorite drink: {otherUser.favorite_drink}</p>
+              )}
             </div>
           ) : (
             messages.map((message) => {
@@ -352,15 +406,15 @@ export default function PrivateChatPage() {
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm">{message.message}</p>
+                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                     <div className="flex justify-between items-center mt-1">
                       <p className={`text-xs ${
                         isMyMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
                       }`}>
-                        {new Date(message.created_at).toLocaleTimeString([], {
+                        {message.created_at ? new Date(message.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
-                        })}
+                        }) : 'Unknown time'}
                       </p>
                       {isMyMessage && (
                         <span className={`text-xs ${
@@ -391,6 +445,7 @@ export default function PrivateChatPage() {
                 }
               }}
               disabled={isSending}
+              maxLength={500}
             />
             <Button
               onClick={sendMessage}
@@ -400,6 +455,9 @@ export default function PrivateChatPage() {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {newMessage.length}/500 characters
+          </p>
         </div>
       </Card>
     </div>

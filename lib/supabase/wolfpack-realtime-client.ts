@@ -222,7 +222,7 @@ class WolfpackRealtimeClient {
         return { data: null, error: error.message }
       }
 
-      const result = (data as any)?.[0] || { is_member: false, membership_id: null, status: null, joined_at: null }
+      const result = Array.isArray(data) && data.length > 0 ? data[0] : { is_member: false, membership_id: null, status: null, joined_at: null }
       console.log('✅ Membership check result:', result)
       return { data: result, error: null }
 
@@ -268,7 +268,7 @@ class WolfpackRealtimeClient {
         return { data: null, error: error.message }
       }
 
-      const joinResult = (result as any)?.[0] || { success: false, membership_id: null, message: 'Unknown error' }
+      const joinResult = Array.isArray(result) && result.length > 0 ? result[0] : { success: false, membership_id: null, message: 'Unknown error' }
       console.log('✅ Join wolfpack result:', joinResult)
       return { data: joinResult, error: null }
 
@@ -306,7 +306,7 @@ class WolfpackRealtimeClient {
         return { data: null, error: error.message }
       }
 
-      const leaveResult = (result as any)?.[0] || { success: false, message: 'Unknown error' }
+      const leaveResult = Array.isArray(result) && result.length > 0 ? result[0] : { success: false, message: 'Unknown error' }
       console.log('✅ Leave wolfpack result:', leaveResult)
       return { data: leaveResult, error: null }
 
@@ -333,7 +333,7 @@ class WolfpackRealtimeClient {
         return null
       }
 
-      // Subscribe to wolfpack_members_unified changes
+      // Subscribe to wolfpack_members changes
       const channel = this.supabase
         .channel(`wolfpack_${locationId}`)
         .on(
@@ -341,7 +341,7 @@ class WolfpackRealtimeClient {
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'wolfpack_members_unified',
+            table: 'wolfpack_members',
             filter: `location_id=eq.${locationId}`
           },
           async (payload) => {
@@ -360,7 +360,7 @@ class WolfpackRealtimeClient {
           {
             event: 'UPDATE',
             schema: 'public',
-            table: 'wolfpack_members_unified',
+            table: 'wolfpack_members',
             filter: `location_id=eq.${locationId}`
           },
           async (payload) => {
@@ -384,7 +384,7 @@ class WolfpackRealtimeClient {
           {
             event: 'DELETE',
             schema: 'public',
-            table: 'wolfpack_members_unified',
+            table: 'wolfpack_members',
             filter: `location_id=eq.${locationId}`
           },
           (payload) => {
@@ -427,7 +427,7 @@ class WolfpackRealtimeClient {
         .select(`
           *,
           wolf_profile:wolf_profiles(*),
-          wolfpack_member:wolfpack_members_unified(*)
+          wolfpack_member:wolfpack_members(*)
         `)
         .eq('id', user.id)
         .single()
@@ -484,7 +484,7 @@ class WolfpackRealtimeClient {
         }
       }
 
-      // Update wolfpack_members_unified table for current active memberships
+      // Update wolfpack_members table for current active memberships
       const memberUpdates: Record<string, unknown> = {}
       if (updates.displayName !== undefined) memberUpdates.display_name = updates.displayName
       if (updates.emoji !== undefined) memberUpdates.emoji = updates.emoji
@@ -497,7 +497,7 @@ class WolfpackRealtimeClient {
         memberUpdates.updated_at = new Date().toISOString()
         
         const { error: memberError } = await this.supabase
-          .from('wolfpack_members_unified')
+          .from('wolfpack_members')
           .update(memberUpdates)
           .eq('user_id', user.id)
           .eq('is_active', true)

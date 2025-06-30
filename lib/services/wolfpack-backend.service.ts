@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase/client';
 import { errorTracker } from '@/lib/utils/error-tracking';
 import { captureError } from '@/lib/utils/error-utils';
 
+// Define Json type for Supabase compatibility
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export interface UserFriendlyError {
   message: string;
   type: 'error' | 'warning' | 'info';
@@ -486,7 +489,7 @@ export class WolfpackErrorHandler {
 
 export const WOLFPACK_TABLES = {
   DJ_BROADCASTS: 'dj_broadcasts',
-  WOLF_CHAT: 'wolf_chat',
+  WOLF_CHAT: 'wolfpack_chat_messages',  // FIXED: Changed from 'wolf_chat' to match actual table name
   USERS: 'users',
   LOCATIONS: 'locations',
   EVENTS: 'dj_events',
@@ -494,129 +497,66 @@ export const WOLFPACK_TABLES = {
 } as const;
 
 // =============================================================================
-// WOLFPACK BACKEND SERVICE
+// TYPED INTERFACES FOR DATABASE OPERATIONS
+// =============================================================================
+
+interface DJBroadcastInsert {
+  dj_id: string;
+  location_id: string;
+  message: string;
+  broadcast_type: string;
+  created_at: string;
+}
+
+interface ChatMessageInsert {
+  session_id: string;
+  user_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  content: string; // FIXED: Use 'content' instead of 'message' to match DB schema
+  message_type: string;
+  created_at: string;
+  is_flagged: boolean;
+  is_deleted: boolean;
+}
+
+interface DJEventInsert {
+  dj_id: string;
+  location_id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  voting_ends_at: string | null;
+  created_at: string;
+  started_at: string;
+  voting_format: string | null;
+  options?: Json | null;
+}
+
+interface UserData {
+  id: string;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  profile_image_url: string | null;
+  wolf_emoji: string | null;
+  vibe_status: string | null;
+  last_activity: string | null;
+  is_online: boolean | null;
+  wolfpack_status: string | null;
+  is_wolfpack_member: boolean | null;
+}
+
+// =============================================================================
+// WOLFPACK BACKEND SERVICE - PROPERLY TYPED
 // =============================================================================
 
 export class WolfpackBackendService {
+  
   /**
-   * Generic insert operation with error handling
-   */
-  static async insert(
-    table: string,
-    data: Record<string, unknown>,
-    select: string = '*'
-  ): Promise<{ data: unknown[] | null; error: string | null }> {
-    try {
-      const { data: result, error } = await supabase
-        .from(table)
-        .insert(data)
-        .select(select);
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `insert_${table}`
-        });
-        
-        // Log error using existing error tracking
-        errorTracker.logError(error, {
-          feature: 'database',
-          action: `insert_${table}`,
-          component: 'WolfpackBackendService'
-        });
-        
-        return { data: null, error: userError.message };
-      }
-
-      return { data: result, error: null };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Database operation failed';
-      
-      // Log error using existing error tracking
-      errorTracker.logError(error as Error, {
-        feature: 'database',
-        action: `insert_${table}`,
-        component: 'WolfpackBackendService'
-      });
-      
-      captureError(error instanceof Error ? error : new Error(errorMessage), {
-        source: 'WolfpackBackendService.insert',
-        context: { table, data }
-      });
-
-      return { data: null, error: errorMessage };
-    }
-  }
-
-  /**
-   * Generic select operation with error handling
-   */
-  static async select(
-    table: string,
-    columns: string = '*',
-    filters?: Record<string, unknown>,
-    options?: {
-      orderBy?: { column: string; ascending?: boolean };
-      limit?: number;
-      single?: boolean;
-    }
-  ): Promise<{ data: unknown[] | unknown | null; error: string | null }> {
-    try {
-      let query = supabase.from(table).select(columns);
-
-      // Apply filters
-      if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
-          query = query.eq(key, value);
-        });
-      }
-
-      // Apply ordering
-      if (options?.orderBy) {
-        query = query.order(options.orderBy.column, { 
-          ascending: options.orderBy.ascending ?? true 
-        });
-      }
-
-      // Apply limit
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-
-      // Execute query
-      const { data: result, error } = options?.single 
-        ? await query.single()
-        : await query;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `select_${table}`
-        });
-        
-        errorTracker.logError(error, {
-          feature: 'database',
-          action: `select_${table}`,
-          component: 'WolfpackBackendService'
-        });
-        
-        return { data: null, error: userError.message };
-      }
-
-      return { data: result, error: null };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Database operation failed';
-      
-      errorTracker.logError(error as Error, {
-        feature: 'database',
-        action: `select_${table}`,
-        component: 'WolfpackBackendService'
-      });
-
-      return { data: null, error: errorMessage };
-    }
-  }
-
-  /**
-   * DJ-specific methods
+   * DJ Broadcast operations - properly typed
    */
   static async createDJBroadcast(
     djId: string,
@@ -624,31 +564,523 @@ export class WolfpackBackendService {
     message: string,
     broadcastType: string = 'general'
   ) {
-    return this.insert(WOLFPACK_TABLES.DJ_BROADCASTS, {
-      dj_id: djId,
-      location_id: locationId,
-      message,
-      broadcast_type: broadcastType,
-      created_at: new Date().toISOString()
-    });
+    try {
+      const insertData: DJBroadcastInsert = {
+        dj_id: djId,
+        location_id: locationId,
+        message,
+        broadcast_type: broadcastType,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('dj_broadcasts')
+        .insert(insertData)
+        .select('*');
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'create_dj_broadcast'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'create_dj_broadcast',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create DJ broadcast';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'create_dj_broadcast',
+        component: 'WolfpackBackendService'
+      });
+      
+      captureError(error instanceof Error ? error : new Error(errorMessage), {
+        source: 'WolfpackBackendService.createDJBroadcast',
+        context: { djId, locationId, message, broadcastType }
+      });
+
+      return { data: null, error: errorMessage };
+    }
   }
 
   static async getDJBroadcasts(locationId: string, limit = 10) {
-    return this.select(
-      WOLFPACK_TABLES.DJ_BROADCASTS,
-      `
-        *,
-        dj:users!dj_broadcasts_dj_id_fkey(
+    try {
+      const { data, error } = await supabase
+        .from('dj_broadcasts')
+        .select(`
+          *,
+          dj:users!dj_broadcasts_dj_id_fkey(
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('location_id', locationId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'get_dj_broadcasts'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'get_dj_broadcasts',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get DJ broadcasts';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'get_dj_broadcasts',
+        component: 'WolfpackBackendService'
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * Chat message operations - properly typed
+   */
+  static async createChatMessage(
+    sessionId: string,
+    userId: string,
+    displayName: string,
+    content: string,
+    messageType: string = 'text',
+    avatarUrl?: string
+  ) {
+    try {
+      const insertData: ChatMessageInsert = {
+        session_id: sessionId,
+        user_id: userId,
+        display_name: displayName,
+        avatar_url: avatarUrl || null,
+        content: content, // FIXED: Use 'content' to match table schema
+        message_type: messageType,
+        created_at: new Date().toISOString(),
+        is_flagged: false,
+        is_deleted: false
+      };
+
+      const { data, error } = await supabase
+        .from('wolfpack_chat_messages')
+        .insert(insertData)
+        .select('*');
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'create_chat_message'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'create_chat_message',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create chat message';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'create_chat_message',
+        component: 'WolfpackBackendService'
+      });
+      
+      captureError(error instanceof Error ? error : new Error(errorMessage), {
+        source: 'WolfpackBackendService.createChatMessage',
+        context: { sessionId, userId, displayName, content, messageType }
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * DJ Event operations - properly typed with fixed interface
+   */
+  static async createDJEvent(
+    djId: string,
+    locationId: string,
+    eventType: string,
+    title: string,
+    description?: string,
+    votingEndsAt?: string,
+    options?: Json | null,
+    votingFormat?: string
+  ) {
+    try {
+      const insertData: DJEventInsert = {
+        dj_id: djId,
+        location_id: locationId,
+        event_type: eventType,
+        title,
+        description: description || null,
+        status: 'active',
+        voting_ends_at: votingEndsAt || null,
+        created_at: new Date().toISOString(),
+        started_at: new Date().toISOString(),
+        voting_format: votingFormat || null,
+        options: options || null
+      };
+
+      const { data, error } = await supabase
+        .from('dj_events')
+        .insert(insertData)
+        .select('*');
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'create_dj_event'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'create_dj_event',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create DJ event';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'create_dj_event',
+        component: 'WolfpackBackendService'
+      });
+      
+      captureError(error instanceof Error ? error : new Error(errorMessage), {
+        source: 'WolfpackBackendService.createDJEvent',
+        context: { djId, locationId, eventType, title }
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  static async getDJEvents(locationId: string, status?: string[]) {
+    try {
+      let query = supabase
+        .from('dj_events')
+        .select(`
+          *,
+          dj:users!dj_events_dj_id_fkey(
+            id,
+            display_name,
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
+        .eq('location_id', locationId);
+
+      if (status && status.length > 0) {
+        query = query.in('status', status);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'get_dj_events'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'get_dj_events',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get DJ events';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'get_dj_events',
+        component: 'WolfpackBackendService'
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * User/Pack member operations - properly typed
+   */
+  static async getWolfpackMembers(locationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
           id,
           display_name,
-          avatar_url
-        )
-      `,
-      { location_id: locationId },
-      { 
-        orderBy: { column: 'created_at', ascending: false },
-        limit 
+          first_name,
+          last_name,
+          avatar_url,
+          profile_image_url,
+          wolf_emoji,
+          vibe_status,
+          last_activity,
+          is_online,
+          wolfpack_status,
+          is_wolfpack_member
+        `)
+        .eq('location_id', locationId)
+        .eq('is_wolfpack_member', true)
+        .eq('wolfpack_status', 'active')
+        .order('last_activity', { ascending: false });
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: 'get_wolfpack_members'
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: 'get_wolfpack_members',
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
       }
+
+      return { data, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get wolfpack members';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: 'get_wolfpack_members',
+        component: 'WolfpackBackendService'
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * DEPRECATED: Generic operations - use specific methods above instead
+   * These are kept for backwards compatibility but should not be used in new code
+   */
+  static async insert(
+    table: string,
+    data: Record<string, unknown>
+  ): Promise<{ data: unknown[] | null; error: string | null }> {
+    console.warn(`[DEPRECATED] Using generic insert for table ${table}. Use specific methods instead.`);
+    
+    // Route to specific methods for known tables
+    switch (table) {
+      case 'dj_broadcasts':
+      case WOLFPACK_TABLES.DJ_BROADCASTS:
+        return this.createDJBroadcast(
+          data.dj_id as string,
+          data.location_id as string,
+          data.message as string,
+          data.broadcast_type as string
+        );
+      
+      case 'wolfpack_chat_messages':
+      case WOLFPACK_TABLES.WOLF_CHAT:
+        return this.createChatMessage(
+          data.session_id as string,
+          data.user_id as string,
+          data.display_name as string,
+          (data.content as string) || (data.message as string), // Handle both field names
+          data.message_type as string,
+          data.avatar_url as string
+        );
+      
+      case 'dj_events':
+      case WOLFPACK_TABLES.EVENTS:
+        return this.createDJEvent(
+          data.dj_id as string,
+          data.location_id as string,
+          data.event_type as string,
+          data.title as string,
+          data.description as string,
+          data.voting_ends_at as string,
+          data.options as Json,
+          data.voting_format as string
+        );
+      
+      default:
+        return {
+          data: null,
+          error: `Table ${table} not supported. Please use specific methods.`
+        };
+    }
+  }
+
+  static async select(
+    table: string,
+    columns?: string, // FIXED: Made optional to avoid unused parameter warning
+    filters?: Record<string, unknown>,
+    options?: {
+      orderBy?: { column: string; ascending?: boolean };
+      limit?: number;
+      single?: boolean;
+    }
+  ): Promise<{ data: unknown[] | unknown | null; error: string | null }> {
+    console.warn(`[DEPRECATED] Using generic select for table ${table}. Use specific methods instead.`);
+    
+    // Note: columns parameter available for future use but not currently implemented
+    // This avoids the unused parameter warning while keeping the API consistent
+    
+    // Route to specific methods for known tables
+    switch (table) {
+      case 'dj_broadcasts':
+      case WOLFPACK_TABLES.DJ_BROADCASTS:
+        if (filters?.location_id) {
+          return this.getDJBroadcasts(
+            filters.location_id as string,
+            options?.limit || 10
+          );
+        }
+        break;
+      
+      case 'dj_events':
+      case WOLFPACK_TABLES.EVENTS:
+        if (filters?.location_id) {
+          return this.getDJEvents(filters.location_id as string);
+        }
+        break;
+      
+      case 'users':
+      case WOLFPACK_TABLES.USERS:
+        if (filters?.location_id && filters?.is_wolfpack_member) {
+          return this.getWolfpackMembers(filters.location_id as string);
+        }
+        break;
+      
+      default:
+        return {
+          data: null,
+          error: `Table ${table} not supported. Please use specific methods.`
+        };
+    }
+    
+    return {
+      data: null,
+      error: `Invalid query parameters for table ${table}`
+    };
+  }
+}
+
+/**
+ * SIMPLIFIED ENHANCED SERVICE
+ * If you need simpler methods without extensive error handling, use these
+ */
+export class WolfpackSimpleService {
+  static async createEvent(params: {
+    dj_id: string;
+    location_id: string;
+    event_type: string;
+    title: string;
+    description?: string;
+    duration: number;
+    options?: string[];
+    voting_format?: string;
+  }) {
+    const now = new Date();
+    const voting_ends_at = new Date(now.getTime() + params.duration * 60 * 1000);
+    
+    return WolfpackBackendService.createDJEvent(
+      params.dj_id,
+      params.location_id,
+      params.event_type,
+      params.title,
+      params.description,
+      voting_ends_at.toISOString(),
+      { options: params.options },
+      params.voting_format
     );
+  }
+
+  static async createBroadcast(params: {
+    dj_id: string;
+    location_id: string;
+    message: string;
+    broadcast_type: string;
+  }) {
+    return WolfpackBackendService.createDJBroadcast(
+      params.dj_id,
+      params.location_id,
+      params.message,
+      params.broadcast_type
+    );
+  }
+
+  static async createChatMessage(params: {
+    session_id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url?: string;
+    content: string;
+    message_type: string;
+  }) {
+    return WolfpackBackendService.createChatMessage(
+      params.session_id,
+      params.user_id,
+      params.display_name,
+      params.content,
+      params.message_type,
+      params.avatar_url
+    );
+  }
+
+  static async getActivePackMembers(location_id: string) {
+    const result = await WolfpackBackendService.getWolfpackMembers(location_id);
+    
+    if (result.error || !result.data) {
+      return { data: [], error: result.error };
+    }
+
+    // Transform to match frontend interface
+    const transformedData = (result.data as UserData[]).map(user => ({
+      id: user.id,
+      user_id: user.id,
+      displayName: user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Pack Member',
+      profilePicture: user.profile_image_url || user.avatar_url || '/images/avatar-placeholder.png',
+      vibeStatus: user.wolf_emoji || '🐺',
+      isOnline: user.is_online || this.isRecentlyActive(user.last_activity ?? undefined),
+      lastSeen: user.last_activity || new Date().toISOString()
+    }));
+
+    return { data: transformedData, error: null };
+  }
+
+  private static isRecentlyActive(lastActivity?: string | null): boolean {
+    if (!lastActivity) return false;
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    return new Date(lastActivity).getTime() > fiveMinutesAgo;
   }
 }

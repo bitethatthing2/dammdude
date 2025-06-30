@@ -288,14 +288,29 @@ self.sideHustleCache = {
 
   // Cache response with size management
   async cacheResponse(request, response, cacheName, maxEntries) {
+    // Don't cache HEAD requests as they're not supported by Cache API
+    if (request.method === 'HEAD') {
+      console.warn('[SW Cache] Skipping cache for HEAD request:', request.url);
+      return;
+    }
+    
+    // Don't cache non-successful responses
+    if (!response.ok || response.status !== 200) {
+      return;
+    }
+    
     const cache = await caches.open(cacheName);
     
-    // Add response to cache
-    await cache.put(request, response);
-    
-    // Manage cache size if maxEntries is specified
-    if (maxEntries) {
-      await this.trimCache(cacheName, maxEntries);
+    try {
+      // Add response to cache
+      await cache.put(request, response);
+      
+      // Manage cache size if maxEntries is specified
+      if (maxEntries) {
+        await this.trimCache(cacheName, maxEntries);
+      }
+    } catch (error) {
+      console.warn('[SW Cache] Failed to cache response:', error);
     }
   },
 

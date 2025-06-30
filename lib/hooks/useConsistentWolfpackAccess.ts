@@ -1,167 +1,218 @@
-'use client';
+// lib/hooks/useConsistentWolfpackAccess.ts
+// Simplified version that matches your existing interface expectations
 
-import { useState, useEffect } from 'react';
-import { useConsistentAuth } from './useConsistentAuth';
-import { wolfpackRealtimeClient } from '@/lib/supabase/wolfpack-realtime-client';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
-export interface WolfpackMembership {
-  id: string;
-  user_id: string;
-  location_id: string | null;
-  display_name: string;
-  status: 'active' | 'inactive' | 'suspended';
-  is_active: boolean;
-  session_id: string | null;
-  location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-}
+// =============================================================================
+// INTERFACE MATCHING YOUR CURRENT USAGE
+// =============================================================================
 
-export interface WolfpackAccessState {
+type WolfpackStatusValue = 'pending' | 'active' | 'inactive' | 'suspended';
+
+export interface ConsistentWolfpackAccess {
   isMember: boolean;
-  isActive: boolean;
-  membership: WolfpackMembership | null;
-  locationId: string | null;
-  locationName: string | null;
   isLoading: boolean;
-  error: Error | null;
-  refresh: () => Promise<void>;
+  locationName: string | null;
+  error?: string | null;
+  canCheckout?: boolean;
+  wolfpackStatus?: WolfpackStatusValue | null;
+  hasLocationPermission?: boolean;
+  refreshData?: () => Promise<void>;
 }
 
-export function useConsistentWolfpackAccess(): WolfpackAccessState {
-  const { user, loading: authLoading } = useConsistentAuth();
-  const [membership, setMembership] = useState<WolfpackMembership | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
 
-  const fetchMembership = async (userId: string): Promise<WolfpackMembership | null> => {
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 3959; // Earth's radius in miles
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const toRadians = (degrees: number): number => {
+  return degrees * (Math.PI / 180);
+};
+
+// =============================================================================
+// MAIN HOOK
+// =============================================================================
+
+export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
+  const [state, setState] = useState<ConsistentWolfpackAccess>({
+    isMember: false,
+    isLoading: true,
+    locationName: null,
+    error: null,
+    canCheckout: false,
+    wolfpackStatus: null,
+    hasLocationPermission: false
+  });
+
+  const checkLocationAccess = useCallback(async () => {
     try {
-      console.log('[WolfpackAccess] Fetching membership for user:', userId);
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Get current authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      // Get current user's membership using the secure client
-      const { data: userMembership, error } = await wolfpackRealtimeClient.getCurrentUserMembership();
-      
-      console.log('[WolfpackAccess] Membership response:', { data: userMembership, error });
-      
-      if (error) {
-        console.error('[WolfpackAccess] Error fetching wolfpack membership:', error);
-        setError(new Error(error));
-        return null;
-      }
-
-      if (!userMembership) {
-        console.log('[WolfpackAccess] No membership found for user');
-        return null;
-      }
-
-      // Convert to WolfpackMembership format
-      return {
-        id: userMembership.id,
-        user_id: userMembership.user_id,
-        location_id: userMembership.location_id,
-        display_name: userMembership.display_name || '',
-        status: (userMembership.status as 'active' | 'inactive' | 'suspended') || 'inactive',
-        is_active: userMembership.is_active,
-        session_id: null,
-        location: userMembership.location_id ? {
-          id: userMembership.location_id,
-          name: 'Location', // You may need to fetch this separately if needed
-          address: ''
-        } : undefined
-      };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch membership';
-      console.error('Error fetching wolfpack membership:', errorMessage);
-      setError(new Error(errorMessage));
-      return null;
-    }
-  };
-
-  const refresh = async () => {
-    if (!user) {
-      setMembership(null);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const membershipData = await fetchMembership(user.id);
-      setMembership(membershipData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh membership';
-      setError(new Error(errorMessage));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-
-    const checkMembership = async () => {
-      if (authLoading) return;
-
-      if (!user) {
-        if (mounted) {
-          setMembership(null);
-          setIsLoading(false);
-        }
+      if (authError || !authUser) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Authentication required',
+          isMember: false
+        }));
         return;
       }
 
-      try {
-        const membershipData = await fetchMembership(user.id);
-        if (mounted) {
-          setMembership(membershipData);
-        }
-      } catch (err) {
-        if (mounted) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to check membership';
-          setError(new Error(errorMessage));
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
+      // Get user profile data
+      const { data: userProfile, error: userError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          display_name,
+          wolfpack_status,
+          is_wolfpack_member,
+          is_permanent_pack_member,
+          location_permissions_granted,
+          location_id
+        `)
+        .eq('auth_id', authUser.id)
+        .single();
+
+      if (userError) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Could not fetch user profile',
+          isMember: false
+        }));
+        return;
+      }
+
+      // Check if user is a wolfpack member
+      const isMember = Boolean(
+        userProfile.is_wolfpack_member || 
+        userProfile.is_permanent_pack_member ||
+        userProfile.wolfpack_status === 'active'
+      );
+
+      // Get location information
+      let locationName: string | null = null;
+      let hasLocationPermission = Boolean(userProfile.location_permissions_granted);
+
+      if (userProfile.location_id) {
+        const { data: location } = await supabase
+          .from('locations')
+          .select('name')
+          .eq('id', userProfile.location_id)
+          .single();
+        
+        locationName = location?.name || null;
+      }
+
+      // If no location set, try to find nearest location
+      if (!locationName && navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 300000
+            });
+          });
+
+          const { data: locations } = await supabase
+            .from('locations')
+            .select('id, name, latitude, longitude, radius_miles')
+            .eq('is_active', true);
+
+          if (locations && locations.length > 0) {
+            let nearestLocation = null;
+            let minDistance = Infinity;
+
+            for (const location of locations) {
+              const distance = calculateDistance(
+                position.coords.latitude,
+                position.coords.longitude,
+                location.latitude,
+                location.longitude
+              );
+
+              if (distance < minDistance) {
+                minDistance = distance;
+                nearestLocation = location;
+              }
+            }
+
+            if (nearestLocation && minDistance <= (nearestLocation.radius_miles || 0.25)) {
+              locationName = nearestLocation.name;
+              hasLocationPermission = true;
+            }
+          }
+        } catch (locationError) {
+          console.warn('Could not get location:', locationError);
         }
       }
-    };
 
-    checkMembership();
+      // Determine canCheckout
+      const canCheckout = isMember && 
+        userProfile.wolfpack_status === 'active' && 
+        hasLocationPermission;
 
-    // For now, we'll skip the realtime subscription in this hook
-    // The main realtime functionality will be handled by useWolfpackRealtimeFixed
-    // This hook focuses on simple membership status checking
+      setState({
+        isMember,
+        isLoading: false,
+        locationName: locationName || 'The Side Hustle Bar', // Default fallback
+        error: null,
+        canCheckout,
+        wolfpackStatus: userProfile.wolfpack_status as WolfpackStatusValue | null,
+        hasLocationPermission
+      });
 
-    return () => {
-      mounted = false;
-    };
-  }, [user, authLoading]);
+    } catch (error) {
+      console.error('Error checking wolfpack access:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }));
+    }
+  }, []);
 
-  const isMember = !!membership && membership.is_active && membership.status === 'active';
-  const isActive = isMember;
-  const locationId = membership?.location_id || null;
-  const locationName = membership?.location?.name || null;
-  
-  console.log('[WolfpackAccess] Membership status:', { 
-    hasMembership: !!membership, 
-    is_active: membership?.is_active, 
-    status: membership?.status,
-    isMember,
-    locationId 
-  });
+  const refreshData = useCallback(async () => {
+    await checkLocationAccess();
+  }, [checkLocationAccess]);
+
+  // Initial load
+  useEffect(() => {
+    checkLocationAccess();
+  }, [checkLocationAccess]);
 
   return {
-    isMember,
-    isActive,
-    membership,
-    locationId,
-    locationName,
-    isLoading: authLoading || isLoading,
-    error,
-    refresh
+    ...state,
+    refreshData
   };
 }
+
+export default useConsistentWolfpackAccess;

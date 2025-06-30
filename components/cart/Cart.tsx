@@ -42,7 +42,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   const [orderNotes, setOrderNotes] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const { user } = useAuth();
-  const { isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackAccess();
+  const { isMember: isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackAccess();
   
   // Use the unified cart context
   const { 

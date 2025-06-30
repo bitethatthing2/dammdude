@@ -142,8 +142,8 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Skip POST, PUT, DELETE requests - they can't be cached
-  if (!['GET', 'HEAD'].includes(event.request.method)) {
+  // Skip non-GET requests - only GET requests can be safely cached
+  if (event.request.method !== 'GET') {
     return;
   }
 

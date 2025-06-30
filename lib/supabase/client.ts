@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/lib/database.types'
+import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
 
 // Define proper error types
 interface SupabaseError {
@@ -53,14 +54,50 @@ export function createClient() {
     return supabaseClient
   }
 
+  // Check and clear corrupted cookies before creating client
+  if (typeof window !== 'undefined') {
+    try {
+      checkAndClearCorruptedCookies()
+    } catch (error) {
+      console.warn('Error checking cookies:', error)
+    }
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  // Create new instance - @supabase/ssr only takes 2 parameters
-  supabaseClient = createBrowserClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey
-  )
+  // Create new instance with better error handling
+  try {
+    supabaseClient = createBrowserClient<Database>(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce'
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'supabase-ssr-js'
+          }
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Error creating Supabase client:', error)
+    // Clear cookies and try again
+    if (typeof window !== 'undefined') {
+      checkAndClearCorruptedCookies()
+    }
+    
+    // Retry with minimal config
+    supabaseClient = createBrowserClient<Database>(
+      supabaseUrl,
+      supabaseAnonKey
+    )
+  }
 
   return supabaseClient
 }

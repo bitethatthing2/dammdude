@@ -36,10 +36,10 @@ filesToCheck.forEach(filePath => {
       modified = true;
     }
     
-    // Replace any remaining wolfpack_members_unified references  
-    if (content.includes('wolfpack_members_unified')) {
-      console.log(`  🔧 Updating wolfpack_members_unified references in ${filePath}`);
-      content = content.replace(/wolfpack_members_unified/g, 'users');
+    // Replace any remaining wolfpack_members references  
+    if (content.includes('wolfpack_members')) {
+      console.log(`  🔧 Updating wolfpack_members references in ${filePath}`);
+      content = content.replace(/wolfpack_members/g, 'users');
       modified = true;
     }
     
@@ -222,7 +222,7 @@ if (fs.existsSync(databaseTypesPath)) {
     'wolfpack_bar_tabs',
     'bartenders', 
     'wolf_profiles',
-    'wolfpack_members_unified',
+    'wolfpack_members',
     'bartender_quick_replies'
   ];
   

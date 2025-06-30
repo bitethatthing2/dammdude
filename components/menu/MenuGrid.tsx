@@ -112,7 +112,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
         }
         
         // Transform the data to match MenuItemWithModifiers type
-        const transformedItems: MenuItemWithModifiers[] = (data || []).map((item: DBMenuItem) => ({
+        const transformedItems: MenuItemWithModifiers[] = (data || []).map((item) => ({
           id: item.id,
           name: item.name,
           description: item.description || undefined,

@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const { canCheckout } = useWolfpackAccess();
+  const { isMember: canCheckout } = useWolfpackAccess();
   const { isActiveDJ } = useDJPermissions();
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
@@ -27,7 +27,7 @@ export const BottomNav = () => {
       console.log('BottomNav Debug:', {
         user: !!user,
         userEmail: user?.email,
-        canCheckout,
+        isMember: canCheckout,
         isActiveDJ
       });
     }
@@ -136,12 +136,20 @@ export const BottomNav = () => {
   };
 
   if (!isMounted) {
-    return null; // Prevent hydration mismatch
+    // Return invisible placeholder with same dimensions to prevent layout shifts
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom opacity-0 pointer-events-none">
+        <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
+          {/* Placeholder content */}
+          <div className="flex-1" />
+        </div>
+      </nav>
+    );
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50">
-      <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom">
+      <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
         {navigationItems.map((item) => renderNavItem(item))}
       </div>
       

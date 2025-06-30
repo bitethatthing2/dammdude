@@ -5,7 +5,8 @@ import type { Database } from '@/lib/database.types';
 
 // Database types (with null)
 type DatabaseUser = Database['public']['Tables']['users']['Row'];
-type DatabaseWolfpackMember = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+// Replace 'wolfpack_members' with the actual table name if different
+type DatabaseWolfpackMember = Database['public']['Tables']['wolfpack_memberships']['Row'];
 type DatabaseLocation = Database['public']['Tables']['locations']['Row'];
 
 // Frontend types (with undefined)

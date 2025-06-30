@@ -1,824 +1,683 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/lib/database.types';
-import dynamic from 'next/dynamic';
-import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
-import { useConsistentWolfpackAccess, type WolfpackMembership } from '@/lib/hooks/useConsistentWolfpackAccess';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  MessageCircle, 
-  Calendar, 
-  MapPin, 
-  Sparkles, 
-  Shield,
-  Settings,
-  Trophy,
-  Brain,
-  Music,
-  Star,
-  Heart,
-  Loader2,
-  AlertTriangle,
-  ArrowLeft
-} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useUser } from '@/hooks/useUser';
+import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
+import { useWolfpack } from '@/hooks/useWolfpack';
+import { useTypingIndicators } from '@/hooks/useTypingIndicators';
+import { useWolfpackSession } from '@/lib/hooks/useWolfpackSession';
 import { useRouter } from 'next/navigation';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { Settings, Shield } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
+// Types for the spatial chat interface
+interface SpatialMember {
+  id: string;
+  display_name: string;
+  avatar_url: string;
+  role: 'user' | 'dj' | 'bartender' | 'current';
+  wolfpack_status: string;
+  is_online: boolean;
+  position: { x: string; y: string };
+}
+
+interface InteractionPopup {
+  member: SpatialMember;
+  position: { left: string; top: string };
+  show: boolean;
+}
+
+interface ToastMessage {
+  show: boolean;
+  message: string;
+}
+
+// Define the member interface to match your useWolfpack hook
 interface WolfPackMember {
   id: string;
   user_id: string;
-  display_name: string;
+  display_name?: string;
   avatar_url?: string;
   status: string;
-  favorite_drink?: string;
-  current_vibe?: string;
-  looking_for?: string;
-  table_location?: string;
-  joined_at: string;
-  location_name: string;
+  is_online?: boolean;
 }
 
-interface WolfpackEvent {
-  id: string;
-  title: string;
-  type: 'contest' | 'trivia' | 'special';
-  description: string;
-  is_active: boolean;
-  participant_count: number;
-  location: string;
-  created_at: string;
-  created_by?: string;
-  ends_at?: string;
-}
-
-interface LocationData {
-  id: string;
-  name: string;
-  address: string | null;
-}
-
-// Use users table for wolfpack members - wolfpack fields are already included
-type WolfpackMemberUnified = Database['public']['Tables']['users']['Row'];
-
-// Use generated Supabase types for dj_events
-type DjEventRow = Database['public']['Tables']['dj_events']['Row'];
-
-// User type from Supabase Auth
-interface AuthUser {
-  id: string;
-  email?: string;
-}
-
-// Simple back button component
-const BackButton = ({ fallbackHref }: { fallbackHref: string }) => {
+export default function WolfpackChatPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const { isMember: isInPack, isLoading: packLoading, locationName } = useConsistentWolfpackAccess();
   
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => {
-        if (typeof window !== 'undefined' && window.history.length > 1) {
-          router.back();
-        } else {
-          router.push(fallbackHref);
-        }
-      }}
-    >
-      <ArrowLeft className="h-4 w-4 mr-2" />
-      Back
-    </Button>
-  );
-};
+  // Get session configuration with proper typing
+  const wolfpackSession = useWolfpackSession(user as any, locationName);
+  const { sessionId, locationId, isActive } = wolfpackSession || {};
+  
+  // Use your comprehensive wolfpack hook - handle nullable parameters
+  const { state, actions } = useWolfpack(
+    sessionId || '', 
+    locationId || '', 
+    {
+      enableDebugLogging: true,
+      autoConnect: isActive && !!user && !!sessionId
+    }
+  ) || { state: { members: [], isLoading: false, isConnected: false, error: null, stats: { onlineMembers: 0 } }, actions: { sendMessage: async () => ({ success: false }) } };
+  
+  // Use typing indicators - handle nullable sessionId
+  const { typingUsers, sendTyping } = useTypingIndicators(sessionId || '');
+  
+  const [spatialMembers, setSpatialMembers] = useState<SpatialMember[]>([]);
+  const [chatMessage, setChatMessage] = useState('');
+  const [popup, setPopup] = useState<InteractionPopup | null>(null);
+  const [toast, setToast] = useState<ToastMessage>({ show: false, message: '' });
+  const [currentPage, setCurrentPage] = useState(0);
+  
+  const spatialViewRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
-// Simple chat component placeholder
-const WolfpackRealTimeChat = ({ sessionId }: { sessionId: string }) => {
+  // Convert WolfPackMembers to SpatialMembers with positions
+  useEffect(() => {
+    const positions = [
+      { x: '50%', y: '25%' },
+      { x: '25%', y: '45%' },
+      { x: '75%', y: '45%' },
+      { x: '40%', y: '65%' },
+      { x: '65%', y: '65%' },
+      { x: '30%', y: '30%' },
+      { x: '70%', y: '30%' },
+      { x: '20%', y: '60%' },
+      { x: '80%', y: '60%' },
+      { x: '50%', y: '70%' }
+    ];
+
+    const spatial: SpatialMember[] = (state.members || []).map((member, index) => {
+      const position = positions[index % positions.length];
+      
+      return {
+        id: member.id || `member_${index}`,
+        display_name: member.display_name || 'Wolf Member',
+        avatar_url: member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.user_id || member.id}`,
+        role: member.user_id === user?.id ? 'current' : (
+          // Determine role based on user data or member status
+          member.display_name?.toLowerCase().includes('dj') ? 'dj' :
+          member.display_name?.toLowerCase().includes('bartender') ? 'bartender' : 'user'
+        ) as 'user' | 'dj' | 'bartender' | 'current',
+        wolfpack_status: member.status || 'active',
+        is_online: member.is_online || false,
+        position
+      };
+    });
+
+    setSpatialMembers(spatial);
+  }, [state.members, user?.id]);
+
+  // Handle member click for interactions
+  const handleMemberClick = (member: SpatialMember, event: React.MouseEvent<HTMLDivElement>) => {
+    if (!spatialViewRef.current) return;
+
+    const memberElement = event.currentTarget;
+    const containerRect = spatialViewRef.current.getBoundingClientRect();
+    const rect = memberElement.getBoundingClientRect();
+    
+    const leftPercent = ((rect.left - containerRect.left + rect.width/2) / containerRect.width) * 100;
+    const topPercent = ((rect.top - containerRect.top + rect.height/2) / containerRect.height) * 100;
+
+    setPopup({
+      member,
+      position: { 
+        left: `${leftPercent + 15}%`, 
+        top: `${topPercent - 10}%` 
+      },
+      show: true
+    });
+
+    setTimeout(() => {
+      document.addEventListener('click', hidePopupOnClickOutside);
+    }, 100);
+  };
+
+  const hidePopupOnClickOutside = (event: MouseEvent) => {
+    if (popupRef.current && !popupRef.current.contains(event.target as Node) && 
+        !(event.target as Element)?.closest('.member')) {
+      setPopup(null);
+      document.removeEventListener('click', hidePopupOnClickOutside);
+    }
+  };
+
+  // Handle popup actions using wolf_pack_interactions table
+  const handleAction = async (actionType: string) => {
+    if (!popup?.member || !user) return;
+
+    setPopup(null);
+    document.removeEventListener('click', hidePopupOnClickOutside);
+
+    try {
+      if (actionType === 'profile') {
+        // Navigate to profile
+        router.push(`/wolfpack/profile/${popup.member.id}`);
+      } else if (actionType === 'message') {
+        // Navigate to private chat
+        router.push(`/wolfpack/chat/private/${popup.member.id}?name=${encodeURIComponent(popup.member.display_name)}`);
+      } else if (actionType === 'wink') {
+        // Send wink interaction
+        const { error } = await supabase
+          .from('wolf_pack_interactions')
+          .insert({
+            sender_id: user.id,
+            receiver_id: popup.member.id,
+            interaction_type: 'wink',
+            location_id: locationId || null,
+            status: 'active',
+            created_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Error sending wink:', error);
+          showToast('Failed to send wink');
+        } else {
+          showToast(`Wink sent to ${popup.member.display_name}! 😉`);
+        }
+      }
+      showToast('Action completed! 🎉');
+    } catch (error) {
+      console.error('Error handling action:', error);
+      showToast('Something went wrong. Please try again.');
+    }
+  };
+
+  // Send message using your comprehensive hook
+  const sendMessage = async () => {
+    if (!chatMessage.trim() || !user) return;
+
+    // Send typing indicator stop
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    sendTyping(user.id, user.display_name || 'Wolf Member', false);
+
+    try {
+      const result = await actions.sendMessage(chatMessage.trim());
+      
+      if (result.success) {
+        setChatMessage('');
+        showToast('Message sent! 💬');
+      } else {
+        showToast(result.error || 'Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      showToast('Something went wrong. Please try again.');
+    }
+  };
+
+  // Handle typing indicators
+  const handleTyping = () => {
+    if (!user || !sessionId) return;
+
+    sendTyping(user.id, user.display_name || 'Wolf Member', true);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(user.id, user.display_name || 'Wolf Member', false);
+    }, 1000);
+  };
+
+  const showToast = (message: string) => {
+    setToast({ show: true, message });
+    setTimeout(() => {
+      setToast({ show: false, message: '' });
+    }, 2000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    } else {
+      handleTyping();
+    }
+  };
+
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Loading state
+  if (authLoading || packLoading || state.isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading Wolf Pack...</p>
+          {state.error && (
+            <p className="text-red-400 mt-2">Error: {state.error.message}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Auth required
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center">
+          <Shield className="h-12 w-12 mx-auto mb-4" />
+          <h1 className="text-xl font-bold mb-4">Authentication Required</h1>
+          <p className="mb-4">Please login to access Wolf Pack chat.</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="bg-white text-black px-6 py-2 rounded-full font-semibold"
+          >
+            Login to Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Pack membership required
+  if (!isInPack) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center">
+          <div className="text-4xl mb-4">🐺</div>
+          <h1 className="text-xl font-bold mb-4">Join the Wolf Pack</h1>
+          <p className="mb-4">You need to be at Side Hustle Bar to join the pack</p>
+          <button 
+            onClick={() => router.push('/wolfpack/welcome')}
+            className="bg-white text-black px-6 py-2 rounded-full font-semibold"
+          >
+            Enable Location & Join Pack
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Card className="h-96">
-      <CardHeader>
-        <CardTitle>Pack Chat</CardTitle>
-        <CardDescription>Session: {sessionId}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-center h-64">
+    <div className="chat-fullscreen bg-black text-white font-sans">
+      {/* Background Pattern - Matching HTML demo exactly */}
+      <div 
+        className="absolute top-0 left-0 w-full h-full"
+        style={{
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)'
+        }}
+      />
+      <div 
+        className="absolute top-0 left-0 w-full h-full animate-float"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+          `,
+          backgroundSize: '100px 100px, 150px 150px, 200px 200px'
+        }}
+      />
+      <div className="absolute top-0 left-0 w-full h-full bg-black/60" />
+
+      {/* Header - Fixed position with proper responsive spacing */}
+      <div className="chat-header-fixed bg-white/95 backdrop-blur-xl rounded-b-3xl p-4 shadow-2xl text-black">
+        <div className="flex items-center justify-center relative">
+          <button 
+            className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-colors text-2xl bg-transparent border-none cursor-pointer"
+            onClick={() => router.back()}
+            aria-label="Go back"
+            title="Go back"
+          >
+            ←
+          </button>
           <div className="text-center">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">Chat interface coming soon</p>
-            <p className="text-sm text-muted-foreground">Connect with your pack members</p>
+            <h1 className="text-xl font-bold">Wolfpack Chat</h1>
+            <p className="text-sm text-gray-600">{locationName?.toUpperCase() || 'THE SIDE HUSTLE BAR'}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
-};
+      </div>
 
-// Import the hex grid component dynamically to avoid SSR issues
-const DynamicWolfpackHexGrid = dynamic(
-  () => import('@/components/wolfpack/WolfpackHexGrid'),
-  { 
-    ssr: false,
-    loading: () => (
-      <Card className="h-96">
-        <CardContent className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    )
-  }
-) as unknown as React.ComponentType<{
-  sessionId: string | null;
-  currentUserId?: string;
-  locationId: string | null;
-  supabase: SupabaseClient;
-}>;
+      {/* Main Spatial View - Using responsive content area */}
+      <div className="chat-content-area p-8" ref={spatialViewRef}>
+        {/* Hexagonal Connection Lines - Matching HTML demo */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+          <defs>
+            <pattern id="hexPattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <polygon 
+                points="50,15 85,35 85,65 50,85 15,65 15,35" 
+                fill="none" 
+                stroke="rgba(255,255,255,0.1)" 
+                strokeWidth="1"
+              />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hexPattern)"/>
+          
+          {/* Connection lines with flowing animation */}
+          <line 
+            x1="50%" y1="25%" x2="25%" y2="45%" 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1" 
+            strokeDasharray="5,5" 
+            className="animate-pulse"
+            style={{ animation: 'hexLineFlow 3s linear infinite' }}
+          />
+          <line 
+            x1="25%" y1="45%" x2="40%" y2="65%" 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1" 
+            strokeDasharray="5,5" 
+            className="animate-pulse"
+            style={{ animation: 'hexLineFlow 3s linear infinite' }}
+          />
+          <line 
+            x1="40%" y1="65%" x2="65%" y2="65%" 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1" 
+            strokeDasharray="5,5" 
+            className="animate-pulse"
+            style={{ animation: 'hexLineFlow 3s linear infinite' }}
+          />
+          <line 
+            x1="65%" y1="65%" x2="75%" y2="45%" 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1" 
+            strokeDasharray="5,5" 
+            className="animate-pulse"
+            style={{ animation: 'hexLineFlow 3s linear infinite' }}
+          />
+          <line 
+            x1="75%" y1="45%" x2="50%" y2="25%" 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1" 
+            strokeDasharray="5,5" 
+            className="animate-pulse"
+            style={{ animation: 'hexLineFlow 3s linear infinite' }}
+          />
+        </svg>
 
-// Wrapper component to handle prop mapping - simplified typing
-const WolfpackHexGrid = (props: {
-  sessionId: string | null;
-  currentUserId?: string;
-  locationId: string | null;
-}) => {
-  const { sessionId, currentUserId, locationId } = props;
-  
-  return (
-    <DynamicWolfpackHexGrid 
-      sessionId={sessionId}
-      currentUserId={currentUserId}
-      locationId={locationId}
-      supabase={supabase}
-    />
-  );
-};
+        {/* Members - Matching HTML demo styling exactly */}
+        <div className="relative z-10 w-full h-full">
+          {spatialMembers.map((member, index) => (
+            <div
+              key={member.id}
+              className="absolute cursor-pointer transition-all duration-300 ease-out transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 hover:z-20 animate-fade-in member"
+              style={{ 
+                left: member.position.x, 
+                top: member.position.y,
+                animationDelay: `${index * 0.1}s`
+              }}
+              onClick={(e) => handleMemberClick(member, e)}
+            >
+              <div 
+                className={`
+                  w-20 h-20 rounded-full border-4 border-white overflow-hidden relative
+                  ${member.role === 'dj' ? 'shadow-purple-500/60' : ''}
+                  ${member.role === 'bartender' ? 'shadow-green-500/60' : ''}
+                  ${member.role === 'current' ? 'shadow-blue-500/60 animate-pulse' : ''}
+                `}
+                style={{
+                  boxShadow: member.role === 'dj' ? '0 0 20px rgba(147, 51, 234, 0.6)' :
+                            member.role === 'bartender' ? '0 0 20px rgba(34, 197, 94, 0.6)' :
+                            member.role === 'current' ? '0 0 20px rgba(59, 130, 246, 0.6)' :
+                            '0 8px 32px rgba(0, 0, 0, 0.3)'
+                }}
+              >
+                <img 
+                  src={member.avatar_url} 
+                  alt={member.display_name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`;
+                  }}
+                />
+                {member.role === 'dj' && (
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center border-2 border-white text-xs font-bold text-white">
+                    DJ
+                  </div>
+                )}
+                {member.role === 'bartender' && (
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center border-2 border-white text-xs font-bold text-white">
+                    BAR
+                  </div>
+                )}
+                <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${
+                  member.is_online ? 'bg-green-500' : 'bg-gray-400'
+                }`}></div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-// Development warning component
-const WolfpackDevWarning = ({ isUsingFallback }: { isUsingFallback: boolean }) => {
-  if (!isUsingFallback) return null;
-  
-  return (
-    <Alert className="mb-4">
-      <AlertTriangle className="h-4 w-4" />
-      <AlertDescription>
-        Development mode: Some features may be limited
-      </AlertDescription>
-    </Alert>
-  );
-};
+        {/* Interaction Popup - Matching HTML demo exactly */}
+        {popup && popup.show && (
+          <div 
+            ref={popupRef}
+            className="absolute bg-white/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 min-w-[200px] shadow-2xl text-black z-50 animate-scale-in"
+            style={{ 
+              left: popup.position.left, 
+              top: popup.position.top,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <img 
+                className="w-10 h-10 rounded-full" 
+                src={popup.member.avatar_url} 
+                alt={popup.member.display_name}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${popup.member.id}`;
+                }}
+              />
+              <div>
+                <h3 className="font-semibold text-sm mb-1">
+                  {popup.member.display_name}
+                </h3>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {popup.member.role === 'dj' ? 'DJ' : popup.member.role === 'bartender' ? 'Bartender' : popup.member.role === 'current' ? 'You' : 'Wolf'}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button 
+                className="flex items-center gap-2 p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-sm"
+                onClick={() => handleAction('profile')}
+              >
+                👤 View Profile
+              </button>
+              <button 
+                className="flex items-center gap-2 p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-sm"
+                onClick={() => handleAction('message')}
+              >
+                💬 Send Message
+              </button>
+              <button 
+                className="flex items-center gap-2 p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-sm"
+                onClick={() => handleAction('wink')}
+              >
+                ❤️ Send Wink
+              </button>
+            </div>
+          </div>
+        )}
 
-export default function WolfPackChatPage() {
-  const router = useRouter();
-  const { user, loading: authLoading } = useConsistentAuth();
-  const { isMember: isInPack, isLoading: packLoading, membership, locationId, locationName } = useConsistentWolfpackAccess();
-  const isUsingFallback = true; // Set to true since we're using fallback components
-  
-  const [packMembers, setPackMembers] = useState<WolfPackMember[]>([]);
-  const [activeEvents, setActiveEvents] = useState<WolfpackEvent[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
-  const [userMembership, setUserMembership] = useState<WolfpackMembership | null>(null);
-  const [selectedTab, setSelectedTab] = useState('spatial');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sentWinks, setSentWinks] = useState<Set<string>>(new Set());
+        {/* Bartender Card - Positioned in content area */}
+        <div className="absolute right-8 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl p-4 animate-float"
+             style={{ bottom: `calc(50% - 8rem)` }}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-2xl">
+              🐺
+            </div>
+            <div>
+              <h3 className="font-bold">Bartender</h3>
+              <span className="bg-yellow-500 text-black px-2 py-1 rounded text-xs font-bold">
+                BARTENDER
+              </span>
+            </div>
+          </div>
+          <p className="text-sm mb-2">Food & Drink Menu</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+              🍺
+            </div>
+            <span className="text-red-500">❤️</span>
+          </div>
+        </div>
+      </div>
 
-  // Load wolfpack data
-  useEffect(() => {
-    async function loadWolfpackData() {
-      // Don't load if auth is still loading or user is not in pack
-      if (authLoading || packLoading) {
-        console.log('[WolfpackChat] Still loading auth/pack status');
-        return;
-      }
-      
-      if (!user || !isInPack) {
-        console.log('[WolfpackChat] User not authenticated or not in pack', { user: !!user, isInPack });
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('[WolfpackChat] Loading wolfpack data for user:', user.id)
+      {/* Page Indicators - Positioned above input area */}
+      <div className="fixed left-1/2 transform -translate-x-1/2 flex gap-2 z-10"
+           style={{ bottom: `calc(var(--bottom-nav-height) + 7rem)` }}>
+        {[0, 1, 2].map((page) => (
+          <div 
+            key={page}
+            className={`w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${
+              currentPage === page ? 'bg-white scale-125' : 'bg-white/40'
+            }`}
+            onClick={() => setCurrentPage(page)}
+          />
+        ))}
+      </div>
 
-      try {
-        setIsLoading(true);
-        setError(null);
+      {/* Bottom Chat Interface - Using responsive input area */}
+      <div className="chat-input-area">
+        <div className="bg-white/95 backdrop-blur-xl rounded-full p-2 flex items-center gap-3 border border-white/30"
+             style={{ boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.2)' }}>
+          <input 
+            type="text" 
+            className="flex-1 bg-gray-100/80 border-none outline-none rounded-full px-4 py-2 text-gray-700 placeholder-gray-500"
+            placeholder={typingUsers.length > 0 ? `${typingUsers.join(', ')} typing...` : "Quick Replies"}
+            value={chatMessage}
+            onChange={(e) => setChatMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={state.isLoading}
+          />
+          <button 
+            className="bg-gray-600 text-white rounded-full px-4 py-2 hover:bg-gray-700 transition-colors disabled:opacity-50"
+            onClick={sendMessage}
+            disabled={state.isLoading || !chatMessage.trim()}
+          >
+            Send
+          </button>
+          <div 
+            className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-gray-800 transition-colors"
+            onClick={() => router.push('/profile')}
+          >
+            👤
+          </div>
+        </div>
+      </div>
 
-        // Get current user's wolfpack data from users table
-        const { data: userProfile, error: membershipError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .eq('is_wolfpack_member', true)
-          .maybeSingle();
+      {/* AI Assistant Button - Positioned above bottom nav */}
+      <button 
+        className="fixed right-4 w-12 h-12 bg-gray-600/90 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white cursor-pointer transition-all duration-300 hover:bg-gray-600 hover:scale-110 z-10"
+        style={{ bottom: `calc(var(--bottom-nav-height) + 1.25rem)` }}
+        title="AI Assistant"
+      >
+        ai
+      </button>
 
-        console.log('[WolfpackChat] Membership query result:', { data: membership, error: membershipError });
-        
-        if (membershipError) {
-          console.error('[WolfpackChat] Error loading membership:', membershipError);
-          throw membershipError;
+      {/* Floating Menu - Matching HTML demo exactly */}
+      <div className="fixed top-4 right-4 z-50 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-2 flex gap-2">
+        <button 
+          className="text-white p-2 rounded-full hover:bg-white/20 transition-colors bg-transparent border-none cursor-pointer"
+          title="Security"
+        >
+          🛡️
+        </button>
+        <button 
+          className="text-white p-2 rounded-full hover:bg-white/20 transition-colors bg-transparent border-none cursor-pointer"
+          onClick={() => router.push('/profile')}
+          title="Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Status Indicator - Matching HTML demo exactly */}
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 bg-green-500/20 backdrop-blur-xl border border-green-500/30 rounded-full px-4 py-2">
+        <div className="flex items-center gap-2 text-green-400 text-sm">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span>Connected to {locationName || 'The Side Hustle Bar'} Pack</span>
+        </div>
+      </div>
+
+      {/* Toast Notification - Positioned above input area */}
+      {toast.show && (
+        <div className="fixed left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-full shadow-2xl animate-slide-up"
+             style={{ bottom: `calc(var(--bottom-nav-height) + 8rem)` }}>
+          {toast.message}
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translate(0, 0); }
+          25% { transform: translate(-10px, -5px); }
+          50% { transform: translate(5px, -10px); }
+          75% { transform: translate(-5px, 5px); }
         }
 
-        if (!membership) {
-          console.error('[WolfpackChat] No membership data found for user');
-          throw new Error('No active membership found');
+        @keyframes hexLineFlow {
+          0% { stroke-dashoffset: 0; }
+          100% { stroke-dashoffset: 20; }
         }
 
-        setUserMembership(membership);
-
-        // Use location data from the wolfpack access hook
-        let locationData: LocationData | null = null;
-        if (locationId) {
-          locationData = { 
-            id: locationId, 
-            name: locationName || 'Unknown', 
-            address: null 
-          };
-          setCurrentLocation(locationData);
-        }
-
-        // Get all pack members at the same location from users table
-        console.log('Loading members for location:', membership?.location_id);
-        
-        let membersQuery = supabase
-          .from('users')
-          .select('*');
-
-        // Apply location filter if location_id exists
-        if (membership?.location_id) {
-          membersQuery = membersQuery.eq('location_id', membership.location_id);
-        }
-        
-        membersQuery = membersQuery
-          .eq('is_wolfpack_member', true)
-          .not('wolfpack_status', 'is', null)
-          .order('wolfpack_joined_at', { ascending: false });
-
-        const { data: members, error: membersError } = await membersQuery;
-
-        if (membersError) {
-          console.error('Error loading members:', membersError);
-          throw membersError;
-        }
-
-        // Transform members data from users table
-        const transformedMembers: WolfPackMember[] = members
-          ?.filter((member: WolfpackMemberUnified) => 
-            // Only show users with active wolfpack status
-            member.wolfpack_status === 'active'
-          )
-          ?.map((member: WolfpackMemberUnified) => ({
-            id: member.id,
-            user_id: member.id,
-            display_name: member.first_name || member.last_name || (user && member.id === user.id ? 'You' : 'Pack Member'),
-            avatar_url: member.avatar_url || undefined,
-            status: member.wolfpack_status || 'In the pack',
-            favorite_drink: undefined,
-            current_vibe: undefined,
-            looking_for: undefined,
-            table_location: undefined,
-            joined_at: member.wolfpack_joined_at || member.created_at || new Date().toISOString(),
-            location_name: locationData?.name || 'Unknown'
-          })) || [];
-
-        setPackMembers(transformedMembers);
-
-        // Get active events for this location
-        if (membership.location_id) {
-          try {
-            const { data: events, error: eventsError } = await supabase
-              .from('dj_events')
-              .select('*')
-              .eq('location_id', membership.location_id)
-              .eq('status', 'active')
-              .is('ended_at', null);
-            
-            if (!eventsError && events) {
-              // Transform database rows to UI events with proper null handling
-              const transformedEvents: WolfpackEvent[] = events.map((event: DjEventRow) => {
-                // Handle nullable fields with safe defaults
-                const description = event.description || 'Join this exciting event!';
-                const createdAt = event.created_at || new Date().toISOString();
-                
-                // Determine event type with proper type casting
-                let eventType: 'contest' | 'trivia' | 'special' = 'special';
-                if (event.event_type === 'trivia') {
-                  eventType = 'trivia';
-                } else if (event.event_type === 'contest') {
-                  eventType = 'contest';
-                }
-                
-                return {
-                  id: event.id,
-                  title: event.title || `${event.event_type} Event`,
-                  type: eventType,
-                  description,
-                  is_active: event.status === 'active' && !event.ended_at,
-                  participant_count: 0, // Would need to count from participants table
-                  location: locationData?.name || 'Unknown',
-                  created_at: createdAt,
-                  created_by: event.dj_id || undefined,
-                  ends_at: event.ended_at || undefined
-                };
-              });
-              
-              setActiveEvents(transformedEvents);
-            } else {
-              console.warn('Failed to load events, setting empty array');
-              setActiveEvents([]);
-            }
-          } catch (eventsError) {
-            console.error('Error loading events:', eventsError);
-            setActiveEvents([]);
+        @keyframes fade-in {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
           }
         }
 
-      } catch (error) {
-        console.error('Error loading wolfpack data:', error);
-        setError('Failed to load wolfpack data');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadWolfpackData();
-  }, [user, isInPack, authLoading, packLoading, locationId, locationName]);
-
-  // Handle winking at another member
-  const sendWink = async (memberId: string, targetUserId: string) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('wolf_pack_interactions')
-        .insert({
-          sender_id: user.id,
-          receiver_id: targetUserId,
-          interaction_type: 'wink'
-        })
-        .select();
-
-      if (error) {
-        console.error('Error sending wink:', error);
-        
-        // Show user-friendly error message
-        if (error.message?.includes('row-level security')) {
-          alert('Can only wink at active pack members. This user may not be fully activated yet.');
-        } else {
-          alert('Failed to send wink. Please try again.');
+        @keyframes scale-in {
+          0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
         }
-      } else {
-        console.log('Wink insert successful:', data);
-        const targetMember = packMembers.find(m => m.id === memberId);
-        if (targetMember) {
-          console.log(`Wink sent to ${targetMember.display_name}! 😉`);
-          setSentWinks(prev => new Set([...prev, targetUserId]));
+
+        @keyframes slide-up {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(50px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
         }
-      }
-    } catch (error) {
-      console.error('Caught error sending wink:', error);
-      alert('Network error. Please check your connection and try again.');
-    }
-  };
 
-  // Handle joining events
-  const joinEvent = async (eventId: string) => {
-    if (!user) return;
+        .animate-float {
+          animation: float 20s ease-in-out infinite;
+        }
 
-    try {
-      const { error } = await supabase
-        .from('dj_event_participants')
-        .insert({
-          event_id: eventId,
-          participant_id: user.id,
-        });
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out forwards;
+        }
 
-      if (error) {
-        console.error('Error joining event:', error);
-      } else {
-        console.log(`Joined event ${eventId} successfully!`);
-      }
-    } catch (error) {
-      console.error('Error joining event:', error);
-    }
-  };
+        .animate-scale-in {
+          animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-  // Format time display
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return date.toLocaleDateString();
-  };
-
-  if (authLoading || packLoading) {
-    return (
-      <div className="container mx-auto p-4 pb-20 max-w-4xl">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading Wolf Pack...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  if (isLoading && user && isInPack) {
-    return (
-      <div className="container mx-auto p-4 pb-20 max-w-4xl">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading pack members...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="container mx-auto p-4 pb-20 max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Authentication Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Please login to access Wolf Pack chat.
-            </p>
-            <Button onClick={() => router.push('/login')} className="w-full">
-              Login to Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isInPack) {
-    return (
-      <div className="container mx-auto p-4 pb-20 max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Join the Wolf Pack
-            </CardTitle>
-            <CardDescription>
-              You need to be at Side Hustle Bar to join the pack
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span>Location verification required</span>
-            </div>
-            <Button 
-              className="w-full" 
-              size="lg"
-              onClick={() => router.push('/wolfpack/welcome')}
-            >
-              Enable Location & Join Pack
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto p-4 pb-20 max-w-md">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <div className="mt-4">
-          <Button onClick={() => window.location.reload()} className="w-full">
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="container mx-auto p-4 pb-20 max-w-4xl flex-1">
-        {/* Development Warning */}
-        <WolfpackDevWarning isUsingFallback={isUsingFallback} />
-
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <BackButton fallbackHref="/wolfpack" />
-              <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                  🐺 Wolf Pack
-                  {currentLocation && (
-                    <Badge variant="secondary">{currentLocation.name.toUpperCase()}</Badge>
-                  )}
-                </h1>
-                <p className="text-muted-foreground">
-                  {packMembers.length} wolves in the pack tonight
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                Live
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/profile')}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Profile
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4 flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="spatial">
-              <MapPin className="h-4 w-4 mr-2" />
-              3D View
-            </TabsTrigger>
-            <TabsTrigger value="chat">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="members">
-              <Users className="h-4 w-4 mr-2" />
-              Members
-            </TabsTrigger>
-            <TabsTrigger value="events">
-              <Calendar className="h-4 w-4 mr-2" />
-              Events
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="spatial" className="space-y-4 flex-1">
-            {/* 3D Hexagonal Wolf Pack View */}
-            {membership && locationId && (
-              <WolfpackHexGrid 
-                sessionId={`location_${locationId}`}
-                currentUserId={user.id}
-                locationId={locationId}
-              />
-            )}
-
-            {/* Show message if no location */}
-            {membership && !locationId && (
-              <Card className="h-96">
-                <CardContent className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground">No location assigned</p>
-                    <p className="text-sm text-muted-foreground">Ask staff to assign you to a location</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="chat" className="space-y-4 flex-1 flex flex-col">
-            {/* Chat Interface with proper spacing */}
-            <div className="flex-1 min-h-0">
-              {membership && locationId && (
-                <WolfpackRealTimeChat
-                  sessionId={`location_${locationId}`}
-                />
-              )}
-            </div>
-            
-            {/* Quick Actions positioned above chat input */}
-            <div className="mt-4 mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-center">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Card 
-                  className="cursor-pointer hover:shadow-md transition-shadow border-orange-200 hover:border-orange-300" 
-                  onClick={() => router.push('/menu')}
-                >
-                  <CardContent className="p-3 text-center">
-                    <div className="p-2 bg-orange-100 rounded-lg inline-block mb-2">
-                      <span className="text-xl">🍽️</span>
-                    </div>
-                    <h4 className="font-semibold text-sm mb-1">Order Food & Drinks</h4>
-                    <p className="text-xs text-muted-foreground">Browse menu and place orders</p>
-                  </CardContent>
-                </Card>
-
-                <Card 
-                  className="cursor-pointer hover:shadow-md transition-shadow border-blue-200 hover:border-blue-300" 
-                  onClick={() => router.push('/profile')}
-                >
-                  <CardContent className="p-3 text-center">
-                    <div className="p-2 bg-blue-100 rounded-lg inline-block mb-2">
-                      <span className="text-xl">🐺</span>
-                    </div>
-                    <h4 className="font-semibold text-sm mb-1">Edit Wolf Profile</h4>
-                    <p className="text-xs text-muted-foreground">Customize your pack persona</p>
-                  </CardContent>
-                </Card>
-
-                <Card 
-                  className="cursor-pointer hover:shadow-md transition-shadow border-purple-200 hover:border-purple-300" 
-                  onClick={() => router.push('/events')}
-                >
-                  <CardContent className="p-3 text-center">
-                    <div className="p-2 bg-purple-100 rounded-lg inline-block mb-2">
-                      <span className="text-xl">🎉</span>
-                    </div>
-                    <h4 className="font-semibold text-sm mb-1">Events & Voting</h4>
-                    <p className="text-xs text-muted-foreground">Join DJ events and contests</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="members" className="space-y-4 flex-1 overflow-y-auto">
-            <div className="grid gap-4 pb-6">
-              {packMembers.map((member) => (
-                <Card key={member.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <Avatar>
-                          <AvatarImage src={member.avatar_url} />
-                          <AvatarFallback>
-                            {member.display_name.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{member.display_name}</h3>
-                            <Badge variant="secondary" className="text-xs">
-                              {member.status}
-                            </Badge>
-                            {member.user_id === user.id && (
-                              <Badge variant="outline" className="text-xs">
-                                You
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            {member.favorite_drink && (
-                              <p className="flex items-center gap-1">
-                                🍹 {member.favorite_drink}
-                              </p>
-                            )}
-                            {member.current_vibe && (
-                              <p className="flex items-center gap-1">
-                                ✨ {member.current_vibe}
-                              </p>
-                            )}
-                            {member.looking_for && (
-                              <p className="flex items-center gap-1">
-                                👋 {member.looking_for}
-                              </p>
-                            )}
-                            {member.table_location && (
-                              <p className="flex items-center gap-1">
-                                📍 Table: {member.table_location}
-                              </p>
-                            )}
-                            <p className="text-xs">
-                              Joined: {formatTime(member.joined_at)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {member.user_id !== user.id && member.status === 'active' && (
-                        <Button
-                          size="sm"
-                          variant={sentWinks.has(member.user_id) ? "default" : "outline"}
-                          onClick={() => sendWink(member.id, member.user_id)}
-                          disabled={sentWinks.has(member.user_id)}
-                          className="flex items-center gap-1"
-                        >
-                          <Heart className={`h-3 w-3 ${sentWinks.has(member.user_id) ? 'fill-current' : ''}`} />
-                          {sentWinks.has(member.user_id) ? 'Winked! 😉' : 'Wink'}
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="events" className="space-y-4 flex-1 overflow-y-auto">
-            <div className="grid gap-4 pb-6">
-              {activeEvents.length === 0 ? (
-                <Card>
-                  <CardContent className="flex items-center justify-center py-8">
-                    <div className="text-center">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-muted-foreground">No active events right now</p>
-                      <p className="text-sm text-muted-foreground">Check back later for contests and trivia!</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                activeEvents.map((event) => (
-                  <Card key={event.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            {event.title}
-                            {event.is_active && (
-                              <Badge variant="default" className="animate-pulse">
-                                LIVE
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <CardDescription>{event.description}</CardDescription>
-                        </div>
-                        <Badge variant="outline">
-                          {event.type === 'contest' && (
-                            <>
-                              <Trophy className="h-3 w-3 mr-1" />
-                              Contest
-                            </>
-                          )}
-                          {event.type === 'trivia' && (
-                            <>
-                              <Brain className="h-3 w-3 mr-1" />
-                              Trivia
-                            </>
-                          )}
-                          {event.type === 'special' && (
-                            <>
-                              <Star className="h-3 w-3 mr-1" />
-                              Special
-                            </>
-                          )}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          {event.participant_count} participants
-                        </span>
-                        {event.is_active && (
-                          <Button 
-                            size="sm"
-                            onClick={() => joinEvent(event.id)}
-                          >
-                            Join Event
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* DJ Announcement Banner */}
-        {activeEvents.some(e => e.is_active) && (
-          <Card className="mt-4 border-primary">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl animate-bounce">
-                  <Music className="h-6 w-6" />
-                </span>
-                <div className="flex-1">
-                  <p className="font-semibold">🎵 DJ Announcement</p>
-                  <p className="text-sm text-muted-foreground">
-                    Live events are happening now! Join the fun and connect with your pack!
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { DownloadIcon, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToastAction } from '@/components/ui/toast';
 import {
-  initPwaEventListeners,
   showInstallPrompt,
   isInstalled,
   isPromptAvailable, // Re-added this import as it was present in the original problem statement
@@ -23,6 +22,7 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
   const [promptAvailable, setPromptAvailable] = useState(false); // Re-added this state
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false); // Track if we've finished initializing
 
   // Handle installation button click
   const handleInstallClick = async () => {
@@ -84,10 +84,7 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    console.log('[PWA Install] Initializing PWA functionality');
-
-    // Initialize PWA event listeners
-    initPwaEventListeners();
+    console.log('[PWA Install] Checking PWA status');
 
     // Detect iOS devices
     const ua = window.navigator.userAgent.toLowerCase();
@@ -126,8 +123,32 @@ export function PwaInstallGuide({ className, fullButton = false }: PwaInstallGui
     };
     }, []);
 
+  // Set initialized after checking status to prevent layout shifts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasInitialized(true);
+    }, 100); // Small delay to ensure all checks are complete
+    
+    return () => clearTimeout(timer);
+  }, [appInstalled, promptAvailable, isIOS]);
+
   // Don't show the button if the app is already installed
   // Also, don't show if no prompt is available (unless it's iOS, where we give instructions)
+  // Return invisible placeholder during initialization to prevent layout shifts
+  if (!hasInitialized) {
+    return (
+      <div 
+        className={cn("gap-2", fullButton ? "w-full" : "", className)}
+        style={{ 
+          height: fullButton ? '40px' : '36px', 
+          width: fullButton ? '100%' : '100px',
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      />
+    );
+  }
+  
   if (appInstalled || (!promptAvailable && !isIOS)) {
     return null;
   }

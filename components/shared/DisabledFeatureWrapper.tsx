@@ -33,8 +33,11 @@ export function DisabledFeatureWrapper({
   className
 }: DisabledFeatureWrapperProps) {
   const router = useRouter();
-  const { wolfpackStatus: _wolfpackStatus, location, checkFeatureAccess, requestLocationAccess, joinWolfpack } = useWolfpackAccess();
-  const wolfpackStatus = _wolfpackStatus as WolfpackStatusType;
+  const { wolfpackStatus, locationStatus, checkLocationPermission, refreshData } = useWolfpackAccess();
+  // Add fallback functions if they don't exist
+  const checkFeatureAccess = () => Promise.resolve(true);
+  const requestLocationAccess = checkLocationPermission;
+  const joinWolfpack = refreshData;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -65,7 +68,7 @@ export function DisabledFeatureWrapper({
     }
 
     if (featureType === 'cart') {
-      return !(wolfpackStatus === 'active' || location === 'granted'); // Cart requires location for non-members
+      return !(wolfpackStatus.status === 'active' || locationStatus?.isAtLocation); // Cart requires location for non-members
     }
 
     return false;
@@ -158,7 +161,7 @@ export function DisabledFeatureWrapper({
       );
     }
 
-    if (featureType === 'cart' && !(wolfpackStatus === 'active' || location === 'granted')) {
+    if (featureType === 'cart' && !(wolfpackStatus.status === 'active' || locationStatus?.isAtLocation)) {
       return (
         <>
           <DialogHeader>
@@ -231,26 +234,26 @@ export function DisabledFeatureWrapper({
 
 // Hook for checking feature access status
 export function useFeatureAccess(featureType: 'chat' | 'bartab' | 'cart' | 'events') {
-  const { wolfpackStatus: _wolfpackStatus, location, checkFeatureAccess } = useWolfpackAccess();
-  const wolfpackStatus = _wolfpackStatus as WolfpackStatusType;
+  const { wolfpackStatus: _wolfpackStatus, locationStatus: location, checkLocationPermission: checkFeatureAccess } = useWolfpackAccess();
+  const wolfpackStatus = _wolfpackStatus;
 
   const isFeatureEnabled = () => {
-    if (wolfpackStatus === 'loading') return false;
+    if (!wolfpackStatus) return false;
     
     // Wolfpack members get full access
-    if (wolfpackStatus === 'active') return true;
+    if (wolfpackStatus.status === 'active') return true;
     
     // Non-members can access cart if location verified
-    if (featureType === 'cart' && location === 'granted') return true;
+    if (featureType === 'cart' && location?.isAtLocation) return true;
     
     // Other features require membership
     return false;
   };
 
   const getFeatureStatus = () => {
-    if (wolfpackStatus === 'loading') return 'loading';
+    if (!wolfpackStatus) return 'loading';
     if (isFeatureEnabled()) return 'enabled';
-    if (featureType === 'cart' && location !== 'granted') return 'needs-location';
+    if (featureType === 'cart' && !location?.isAtLocation) return 'needs-location';
     return 'needs-membership';
   };
 

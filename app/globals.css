@@ -22,6 +22,25 @@
   .animate-hex-glow {
     animation: hexGlow 3s ease-in-out infinite alternate;
   }
+  
+  /* Prevent layout shifts by providing content-visibility hints */
+  .layout-stable {
+    contain: layout style;
+  }
+  
+  /* Image loading optimization to prevent layout shifts */
+  img {
+    height: auto;
+  }
+  
+  img[width][height] {
+    height: auto;
+  }
+  
+  /* Smooth transitions for dynamic content to reduce perceived layout shifts */
+  .smooth-transition {
+    transition: all 0.2s ease-in-out;
+  }
 }
 
 @keyframes animateIn {
@@ -78,6 +97,11 @@
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
+    
+    /* Navigation heights for responsive layout */
+    --top-nav-height: 80px;
+    --bottom-nav-height: 64px;
+    --chat-header-height: 88px;
     
     /* Wolfpack specific variables */
     --wolfpack-dj: 262.1 83.3% 57.8%;
@@ -171,6 +195,104 @@
 }
 
 @layer components {
+  /* Safe area utilities for responsive layout */
+  .safe-top {
+    padding-top: var(--top-nav-height);
+  }
+  
+  .safe-bottom {
+    padding-bottom: var(--bottom-nav-height);
+  }
+  
+  .safe-both {
+    padding-top: var(--top-nav-height);
+    padding-bottom: var(--bottom-nav-height);
+  }
+  
+  /* iOS safe area utilities */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-inset-all {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Chat-specific responsive layout */
+  .chat-container {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+    padding-top: var(--chat-header-height);
+    padding-bottom: calc(var(--bottom-nav-height) + 1rem);
+    padding-bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  
+  .chat-viewport {
+    position: fixed;
+    top: var(--chat-header-height);
+    bottom: var(--bottom-nav-height);
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+  }
+  
+  /* Full viewport chat layout */
+  .chat-fullscreen {
+    position: relative;
+    width: 100vw;
+    width: 100dvw; /* Dynamic viewport width for mobile */
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    overflow: hidden;
+  }
+  
+  .chat-header-fixed {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: 40;
+    height: var(--chat-header-height);
+  }
+  
+  .chat-content-area {
+    position: absolute;
+    top: calc(var(--chat-header-height) + 1rem);
+    bottom: calc(var(--bottom-nav-height) + 6rem);
+    left: 0;
+    right: 0;
+    overflow: visible;
+  }
+  
+  .chat-input-area {
+    position: fixed;
+    bottom: var(--bottom-nav-height);
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 1rem;
+    padding-left: calc(1rem + env(safe-area-inset-left));
+    padding-right: calc(1rem + env(safe-area-inset-right));
+  }
+  
   /* Bottom navigation spacing - ensures content never scrolls behind fixed nav */
   .bottom-nav-safe {
     padding-bottom: 5rem; /* 80px - enough space for 64px nav + 16px breathing room */

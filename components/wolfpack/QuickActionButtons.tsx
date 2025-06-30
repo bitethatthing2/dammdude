@@ -13,7 +13,7 @@ import { useState } from 'react';
 
 export function QuickActionButtons() {
   const router = useRouter();
-  const { canCheckout } = useWolfpackAccess();
+  const { isMember: canCheckout } = useWolfpackAccess();
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
 
   const handleDirections = () => {

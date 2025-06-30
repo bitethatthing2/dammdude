@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -12,7 +13,6 @@ interface BroadcastRequest {
   location_id: string;
   broadcast_type?: 'announcement' | 'howl_request' | 'contest_announcement' | 'song_request' | 'general';
   priority?: 'low' | 'normal' | 'high' | 'urgent';
-  expires_at?: string;
 }
 
 interface UserData {
@@ -54,12 +54,28 @@ interface BroadcastResponse {
   created_at: string;
   message: string;
   broadcast_type: string;
-  expires_at?: string;
 }
 
 interface ErrorResponse {
   error: string;
   code: string;
+}
+
+interface BroadcastWithUser {
+  id: string;
+  message: string;
+  broadcast_type: string;
+  created_at: string;
+  users: {
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+}
+
+interface GetBroadcastsResponse {
+  broadcasts: BroadcastWithUser[];
+  total: number;
 }
 
 // =============================================================================
@@ -97,23 +113,12 @@ function sanitizeMessage(message: string): string {
     .replace(/\s+/g, ' '); // Normalize whitespace
 }
 
-function validateExpiryTime(expiresAt: string): boolean {
-  try {
-    const expiryDate = new Date(expiresAt);
-    const now = new Date();
-    const maxExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
-    
-    return expiryDate > now && expiryDate <= maxExpiry;
-  } catch {
-    return false;
-  }
-}
 
 // =============================================================================
 // AUTHENTICATION & AUTHORIZATION
 // =============================================================================
 
-async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>): Promise<User> {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
@@ -123,9 +128,9 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
   return user;
 }
 
-async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserData> {
+async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, user: User): Promise<UserData> {
   // Verify user through auth service
-  const authResult = await WolfpackAuthService.verifyUser({ id: userId } as any);
+  const authResult = await WolfpackAuthService.verifyUser(user);
   if (!authResult.isVerified) {
     throw new Error('User verification failed');
   }
@@ -134,7 +139,7 @@ async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createCli
   const { data: userData, error } = await supabase
     .from('users')
     .select('id, role, display_name, first_name, last_name, avatar_url, email')
-    .eq('id', userId)
+    .eq('id', user.id)
     .single();
 
   if (error || !userData) {
@@ -186,16 +191,14 @@ async function createBroadcast(
   userId: string, 
   locationId: string, 
   message: string, 
-  broadcastType: string,
-  expiresAt?: string
+  broadcastType: string
 ): Promise<BroadcastData> {
   const broadcastData = {
     dj_id: userId,
     location_id: locationId,
     message: sanitizeMessage(message),
     broadcast_type: broadcastType,
-    created_at: new Date().toISOString(),
-    expires_at: expiresAt || null
+    created_at: new Date().toISOString()
   };
 
   const result = await WolfpackBackendService.insert(
@@ -246,7 +249,7 @@ async function createChatMessage(
     }
 
     return result.data[0] as ChatData;
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn('Error creating chat message:', error);
     return null;
   }
@@ -323,8 +326,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       message, 
       location_id, 
       broadcast_type = 'general',
-      priority = 'normal',
-      expires_at
+      priority = 'normal'
     } = body;
 
     // 4. Input validation
@@ -370,15 +372,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       );
     }
 
-    if (expires_at && !validateExpiryTime(expires_at)) {
-      return NextResponse.json(
-        { error: 'Expiry time must be in the future and within 24 hours', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
-    }
-
     // 5. Authorization
-    const userData = await verifyDJPermissions(supabase, user.id);
+    const userData = await verifyDJPermissions(supabase, user);
 
     // 6. Validate location access
     const hasLocationAccess = await validateLocationAccess(supabase, location_id);
@@ -401,8 +396,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       user.id, 
       location_id, 
       message, 
-      broadcast_type,
-      expires_at
+      broadcast_type
     );
 
     // 9. Create chat message (non-blocking)
@@ -425,11 +419,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       chat_message_id: chatRecord?.id || null,
       created_at: broadcastRecord.created_at,
       message: broadcastRecord.message,
-      broadcast_type: broadcastRecord.broadcast_type,
-      ...(expires_at && { expires_at })
+      broadcast_type: broadcastRecord.broadcast_type
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('DJ broadcast error:', error);
     
     // Handle specific error types
@@ -463,8 +456,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       }
     }
 
+    // Create a proper error object for WolfpackErrorHandler
+    const errorToHandle = error instanceof Error ? error : new Error(
+      typeof error === 'string' ? error : 'Unknown error occurred'
+    );
+
     // Handle Supabase errors
-    const userError = WolfpackErrorHandler.handleSupabaseError(error as any, {
+    const userError = WolfpackErrorHandler.handleSupabaseError(errorToHandle, {
       operation: 'dj_broadcast'
     });
 
@@ -479,7 +477,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
 // GET BROADCASTS (Optional endpoint for fetching recent broadcasts)
 // =============================================================================
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse<GetBroadcastsResponse | ErrorResponse>> {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -487,7 +485,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
     // Authentication
-    const user = await authenticateUser(supabase);
+    await authenticateUser(supabase);
 
     if (!locationId || !validateUUID(locationId)) {
       return NextResponse.json(
@@ -504,7 +502,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         message,
         broadcast_type,
         created_at,
-        expires_at,
         users:dj_id (
           display_name,
           first_name,
@@ -512,7 +509,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         )
       `)
       .eq('location_id', locationId)
-      .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false })
       .limit(Math.min(limit, 50)); // Cap at 50
 
@@ -520,12 +516,41 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       throw error;
     }
 
+    // Safely type the response data
+    const typedBroadcasts: BroadcastWithUser[] = [];
+    
+    if (broadcasts) {
+      for (const broadcast of broadcasts) {
+        // Type guard to ensure the data matches our expected structure
+        if (
+          broadcast &&
+          typeof broadcast === 'object' &&
+          'id' in broadcast &&
+          'message' in broadcast &&
+          'broadcast_type' in broadcast &&
+          'created_at' in broadcast
+        ) {
+          typedBroadcasts.push({
+            id: broadcast.id as string,
+            message: broadcast.message as string,
+            broadcast_type: broadcast.broadcast_type as string,
+            created_at: broadcast.created_at as string,
+            users: broadcast.users as {
+              display_name: string | null;
+              first_name: string | null;
+              last_name: string | null;
+            } | null
+          });
+        }
+      }
+    }
+
     return NextResponse.json({
-      broadcasts: broadcasts || [],
-      total: broadcasts?.length || 0
+      broadcasts: typedBroadcasts,
+      total: typedBroadcasts.length
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Get broadcasts error:', error);
     
     if (error instanceof Error && error.message === 'Authentication required') {

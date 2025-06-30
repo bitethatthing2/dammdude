@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Reset wolfpack memberships to inactive (but don't delete them)
     const membershipResetResult = await WolfpackBackendService.update(
-      WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
+      WOLFPACK_TABLES.wolfpack_memberships,
       {
         ...locationFilter,
         status: 'active'

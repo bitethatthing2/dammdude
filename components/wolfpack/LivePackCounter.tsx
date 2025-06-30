@@ -1,211 +1,244 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Users, TrendingUp, MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { Users, Wifi, WifiOff } from 'lucide-react';
 
-interface LivePackCounterProps {
-  locationId?: string;
+interface PackCounterProps {
+  locationId?: string | null;
+  className?: string;
+  showLocation?: boolean;
+  variant?: 'default' | 'compact' | 'badge';
 }
 
-interface WolfPackStats {
-  totalMembers: number;
-  activeMembers: number;
-  locationName: string;
+interface PackMember {
+  id: string;
+  display_name: string;
+  wolfpack_status: string;
+  is_online: boolean;
+  last_activity: string;
 }
 
-export function LivePackCounter({ locationId }: LivePackCounterProps) {
-  const [stats, setStats] = useState<WolfPackStats>({
-    totalMembers: 0,
-    activeMembers: 0,
-    locationName: 'All Locations'
-  });
+export default function LivePackCounter({ 
+  locationId, 
+  className = '',
+  showLocation = false,
+  variant = 'default'
+}: PackCounterProps) {
+  const [memberCount, setMemberCount] = useState<number>(0);
+  const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [locationName, setLocationName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(true);
+  const [members, setMembers] = useState<PackMember[]>([]);
 
+  // Load pack member count
   useEffect(() => {
-    async function fetchStats() {
+    async function loadPackCount() {
       try {
         setIsLoading(true);
-        
-        // Fetch total members
-        let totalQuery = supabase
-          .from("wolf_pack_members")
-          .select('id', { count: 'exact' });
-        
-        // Handle location filter correctly - avoid NULL query issues
-        if (locationId === null || locationId === undefined) {
-          totalQuery = totalQuery.is('location_id', null);
-        } else if (locationId) {
-          totalQuery = totalQuery.eq('location_id', locationId);
-        }
-        
-        const { count: totalCount } = await totalQuery;
-        
-        // Fetch active members
-        let activeQuery = supabase
-          .from("wolf_pack_members")
-          .select('id', { count: 'exact' })
-          .eq('status', 'active');
-        
-        // Handle location filter correctly for active query too
-        if (locationId === null || locationId === undefined) {
-          activeQuery = activeQuery.is('location_id', null);
-        } else if (locationId) {
-          activeQuery = activeQuery.eq('location_id', locationId);
-        }
-        
-        const { count: activeCount } = await activeQuery;
-        
-        // Fetch location name if specific location
-        let locationName = 'All Locations';
+
+        // Build query for active wolfpack members
+        let query = supabase
+          .from('users')
+          .select(`
+            id, 
+            display_name, 
+            first_name, 
+            last_name,
+            wolfpack_status, 
+            is_online, 
+            last_activity,
+            location_id
+          `)
+          .eq('is_wolfpack_member', true)
+          .eq('wolfpack_status', 'active');
+
+        // Filter by location if provided
         if (locationId) {
-          const { data: locationData } = await supabase
+          query = query.eq('location_id', locationId);
+        }
+
+        const { data: packMembers, error } = await query;
+
+        if (error) {
+          console.error('Error loading pack count:', error);
+          setIsConnected(false);
+          return;
+        }
+
+        // Process member data
+        const processedMembers: PackMember[] = packMembers?.map(member => ({
+          id: member.id,
+          display_name: member.display_name || member.first_name || member.last_name || 'Pack Member',
+          wolfpack_status: member.wolfpack_status,
+          is_online: member.is_online || false,
+          last_activity: member.last_activity || new Date().toISOString()
+        })) || [];
+
+        setMembers(processedMembers);
+        setMemberCount(processedMembers.length);
+        setOnlineCount(processedMembers.filter(m => m.is_online).length);
+        setIsConnected(true);
+
+        // Load location name if needed and provided
+        if (locationId && showLocation) {
+          const { data: location } = await supabase
             .from('locations')
             .select('name')
             .eq('id', locationId)
             .single();
           
-          if (locationData) {
-            locationName = locationData.name;
+          if (location) {
+            setLocationName(location.name);
           }
         }
-        
-        setStats({
-          totalMembers: totalCount || 0,
-          activeMembers: activeCount || 0,
-          locationName
-        });
+
       } catch (error) {
-        console.error('Error fetching pack stats:', error);
+        console.error('Error in loadPackCount:', error);
+        setIsConnected(false);
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchStats();
+    loadPackCount();
+  }, [locationId, showLocation]);
 
-    // Set up real-time subscriptions
-    const subscription = supabase
-      .channel('pack_stats')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'wolfpack_memberships'
-      }, () => {
-        fetchStats();
-      })
+  // Set up real-time subscription for member count updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('pack-count-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'users',
+          filter: 'is_wolfpack_member=eq.true'
+        },
+        (payload) => {
+          console.log('Pack member update:', payload);
+          // Reload count on any wolfpack member changes
+          loadPackCount();
+        }
+      )
       .subscribe();
 
+    // Cleanup subscription
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [locationId]);
 
+  // Reload count function for real-time updates
+  const loadPackCount = async () => {
+    try {
+      let query = supabase
+        .from('users')
+        .select('id, is_online, wolfpack_status')
+        .eq('is_wolfpack_member', true)
+        .eq('wolfpack_status', 'active');
+
+      if (locationId) {
+        query = query.eq('location_id', locationId);
+      }
+
+      const { data } = await query;
+      
+      if (data) {
+        setMemberCount(data.length);
+        setOnlineCount(data.filter(m => m.is_online).length);
+        setIsConnected(true);
+      }
+    } catch (error) {
+      console.error('Error reloading pack count:', error);
+      setIsConnected(false);
+    }
+  };
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded w-32"></div>
-          <div className="h-12 bg-gray-700 rounded w-24"></div>
+      <div className={`inline-flex items-center gap-2 ${className}`}>
+        <div className="animate-pulse flex items-center gap-2">
+          <Users className="h-4 w-4 text-gray-400" />
+          <span className="text-sm text-gray-400">Loading...</span>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl p-6 border border-gray-800">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-orange-500" />
-          <h3 className="text-lg font-semibold text-white">Wolf Pack Stats</h3>
-        </div>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          style={{ width: '0.5rem', height: '0.5rem', backgroundColor: '#22c55e', borderRadius: '9999px' }}
-        />
+  // Render variants
+  if (variant === 'badge') {
+    return (
+      <div className={`inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium ${className}`}>
+        <Users className="h-3 w-3" />
+        <span>{memberCount}</span>
+        {!isConnected && <WifiOff className="h-3 w-3 text-red-500" />}
       </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        {/* Total Members */}
-        <div className="bg-gray-800/50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-gray-400" />
-            <p className="text-sm text-gray-400">Total Pack</p>
-          </div>
-          <motion.div
-            key={stats.totalMembers}
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 10 }}
-          >
-            <span className="text-4xl font-extrabold text-white">{stats.totalMembers}</span>
-          </motion.div>
+    );
+  }
+
+  if (variant === 'compact') {
+    return (
+      <div className={`inline-flex items-center gap-2 ${className}`}>
+        <div className="flex items-center gap-1">
+          <Users className="h-4 w-4 text-gray-600" />
+          <span className="text-sm font-medium">{memberCount}</span>
         </div>
-        
-        {/* Active Members */}
-        <div className="bg-gray-800/50 rounded-lg p-4 relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-2">
+        {onlineCount > 0 && (
+          <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <p className="text-sm text-gray-400">Active Now</p>
+            <span className="text-xs text-gray-500">{onlineCount} online</span>
           </div>
-          <div className="relative">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <span className="text-3xl font-bold text-orange-500">{stats.activeMembers}</span>
-            </motion.div>
-            {stats.activeMembers > 0 && (
-              <motion.div
-                style={{ position: "absolute", inset: 0, zIndex: -10 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <motion.div
-                  style={{ width: '100%', height: '100%' }}
-                  animate={{ 
-                    scale: [1, 1.5, 1],
-                    opacity: [0.5, 0.2, 0.5]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  <div className="w-full h-full bg-orange-500/20 rounded-full blur-lg" />
-                </motion.div>
-              </motion.div>
-            )}
+        )}
+        {!isConnected && <WifiOff className="h-4 w-4 text-red-500" />}
+      </div>
+    );
+  }
+
+  // Default variant
+  return (
+    <div className={`inline-flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border ${className}`}>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+          <Users className="h-4 w-4 text-blue-600" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-gray-900">{memberCount}</span>
+            <span className="text-sm text-gray-500">wolves</span>
           </div>
+          {showLocation && locationName && (
+            <div className="text-xs text-gray-400">
+              at {locationName}
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* Location Info */}
-      <div className="mt-4 pt-4 border-t border-gray-800">
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <MapPin className="h-4 w-4" />
-          <span>{stats.locationName}</span>
+
+      {/* Online indicator */}
+      {onlineCount > 0 && (
+        <div className="flex items-center gap-1 text-green-600">
+          <Wifi className="h-4 w-4" />
+          <span className="text-sm font-medium">{onlineCount} online</span>
         </div>
-      </div>
-      
-      {/* Growth Indicator */}
-      {stats.totalMembers > 0 && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-            <span>Pack Activity</span>
-            <span>{Math.round((stats.activeMembers / stats.totalMembers) * 100)}%</span>
-          </div>
-          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-            <motion.div
-              style={{
-                height: '100%',
-                background: 'linear-gradient(to right, #f97316, #ef4444)',
-                borderRadius: '9999px'
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: `${(stats.activeMembers / stats.totalMembers) * 100}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-            />
-          </div>
+      )}
+
+      {/* Connection status */}
+      {!isConnected && (
+        <div className="flex items-center gap-1 text-red-500">
+          <WifiOff className="h-4 w-4" />
+          <span className="text-xs">Offline</span>
+        </div>
+      )}
+
+      {/* Live indicator */}
+      {isConnected && memberCount > 0 && (
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-xs text-gray-500 font-medium">LIVE</span>
         </div>
       )}
     </div>

@@ -26,7 +26,7 @@ typeFiles.forEach(filePath => {
       'wolfpack_bar_tabs', 
       'bartenders',
       'wolf_profiles',
-      'wolfpack_members_unified',
+      'wolfpack_members',
       'bartender_quick_replies'
     ];
     
