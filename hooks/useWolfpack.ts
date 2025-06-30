@@ -10,7 +10,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  id: string | null;
+  user_id: string | null;
   display_name: string;
   avatar_url: string | null;
   content: string;
@@ -25,19 +25,9 @@ interface DatabaseChatMessage {
 interface DatabaseChatReaction {
   id: string;
   message_id: string | null;
-  id: string | null;
+  user_id: string | null;
   emoji: string;
   created_at: string | null;
-}
-
-interface DatabaseWolfPackMember {
-  id: string;
-  id: string;
-  location_id: string;
-  status: string;
-  last_activity: string | null;
-  created_at: string | null;
-  updated_at: string | null;
 }
 
 interface DatabaseUser {
@@ -47,6 +37,9 @@ interface DatabaseUser {
   last_name: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  profile_pic_url: string | null;
+  profile_image_url: string | null;
+  wolf_emoji: string | null;
   role: string;
   location_id: string | null;
   is_wolfpack_member: boolean | null;
@@ -58,9 +51,14 @@ interface DatabaseUser {
   session_id: string | null;
   last_activity: string;
   is_online: boolean | null;
+  status: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
   auth_id: string | null;
+  vibe_status: string | null;
+  bio: string | null;
+  favorite_drink: string | null;
 }
 
 interface DatabaseEvent {
@@ -82,8 +80,6 @@ interface DatabaseEvent {
   options: unknown | null;
 }
 
-// Remove the unused DatabaseSession interface completely since it's not used anywhere
-
 // =============================================================================
 // SECURITY AND VALIDATION CONSTANTS
 // =============================================================================
@@ -102,7 +98,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 export interface WolfChatMessage {
   id: string;
   session_id: string;
-  id: string;
+  user_id: string;
   display_name: string;
   avatar_url?: string;
   content: string;
@@ -116,14 +112,14 @@ export interface WolfChatMessage {
 export interface MessageReaction {
   id: string;
   message_id: string;
-  id: string;
+  user_id: string;
   emoji: string;
   created_at: string;
 }
 
 export interface WolfPackMember {
   id: string;
-  id: string;
+  user_id: string;
   location_id: string | null;
   status: 'active' | 'inactive' | 'suspended';
   joined_at: string;
@@ -274,11 +270,11 @@ class RateLimiter {
 // ADAPTER FUNCTIONS - Perfect database alignment
 // =============================================================================
 
-function adaptDatabaseChatMessage(dbMessage: DatabaseChatMessage): WolfChatMessage {
+function adaptDatabaseChatMessage(dbMessage: Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; }): WolfChatMessage {
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
-    id: dbMessage.id || '',
+    user_id: dbMessage.user_id || '',
     display_name: dbMessage.display_name,
     avatar_url: dbMessage.avatar_url || undefined,
     content: dbMessage.content,
@@ -290,31 +286,31 @@ function adaptDatabaseChatMessage(dbMessage: DatabaseChatMessage): WolfChatMessa
   };
 }
 
-function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReaction {
+function adaptDatabaseReaction(dbReaction: Partial<DatabaseChatReaction> & { id: string; emoji: string; }): MessageReaction {
   return {
     id: dbReaction.id,
     message_id: dbReaction.message_id || '',
-    id: dbReaction.id || '',
+    user_id: dbReaction.user_id || '',
     emoji: dbReaction.emoji,
     created_at: dbReaction.created_at || new Date().toISOString()
   };
 }
 
-function adaptDatabaseMember(dbMember: DatabaseWolfPackMember, userInfo?: DatabaseUser): WolfPackMember {
+function adaptDatabaseMember(dbUser: Partial<DatabaseUser> & { id: string; created_at: string; }): WolfPackMember {
   return {
-    id: dbMember.id,
-    id: dbMember.id,
-    location_id: dbMember.location_id,
-    status: (dbMember.status as 'active' | 'inactive' | 'suspended') || 'active',
-    joined_at: dbMember.created_at || new Date().toISOString(),
-    display_name: userInfo?.display_name || `${userInfo?.first_name || ''} ${userInfo?.last_name || ''}`.trim() || undefined,
-    avatar_url: userInfo?.avatar_url || undefined,
-    last_activity: dbMember.last_activity || undefined,
-    is_online: userInfo?.is_online ?? false
+    id: dbUser.id,
+    user_id: dbUser.id,
+    location_id: dbUser.location_id || null,
+    status: (dbUser.wolfpack_status === 'active' ? 'active' : 'inactive') as 'active' | 'inactive' | 'suspended',
+    joined_at: dbUser.wolfpack_joined_at || dbUser.created_at,
+    display_name: dbUser.display_name || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || undefined,
+    avatar_url: dbUser.profile_image_url || dbUser.profile_pic_url || dbUser.avatar_url || undefined,
+    last_activity: dbUser.last_activity || undefined,
+    is_online: dbUser.is_online ?? false
   };
 }
 
-function adaptDatabaseEvent(dbEvent: DatabaseEvent): DJEvent {
+function adaptDatabaseEvent(dbEvent: Partial<DatabaseEvent> & { id: string; event_type: string; title: string; }): DJEvent {
   return {
     id: dbEvent.id,
     dj_id: dbEvent.dj_id || '',
@@ -512,26 +508,42 @@ export function useWolfpack(
       const messageIds = messagesData?.map(m => m.id) || [];
       const { data: reactionsData } = messageIds.length > 0 ? await supabase
         .from('wolfpack_chat_reactions')
-        .select('*')
+        .select('id, message_id, user_id, emoji, created_at')
         .in('message_id', messageIds) : { data: [] };
 
-      // Load active wolfpack members with user info
+      // Load active wolfpack members from users table
       const { data: membersData, error: membersError } = await supabase
-        .from('wolf_pack_members')
+        .from('users')
         .select(`
-          *,
-          users:id (
-            id,
-            display_name,
-            first_name,
-            last_name,
-            avatar_url,
-            is_online,
-            last_activity
-          )
+          id,
+          email,
+          display_name,
+          first_name,
+          last_name,
+          avatar_url,
+          profile_pic_url,
+          profile_image_url,
+          wolf_emoji,
+          role,
+          location_id,
+          is_wolfpack_member,
+          wolfpack_status,
+          wolfpack_joined_at,
+          wolfpack_tier,
+          is_permanent_pack_member,
+          is_online,
+          last_activity,
+          vibe_status,
+          bio,
+          favorite_drink,
+          status,
+          created_at
         `)
         .eq('location_id', locationId)
-        .eq('status', 'active');
+        .eq('is_wolfpack_member', true)
+        .eq('wolfpack_status', 'active')
+        .eq('status', 'active')
+        .is('deleted_at', null);
 
       if (membersError) throw membersError;
 
@@ -548,19 +560,17 @@ export function useWolfpack(
       // Process messages with reactions
       const messagesWithReactions = (messagesData || []).map(message => {
         const messageReactions = (reactionsData || [])
-          .filter(r => r.message_id === message.id)
-          .map(adaptDatabaseReaction);
+          .filter(r => typeof r === 'object' && r !== null && 'message_id' in r && (r as DatabaseChatReaction).message_id === message.id)
+          .map(r => adaptDatabaseReaction(r as DatabaseChatReaction));
         
         return {
-          ...adaptDatabaseChatMessage(message),
+          ...adaptDatabaseChatMessage(message as DatabaseChatMessage),
           reactions: messageReactions
         };
       });
 
-      // Process members with user info
-      const processedMembers = (membersData || []).map(member => 
-        adaptDatabaseMember(member, member.users as DatabaseUser)
-      );
+      // Process members from users table
+      const processedMembers = (membersData || []).map(member => adaptDatabaseMember(member as DatabaseUser));
 
       // Calculate stats
       const onlineMembers = processedMembers.filter(m => m.is_online).length;
@@ -613,7 +623,7 @@ export function useWolfpack(
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          const newMessage = adaptDatabaseChatMessage(payload.new as DatabaseChatMessage);
+          const newMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
             messages: [newMessage, ...prev.messages]
@@ -630,7 +640,7 @@ export function useWolfpack(
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          const updatedMessage = adaptDatabaseChatMessage(payload.new as DatabaseChatMessage);
+          const updatedMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -655,7 +665,7 @@ export function useWolfpack(
           table: 'wolfpack_chat_reactions'
         },
         (payload) => {
-          const newReaction = adaptDatabaseReaction(payload.new as DatabaseChatReaction);
+          const newReaction = adaptDatabaseReaction(payload.new as Partial<DatabaseChatReaction> & { id: string; emoji: string; });
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -674,7 +684,7 @@ export function useWolfpack(
           table: 'wolfpack_chat_reactions'
         },
         (payload) => {
-          const deletedReaction = adaptDatabaseReaction(payload.old as DatabaseChatReaction);
+          const deletedReaction = adaptDatabaseReaction(payload.old as Partial<DatabaseChatReaction> & { id: string; emoji: string; });
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -690,7 +700,7 @@ export function useWolfpack(
       )
       .subscribe();
 
-    // Members subscription
+    // Members subscription - watch users table
     const membersChannel = supabase
       .channel(`wolfpack_members_${locationId}`)
       .on(
@@ -698,7 +708,7 @@ export function useWolfpack(
         {
           event: '*',
           schema: 'public',
-          table: 'wolf_pack_members',
+          table: 'users',
           filter: `location_id=eq.${locationId}`
         },
         () => {
@@ -721,13 +731,13 @@ export function useWolfpack(
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
+            const newEvent = adaptDatabaseEvent(payload.new as Partial<DatabaseEvent> & { id: string; event_type: string; title: string; });
             setState(prev => ({
               ...prev,
               events: [newEvent, ...prev.events]
             }));
           } else if (payload.eventType === 'UPDATE') {
-            const updatedEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
+            const updatedEvent = adaptDatabaseEvent(payload.new as Partial<DatabaseEvent> & { id: string; event_type: string; title: string; });
             setState(prev => ({
               ...prev,
               events: prev.events.map(event =>
@@ -735,7 +745,7 @@ export function useWolfpack(
               )
             }));
           } else if (payload.eventType === 'DELETE') {
-            const deletedEvent = adaptDatabaseEvent(payload.old as DatabaseEvent);
+            const deletedEvent = adaptDatabaseEvent(payload.old as Partial<DatabaseEvent> & { id: string; event_type: string; title: string; });
             setState(prev => ({
               ...prev,
               events: prev.events.filter(event => event.id !== deletedEvent.id)
@@ -788,7 +798,7 @@ export function useWolfpack(
         .from('wolfpack_chat_messages')
         .insert({
           session_id: sessionId,
-          id: authUser.id,
+          user_id: authUser.id,
           display_name: SecurityValidator.sanitizeDisplayName(displayName),
           avatar_url: authUser.profile?.avatar_url,
           content: sanitizedContent,
@@ -829,7 +839,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .select('id')
         .eq('message_id', messageId)
-        .eq('id', authUser.id)
+        .eq('user_id', authUser.id)
         .eq('emoji', emoji)
         .single();
 
@@ -841,7 +851,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .insert({
           message_id: messageId,
-          id: authUser.id,
+          user_id: authUser.id,
           emoji
         });
 
@@ -867,7 +877,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .delete()
         .eq('id', reactionId)
-        .eq('id', authUser.id);
+        .eq('user_id', authUser.id);
 
       return { success: !error, error: error?.message };
     } catch (error) {
@@ -887,45 +897,21 @@ export function useWolfpack(
         return { success: false, error: 'Invalid location ID' };
       }
 
-      // Check if already a member
-      const { data: existingMember } = await supabase
-        .from('wolf_pack_members')
-        .select('id')
-        .eq('id', authUser.id)
-        .eq('location_id', locationId)
-        .eq('status', 'active')
-        .single();
-
-      if (existingMember) {
-        return { success: false, error: 'Already a member of this wolfpack' };
-      }
-
-      // Insert new wolfpack member
-      const { error: memberError } = await supabase
-        .from('wolf_pack_members')
-        .insert({
-          id: authUser.id,
+      // Update user to be a wolfpack member
+      const { error } = await supabase
+        .from('users')
+        .update({
+          is_wolfpack_member: true,
+          wolfpack_status: 'active',
+          wolfpack_joined_at: new Date().toISOString(),
           location_id: locationId,
-          status: 'active'
-        });
+          display_name: profileData?.display_name ? 
+            SecurityValidator.sanitizeDisplayName(profileData.display_name) : undefined
+        })
+        .eq('auth_id', authUser.id);
 
-      if (memberError) {
-        return { success: false, error: memberError.message };
-      }
-
-      // Update user profile if profileData is provided
-      if (profileData?.display_name) {
-        const { error: profileError } = await supabase
-          .from('users')
-          .update({
-            display_name: SecurityValidator.sanitizeDisplayName(profileData.display_name)
-          })
-          .eq('auth_id', authUser.id);
-
-        // Don't fail the join if profile update fails, just log it
-        if (profileError) {
-          console.warn('Profile update failed during wolfpack join:', profileError);
-        }
+      if (error) {
+        return { success: false, error: error.message };
       }
 
       setState(prev => ({
@@ -953,9 +939,12 @@ export function useWolfpack(
       }
 
       const { error } = await supabase
-        .from('wolf_pack_members')
-        .update({ status: 'inactive' })
-        .eq('id', authUser.id);
+        .from('users')
+        .update({ 
+          wolfpack_status: 'inactive',
+          is_wolfpack_member: false 
+        })
+        .eq('auth_id', authUser.id);
 
       return { success: !error, error: error?.message };
     } catch (error) {
@@ -1017,37 +1006,37 @@ export function useTypingIndicators(sessionId: string | null) {
     const channel = supabase
       .channel(`typing_${sessionId}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
-        const { id, display_name, isTyping } = payload.payload as {
-          id: string;
+        const { user_id, display_name, isTyping } = payload.payload as {
+          user_id: string;
           display_name: string;
           isTyping: boolean;
         };
 
         if (isTyping) {
-          setTypingUsers(prev => ({ ...prev, [id]: display_name }));
+          setTypingUsers(prev => ({ ...prev, [user_id]: display_name }));
           
-          if (typingTimeoutRef.current[id]) {
-            clearTimeout(typingTimeoutRef.current[id]);
+          if (typingTimeoutRef.current[user_id]) {
+            clearTimeout(typingTimeoutRef.current[user_id]);
           }
           
-          typingTimeoutRef.current[id] = setTimeout(() => {
+          typingTimeoutRef.current[user_id] = setTimeout(() => {
             setTypingUsers(prev => {
               const newState = { ...prev };
-              delete newState[id];
+              delete newState[user_id];
               return newState;
             });
-            delete typingTimeoutRef.current[id];
+            delete typingTimeoutRef.current[user_id];
           }, 3000);
         } else {
           setTypingUsers(prev => {
             const newState = { ...prev };
-            delete newState[id];
+            delete newState[user_id];
             return newState;
           });
           
-          if (typingTimeoutRef.current[id]) {
-            clearTimeout(typingTimeoutRef.current[id]);
-            delete typingTimeoutRef.current[id];
+          if (typingTimeoutRef.current[user_id]) {
+            clearTimeout(typingTimeoutRef.current[user_id]);
+            delete typingTimeoutRef.current[user_id];
           }
         }
       })
@@ -1068,7 +1057,7 @@ export function useTypingIndicators(sessionId: string | null) {
       .send({
         type: 'broadcast',
         event: 'typing',
-        payload: { id: userId, display_name: displayName, isTyping }
+        payload: { user_id: userId, display_name: displayName, isTyping }
       });
   }, [sessionId]);
 
