@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { WolfpackMembershipService } from '@/lib/services/wolfpack-membership.service';
 import { WolfpackLocationService } from '@/lib/services/wolfpack-location.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
+import { WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 
 export async function POST(request: NextRequest) {
   try {

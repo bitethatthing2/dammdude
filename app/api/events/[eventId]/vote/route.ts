@@ -1,166 +1,325 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES } from '@/lib/services/wolfpack-backend.service';
+import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required', code: 'AUTH_ERROR' },
-        { status: 401 }
-      );
+interface VoteRequest {
+  option?: string;
+  vote_value?: number;
+  participant_id?: string;
+}
+
+interface EventData {
+  id: string;
+  dj_id: string;
+  location_id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  voting_ends_at: string | null;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  winner_id: string | null;
+  winner_data: unknown | null;
+  event_config: unknown | null;
+  voting_format: string | null;
+  options: unknown | null;
+}
+
+interface VoteData {
+  id: string;
+  event_id: string;
+  voter_id: string;
+  contest_id: string | null;
+  participant_id: string | null;
+  voted_for_id: string | null;
+  vote_value: number | null;
+  created_at: string;
+}
+
+interface VoteCounts {
+  [key: string]: number;
+}
+
+interface ContestVoteCounts {
+  total_votes: number;
+  average_rating: number;
+}
+
+interface VoteResponse {
+  success: true;
+  vote_id: string;
+  event_id: string;
+  vote_option: string | null;
+  vote_value: number | null;
+  vote_counts: VoteCounts | ContestVoteCounts;
+  created_at: string;
+}
+
+interface EventDetailsResponse {
+  event: {
+    id: string;
+    title: string;
+    event_type: string;
+    status: string;
+    voting_ends_at: string | null;
+    options: string[] | null;
+    voting_format: string | null;
+    description: string | null;
+  };
+  vote_counts: VoteCounts | ContestVoteCounts;
+  user_vote: {
+    vote_option: string | null;
+    vote_value: number | null;
+  } | null;
+  has_voted: boolean;
+  total_votes: number;
+}
+
+interface ErrorResponse {
+  error: string;
+  code: string;
+}
+
+// =============================================================================
+// VALIDATION HELPERS
+// =============================================================================
+
+function validateUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+function sanitizeString(input: string, maxLength = 500): string {
+  return input.trim().slice(0, maxLength).replace(/[<>]/g, '');
+}
+
+function parseEventOptions(options: unknown): string[] {
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options);
+      return Array.isArray(parsed) ? parsed.filter(opt => typeof opt === 'string') : [];
+    } catch {
+      return [];
     }
+  }
+  if (Array.isArray(options)) {
+    return options.filter(opt => typeof opt === 'string');
+  }
+  return [];
+}
 
-    const { eventId } = params;
-    const body = await request.json();
-    const { option, vote_value } = body;
+// =============================================================================
+// AUTHENTICATION & AUTHORIZATION
+// =============================================================================
 
-    if (!eventId) {
-      return NextResponse.json(
-        { error: 'Event ID is required', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
-    }
+async function authenticateUser(supabase: ReturnType<typeof createClient>) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Authentication required');
+  }
 
-    // Verify user is authenticated
-    const authResult = await WolfpackAuthService.verifyUser(user);
-    if (!authResult.isVerified) {
-      return NextResponse.json(
-        { error: 'User verification failed', code: 'AUTH_ERROR' },
-        { status: 401 }
-      );
-    }
+  const authResult = await WolfpackAuthService.verifyUser(user);
+  if (!authResult.isVerified) {
+    throw new Error('User verification failed');
+  }
 
-    // Get event details
-    const eventResult = await WolfpackBackendService.queryOne(
-      WOLFPACK_TABLES.DJ_EVENTS,
-      '*',
-      { id: eventId }
-    );
+  return user;
+}
 
-    if (eventResult.error || !eventResult.data) {
-      return NextResponse.json(
-        { error: 'Event not found', code: 'NOT_FOUND' },
-        { status: 404 }
-      );
-    }
+// =============================================================================
+// BUSINESS LOGIC
+// =============================================================================
 
-    const event = eventResult.data as any; // Type assertion to handle dynamic event properties
+async function getEventDetails(eventId: string): Promise<EventData> {
+  const eventResult = await WolfpackBackendService.queryOne(
+    WOLFPACK_TABLES.DJ_EVENTS,
+    '*',
+    { id: eventId }
+  );
 
-    // Check if event is still active
-    if (event.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Event is no longer active', code: 'EVENT_INACTIVE' },
-        { status: 400 }
-      );
-    }
+  if (eventResult.error || !eventResult.data) {
+    throw new Error('Event not found');
+  }
 
-    // Check if voting period has ended
-    if (event.voting_ends_at && new Date(event.voting_ends_at) < new Date()) {
-      return NextResponse.json(
-        { error: 'Voting period has ended', code: 'VOTING_ENDED' },
-        { status: 400 }
-      );
-    }
+  return eventResult.data as EventData;
+}
 
-    // Validate vote based on event type
-    if (event.event_type === 'poll') {
-      if (!option) {
-        return NextResponse.json(
-          { error: 'Poll option is required', code: 'VALIDATION_ERROR' },
-          { status: 400 }
-        );
+async function validateVote(event: EventData, voteData: VoteRequest): Promise<void> {
+  // Check if event is still active
+  if (event.status !== 'active') {
+    throw new Error('Event is no longer active');
+  }
+
+  // Check if voting period has ended
+  if (event.voting_ends_at && new Date(event.voting_ends_at) < new Date()) {
+    throw new Error('Voting period has ended');
+  }
+
+  // Validate vote based on event type
+  switch (event.event_type) {
+    case 'poll':
+    case 'next_song_vote':
+      if (!voteData.option?.trim()) {
+        throw new Error('Poll option is required');
       }
 
-      const validOptions = event.options || [];
-      if (!validOptions.includes(option)) {
-        return NextResponse.json(
-          { error: 'Invalid poll option', code: 'VALIDATION_ERROR' },
-          { status: 400 }
-        );
+      const validOptions = parseEventOptions(event.options);
+      if (validOptions.length > 0 && !validOptions.includes(voteData.option)) {
+        throw new Error('Invalid poll option');
       }
-    } else if (event.event_type === 'contest') {
-      if (vote_value === undefined || vote_value < 1 || vote_value > 10) {
-        return NextResponse.json(
-          { error: 'Contest vote must be between 1-10', code: 'VALIDATION_ERROR' },
-          { status: 400 }
-        );
+      break;
+
+    case 'contest':
+    case 'dance_battle':
+    case 'hottest_person':
+    case 'best_costume':
+      if (voteData.vote_value === undefined || voteData.vote_value < 1 || voteData.vote_value > 10) {
+        throw new Error('Contest vote must be between 1-10');
       }
-    }
+      break;
 
-    // Check if user has already voted
-    const existingVoteResult = await WolfpackBackendService.query(
-      'wolf_pack_votes',
-      '*',
-      { event_id: eventId, voter_id: user.id }
-    );
+    case 'name_that_tune':
+    case 'trivia':
+      if (!voteData.option?.trim()) {
+        throw new Error('Answer is required');
+      }
+      break;
 
-    if (existingVoteResult.data && existingVoteResult.data.length > 0) {
-      return NextResponse.json(
-        { error: 'You have already voted on this event', code: 'ALREADY_VOTED' },
-        { status: 400 }
-      );
-    }
+    case 'song_request':
+      if (!voteData.option?.trim()) {
+        throw new Error('Song request is required');
+      }
+      break;
 
-    // Create the vote
-    const voteData = {
-      event_id: eventId,
-      voter_id: user.id,
-      contest_id: null, // For DJ events, not contests
-      participant_id: null,
-      voted_for_id: option || null, // Store option in voted_for_id field
-      created_at: new Date().toISOString()
+    default:
+      // For custom events, allow either option or vote_value
+      if (!voteData.option?.trim() && voteData.vote_value === undefined) {
+        throw new Error('Either option or vote value is required');
+      }
+  }
+}
+
+async function checkExistingVote(eventId: string, userId: string): Promise<boolean> {
+  const existingVoteResult = await WolfpackBackendService.query(
+    'wolf_pack_votes',
+    'id',
+    { event_id: eventId, voter_id: userId }
+  );
+
+  return !!(existingVoteResult.data && existingVoteResult.data.length > 0);
+}
+
+async function createVote(eventId: string, userId: string, voteData: VoteRequest): Promise<VoteData> {
+  const voteRecord = {
+    event_id: eventId,
+    voter_id: userId,
+    contest_id: null,
+    participant_id: voteData.participant_id || null,
+    voted_for_id: voteData.option || null,
+    vote_value: voteData.vote_value || null,
+    created_at: new Date().toISOString()
+  };
+
+  const voteResult = await WolfpackBackendService.insert(
+    'wolf_pack_votes',
+    voteRecord,
+    '*'
+  );
+
+  if (voteResult.error || !voteResult.data?.[0]) {
+    throw new Error(`Failed to create vote: ${voteResult.error}`);
+  }
+
+  return voteResult.data[0] as VoteData;
+}
+
+async function getVoteCounts(supabase: ReturnType<typeof createClient>, event: EventData): Promise<VoteCounts | ContestVoteCounts> {
+  const { data: votes, error } = await supabase
+    .from('wolf_pack_votes')
+    .select('voted_for_id, vote_value')
+    .eq('event_id', event.id);
+
+  if (error) {
+    console.error('Error fetching vote counts:', error);
+    return {};
+  }
+
+  if (!votes || votes.length === 0) {
+    return event.event_type === 'contest' || 
+           event.event_type === 'dance_battle' || 
+           event.event_type === 'hottest_person' || 
+           event.event_type === 'best_costume'
+      ? { total_votes: 0, average_rating: 0 }
+      : {};
+  }
+
+  // Handle contest-type events (with ratings)
+  if (event.event_type === 'contest' || 
+      event.event_type === 'dance_battle' || 
+      event.event_type === 'hottest_person' || 
+      event.event_type === 'best_costume') {
+    
+    const validVotes = votes.filter(vote => vote.vote_value !== null);
+    const totalVotes = validVotes.length;
+    const averageRating = totalVotes > 0 
+      ? validVotes.reduce((sum, vote) => sum + (vote.vote_value || 0), 0) / totalVotes
+      : 0;
+
+    return {
+      total_votes: totalVotes,
+      average_rating: Math.round(averageRating * 100) / 100 // Round to 2 decimal places
     };
+  }
 
-    const voteResult = await WolfpackBackendService.insert(
-      'wolf_pack_votes',
-      voteData,
-      '*'
-    );
-
-    if (voteResult.error) {
-      throw new Error(voteResult.error);
+  // Handle poll-type events (count votes per option)
+  const voteCounts: VoteCounts = {};
+  votes.forEach(vote => {
+    if (vote.voted_for_id) {
+      voteCounts[vote.voted_for_id] = (voteCounts[vote.voted_for_id] || 0) + 1;
     }
+  });
 
-    // Get updated vote counts using type assertion
-    const voteCountsResult = await (supabase as any)
-      .from('wolf_pack_votes')
-      .select('voted_for_id')
-      .eq('event_id', eventId);
+  return voteCounts;
+}
 
-    let voteCounts = {};
-    if (voteCountsResult.data) {
-      if (event.event_type === 'poll') {
-        // Count votes per option
-        voteCounts = voteCountsResult.data.reduce((acc: Record<string, number>, vote: any) => {
-          if (vote.voted_for_id) {
-            acc[vote.voted_for_id] = (acc[vote.voted_for_id] || 0) + 1;
-          }
-          return acc;
-        }, {} as Record<string, number>);
-      } else if (event.event_type === 'contest') {
-        // For contests, just count total votes
-        const totalVotes = voteCountsResult.data.length;
-        voteCounts = {
-          total_votes: totalVotes,
-          average_rating: 0 // Wolf pack votes don't have numeric ratings
-        };
-      }
-    }
-
-    // Send confirmation message to chat
+async function sendConfirmationMessage(
+  event: EventData, 
+  user: any, 
+  voteData: VoteRequest
+): Promise<void> {
+  try {
     const displayName = WolfpackAuthService.getUserDisplayName(user);
-    const confirmationMessage = event.event_type === 'poll' 
-      ? `${displayName} voted on: ${event.title}`
-      : `${displayName} rated: ${event.title} (${vote_value}/10)`;
+    
+    let confirmationMessage: string;
+    switch (event.event_type) {
+      case 'poll':
+      case 'next_song_vote':
+        confirmationMessage = `${displayName} voted on: ${event.title}`;
+        break;
+      case 'contest':
+      case 'dance_battle':
+      case 'hottest_person':
+      case 'best_costume':
+        confirmationMessage = `${displayName} rated: ${event.title} (${voteData.vote_value}/10)`;
+        break;
+      case 'song_request':
+        confirmationMessage = `${displayName} requested: ${voteData.option}`;
+        break;
+      case 'name_that_tune':
+      case 'trivia':
+        confirmationMessage = `${displayName} answered: ${event.title}`;
+        break;
+      default:
+        confirmationMessage = `${displayName} participated in: ${event.title}`;
+    }
 
     await WolfpackBackendService.insert(
       WOLFPACK_TABLES.WOLF_CHAT,
@@ -172,24 +331,119 @@ export async function POST(
         content: confirmationMessage,
         message_type: 'text',
         created_at: new Date().toISOString(),
-        is_flagged: false
-      }
+        is_flagged: false,
+        is_deleted: false
+      },
+      'id'
     );
+  } catch (error) {
+    // Log but don't fail the vote
+    console.warn('Failed to send confirmation message:', error);
+  }
+}
 
+// =============================================================================
+// API HANDLERS
+// =============================================================================
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { eventId: string } }
+): Promise<NextResponse<VoteResponse | ErrorResponse>> {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Authentication
+    const user = await authenticateUser(supabase);
+    
+    // 2. Validate event ID
+    const { eventId } = params;
+    if (!eventId || !validateUUID(eventId)) {
+      return NextResponse.json(
+        { error: 'Valid event ID is required', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Parse request body
+    const body = await request.json() as VoteRequest;
+
+    // 4. Get event details
+    const event = await getEventDetails(eventId);
+
+    // 5. Validate vote
+    await validateVote(event, body);
+
+    // 6. Check for existing vote
+    const hasVoted = await checkExistingVote(eventId, user.id);
+    if (hasVoted) {
+      return NextResponse.json(
+        { error: 'You have already voted on this event', code: 'ALREADY_VOTED' },
+        { status: 400 }
+      );
+    }
+
+    // 7. Create vote
+    const voteRecord = await createVote(eventId, user.id, body);
+
+    // 8. Get updated vote counts
+    const voteCounts = await getVoteCounts(supabase, event);
+
+    // 9. Send confirmation message
+    await sendConfirmationMessage(event, user, body);
+
+    // 10. Return success response
     return NextResponse.json({
       success: true,
-      vote_id: (voteResult.data?.[0] as any)?.id || crypto.randomUUID(),
+      vote_id: voteRecord.id,
       event_id: eventId,
-      vote_option: option || null,
-      vote_value: vote_value || null,
+      vote_option: body.option || null,
+      vote_value: body.vote_value || null,
       vote_counts: voteCounts,
-      created_at: (voteResult.data?.[0] as any)?.created_at
+      created_at: voteRecord.created_at
     });
 
   } catch (error) {
     console.error('Event voting error:', error);
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required' || error.message === 'User verification failed') {
+        return NextResponse.json(
+          { error: error.message, code: 'AUTH_ERROR' },
+          { status: 401 }
+        );
+      }
+      
+      if (error.message === 'Event not found') {
+        return NextResponse.json(
+          { error: 'Event not found', code: 'NOT_FOUND' },
+          { status: 404 }
+        );
+      }
+      
+      if (error.message.includes('no longer active') || 
+          error.message.includes('period has ended') ||
+          error.message.includes('required') ||
+          error.message.includes('Invalid') ||
+          error.message.includes('must be between')) {
+        return NextResponse.json(
+          { error: error.message, code: 'VALIDATION_ERROR' },
+          { status: 400 }
+        );
+      }
+      
+      if (error.message === 'You have already voted on this event') {
+        return NextResponse.json(
+          { error: error.message, code: 'ALREADY_VOTED' },
+          { status: 400 }
+        );
+      }
+    }
+
     const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'event_voting'
+      operation: 'event_voting',
+      context: { event_id: params.eventId }
     });
 
     return NextResponse.json(
@@ -202,60 +456,71 @@ export async function POST(
 export async function GET(
   request: NextRequest,
   { params }: { params: { eventId: string } }
-) {
+): Promise<NextResponse<EventDetailsResponse | ErrorResponse>> {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    
+    // 1. Authentication
+    const user = await authenticateUser(supabase);
+    
+    // 2. Validate event ID
+    const { eventId } = params;
+    if (!eventId || !validateUUID(eventId)) {
       return NextResponse.json(
-        { error: 'Authentication required', code: 'AUTH_ERROR' },
-        { status: 401 }
+        { error: 'Valid event ID is required', code: 'VALIDATION_ERROR' },
+        { status: 400 }
       );
     }
 
-    const { eventId } = params;
-
-    // Get event details and vote counts
-    const [eventResult, voteCountsResult] = await Promise.all([
-      WolfpackBackendService.queryOne(WOLFPACK_TABLES.DJ_EVENTS, '*', { id: eventId }),
-      (supabase as any)
+    // 3. Get event details and vote counts in parallel
+    const [event, voteCountsResult] = await Promise.all([
+      getEventDetails(eventId),
+      supabase
         .from('wolf_pack_votes')
-        .select('voted_for_id, voter_id')
+        .select('voted_for_id, vote_value, voter_id')
         .eq('event_id', eventId)
     ]);
 
-    if (eventResult.error || !eventResult.data) {
-      return NextResponse.json(
-        { error: 'Event not found', code: 'NOT_FOUND' },
-        { status: 404 }
-      );
+    if (voteCountsResult.error) {
+      console.error('Error fetching votes:', voteCountsResult.error);
+      throw new Error('Failed to fetch vote data');
     }
 
-    const event = eventResult.data as any; // Type assertion to handle dynamic event properties
     const votes = voteCountsResult.data || [];
 
-    // Check if current user has voted
-    const userVote = votes.find((vote: any) => vote.voter_id === user.id);
+    // 4. Check if current user has voted
+    const userVote = votes.find(vote => vote.voter_id === user.id);
 
-    let voteCounts = {};
-    if (event.event_type === 'poll') {
-      // Count votes per option
-      voteCounts = votes.reduce((acc: Record<string, number>, vote: any) => {
-        if (vote.voted_for_id) {
-          acc[vote.voted_for_id] = (acc[vote.voted_for_id] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
-    } else if (event.event_type === 'contest') {
-      // For contests, just count total votes
-      const totalVotes = votes.length;
+    // 5. Calculate vote counts
+    let voteCounts: VoteCounts | ContestVoteCounts;
+    
+    if (event.event_type === 'contest' || 
+        event.event_type === 'dance_battle' || 
+        event.event_type === 'hottest_person' || 
+        event.event_type === 'best_costume') {
+      
+      const validVotes = votes.filter(vote => vote.vote_value !== null);
+      const totalVotes = validVotes.length;
+      const averageRating = totalVotes > 0 
+        ? validVotes.reduce((sum, vote) => sum + (vote.vote_value || 0), 0) / totalVotes
+        : 0;
+
       voteCounts = {
         total_votes: totalVotes,
-        average_rating: 0 // Wolf pack votes don't have numeric ratings
+        average_rating: Math.round(averageRating * 100) / 100
       };
+    } else {
+      // Poll-type events
+      const pollCounts: VoteCounts = {};
+      votes.forEach(vote => {
+        if (vote.voted_for_id) {
+          pollCounts[vote.voted_for_id] = (pollCounts[vote.voted_for_id] || 0) + 1;
+        }
+      });
+      voteCounts = pollCounts;
     }
 
+    // 6. Return event details
     return NextResponse.json({
       event: {
         id: event.id,
@@ -263,20 +528,41 @@ export async function GET(
         event_type: event.event_type,
         status: event.status,
         voting_ends_at: event.voting_ends_at,
-        options: event.options || null
+        voting_format: event.voting_format,
+        description: event.description,
+        options: parseEventOptions(event.options)
       },
       vote_counts: voteCounts,
       user_vote: userVote ? {
         vote_option: userVote.voted_for_id,
-        vote_value: null // Wolf pack votes don't have numeric values
+        vote_value: userVote.vote_value
       } : null,
-      has_voted: !!userVote
+      has_voted: !!userVote,
+      total_votes: votes.length
     });
 
   } catch (error) {
     console.error('Get event votes error:', error);
+    
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required' || error.message === 'User verification failed') {
+        return NextResponse.json(
+          { error: error.message, code: 'AUTH_ERROR' },
+          { status: 401 }
+        );
+      }
+      
+      if (error.message === 'Event not found') {
+        return NextResponse.json(
+          { error: 'Event not found', code: 'NOT_FOUND' },
+          { status: 404 }
+        );
+      }
+    }
+
     const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'get_event_votes'
+      operation: 'get_event_votes',
+      context: { event_id: params.eventId }
     });
 
     return NextResponse.json(

@@ -2824,6 +2824,75 @@ export type Database = {
           },
         ]
       }
+      wolf_pack_votes: {
+        Row: {
+          contest_id: string | null
+          created_at: string | null
+          event_id: string | null
+          id: string
+          participant_id: string | null
+          vote_value: number | null
+          voted_for_id: string | null
+          voter_id: string | null
+        }
+        Insert: {
+          contest_id?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          participant_id?: string | null
+          vote_value?: number | null
+          voted_for_id?: string | null
+          voter_id?: string | null
+        }
+        Update: {
+          contest_id?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          participant_id?: string | null
+          vote_value?: number | null
+          voted_for_id?: string | null
+          voter_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolf_pack_votes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "dj_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wolf_private_messages: {
         Row: {
           created_at: string | null

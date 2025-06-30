@@ -242,8 +242,6 @@ export default function PrivateChatPage() {
         .upsert({
           sender_id: user.id,
           receiver_id: otherUserId,
-          sender_id: user.id,
-          receiver_id: otherUserId,
           interaction_type: 'block'
         });
 

@@ -472,7 +472,7 @@ export function GeolocationActivation() {
                 <Users className="mr-2 h-3 w-3" />
                 Open Chat
               </Button>
-              <Button size="sm" variant="outline" onClick={() => router.push('/wolfpack/profile')}>
+              <Button size="sm" variant="outline" onClick={() => router.push('/profile')}>
                 Edit Profile
               </Button>
             </div>

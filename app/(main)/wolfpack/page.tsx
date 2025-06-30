@@ -246,7 +246,7 @@ export default function WolfpackMainPage() {
             {/* Profile Management */}
             <Card 
               className="cursor-pointer hover:shadow-md transition-shadow border-purple-200 hover:border-purple-300"
-              onClick={() => router.push('/wolfpack/profile')}
+              onClick={() => router.push('/profile')}
             >
               <CardContent className="p-6 text-center">
                 <div className="p-3 bg-purple-100 rounded-lg inline-block mb-3">

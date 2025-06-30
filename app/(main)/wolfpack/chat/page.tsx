@@ -547,7 +547,7 @@ export default function WolfPackChatPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push('/wolfpack/profile')}
+                onClick={() => router.push('/profile')}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Profile
@@ -630,7 +630,7 @@ export default function WolfPackChatPage() {
 
                 <Card 
                   className="cursor-pointer hover:shadow-md transition-shadow border-blue-200 hover:border-blue-300" 
-                  onClick={() => router.push('/wolfpack/profile')}
+                  onClick={() => router.push('/profile')}
                 >
                   <CardContent className="p-3 text-center">
                     <div className="p-2 bg-blue-100 rounded-lg inline-block mb-2">

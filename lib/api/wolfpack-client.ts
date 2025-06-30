@@ -234,7 +234,7 @@ class WolfpackAPIClient {
       is_visible?: boolean
     }
   ): Promise<APIResponse<{ membership: WolfpackMembership; message: string }>> {
-    return this.makeRequest('PUT', `/api/wolfpack/profile/${membershipId}`, data)
+    return this.makeRequest('PUT', `/api/profile/${membershipId}`, data)
   }
 
   async getCurrentMembership(): Promise<APIResponse<WolfpackMembership | null>> {

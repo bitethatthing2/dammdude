@@ -1,5 +1,7 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
+import { errorTracker } from '@/lib/utils/error-tracking';
+import { captureError } from '@/lib/utils/error-utils';
 
 export interface UserFriendlyError {
   message: string;
@@ -475,5 +477,178 @@ export class WolfpackErrorHandler {
       retryable: true,
       action: 'Please ensure location services are enabled'
     };
+  }
+}
+
+// =============================================================================
+// TABLE CONSTANTS
+// =============================================================================
+
+export const WOLFPACK_TABLES = {
+  DJ_BROADCASTS: 'dj_broadcasts',
+  WOLF_CHAT: 'wolf_chat',
+  USERS: 'users',
+  LOCATIONS: 'locations',
+  EVENTS: 'dj_events',
+  ORDERS: 'orders'
+} as const;
+
+// =============================================================================
+// WOLFPACK BACKEND SERVICE
+// =============================================================================
+
+export class WolfpackBackendService {
+  /**
+   * Generic insert operation with error handling
+   */
+  static async insert(
+    table: string,
+    data: Record<string, unknown>,
+    select: string = '*'
+  ): Promise<{ data: unknown[] | null; error: string | null }> {
+    try {
+      const { data: result, error } = await supabase
+        .from(table)
+        .insert(data)
+        .select(select);
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: `insert_${table}`
+        });
+        
+        // Log error using existing error tracking
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: `insert_${table}`,
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data: result, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Database operation failed';
+      
+      // Log error using existing error tracking
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: `insert_${table}`,
+        component: 'WolfpackBackendService'
+      });
+      
+      captureError(error instanceof Error ? error : new Error(errorMessage), {
+        source: 'WolfpackBackendService.insert',
+        context: { table, data }
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * Generic select operation with error handling
+   */
+  static async select(
+    table: string,
+    columns: string = '*',
+    filters?: Record<string, unknown>,
+    options?: {
+      orderBy?: { column: string; ascending?: boolean };
+      limit?: number;
+      single?: boolean;
+    }
+  ): Promise<{ data: unknown[] | unknown | null; error: string | null }> {
+    try {
+      let query = supabase.from(table).select(columns);
+
+      // Apply filters
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          query = query.eq(key, value);
+        });
+      }
+
+      // Apply ordering
+      if (options?.orderBy) {
+        query = query.order(options.orderBy.column, { 
+          ascending: options.orderBy.ascending ?? true 
+        });
+      }
+
+      // Apply limit
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+
+      // Execute query
+      const { data: result, error } = options?.single 
+        ? await query.single()
+        : await query;
+
+      if (error) {
+        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+          operation: `select_${table}`
+        });
+        
+        errorTracker.logError(error, {
+          feature: 'database',
+          action: `select_${table}`,
+          component: 'WolfpackBackendService'
+        });
+        
+        return { data: null, error: userError.message };
+      }
+
+      return { data: result, error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Database operation failed';
+      
+      errorTracker.logError(error as Error, {
+        feature: 'database',
+        action: `select_${table}`,
+        component: 'WolfpackBackendService'
+      });
+
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  /**
+   * DJ-specific methods
+   */
+  static async createDJBroadcast(
+    djId: string,
+    locationId: string,
+    message: string,
+    broadcastType: string = 'general'
+  ) {
+    return this.insert(WOLFPACK_TABLES.DJ_BROADCASTS, {
+      dj_id: djId,
+      location_id: locationId,
+      message,
+      broadcast_type: broadcastType,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  static async getDJBroadcasts(locationId: string, limit = 10) {
+    return this.select(
+      WOLFPACK_TABLES.DJ_BROADCASTS,
+      `
+        *,
+        dj:users!dj_broadcasts_dj_id_fkey(
+          id,
+          display_name,
+          avatar_url
+        )
+      `,
+      { location_id: locationId },
+      { 
+        orderBy: { column: 'created_at', ascending: false },
+        limit 
+      }
+    );
   }
 }

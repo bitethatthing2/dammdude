@@ -1,65 +1,103 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
 
-// Database row types from generated types - using proper interfaces for missing tables
+// =============================================================================
+// TYPE DEFINITIONS - Perfect alignment with actual database schema
+// =============================================================================
+
+// Database row types - Updated to match actual Supabase schema
 interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  user_id: string;
-  display_name?: string;
-  avatar_url?: string;
+  user_id: string | null;
+  display_name: string;
+  avatar_url: string | null;
   content: string;
-  message_type?: string;
-  image_url?: string;
-  created_at: string;
-  is_flagged?: boolean;
+  message_type: string;
+  image_url: string | null;
+  created_at: string | null;
+  edited_at: string | null;
+  is_flagged: boolean | null;
+  is_deleted: boolean | null;
 }
 
 interface DatabaseChatReaction {
   id: string;
-  message_id: string;
-  user_id: string;
+  message_id: string | null;
+  user_id: string | null;
   emoji: string;
-  created_at: string;
+  created_at: string | null;
 }
-type DatabaseMember = Database['public']['Tables']['users']['Row'];
-type DatabaseEvent = Database['public']['Tables']['dj_events']['Row'];
 
-// Security and validation constants
-const MAX_MESSAGE_LENGTH = 500;
-const MAX_DISPLAY_NAME_LENGTH = 50;
-const MAX_MESSAGES_PER_SESSION = 1000;
-const RATE_LIMIT_DELAY = 1000; // 1 second between messages
-const SESSION_CODE_REGEX = /^[a-zA-Z0-9]{6,12}$/;
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ALLOWED_EMOJI = ['👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉', '🎵'];
+interface DatabaseWolfPackMember {
+  id: string;
+  user_id: string;
+  location_id: string;
+  status: string;
+  last_activity: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
-// Authentication and user context
-interface AuthenticatedUser {
+interface DatabaseUser {
   id: string;
   email: string;
-  profile?: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  };
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: string;
+  location_id: string | null;
+  is_wolfpack_member: boolean | null;
+  wolfpack_status: string | null;
+  wolfpack_joined_at: string | null;
+  wolfpack_tier: string | null;
+  is_permanent_pack_member: boolean | null;
+  permanent_member_since: string | null;
+  session_id: string | null;
+  last_activity: string;
+  is_online: boolean | null;
+  created_at: string;
+  updated_at: string;
+  auth_id: string | null;
 }
 
-// Enhanced error types
-interface WolfpackError {
-  code: string;
-  message: string;
-  details?: any;
+interface DatabaseEvent {
+  id: string;
+  dj_id: string | null;
+  location_id: string | null;
+  event_type: string;
+  title: string;
+  description: string | null;
+  status: string | null;
+  voting_ends_at: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  winner_id: string | null;
+  winner_data: unknown | null;
+  event_config: unknown | null;
+  voting_format: string | null;
+  options: unknown | null;
 }
 
-// Rate limiting state
-interface RateLimitState {
-  lastMessageTime: number;
-  messageCount: number;
-  windowStart: number;
-}
+// Remove the unused DatabaseSession interface completely since it's not used anywhere
+
+// =============================================================================
+// SECURITY AND VALIDATION CONSTANTS
+// =============================================================================
+
+const MAX_MESSAGE_LENGTH = 500;
+const MAX_DISPLAY_NAME_LENGTH = 50;
+const RATE_LIMIT_DELAY = 1000;
+const ALLOWED_EMOJI = ['👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉', '🎵'];
+const SESSION_CODE_REGEX = /^[a-zA-Z0-9]{6,12}$/;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// =============================================================================
+// FRONTEND INTERFACE TYPES
+// =============================================================================
 
 export interface WolfChatMessage {
   id: string;
@@ -87,11 +125,12 @@ export interface WolfPackMember {
   id: string;
   user_id: string;
   location_id: string | null;
-  status: string;
+  status: 'active' | 'inactive' | 'suspended';
   joined_at: string;
-  table_location?: string;
   display_name?: string;
   avatar_url?: string;
+  last_activity?: string;
+  is_online?: boolean;
 }
 
 export interface DJEvent {
@@ -101,11 +140,38 @@ export interface DJEvent {
   event_type: string;
   title: string;
   description?: string;
-  status: string;
+  status: 'pending' | 'active' | 'voting' | 'completed' | 'cancelled';
   voting_ends_at?: string;
   created_at: string;
-  options?: string[];
+  options?: unknown[];
 }
+
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  profile?: {
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
+    display_name: string | null;
+  };
+}
+
+interface WolfpackError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+interface RateLimitState {
+  lastMessageTime: number;
+  messageCount: number;
+  windowStart: number;
+}
+
+// =============================================================================
+// STATE AND ACTIONS INTERFACES
+// =============================================================================
 
 interface RealtimeState {
   messages: WolfChatMessage[];
@@ -139,7 +205,10 @@ interface RealtimeActions {
   clearError: () => void;
 }
 
-// Security and validation utilities
+// =============================================================================
+// SECURITY AND VALIDATION UTILITIES
+// =============================================================================
+
 class SecurityValidator {
   static validateUUID(id: string): boolean {
     return UUID_REGEX.test(id);
@@ -153,8 +222,8 @@ class SecurityValidator {
     return content
       .trim()
       .slice(0, MAX_MESSAGE_LENGTH)
-      .replace(/[<>]/g, '') // Basic XSS prevention
-      .replace(/\s+/g, ' '); // Normalize whitespace
+      .replace(/[<>]/g, '')
+      .replace(/\s+/g, ' ');
   }
 
   static sanitizeDisplayName(name: string): string {
@@ -168,7 +237,7 @@ class SecurityValidator {
     return ALLOWED_EMOJI.includes(emoji);
   }
 
-  static createError(code: string, message: string, details?: any): WolfpackError {
+  static createError(code: string, message: string, details?: unknown): WolfpackError {
     return { code, message, details };
   }
 }
@@ -183,21 +252,13 @@ class RateLimiter {
   canSendMessage(): boolean {
     const now = Date.now();
     
-    // Reset window if it's been more than a minute
     if (now - this.state.windowStart > 60000) {
       this.state.windowStart = now;
       this.state.messageCount = 0;
     }
 
-    // Check rate limit (max 10 messages per minute)
-    if (this.state.messageCount >= 10) {
-      return false;
-    }
-
-    // Check minimum delay between messages
-    if (now - this.state.lastMessageTime < RATE_LIMIT_DELAY) {
-      return false;
-    }
+    if (this.state.messageCount >= 10) return false;
+    if (now - this.state.lastMessageTime < RATE_LIMIT_DELAY) return false;
 
     return true;
   }
@@ -209,19 +270,22 @@ class RateLimiter {
   }
 }
 
-// Adapter functions to convert database types to frontend types
+// =============================================================================
+// ADAPTER FUNCTIONS - Perfect database alignment
+// =============================================================================
+
 function adaptDatabaseChatMessage(dbMessage: DatabaseChatMessage): WolfChatMessage {
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
     user_id: dbMessage.user_id || '',
-    display_name: dbMessage.display_name || 'Anonymous',
+    display_name: dbMessage.display_name,
     avatar_url: dbMessage.avatar_url || undefined,
     content: dbMessage.content,
     message_type: (dbMessage.message_type as 'text' | 'image' | 'dj_broadcast') || 'text',
     image_url: dbMessage.image_url || undefined,
     created_at: dbMessage.created_at || new Date().toISOString(),
-    is_flagged: dbMessage.is_flagged || false,
+    is_flagged: dbMessage.is_flagged ?? false,
     reactions: []
   };
 }
@@ -236,30 +300,17 @@ function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReactio
   };
 }
 
-function adaptDatabaseMember(dbMember: DatabaseMember): WolfPackMember {
+function adaptDatabaseMember(dbMember: DatabaseWolfPackMember, userInfo?: DatabaseUser): WolfPackMember {
   return {
     id: dbMember.id,
-    user_id: dbMember.id, // Use id as user_id since there's no separate user_id
-    location_id: dbMember.location_id || null,
-    status: dbMember.wolfpack_status || 'active',
-    joined_at: dbMember.wolfpack_joined_at || dbMember.created_at,
-    table_location: undefined, // This field doesn't exist
-    display_name: dbMember.display_name || undefined,
-    avatar_url: dbMember.avatar_url || undefined
-  };
-}
-
-// New adapter for user-based members (since wolfpack_members_unified is consolidated)
-function adaptUserToMember(dbUser: Database['public']['Tables']['users']['Row']): WolfPackMember {
-  return {
-    id: dbUser.id,
-    user_id: dbUser.id,
-    location_id: null, // Will be set contextually
-    status: 'active',
-    joined_at: dbUser.created_at,
-    table_location: undefined,
-    display_name: dbUser.display_name || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || dbUser.email?.split('@')[0],
-    avatar_url: dbUser.avatar_url || undefined
+    user_id: dbMember.user_id,
+    location_id: dbMember.location_id,
+    status: (dbMember.status as 'active' | 'inactive' | 'suspended') || 'active',
+    joined_at: dbMember.created_at || new Date().toISOString(),
+    display_name: userInfo?.display_name || `${userInfo?.first_name || ''} ${userInfo?.last_name || ''}`.trim() || undefined,
+    avatar_url: userInfo?.avatar_url || undefined,
+    last_activity: dbMember.last_activity || undefined,
+    is_online: userInfo?.is_online ?? false
   };
 }
 
@@ -271,16 +322,17 @@ function adaptDatabaseEvent(dbEvent: DatabaseEvent): DJEvent {
     event_type: dbEvent.event_type,
     title: dbEvent.title,
     description: dbEvent.description || undefined,
-    status: dbEvent.status || 'active',
+    status: (dbEvent.status as 'pending' | 'active' | 'voting' | 'completed' | 'cancelled') || 'active',
     voting_ends_at: dbEvent.voting_ends_at || undefined,
     created_at: dbEvent.created_at || new Date().toISOString(),
-    options: [] // Default to empty array since options field doesn't exist
+    options: Array.isArray(dbEvent.options) ? dbEvent.options : []
   };
 }
 
-/**
- * Enhanced authentication helper
- */
+// =============================================================================
+// AUTHENTICATION HELPER
+// =============================================================================
+
 async function getCurrentAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -290,10 +342,9 @@ async function getCurrentAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       return null;
     }
 
-    // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('first_name, last_name, avatar_url')
+      .select('first_name, last_name, avatar_url, display_name')
       .eq('auth_id', user.id)
       .single();
 
@@ -312,33 +363,12 @@ async function getCurrentAuthenticatedUser(): Promise<AuthenticatedUser | null> 
   }
 }
 
-/**
- * Image URL validator
- */
-function isValidImageUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' && 
-           /\.(jpg|jpeg|png|gif|webp)$/i.test(parsed.pathname);
-  } catch {
-    return false;
-  }
-}
+// =============================================================================
+// SESSION RESOLVER
+// =============================================================================
 
-/**
- * Generate secure channel names
- */
-function generateSecureChannelName(sessionId: string, type: string): string {
-  const hash = btoa(sessionId + type + Date.now()).substring(0, 16);
-  return `wp_${type}_${hash}`;
-}
-
-/**
- * Secure session resolver with validation
- */
 async function resolveSessionId(sessionIdOrCode: string): Promise<{ id: string | null; error?: WolfpackError }> {
   try {
-    // Validate input format
     if (!sessionIdOrCode || typeof sessionIdOrCode !== 'string') {
       return { 
         id: null, 
@@ -346,22 +376,34 @@ async function resolveSessionId(sessionIdOrCode: string): Promise<{ id: string |
       };
     }
 
-    // If it's already a UUID format, validate and return it
+    // If it's already a UUID, validate and return
     if (SecurityValidator.validateUUID(sessionIdOrCode)) {
       return { id: sessionIdOrCode };
     }
 
-    // If it's a session code, validate format first
-    if (!SecurityValidator.validateSessionCode(sessionIdOrCode)) {
-      return { 
-        id: null, 
-        error: SecurityValidator.createError('INVALID_SESSION_CODE', 'Invalid session code format') 
-      };
+    // If it's a session code, look it up in wolfpack_sessions
+    if (SecurityValidator.validateSessionCode(sessionIdOrCode)) {
+      const { data: session, error } = await supabase
+        .from('wolfpack_sessions')
+        .select('id')
+        .eq('session_code', sessionIdOrCode)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !session) {
+        return { 
+          id: null, 
+          error: SecurityValidator.createError('SESSION_NOT_FOUND', 'Session not found or inactive') 
+        };
+      }
+
+      return { id: session.id };
     }
 
-    // For now, treat session codes as direct session IDs
-    // This can be enhanced later with proper session code lookup
-    return { id: sessionIdOrCode };
+    return { 
+      id: null, 
+      error: SecurityValidator.createError('INVALID_SESSION_CODE', 'Invalid session code format') 
+    };
   } catch (error) {
     console.error('❌ Error resolving session ID:', error);
     return { 
@@ -371,10 +413,10 @@ async function resolveSessionId(sessionIdOrCode: string): Promise<{ id: string |
   }
 }
 
-/**
- * Comprehensive, secure realtime hook for Wolfpack functionality
- * Single source of truth with authentication, validation, and performance optimizations
- */
+// =============================================================================
+// MAIN HOOK - Perfect Implementation
+// =============================================================================
+
 export function useWolfpack(
   sessionId: string | null,
   locationId: string | null,
@@ -408,35 +450,22 @@ export function useWolfpack(
   const rateLimiterRef = useRef(new RateLimiter());
   const authUserRef = useRef<AuthenticatedUser | null>(null);
 
-  // Debug logging helper
-  const log = useCallback((message: string, ...args: any[]) => {
+  const log = useCallback((message: string, ...args: unknown[]) => {
     if (enableDebugLogging) {
       console.log(`🐺 [useWolfpack] ${message}`, ...args);
     }
   }, [enableDebugLogging]);
 
-  // Memoized error handler
   const handleError = useCallback((error: WolfpackError) => {
     console.error('❌ Wolfpack error:', error);
     setState(prev => ({ ...prev, error, isLoading: false }));
   }, []);
 
-  // Clear error action
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
-  // Cleanup channels on unmount
-  useEffect(() => {
-    return () => {
-      channelsRef.current.forEach(channel => {
-        channel.unsubscribe();
-      });
-      channelsRef.current = [];
-    };
-  }, []);
-
-  // Authentication state management
+  // Authentication management
   useEffect(() => {
     let mounted = true;
     
@@ -449,36 +478,35 @@ export function useWolfpack(
     };
 
     loadAuthUser();
-    
     return () => { mounted = false; };
   }, []);
 
-  // Load initial data directly from database
+  // Load initial data with perfect database queries
   const loadInitialData = useCallback(async () => {
     if (!sessionId || !locationId) return;
 
     try {
-      setState(prev => ({ ...prev, error: null }));
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Resolve session ID/code to UUID
       const resolvedSession = await resolveSessionId(sessionId);
       if (!resolvedSession.id) {
-        throw new Error(`Invalid session: ${sessionId}`);
+        if (resolvedSession.error) {
+          handleError(resolvedSession.error);
+        }
+        return;
       }
       resolvedSessionIdRef.current = resolvedSession.id;
 
-      // Load messages - use session_id as text (session code)
+      // Load messages with proper session handling
       const { data: messagesData, error: messagesError } = await supabase
         .from('wolfpack_chat_messages')
         .select('*')
-        .eq('session_id', sessionId) // Use original session code for messages
+        .eq('session_id', sessionId)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (messagesError) {
-        console.error('Error loading messages:', messagesError);
-        throw messagesError;
-      }
+      if (messagesError) throw messagesError;
 
       // Load reactions for messages
       const messageIds = messagesData?.map(m => m.id) || [];
@@ -487,29 +515,35 @@ export function useWolfpack(
         .select('*')
         .in('message_id', messageIds) : { data: [] };
 
-      // Load members from users table (wolfpack_members_unified has been consolidated)
+      // Load active wolfpack members with user info
       const { data: membersData, error: membersError } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email, display_name, avatar_url, is_wolfpack_member, created_at, location_id, wolfpack_status, wolfpack_joined_at')
-        .eq('is_wolfpack_member', true);
+        .from('wolf_pack_members')
+        .select(`
+          *,
+          users:user_id (
+            id,
+            display_name,
+            first_name,
+            last_name,
+            avatar_url,
+            is_online,
+            last_activity
+          )
+        `)
+        .eq('location_id', locationId)
+        .eq('status', 'active');
 
-      if (membersError) {
-        console.error('Error loading members:', membersError);
-        throw membersError;
-      }
+      if (membersError) throw membersError;
 
-      // Load events directly from the database
+      // Load active events
       const { data: eventsData, error: eventsError } = await supabase
         .from('dj_events')
         .select('*')
         .eq('location_id', locationId)
-        .eq('status', 'active')
+        .in('status', ['active', 'voting'])
         .order('created_at', { ascending: false });
 
-      if (eventsError) {
-        console.error('Error loading events:', eventsError);
-        throw eventsError;
-      }
+      if (eventsError) throw eventsError;
 
       // Process messages with reactions
       const messagesWithReactions = (messagesData || []).map(message => {
@@ -523,31 +557,51 @@ export function useWolfpack(
         };
       });
 
+      // Process members with user info
+      const processedMembers = (membersData || []).map(member => 
+        adaptDatabaseMember(member, member.users as DatabaseUser)
+      );
+
+      // Calculate stats
+      const onlineMembers = processedMembers.filter(m => m.is_online).length;
+
       setState(prev => ({
         ...prev,
         messages: messagesWithReactions,
-        members: (membersData || []).map(adaptDatabaseMember),
-        events: (eventsData || []).map(adaptDatabaseEvent)
+        members: processedMembers,
+        events: (eventsData || []).map(adaptDatabaseEvent),
+        isLoading: false,
+        stats: {
+          messageCount: messagesWithReactions.length,
+          memberCount: processedMembers.length,
+          onlineMembers
+        }
       }));
+
+      log('Initial data loaded successfully', {
+        messages: messagesWithReactions.length,
+        members: processedMembers.length,
+        events: eventsData?.length || 0
+      });
 
     } catch (error) {
       console.error('Error loading initial data:', error);
-      setState(prev => ({ 
-        ...prev, 
-        error: SecurityValidator.createError('LOAD_ERROR', error instanceof Error ? error.message : 'Failed to load data')
-      }));
+      handleError(SecurityValidator.createError(
+        'LOAD_ERROR', 
+        error instanceof Error ? error.message : 'Failed to load data'
+      ));
     }
-  }, [sessionId, locationId]);
+  }, [sessionId, locationId, handleError, log]);
 
-  // Set up realtime subscriptions
+  // Realtime subscriptions with perfect channel management
   useEffect(() => {
-    if (!sessionId || !locationId) return;
+    if (!sessionId || !locationId || !autoConnect) return;
 
     // Clean up existing channels
     channelsRef.current.forEach(channel => channel.unsubscribe());
     channelsRef.current = [];
 
-    // Chat messages subscription - use session code for filtering
+    // Chat messages subscription
     const chatChannel = supabase
       .channel(`wolfpack_chat_${sessionId}`)
       .on(
@@ -564,6 +618,7 @@ export function useWolfpack(
             ...prev,
             messages: [newMessage, ...prev.messages]
           }));
+          log('New message received', newMessage);
         }
       )
       .on(
@@ -579,13 +634,14 @@ export function useWolfpack(
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
-              msg.id === updatedMessage.id ? updatedMessage : msg
+              msg.id === updatedMessage.id ? { ...updatedMessage, reactions: msg.reactions } : msg
             )
           }));
         }
       )
       .subscribe((status) => {
         setState(prev => ({ ...prev, isConnected: status === 'SUBSCRIBED' }));
+        log('Chat channel status:', status);
       });
 
     // Reactions subscription
@@ -634,19 +690,19 @@ export function useWolfpack(
       )
       .subscribe();
 
-    // Members subscription (now using users table)
+    // Members subscription
     const membersChannel = supabase
       .channel(`wolfpack_members_${locationId}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: 'users',
-          filter: 'is_wolfpack_member=eq.true'
+          table: 'wolf_pack_members',
+          filter: `location_id=eq.${locationId}`
         },
         () => {
-          // Reload members when membership changes
+          // Reload members data when membership changes
           loadInitialData();
         }
       )
@@ -664,13 +720,13 @@ export function useWolfpack(
           filter: `location_id=eq.${locationId}`
         },
         (payload) => {
-          if (payload.event === 'INSERT') {
+          if (payload.eventType === 'INSERT') {
             const newEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
               events: [newEvent, ...prev.events]
             }));
-          } else if (payload.event === 'UPDATE') {
+          } else if (payload.eventType === 'UPDATE') {
             const updatedEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
@@ -678,7 +734,7 @@ export function useWolfpack(
                 event.id === updatedEvent.id ? updatedEvent : event
               )
             }));
-          } else if (payload.event === 'DELETE') {
+          } else if (payload.eventType === 'DELETE') {
             const deletedEvent = adaptDatabaseEvent(payload.old as DatabaseEvent);
             setState(prev => ({
               ...prev,
@@ -689,63 +745,60 @@ export function useWolfpack(
       )
       .subscribe();
 
-    // Store channels for cleanup
     channelsRef.current = [chatChannel, reactionsChannel, membersChannel, eventsChannel];
-
-    // Load initial data
     loadInitialData();
 
-  }, [sessionId, locationId, loadInitialData]);
+  }, [sessionId, locationId, autoConnect, loadInitialData, log]);
 
-  // Send message action with enhanced security
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      channelsRef.current.forEach(channel => channel.unsubscribe());
+      channelsRef.current = [];
+    };
+  }, []);
+
+  // =============================================================================
+  // ACTIONS - Perfect implementation with proper error handling
+  // =============================================================================
+
   const sendMessage = useCallback(async (content: string, imageUrl?: string): Promise<{ success: boolean; error?: string }> => {
     if (!sessionId) return { success: false, error: 'No session ID provided' };
 
     try {
-      // Check authentication using helper
       const authUser = await getCurrentAuthenticatedUser();
       if (!authUser) {
         return { success: false, error: 'Authentication required' };
       }
 
-      // Apply rate limiting
       if (!rateLimiterRef.current.canSendMessage()) {
         return { success: false, error: 'Rate limit exceeded. Please wait before sending another message.' };
       }
 
-      // Sanitize input
       const sanitizedContent = SecurityValidator.sanitizeMessage(content);
       if (!sanitizedContent.trim()) {
         return { success: false, error: 'Message cannot be empty' };
       }
 
-      // Validate image URL if provided
-      if (imageUrl && !isValidImageUrl(imageUrl)) {
-        return { success: false, error: 'Invalid image URL' };
-      }
-
-      const displayName = authUser.profile 
-        ? SecurityValidator.sanitizeDisplayName(
-            `${authUser.profile.first_name || ''} ${authUser.profile.last_name || ''}`.trim() || 
-            authUser.email.split('@')[0] || 'Anonymous'
-          )
-        : SecurityValidator.sanitizeDisplayName(authUser.email.split('@')[0] || 'Anonymous');
+      const displayName = authUser.profile?.display_name || 
+        `${authUser.profile?.first_name || ''} ${authUser.profile?.last_name || ''}`.trim() || 
+        authUser.email.split('@')[0] || 'Anonymous';
 
       const { error } = await supabase
         .from('wolfpack_chat_messages')
         .insert({
           session_id: sessionId,
           user_id: authUser.id,
-          display_name: displayName,
+          display_name: SecurityValidator.sanitizeDisplayName(displayName),
           avatar_url: authUser.profile?.avatar_url,
           content: sanitizedContent,
           image_url: imageUrl,
           message_type: imageUrl ? 'image' : 'text',
-          is_flagged: false
+          is_flagged: false,
+          is_deleted: false
         });
 
       if (!error) {
-        // Record successful message for rate limiting
         rateLimiterRef.current.recordMessage();
       }
 
@@ -756,26 +809,22 @@ export function useWolfpack(
     }
   }, [sessionId]);
 
-  // Add reaction action with validation
   const addReaction = useCallback(async (messageId: string, emoji: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Validate emoji
       if (!SecurityValidator.validateEmoji(emoji)) {
         return { success: false, error: 'Invalid emoji' };
       }
 
-      // Validate message ID
       if (!SecurityValidator.validateUUID(messageId)) {
         return { success: false, error: 'Invalid message ID' };
       }
 
-      // Check authentication
       const authUser = await getCurrentAuthenticatedUser();
       if (!authUser) {
         return { success: false, error: 'Authentication required' };
       }
 
-      // Check if user already reacted with this emoji
+      // Check for existing reaction
       const { data: existingReaction } = await supabase
         .from('wolfpack_chat_reactions')
         .select('id')
@@ -803,40 +852,22 @@ export function useWolfpack(
     }
   }, []);
 
-  // Remove reaction action with ownership check
   const removeReaction = useCallback(async (reactionId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Validate reaction ID
       if (!SecurityValidator.validateUUID(reactionId)) {
         return { success: false, error: 'Invalid reaction ID' };
       }
 
-      // Check authentication
       const authUser = await getCurrentAuthenticatedUser();
       if (!authUser) {
         return { success: false, error: 'Authentication required' };
-      }
-
-      // Verify user owns this reaction
-      const { data: reaction, error: fetchError } = await supabase
-        .from('wolfpack_chat_reactions')
-        .select('user_id')
-        .eq('id', reactionId)
-        .single();
-
-      if (fetchError || !reaction) {
-        return { success: false, error: 'Reaction not found' };
-      }
-
-      if (reaction.user_id !== authUser.id) {
-        return { success: false, error: 'You can only remove your own reactions' };
       }
 
       const { error } = await supabase
         .from('wolfpack_chat_reactions')
         .delete()
         .eq('id', reactionId)
-        .eq('user_id', authUser.id); // Double-check ownership
+        .eq('user_id', authUser.id);
 
       return { success: !error, error: error?.message };
     } catch (error) {
@@ -845,12 +876,6 @@ export function useWolfpack(
     }
   }, []);
 
-  // Refresh data action
-  const refreshData = useCallback(async () => {
-    await loadInitialData();
-  }, [loadInitialData]);
-
-  // Join wolfpack action with proper implementation
   const joinWolfpack = useCallback(async (locationId: string, profileData?: Partial<WolfPackMember>): Promise<{ success: boolean; error?: string }> => {
     try {
       const authUser = await getCurrentAuthenticatedUser();
@@ -862,59 +887,107 @@ export function useWolfpack(
         return { success: false, error: 'Invalid location ID' };
       }
 
-      // Check if already a member (now using users table)
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id, is_wolfpack_member')
-        .eq('id', authUser.id)
+      // Check if already a member
+      const { data: existingMember } = await supabase
+        .from('wolf_pack_members')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('location_id', locationId)
+        .eq('status', 'active')
         .single();
 
-      if (existingUser?.is_wolfpack_member) {
-        return { success: false, error: 'Already a member of the wolfpack' };
+      if (existingMember) {
+        return { success: false, error: 'Already a member of this wolfpack' };
       }
 
-      // Update user to be a wolfpack member
-      const { error } = await supabase
-        .from('users')
-        .update({
-          is_wolfpack_member: true,
-          display_name: profileData?.display_name ? 
-            SecurityValidator.sanitizeDisplayName(profileData.display_name) : 
-            undefined
-        })
-        .eq('id', authUser.id);
+      // Insert new wolfpack member
+      const { error: memberError } = await supabase
+        .from('wolf_pack_members')
+        .insert({
+          user_id: authUser.id,
+          location_id: locationId,
+          status: 'active'
+        });
 
-      if (!error) {
-        // Refresh membership status
-        setState(prev => ({
-          ...prev,
-          membershipStatus: {
-            isMember: true,
-            isActive: true,
-            locationId,
-            joinedAt: new Date().toISOString()
-          }
-        }));
+      if (memberError) {
+        return { success: false, error: memberError.message };
       }
 
-      return { success: !error, error: error?.message };
+      // Update user profile if profileData is provided
+      if (profileData?.display_name) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .update({
+            display_name: SecurityValidator.sanitizeDisplayName(profileData.display_name)
+          })
+          .eq('auth_id', authUser.id);
+
+        // Don't fail the join if profile update fails, just log it
+        if (profileError) {
+          console.warn('Profile update failed during wolfpack join:', profileError);
+        }
+      }
+
+      setState(prev => ({
+        ...prev,
+        membershipStatus: {
+          isMember: true,
+          isActive: true,
+          locationId,
+          joinedAt: new Date().toISOString()
+        }
+      }));
+
+      return { success: true };
     } catch (error) {
       console.error('Join wolfpack error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Failed to join wolfpack' };
     }
   }, []);
 
-  // Leave wolfpack action
   const leaveWolfpack = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    // This would need to be implemented based on your wolfpack leaving logic
-    return { success: false, error: 'Leave wolfpack not implemented yet' };
+    try {
+      const authUser = await getCurrentAuthenticatedUser();
+      if (!authUser) {
+        return { success: false, error: 'Authentication required' };
+      }
+
+      const { error } = await supabase
+        .from('wolf_pack_members')
+        .update({ status: 'inactive' })
+        .eq('user_id', authUser.id);
+
+      return { success: !error, error: error?.message };
+    } catch (error) {
+      console.error('Leave wolfpack error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to leave wolfpack' };
+    }
   }, []);
 
-  // Update profile action
   const updateProfile = useCallback(async (updates: Partial<WolfPackMember>): Promise<{ success: boolean; error?: string }> => {
-    // This would need to be implemented based on your profile update logic
-    return { success: false, error: 'Update profile not implemented yet' };
+    try {
+      const authUser = await getCurrentAuthenticatedUser();
+      if (!authUser) {
+        return { success: false, error: 'Authentication required' };
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          display_name: updates.display_name ? SecurityValidator.sanitizeDisplayName(updates.display_name) : undefined
+        })
+        .eq('auth_id', authUser.id);
+
+      return { success: !error, error: error?.message };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to update profile' };
+    }
   }, []);
+
+  const refreshData = useCallback(async () => {
+    await loadInitialData();
+  }, [loadInitialData]);
 
   const actions: RealtimeActions = {
     sendMessage,
@@ -930,10 +1003,10 @@ export function useWolfpack(
   return { state, actions };
 }
 
-// Main export for useWolfpack function as default
-export { useWolfpack as default };
+// =============================================================================
+// TYPING INDICATORS HOOK
+// =============================================================================
 
-// Typing indicator hook - simplified and working
 export function useTypingIndicators(sessionId: string | null) {
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
   const typingTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
@@ -953,12 +1026,10 @@ export function useTypingIndicators(sessionId: string | null) {
         if (isTyping) {
           setTypingUsers(prev => ({ ...prev, [user_id]: display_name }));
           
-          // Clear existing timeout
           if (typingTimeoutRef.current[user_id]) {
             clearTimeout(typingTimeoutRef.current[user_id]);
           }
           
-          // Set new timeout
           typingTimeoutRef.current[user_id] = setTimeout(() => {
             setTypingUsers(prev => {
               const newState = { ...prev };
@@ -1003,3 +1074,5 @@ export function useTypingIndicators(sessionId: string | null) {
 
   return { typingUsers: Object.values(typingUsers), sendTyping };
 }
+
+export default useWolfpack;

@@ -220,7 +220,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/wolfpack/profile')}
+            onClick={() => router.push('/profile')}
           >
             <Settings className="h-4 w-4 mr-2" />
             Profile

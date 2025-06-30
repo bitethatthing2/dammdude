@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WolfpackLocationService } from '@/lib/services/wolfpack-location.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
+import { WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 
 export async function GET(request: NextRequest) {
   try {

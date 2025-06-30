@@ -83,7 +83,7 @@ export class WolfpackAuthService {
     try {
       const { data: user, error } = await supabase
         .from('users')
-        .select('wolfpack_tier')
+        .select('wolfpack_status, role')
         .eq('id', userId)
         .maybeSingle();
 
@@ -92,7 +92,7 @@ export class WolfpackAuthService {
         return false;
       }
 
-      return user?.wolfpack_tier === 'permanent';
+      return user?.wolfpack_status === 'active' && user?.role === 'admin';
     } catch (error) {
       console.error('Error checking permanent pack member status:', error);
       return false;

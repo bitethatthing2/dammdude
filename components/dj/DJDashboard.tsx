@@ -302,12 +302,12 @@ export function DJDashboard({ location }: DJDashboardProps) {
   // Loading state
   if (isLoading) {
     return (
-      <div className="dj-dashboard min-h-screen bg-gradient-to-br from-slate-900 to-purple-900 text-white p-4 lg:p-6">
-        <div className="space-y-6">
-          <Skeleton className="h-32 w-full bg-slate-800" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="dj-dashboard h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-2 lg:p-4 flex flex-col">
+        <div className="space-y-4">
+          <Skeleton className="h-28 w-full bg-slate-800" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-24 bg-slate-800" />
+              <Skeleton key={i} className="h-20 bg-slate-800" />
             ))}
           </div>
         </div>
@@ -320,7 +320,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
   const onlineCount = packMembers.filter(m => m.isOnline).length;
 
   return (
-    <div className="dj-dashboard min-h-screen bg-gradient-to-br from-slate-900 to-purple-900 text-white p-4 lg:p-6">
+    <div className="dj-dashboard h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-2 lg:p-4 flex flex-col">
       {/* Error Alert */}
       {error && (
         <Alert variant="destructive" className="mb-4 bg-red-900/50 border-red-500">
@@ -340,7 +340,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 mb-6 shadow-2xl">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-4 mb-3 shadow-2xl flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -371,7 +371,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-slate-700 text-slate-900 hover:bg-slate-700 hover:text-white bg-white/80"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -390,7 +390,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
             <div className="text-3xl font-bold">{packMemberCount}</div>
             <div className="text-sm opacity-90">Pack Members</div>
-            <div className="text-xs opacity-70 mt-1">{onlineCount} online</div>
+            <div className="text-xs text-white/90 mt-1">{onlineCount} online</div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
             <div className="text-3xl font-bold">{activeEventCount}</div>
@@ -411,16 +411,16 @@ export function DJDashboard({ location }: DJDashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3 flex-shrink-0">
         <Button 
           size="lg" 
-          className="h-24 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+          className="h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
           onClick={() => setShowMassMessage(true)}
           disabled={packMemberCount === 0}
         >
           <div className="text-center">
-            <MessageSquare className="w-8 h-8 mx-auto mb-2" />
-            <div className="font-bold">Broadcast</div>
+            <MessageSquare className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">Broadcast</div>
             <div className="text-xs opacity-80">
               {packMemberCount > 0 ? `Send to ${packMemberCount}` : 'No members'}
             </div>
@@ -429,42 +429,42 @@ export function DJDashboard({ location }: DJDashboardProps) {
         
         <Button 
           size="lg" 
-          className="h-24 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+          className="h-20 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
           onClick={() => setShowQuickPoll(true)}
         >
           <div className="text-center">
-            <Trophy className="w-8 h-8 mx-auto mb-2" />
-            <div className="font-bold">Quick Poll</div>
+            <Trophy className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">Quick Poll</div>
             <div className="text-xs opacity-80">What song next?</div>
           </div>
         </Button>
         
         <Button 
           size="lg" 
-          className="h-24 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+          className="h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
           onClick={() => setShowEventCreator(true)}
         >
           <div className="text-center">
-            <Plus className="w-8 h-8 mx-auto mb-2" />
-            <div className="font-bold">New Event</div>
+            <Plus className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">New Event</div>
             <div className="text-xs opacity-80">Create Contest</div>
           </div>
         </Button>
         
         <Button 
           size="lg" 
-          className="h-24 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          className="h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
         >
           <div className="text-center">
-            <Users className="w-8 h-8 mx-auto mb-2" />
-            <div className="font-bold">Crowd Vibe</div>
+            <Users className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">Crowd Vibe</div>
             <div className="text-xs opacity-80">Check Energy</div>
           </div>
         </Button>
       </div>
 
       {/* Live Events & Pack Activity */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid lg:grid-cols-2 gap-4 mb-3 flex-1 overflow-auto">
         <Card className="bg-slate-800 border-slate-700 text-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -537,7 +537,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
               </div>
               <div className="text-sm text-slate-400 mt-1 flex justify-between">
                 <span>{currentVibes.energy}%</span>
-                <span>{onlineCount} online</span>
+                <span className="text-white">{onlineCount} online</span>
               </div>
             </div>
             
@@ -559,19 +559,19 @@ export function DJDashboard({ location }: DJDashboardProps) {
       </div>
 
       {/* Pack Members */}
-      <Card className="bg-slate-800 border-slate-700 text-white">
+      <Card className="bg-slate-800 border-slate-700 text-white max-h-64 overflow-hidden flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-green-400" />
               Pack Members ({packMemberCount})
             </div>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs text-white border-white/50">
               {onlineCount} online
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-auto flex-1">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {packMembers.map(member => (
               <div key={member.id} className="bg-slate-700 rounded-lg p-3 hover:bg-slate-600 transition-colors">

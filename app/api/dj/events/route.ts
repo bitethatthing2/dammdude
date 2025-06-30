@@ -1,87 +1,294 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES } from '@/lib/services/wolfpack-backend.service';
+import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
 
-export async function POST(request: NextRequest) {
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+interface CreateEventRequest {
+  title: string;
+  event_type: 'poll' | 'contest' | 'dance_battle' | 'hottest_person' | 'best_costume' | 'name_that_tune' | 'song_request' | 'next_song_vote' | 'trivia' | 'custom';
+  options?: string[];
+  location_id: string;
+  duration?: number;
+  description?: string;
+  voting_format?: 'binary' | 'multiple_choice' | 'participant';
+}
+
+interface EventData {
+  id: string;
+  dj_id: string;
+  location_id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  voting_ends_at: string | null;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  winner_id: string | null;
+  winner_data: unknown | null;
+  event_config: unknown | null;
+  voting_format: string | null;
+  options: unknown | null;
+}
+
+interface UserData {
+  id: string;
+  role: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  email: string;
+}
+
+interface CreateEventResponse {
+  success: true;
+  event_id: string;
+  event_type: string;
+  title: string;
+  voting_ends_at: string;
+  created_at: string;
+  options: string[] | null;
+  status: string;
+}
+
+interface ErrorResponse {
+  error: string;
+  code: string;
+}
+
+// =============================================================================
+// VALIDATION HELPERS
+// =============================================================================
+
+const VALID_EVENT_TYPES = [
+  'poll', 'contest', 'dance_battle', 'hottest_person', 'best_costume',
+  'name_that_tune', 'song_request', 'next_song_vote', 'trivia', 'custom'
+] as const;
+
+const VALID_VOTING_FORMATS = ['binary', 'multiple_choice', 'participant'] as const;
+
+function validateEventType(eventType: string): eventType is typeof VALID_EVENT_TYPES[number] {
+  return VALID_EVENT_TYPES.includes(eventType as typeof VALID_EVENT_TYPES[number]);
+}
+
+function validateVotingFormat(format: string): format is typeof VALID_VOTING_FORMATS[number] {
+  return VALID_VOTING_FORMATS.includes(format as typeof VALID_VOTING_FORMATS[number]);
+}
+
+function validateUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+function sanitizeString(input: string, maxLength = 500): string {
+  return input.trim().slice(0, maxLength).replace(/[<>]/g, '');
+}
+
+// =============================================================================
+// AUTHENTICATION & AUTHORIZATION
+// =============================================================================
+
+async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Authentication required');
+  }
+
+  return user;
+}
+
+async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserData> {
+  // Verify user through auth service
+  const authResult = await WolfpackAuthService.verifyUser({ id: userId } as any);
+  if (!authResult.isVerified) {
+    throw new Error('User verification failed');
+  }
+
+  // Get user data with proper typing
+  const { data: userData, error } = await supabase
+    .from('users')
+    .select('id, role, display_name, first_name, last_name, avatar_url, email')
+    .eq('id', userId)
+    .single();
+
+  if (error || !userData) {
+    throw new Error('User data not found');
+  }
+
+  const typedUserData = userData as UserData;
+  const isDJ = typedUserData.role === 'dj' || 
+               typedUserData.role === 'admin' || 
+               authResult.isVipUser;
+
+  if (!isDJ) {
+    throw new Error('DJ permissions required');
+  }
+
+  return typedUserData;
+}
+
+// =============================================================================
+// BUSINESS LOGIC
+// =============================================================================
+
+function generateEventDescription(eventType: string, title: string, djName: string): string {
+  const descriptions: Record<string, string> = {
+    poll: `🗳️ Join this poll created by DJ ${djName}!`,
+    contest: `🏆 Join this contest created by DJ ${djName}!`,
+    dance_battle: `💃 Dance battle time! DJ ${djName} wants to see your moves!`,
+    hottest_person: `🔥 Vote for the hottest person! Event by DJ ${djName}`,
+    best_costume: `👗 Best costume contest! Show off your style! By DJ ${djName}`,
+    name_that_tune: `🎵 Name that tune! Test your music knowledge with DJ ${djName}`,
+    song_request: `🎶 Song request event! Tell DJ ${djName} what you want to hear!`,
+    next_song_vote: `🎧 Vote for the next song! DJ ${djName} needs your input!`,
+    trivia: `🧠 Trivia time! Test your knowledge with DJ ${djName}`,
+    custom: `✨ ${title} - Special event by DJ ${djName}!`
+  };
+
+  return descriptions[eventType] || `Join this ${eventType} created by DJ ${djName}!`;
+}
+
+function generateChatAnnouncement(eventType: string, title: string): string {
+  const announcements: Record<string, string> = {
+    poll: `🗳️ NEW POLL: ${title} - Vote now!`,
+    contest: `🏆 NEW CONTEST: ${title} - Join the competition!`,
+    dance_battle: `💃 DANCE BATTLE: ${title} - Show your moves!`,
+    hottest_person: `🔥 HOTTEST PERSON: ${title} - Cast your votes!`,
+    best_costume: `👗 COSTUME CONTEST: ${title} - Show off your style!`,
+    name_that_tune: `🎵 NAME THAT TUNE: ${title} - Test your music knowledge!`,
+    song_request: `🎶 SONG REQUESTS: ${title} - Tell us what you want to hear!`,
+    next_song_vote: `🎧 VOTE FOR NEXT SONG: ${title} - Help choose the music!`,
+    trivia: `🧠 TRIVIA TIME: ${title} - Test your knowledge!`,
+    custom: `✨ NEW EVENT: ${title} - Join in!`
+  };
+
+  return announcements[eventType] || `🎉 NEW EVENT: ${title} - Join now!`;
+}
+
+// =============================================================================
+// MAIN API HANDLER
+// =============================================================================
+
+export async function POST(request: NextRequest): Promise<NextResponse<CreateEventResponse | ErrorResponse>> {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // 1. Authentication
+    const user = await authenticateUser(supabase);
+    
+    // 2. Parse and validate request body
+    const body = await request.json() as CreateEventRequest;
+    const { 
+      title, 
+      event_type, 
+      options = [], 
+      location_id, 
+      duration = 600,
+      description,
+      voting_format = 'multiple_choice'
+    } = body;
 
-    if (authError || !user) {
+    // 3. Input validation
+    if (!title?.trim()) {
       return NextResponse.json(
-        { error: 'Authentication required', code: 'AUTH_ERROR' },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { title, event_type, options, location_id, duration = 600 } = body;
-
-    if (!title || !event_type || !location_id) {
-      return NextResponse.json(
-        { error: 'Title, event type, and location required', code: 'VALIDATION_ERROR' },
+        { error: 'Title is required', code: 'VALIDATION_ERROR' },
         { status: 400 }
       );
     }
 
-    if (!['poll', 'contest'].includes(event_type)) {
+    if (!event_type?.trim()) {
       return NextResponse.json(
-        { error: 'Event type must be poll or contest', code: 'VALIDATION_ERROR' },
+        { error: 'Event type is required', code: 'VALIDATION_ERROR' },
         { status: 400 }
       );
     }
 
-    if (event_type === 'poll' && (!options || options.length < 2)) {
+    if (!location_id?.trim()) {
+      return NextResponse.json(
+        { error: 'Location ID is required', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateUUID(location_id)) {
+      return NextResponse.json(
+        { error: 'Invalid location ID format', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateEventType(event_type)) {
+      return NextResponse.json(
+        { error: `Event type must be one of: ${VALID_EVENT_TYPES.join(', ')}`, code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateVotingFormat(voting_format)) {
+      return NextResponse.json(
+        { error: `Voting format must be one of: ${VALID_VOTING_FORMATS.join(', ')}`, code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      );
+    }
+
+    // Validate poll-specific requirements
+    if ((event_type === 'poll' || event_type === 'next_song_vote') && options.length < 2) {
       return NextResponse.json(
         { error: 'Polls require at least 2 options', code: 'VALIDATION_ERROR' },
         { status: 400 }
       );
     }
 
-    // Verify DJ permissions
-    const authResult = await WolfpackAuthService.verifyUser(user);
-    if (!authResult.isVerified) {
+    // Validate duration
+    if (duration < 60 || duration > 3600) {
       return NextResponse.json(
-        { error: 'User verification failed', code: 'AUTH_ERROR' },
-        { status: 401 }
+        { error: 'Duration must be between 60 seconds and 1 hour', code: 'VALIDATION_ERROR' },
+        { status: 400 }
       );
     }
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // 4. Authorization
+    const userData = await verifyDJPermissions(supabase, user.id);
 
-    const isDJ = userData?.role === 'dj' || userData?.role === 'admin' || authResult.isVipUser;
+    // 5. Get display name for DJ
+    const djDisplayName = WolfpackAuthService.getUserDisplayName(user) || 
+                         userData.display_name || 
+                         `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 
+                         userData.email.split('@')[0] || 
+                         'DJ';
 
-    if (!isDJ) {
-      return NextResponse.json(
-        { error: 'DJ permissions required', code: 'PERMISSION_ERROR' },
-        { status: 403 }
-      );
-    }
+    // 6. Create event data
+    const now = new Date();
+    const votingEndsAt = new Date(now.getTime() + duration * 1000);
 
-    // Create event
     const eventData = {
       dj_id: user.id,
-      location_id,
+      location_id: sanitizeString(location_id),
       event_type,
-      title,
-      description: `Join this ${event_type} created by DJ ${WolfpackAuthService.getUserDisplayName(user)}!`,
+      title: sanitizeString(title, 200),
+      description: description ? sanitizeString(description, 1000) : generateEventDescription(event_type, title, djDisplayName),
       status: 'active',
-      voting_ends_at: new Date(Date.now() + duration * 1000).toISOString(),
-      created_at: new Date().toISOString(),
-      started_at: new Date().toISOString(),
+      voting_ends_at: votingEndsAt.toISOString(),
+      created_at: now.toISOString(),
+      started_at: now.toISOString(),
+      voting_format,
       event_config: {
         duration,
         created_by: user.id,
-        options: options || []
-      }
+        options: options.map(opt => sanitizeString(opt, 100)),
+        dj_name: djDisplayName
+      },
+      options: options.length > 0 ? JSON.stringify(options.map(opt => sanitizeString(opt, 100))) : null
     };
 
+    // 7. Insert event into database
     const result = await WolfpackBackendService.insert(
       WOLFPACK_TABLES.DJ_EVENTS,
       eventData,
@@ -89,46 +296,82 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.error) {
-      throw new Error(result.error);
+      console.error('Event creation failed:', result.error);
+      throw new Error(`Failed to create event: ${result.error}`);
     }
 
-    const eventRecord = result.data?.[0];
-    const eventId = (eventRecord as any)?.id || crypto.randomUUID(); // Fallback UUID if not returned
+    const eventRecord = result.data?.[0] as EventData | undefined;
+    if (!eventRecord) {
+      throw new Error('Event was created but no data returned');
+    }
 
-    // Create announcement in chat
-    const displayName = WolfpackAuthService.getUserDisplayName(user);
-    const announcementMessage = event_type === 'poll' 
-      ? `🗳️ NEW POLL: ${title} - Vote now!`
-      : `🏆 NEW CONTEST: ${title} - Join the competition!`;
+    // 8. Create announcement in chat
+    const announcementMessage = generateChatAnnouncement(event_type, title);
 
-    await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.WOLF_CHAT,
-      {
-        session_id: `location_${location_id}`,
-        user_id: user.id,
-        display_name: displayName,
-        avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
-        content: announcementMessage,
-        message_type: 'dj_broadcast',
-        created_at: new Date().toISOString(),
-        is_flagged: false
-      }
-    );
+    try {
+      await WolfpackBackendService.insert(
+        WOLFPACK_TABLES.WOLF_CHAT,
+        {
+          session_id: `location_${location_id}`,
+          user_id: user.id,
+          display_name: djDisplayName,
+          avatar_url: WolfpackAuthService.getUserAvatarUrl(user) || userData.avatar_url,
+          content: announcementMessage,
+          message_type: 'dj_broadcast',
+          created_at: now.toISOString(),
+          is_flagged: false,
+          is_deleted: false
+        },
+        'id'
+      );
+    } catch (chatError) {
+      // Log but don't fail the event creation
+      console.warn('Failed to create chat announcement:', chatError);
+    }
 
+    // 9. Return success response
     return NextResponse.json({
       success: true,
-      event_id: eventId,
-      event_type,
-      title,
-      voting_ends_at: eventRecord?.voting_ends_at || eventData.voting_ends_at,
-      created_at: eventRecord?.created_at || eventData.created_at,
-      options: options || null
+      event_id: eventRecord.id,
+      event_type: eventRecord.event_type,
+      title: eventRecord.title,
+      voting_ends_at: eventRecord.voting_ends_at || votingEndsAt.toISOString(),
+      created_at: eventRecord.created_at,
+      options: options.length > 0 ? options : null,
+      status: eventRecord.status
     });
 
   } catch (error) {
     console.error('DJ event creation error:', error);
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required') {
+        return NextResponse.json(
+          { error: 'Authentication required', code: 'AUTH_ERROR' },
+          { status: 401 }
+        );
+      }
+      
+      if (error.message === 'User verification failed') {
+        return NextResponse.json(
+          { error: 'User verification failed', code: 'AUTH_ERROR' },
+          { status: 401 }
+        );
+      }
+      
+      if (error.message === 'DJ permissions required') {
+        return NextResponse.json(
+          { error: 'DJ permissions required', code: 'PERMISSION_ERROR' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Handle Supabase errors
     const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'dj_event_creation'
+      operation: 'dj_event_creation',
+      context: { user_id: 'unknown' }
     });
 
     return NextResponse.json(

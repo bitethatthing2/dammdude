@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES } from '@/lib/services/wolfpack-backend.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
+import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-sanitization';
 
 export async function POST(request: NextRequest) {
