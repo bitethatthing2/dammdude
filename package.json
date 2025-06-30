@@ -6,7 +6,7 @@
     "node": ">=v22.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "dev:https": "node dev-https.js",
     "build": "next build",
     "postbuild": "node scripts/populate-service-worker.js",
@@ -121,8 +121,8 @@
     "eslint-config-next": "15.2.4",
     "glob": "^10.4.5",
     "imagemin": "^8.0.1",
-    "imagemin-mozjpeg": "^10.0.0",
-    "imagemin-pngquant": "^10.0.0",
+    "imagemin-mozjpeg": "^7.0.0",
+    "imagemin-pngquant": "^5.0.1",
     "imagemin-svgo": "^10.0.1",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",

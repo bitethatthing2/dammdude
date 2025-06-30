@@ -14,15 +14,40 @@ export interface ErrorContext {
   userId?: string;
   locationId?: string;
   membershipId?: string;
-  additional?: Record<string, any>;
+  additional?: Record<string, unknown>;
 }
+
+// FIXED: Properly typed error interfaces
+interface DatabaseError {
+  code: string;
+  message: string;
+  details?: string;
+  hint?: string;
+}
+
+interface AuthError {
+  message: string;
+  status?: number;
+  error_description?: string;
+}
+
+interface GeolocationError {
+  code: number;
+  message: string;
+  PERMISSION_DENIED?: number;
+  POSITION_UNAVAILABLE?: number;
+  TIMEOUT?: number;
+}
+
+// FIXED: Union type for all possible error types
+type WolfpackError = PostgrestError | Error | DatabaseError | AuthError | GeolocationError | { message: string; code?: string };
 
 export class WolfpackErrorHandler {
   /**
    * Handle Supabase PostgrestError consistently across the app
    */
   static handleSupabaseError(
-    error: PostgrestError | Error | any,
+    error: WolfpackError,
     context?: ErrorContext
   ): UserFriendlyError {
     // Log error for debugging
@@ -33,13 +58,28 @@ export class WolfpackErrorHandler {
     });
 
     // Handle PostgrestError specifically
-    if (error && 'code' in error && 'message' in error) {
-      return this.handlePostgrestError(error as PostgrestError, context);
+    if (this.isPostgrestError(error)) {
+      return this.handlePostgrestError(error, context);
     }
 
     // Handle generic Error
     if (error instanceof Error) {
       return this.handleGenericError(error, context);
+    }
+
+    // Handle database errors
+    if (this.isDatabaseError(error)) {
+      return this.handleDatabaseError(error, context);
+    }
+
+    // Handle auth errors
+    if (this.isAuthError(error)) {
+      return this.handleAuthError(error);
+    }
+
+    // Handle geolocation errors
+    if (this.isGeolocationError(error)) {
+      return this.handleLocationError(error);
     }
 
     // Handle unknown error format
@@ -49,6 +89,26 @@ export class WolfpackErrorHandler {
       retryable: true,
       action: 'Please try again'
     };
+  }
+
+  /**
+   * Type guards for different error types
+   */
+  private static isPostgrestError(error: WolfpackError): error is PostgrestError {
+    return typeof error === 'object' && error !== null && 'code' in error && 'message' in error && 'details' in error;
+  }
+
+  private static isDatabaseError(error: WolfpackError): error is DatabaseError {
+    return typeof error === 'object' && error !== null && 'code' in error && 'message' in error && !('details' in error);
+  }
+
+  private static isAuthError(error: WolfpackError): error is AuthError {
+    return typeof error === 'object' && error !== null && 'message' in error && 
+           (error.message.includes('auth') || error.message.includes('credentials') || error.message.includes('email'));
+  }
+
+  private static isGeolocationError(error: WolfpackError): error is GeolocationError {
+    return typeof error === 'object' && error !== null && 'code' in error && typeof (error as GeolocationError).code === 'number';
   }
 
   /**
@@ -132,6 +192,22 @@ export class WolfpackErrorHandler {
     }
 
     // Default handling for unmapped PostgrestError
+    return {
+      message: this.getGenericErrorMessage(error.message, context),
+      type: 'error',
+      code: error.code,
+      retryable: true,
+      action: 'Please try again'
+    };
+  }
+
+  /**
+   * Handle database errors
+   */
+  private static handleDatabaseError(
+    error: DatabaseError,
+    context?: ErrorContext
+  ): UserFriendlyError {
     return {
       message: this.getGenericErrorMessage(error.message, context),
       type: 'error',
@@ -247,7 +323,7 @@ export class WolfpackErrorHandler {
   /**
    * Get error message for specific wolfpack operations
    */
-  static getWolfpackErrorMessage(operation: string, error: any): string {
+  static getWolfpackErrorMessage(operation: string, error: WolfpackError): string {
     const context: ErrorContext = { operation };
     const userError = this.handleSupabaseError(error, context);
     return userError.message;
@@ -256,7 +332,7 @@ export class WolfpackErrorHandler {
   /**
    * Check if error is retryable
    */
-  static isRetryableError(error: any): boolean {
+  static isRetryableError(error: WolfpackError): boolean {
     const userError = this.handleSupabaseError(error);
     return userError.retryable;
   }
@@ -264,7 +340,7 @@ export class WolfpackErrorHandler {
   /**
    * Get suggested action for error
    */
-  static getErrorAction(error: any): string | undefined {
+  static getErrorAction(error: WolfpackError): string | undefined {
     const userError = this.handleSupabaseError(error);
     return userError.action;
   }
@@ -273,16 +349,16 @@ export class WolfpackErrorHandler {
    * Log error with context for monitoring
    */
   static logError(
-    error: any,
+    error: WolfpackError,
     context: ErrorContext,
     userId?: string
   ): void {
     const errorLog = {
       timestamp: new Date().toISOString(),
       error: {
-        message: error?.message || 'Unknown error',
-        code: error?.code || 'UNKNOWN',
-        stack: error?.stack
+        message: this.getErrorMessage(error),
+        code: this.getErrorCode(error),
+        stack: error instanceof Error ? error.stack : undefined
       },
       context,
       userId,
@@ -300,11 +376,34 @@ export class WolfpackErrorHandler {
   }
 
   /**
+   * Helper to safely extract error message
+   */
+  private static getErrorMessage(error: WolfpackError): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      return String(error.message);
+    }
+    return 'Unknown error';
+  }
+
+  /**
+   * Helper to safely extract error code
+   */
+  private static getErrorCode(error: WolfpackError): string {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      return String(error.code);
+    }
+    return 'UNKNOWN';
+  }
+
+  /**
    * Create error context for consistent logging
    */
   static createContext(
     operation: string,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, unknown>
   ): ErrorContext {
     return {
       operation,
@@ -315,7 +414,7 @@ export class WolfpackErrorHandler {
   /**
    * Handle authentication specific errors
    */
-  static handleAuthError(error: any): UserFriendlyError {
+  static handleAuthError(error: AuthError): UserFriendlyError {
     const authErrorMap: Record<string, string> = {
       'invalid_credentials': 'Invalid email or password',
       'email_not_confirmed': 'Please confirm your email address',
@@ -327,13 +426,13 @@ export class WolfpackErrorHandler {
       'invalid_request': 'Invalid request format'
     };
 
-    const message = authErrorMap[error?.message] || 'Authentication failed';
+    const message = authErrorMap[error.message] || 'Authentication failed';
 
     return {
       message,
       type: 'error',
-      retryable: error?.message !== 'email_address_not_authorized',
-      action: error?.message === 'email_not_confirmed' 
+      retryable: error.message !== 'email_address_not_authorized',
+      action: error.message === 'email_not_confirmed' 
         ? 'Check your email for confirmation link' 
         : 'Please try again'
     };
@@ -342,8 +441,8 @@ export class WolfpackErrorHandler {
   /**
    * Handle location specific errors
    */
-  static handleLocationError(error: any): UserFriendlyError {
-    if (error?.code === 1) { // PERMISSION_DENIED
+  static handleLocationError(error: GeolocationError): UserFriendlyError {
+    if (error.code === 1) { // PERMISSION_DENIED
       return {
         message: 'Location access denied',
         type: 'warning',
@@ -352,7 +451,7 @@ export class WolfpackErrorHandler {
       };
     }
 
-    if (error?.code === 2) { // POSITION_UNAVAILABLE
+    if (error.code === 2) { // POSITION_UNAVAILABLE
       return {
         message: 'Location unavailable',
         type: 'error',
@@ -361,7 +460,7 @@ export class WolfpackErrorHandler {
       };
     }
 
-    if (error?.code === 3) { // TIMEOUT
+    if (error.code === 3) { // TIMEOUT
       return {
         message: 'Location request timed out',
         type: 'error',

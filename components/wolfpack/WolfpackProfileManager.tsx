@@ -50,7 +50,7 @@ interface WolfProfile {
   favorite_bartender?: string | null;
   created_at?: string | null;
   last_seen_at?: string | null;
-  daily_customization?: any;
+  daily_customization?: unknown;
 }
 
 // Form data interface
@@ -150,7 +150,7 @@ export function WolfpackProfileManager() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, display_name, wolf_emoji, bio, favorite_drink, vibe_status, profile_pic_url, instagram_handle, favorite_song, looking_for, is_profile_visible, gender, pronouns, custom_avatar_id')
+        .select('id, display_name, wolf_emoji, bio, favorite_drink, vibe_status, profile_pic_url, instagram_handle, favorite_song, looking_for, is_profile_visible, gender, pronouns, custom_avatar_id, allow_messages')
         .eq('id', user.id)
         .single();
 
@@ -164,8 +164,10 @@ export function WolfpackProfileManager() {
         // Transform the data to match WolfProfile interface, ensuring boolean fields are not null
         const transformedProfile: WolfProfile = {
           ...data,
-          is_visible: data.is_visible ?? true,
-          allow_messages: data.allow_messages ?? true
+          user_id: data.id, // Add missing user_id field
+          is_visible: data.is_profile_visible ?? true,
+          allow_messages: data.allow_messages ?? true,
+          profile_image_url: data.profile_pic_url // Map profile_pic_url to profile_image_url
         };
         setProfile(transformedProfile);
         setFormData({
@@ -179,10 +181,10 @@ export function WolfpackProfileManager() {
           looking_for: data.looking_for || '',
           gender: data.gender || '',
           pronouns: data.pronouns || '',
-          is_visible: data.is_visible ?? true,
+          is_visible: data.is_profile_visible ?? true,
           allow_messages: data.allow_messages ?? true,
-          favorite_bartender: data.favorite_bartender || '',
-          profile_image_url: data.profile_image_url || ''
+          favorite_bartender: '', // This field doesn't exist in users table
+          profile_image_url: data.profile_pic_url || ''
         });
       } else {
         // Set default values for new profile - fix user property access
@@ -330,33 +332,15 @@ export function WolfpackProfileManager() {
       // Ensure savedData has proper boolean types before setting
       const typedSavedData: WolfProfile = {
         ...savedData,
-        is_visible: savedData.is_visible ?? true,
-        allow_messages: savedData.allow_messages ?? true
+        user_id: savedData.id, // Add missing user_id field
+        is_visible: savedData.is_profile_visible ?? true,
+        allow_messages: savedData.allow_messages ?? true,
+        profile_image_url: savedData.profile_pic_url || savedData.profile_image_url
       };
 
       setProfile(typedSavedData);
       
-      // Try to update wolfpack_members_unified table if it exists
-      try {
-        const { error: memberError } = await supabase
-          .from('wolfpack_members_unified')
-          .update({
-            display_name: data.display_name || null,
-            avatar_url: savedData.profile_image_url || savedData.profile_pic_url || null,
-            emoji: data.wolf_emoji,
-            favorite_drink: data.favorite_drink || null,
-            current_vibe: data.vibe_status || null,
-            looking_for: data.looking_for || null,
-            instagram_handle: data.instagram_handle ? data.instagram_handle.replace('@', '') : null
-          })
-          .eq('user_id', user.id);
-
-        if (memberError) {
-          console.warn('Could not update wolfpack member data:', memberError);
-        }
-      } catch (memberUpdateError) {
-        console.warn('Wolfpack member table update failed:', memberUpdateError);
-      }
+      // Update completed - wolfpack_members_unified table has been consolidated into users
 
       if (showToast) {
         toast.success('Profile saved successfully!');

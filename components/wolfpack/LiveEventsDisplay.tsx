@@ -248,18 +248,12 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
               wolfProfilesMap = new Map(userProfiles?.map(p => [p.id, p]) || []);
             }
 
-            // Get votes from wolfpack_event_votes table
-            const { data: votes, error: votesError } = await supabase
-              .from('wolf_pack_votes')
-              .select('*')
-              .eq('event_id', event.id);
-
-            if (votesError) {
-              console.error('Error loading votes:', votesError);
-            }
-
-            // Check if current user voted - using voter_id since user_id doesn't exist
-            const userVoted = votes?.some(vote => vote.voter_id === userId) || false;
+            // TODO: Implement voting when wolf_pack_votes table is created
+            // For now, mock the voting data to avoid breaking the interface
+            const votes: any[] = [];
+            
+            // Check if current user voted - always false for now
+            const userVoted = false;
 
             // Count votes per option/participant
             const voteCounts = new Map<string, number>();

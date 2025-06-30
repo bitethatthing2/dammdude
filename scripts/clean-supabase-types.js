@@ -11,7 +11,6 @@ console.log('🔧 Cleaning up Supabase types...');
 
 // Files to update
 const typeFiles = [
-  'lib/types/supabase.ts',
   'types/supabase.ts'
 ];
 
@@ -99,7 +98,7 @@ export interface CleanRestaurantTable {
 }
 
 // Re-export with clean types
-export type { Database } from './supabase';
+export type { Database } from '../../types/supabase';
 `;
 
 fs.writeFileSync(typeOverridePath, typeOverrides);

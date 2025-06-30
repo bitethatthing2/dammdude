@@ -26,14 +26,13 @@ interface DatabaseEvent {
 
 interface DatabaseMember {
   id: string;
-  user_id: string;
   display_name: string | null;
   avatar_url: string | null;
-  emoji: string | null;
-  current_vibe: string | null;
-  last_active: string | null;
-  is_active: boolean | null;
-  status: string | null;
+  wolf_emoji: string | null;
+  vibe_status: string | null;
+  last_activity: string | null;
+  is_wolfpack_member: boolean | null;
+  wolfpack_status: string | null;
 }
 type LocationName = 'salem' | 'portland';
 type EventStatus = 'active' | 'paused' | 'ended' | 'voting';
@@ -164,42 +163,41 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
       setActiveEvents(events);
 
-      // Fetch wolfpack members
+      // Fetch wolfpack members from users table
       const { data: membersData, error: membersError } = await supabase
-        .from('wolfpack_members_unified')
+        .from('users')
         .select(`
           id,
-          user_id,
           display_name,
           avatar_url,
-          emoji,
-          current_vibe,
-          last_active,
-          is_active,
-          status
+          wolf_emoji,
+          vibe_status,
+          last_activity,
+          is_wolfpack_member,
+          wolfpack_status
         `)
         .eq('location_id', locationConfig.id)
-        .eq('is_active', true)
-        .not('status', 'is', null)
-        .order('last_active', { ascending: false });
+        .eq('is_wolfpack_member', true)
+        .not('wolfpack_status', 'is', null)
+        .order('last_activity', { ascending: false });
 
       if (membersError) throw membersError;
 
       // Transform members data
       const members: PackMember[] = (membersData || [])
-        .filter((member: DatabaseMember) => member.is_active && member.status === 'active')
+        .filter((member: DatabaseMember) => member.is_wolfpack_member && member.wolfpack_status === 'active')
         .map((member: DatabaseMember) => {
-          const lastActiveTime = new Date(member.last_active || new Date().toISOString());
+          const lastActiveTime = new Date(member.last_activity || new Date().toISOString());
           const isRecentlyActive = (Date.now() - lastActiveTime.getTime()) < 5 * 60 * 1000;
           
           return {
             id: member.id,
-            user_id: member.user_id,
+            user_id: member.id,
             displayName: member.display_name || 'Unknown User',
             profilePicture: member.avatar_url || '/images/avatar-placeholder.png',
-            vibeStatus: member.emoji || '🐺',
+            vibeStatus: member.wolf_emoji || '🐺',
             isOnline: isRecentlyActive,
-            lastSeen: member.last_active || new Date().toISOString()
+            lastSeen: member.last_activity || new Date().toISOString()
           };
         });
 
@@ -247,7 +245,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
           { 
             event: '*', 
             schema: 'public', 
-            table: 'wolfpack_members_unified',
+            table: 'users',
             filter: `location_id=eq.${locationConfig.id}`
           }, 
           () => fetchDashboardData(false)

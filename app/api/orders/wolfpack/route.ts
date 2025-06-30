@@ -53,11 +53,12 @@ export async function GET(request: NextRequest) {
 
     // Verify user is wolfpack member at this location
     const { data: membership, error: membershipError } = await supabase
-      .from('wolfpack_members_unified')
-      .select('id, location_id, is_active')
-      .eq('user_id', user.id)
+      .from('users')
+      .select('id, location_id, is_wolfpack_member, wolfpack_status')
+      .eq('id', user.id)
       .eq('location_id', locationId)
-      .eq('is_active', true)
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active')
       .maybeSingle();
 
     if (membershipError || !membership) {
@@ -69,10 +70,11 @@ export async function GET(request: NextRequest) {
 
     // Get recent orders from wolfpack members at this location
     const { data: locationMembers, error: membersError } = await supabase
-      .from('wolfpack_members_unified')
-      .select('user_id')
+      .from('users')
+      .select('id')
       .eq('location_id', locationId)
-      .eq('is_active', true);
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active');
 
     if (membersError || !locationMembers || locationMembers.length === 0) {
       return NextResponse.json({
@@ -83,9 +85,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const memberUserIds = locationMembers.map(m => m.user_id);
+    const memberUserIds = locationMembers.map(m => m.id);
 
-    // Get orders from these users
+    // Get orders from these users with their items
     const { data: orders, error: ordersError } = await supabase
       .from('bartender_orders')
       .select(`
@@ -95,7 +97,15 @@ export async function GET(request: NextRequest) {
         created_at,
         customer_id,
         table_location,
-        items
+        order_items (
+          id,
+          menu_item_id,
+          item_name,
+          quantity,
+          unit_price,
+          subtotal,
+          special_instructions
+        )
       `)
       .in('customer_id', memberUserIds)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
@@ -134,18 +144,9 @@ export async function GET(request: NextRequest) {
         avatar_url: null
       };
 
-      // Parse items if stored as JSON string
-      let orderItems: unknown[] = [];
-      try {
-        orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
-      } catch (e) {
-        console.warn('Failed to parse order items:', e);
-        orderItems = [];
-      }
-
-      const itemCount = Array.isArray(orderItems) 
-        ? (orderItems as { quantity?: number }[]).reduce((sum: number, item) => sum + (Number(item.quantity) || 0), 0)
-        : 0;
+      // Get items from the relation
+      const orderItems = order.order_items || [];
+      const itemCount = orderItems.reduce((sum: number, item) => sum + (item.quantity || 0), 0);
 
       return {
         id: order.id,
@@ -205,11 +206,12 @@ export async function POST(request: NextRequest) {
 
     // Verify user is wolfpack member at this location
     const { data: membership, error: membershipError } = await supabase
-      .from('wolfpack_members_unified')
-      .select('id, location_id, is_active, table_location, display_name')
-      .eq('user_id', user.id)
+      .from('users')
+      .select('id, location_id, is_wolfpack_member, wolfpack_status, table_location, display_name')
+      .eq('id', user.id)
       .eq('location_id', location_id)
-      .eq('is_active', true)
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active')
       .maybeSingle();
 
     if (membershipError || !membership) {
@@ -260,8 +262,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const displayName = membership.display_name || 
-                       userData?.first_name || 
+    const displayName = userData?.first_name || 
                        userData?.email?.split('@')[0] || 
                        'Anonymous Wolf';
 
@@ -274,10 +275,8 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         total_amount: totalAmount,
         order_type: 'wolfpack',
-        table_location: table_location || membership.table_location || 'Wolf Pack',
-        items: JSON.stringify(processedItems),
-        customer_notes: null,
-        created_at: new Date().toISOString()
+        table_location: table_location || 'Wolf Pack',
+        customer_notes: null
       })
       .select('id, created_at, status, total_amount, table_location')
       .single();
@@ -285,6 +284,28 @@ export async function POST(request: NextRequest) {
     if (orderError) {
       console.error('Order creation error:', orderError);
       throw orderError;
+    }
+
+    // Insert order items
+    const orderItemsToInsert = processedItems.map(item => ({
+      order_id: order.id,
+      menu_item_id: item.item_id,
+      item_name: item.name,
+      quantity: item.quantity,
+      unit_price: item.price,
+      subtotal: item.subtotal,
+      special_instructions: item.notes
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItemsToInsert);
+
+    if (itemsError) {
+      console.error('Order items creation error:', itemsError);
+      // Clean up the order if items fail to insert
+      await supabase.from('bartender_orders').delete().eq('id', order.id);
+      throw itemsError;
     }
 
     // Share order with wolfpack if requested

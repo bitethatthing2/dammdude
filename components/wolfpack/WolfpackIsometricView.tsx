@@ -20,27 +20,32 @@ import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-// Database response type for users
-interface DatabaseMember {
+// FIXED: Match actual database schema
+interface DatabaseUser {
   id: string;
-  user_id: string;
   display_name: string | null;
+  wolf_emoji: string | null;
+  bio: string | null;
+  vibe_status: string | null;
   avatar_url: string | null;
-  status: string | null;
-  is_active: boolean | null;
-  joined_at: string;
-  last_active: string | null;
-  location_id: string | null;
-  emoji: string | null;
-  current_vibe: string | null;
+  profile_image_url: string | null;
   role: string | null;
   favorite_drink: string | null;
+  wolfpack_status: string | null;
+  wolfpack_tier: string | null;
+  is_wolfpack_member: boolean | null;
+  location_id: string | null;
+  last_activity: string | null;
+  created_at: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  is_online: boolean | null;
 }
 
-// Match your existing database structure exactly
+// Simplified interface for the component
 interface WolfPackMember {
   id: string;
-  user_id: string;
   display_name: string | null;
   wolf_emoji: string | null;
   bio: string | null;
@@ -49,8 +54,13 @@ interface WolfPackMember {
   role: string | null;
   vibe_status: string | null;
   last_activity_at: string;
-  favorite_drink?: string | null;
-  isCurrentUser?: boolean;
+  favorite_drink: string | null;
+  isCurrentUser: boolean;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  wolfpack_status: string | null;
+  is_online: boolean;
 }
 
 interface MembersByArea {
@@ -101,58 +111,69 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load members - use your existing unified table instead of the simplified functions
+  // FIXED: Load members using correct schema and field names
   const loadMembers = useCallback(async () => {
     try {
       setIsLoading(true);
       
-      // Use your existing users table
+      // Query users who are wolfpack members and at this location
       const { data: memberData, error } = await supabase
         .from("users")
         .select(`
           id,
-          user_id,
           display_name,
+          wolf_emoji,
+          bio,
+          vibe_status,
           avatar_url,
-          status,
-          is_active,
-          joined_at,
-          last_active,
-          location_id,
-          emoji,
-          current_vibe,
+          profile_image_url,
           role,
-          favorite_drink
+          favorite_drink,
+          wolfpack_status,
+          wolfpack_tier,
+          is_wolfpack_member,
+          location_id,
+          last_activity,
+          created_at,
+          first_name,
+          last_name,
+          email,
+          is_online
         `)
-        .eq('is_active', true)
-        .eq('location_id', locationId);
+        .eq('is_wolfpack_member', true)
+        .eq('wolfpack_status', 'active')
+        .not('deleted_at', 'is', null); // Exclude soft-deleted users
 
       if (error) {
         console.error('Error loading members:', error);
         throw error;
       }
 
-      // Group members by role into areas
-      const members = (memberData || []).map((member: DatabaseMember) => ({
+      // FIXED: Transform data to match component interface
+      const members: WolfPackMember[] = (memberData || []).map((member: DatabaseUser) => ({
         id: member.id,
-        user_id: member.user_id,
         display_name: member.display_name,
-        wolf_emoji: member.emoji,
-        bio: null, // Add if you have this field
-        current_activity: member.status || 'Vibing',
-        avatar_url: member.avatar_url,
+        wolf_emoji: member.wolf_emoji,
+        bio: member.bio,
+        current_activity: member.vibe_status || 'Vibing',
+        avatar_url: member.profile_image_url || member.avatar_url,
         role: member.role,
-        vibe_status: member.current_vibe,
-        last_activity_at: member.last_active || member.joined_at,
+        vibe_status: member.vibe_status,
+        last_activity_at: member.last_activity || member.created_at,
         favorite_drink: member.favorite_drink,
-        isCurrentUser: member.user_id === currentUserId
+        isCurrentUser: member.id === currentUserId,
+        email: member.email,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        wolfpack_status: member.wolfpack_status,
+        is_online: member.is_online || false
       }));
 
       // Group by role-based areas
       const groupedMembers: MembersByArea = {
-        dj_booth: members.filter((m: WolfPackMember) => m.role === 'dj'),
-        bar: members.filter((m: WolfPackMember) => m.role === 'bartender'),
-        pack_general: members.filter((m: WolfPackMember) => !m.role || (m.role !== 'dj' && m.role !== 'bartender'))
+        dj_booth: members.filter((m) => m.role === 'dj'),
+        bar: members.filter((m) => m.role === 'bartender'),
+        pack_general: members.filter((m) => !m.role || (m.role !== 'dj' && m.role !== 'bartender'))
       };
 
       setMembersByArea(groupedMembers);
@@ -163,54 +184,37 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
     } finally {
       setIsLoading(false);
     }
-  }, [locationId, currentUserId]);
+  }, [currentUserId]);
 
-  // Join location - simplified to just update the unified table
+  // FIXED: Simplified join logic - just ensure user is wolfpack member
   const joinLocation = useCallback(async () => {
     if (!user) return;
 
     try {
-      // Check if user is already in the location
-      const { data: existingMember } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('location_id', locationId)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (existingMember) {
-        // User already in location, just refresh
-        await loadMembers();
-        return;
-      }
-
-      // Add user to location
+      // Update user to be active wolfpack member
       const { error } = await supabase
         .from('users')
-        .upsert({
-          user_id: user.id,
-          location_id: locationId,
-          is_active: true,
-          joined_at: new Date().toISOString(),
-          last_active: new Date().toISOString(),
-          status: 'Just joined'
-        });
+        .update({
+          wolfpack_status: 'active',
+          is_wolfpack_member: true,
+          last_activity: new Date().toISOString()
+        })
+        .eq('id', user.id);
 
       if (error) {
-        console.error('Error joining location:', error);
+        console.error('Error joining wolfpack:', error);
         throw error;
       }
 
       toast.success('Welcome to the Wolfpack!');
       await loadMembers();
     } catch (error) {
-      console.error('Error joining location:', error);
-      toast.error('Failed to join location');
+      console.error('Error joining wolfpack:', error);
+      toast.error('Failed to join wolfpack');
     }
-  }, [user, locationId, loadMembers]);
+  }, [user, loadMembers]);
 
-  // Send interaction
+  // FIXED: Use correct column names (sender_id/receiver_id)
   const sendInteraction = useCallback(async (targetUserId: string, type: 'wink' | 'message') => {
     if (!user || targetUserId === currentUserId) return;
 
@@ -221,11 +225,11 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
         const { error } = await supabase
           .from('wolf_pack_interactions')
           .insert({
-            sender_id: user.id,
-            receiver_id: targetUserId,
+            sender_id: user.id,     // FIXED: was from_user_id
+            receiver_id: targetUserId,  // FIXED: was to_user_id
             interaction_type: 'wink',
             location_id: locationId,
-            status: 'sent',
+            status: 'active',           // FIXED: was 'sent'
             created_at: new Date().toISOString()
           });
 
@@ -245,25 +249,25 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
 
   // Initial data load
   useEffect(() => {
-    if (locationId && currentUserId) {
+    if (currentUserId) {
       loadMembers();
-      joinLocation();
+      if (user) {
+        joinLocation();
+      }
     }
-  }, [locationId, currentUserId, loadMembers, joinLocation]);
+  }, [currentUserId, user, loadMembers, joinLocation]);
 
-  // Set up real-time subscription
+  // FIXED: Set up real-time subscription for users table
   useEffect(() => {
-    if (!locationId) return;
-
     const channel = supabase
-      .channel(`wolfpack_${locationId}`)
+      .channel('wolfpack_members')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'users',
-          filter: `location_id=eq.${locationId}`
+          filter: 'is_wolfpack_member=eq.true'
         },
         () => {
           void loadMembers();
@@ -280,50 +284,65 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
       void supabase.removeChannel(channel);
       clearInterval(interval);
     };
-  }, [locationId, loadMembers]);
+  }, [loadMembers]);
 
   // Member card component
-  const MemberCard = ({ member, area }: { member: WolfPackMember; area: keyof MembersByArea }) => (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ scale: 1.02 }}
-      onClick={() => setSelectedMember(member)}
-      className={`${areaConfig[area].color} p-3 rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200`}
-    >
-      <div className="flex items-center gap-3">
-        <Avatar className="w-12 h-12 border-2 border-white/30">
-          <AvatarImage src={member.avatar_url || undefined} />
-          <AvatarFallback className="bg-white/20 text-white font-bold">
-            {member.wolf_emoji || member.display_name?.charAt(0) || '🐺'}
-          </AvatarFallback>
-        </Avatar>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-white text-sm truncate">
-              {member.display_name || 'Anonymous Wolf'}
-            </h3>
-            {member.isCurrentUser && (
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+  const MemberCard = ({ member, area }: { member: WolfPackMember; area: keyof MembersByArea }) => {
+    // FIXED: Better display name logic
+    const displayName = member.display_name || 
+                       `${member.first_name || ''} ${member.last_name || ''}`.trim() ||
+                       member.email.split('@')[0] ||
+                       'Anonymous Wolf';
+
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        whileHover={{ scale: 1.02 }}
+        onClick={() => setSelectedMember(member)}
+        className={`${areaConfig[area].color} p-3 rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Avatar className="w-12 h-12 border-2 border-white/30">
+              <AvatarImage src={member.avatar_url || undefined} />
+              <AvatarFallback className="bg-white/20 text-white font-bold">
+                {member.wolf_emoji || displayName.charAt(0) || '🐺'}
+              </AvatarFallback>
+            </Avatar>
+            
+            {/* Online indicator */}
+            {member.is_online && (
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
             )}
           </div>
           
-          {member.role && member.role !== 'user' && (
-            <Badge className="bg-white/20 text-white text-xs mt-1">
-              {member.role === 'dj' ? 'DJ' : member.role === 'bartender' ? 'BAR' : member.role.toUpperCase()}
-            </Badge>
-          )}
-          
-          <p className="text-white/80 text-xs mt-1 truncate">
-            {member.current_activity || 'Vibing'}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-white text-sm truncate">
+                {displayName}
+              </h3>
+              {member.isCurrentUser && (
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+              )}
+            </div>
+            
+            {member.role && member.role !== 'user' && (
+              <Badge className="bg-white/20 text-white text-xs mt-1">
+                {member.role === 'dj' ? 'DJ' : member.role === 'bartender' ? 'BAR' : member.role.toUpperCase()}
+              </Badge>
+            )}
+            
+            <p className="text-white/80 text-xs mt-1 truncate">
+              {member.current_activity || 'Vibing'}
+            </p>
+          </div>
         </div>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   // Area section component
   const AreaSection = ({ areaKey, members }: { areaKey: keyof MembersByArea; members: WolfPackMember[] }) => {
@@ -477,7 +496,9 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
                 
                 <div className="flex-1">
                   <h3 className="text-xl font-bold">
-                    {selectedMember.display_name || 'Anonymous Wolf'}
+                    {selectedMember.display_name || 
+                     `${selectedMember.first_name || ''} ${selectedMember.last_name || ''}`.trim() ||
+                     'Anonymous Wolf'}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     {selectedMember.vibe_status || 'Ready to party! 🎉'}
@@ -487,6 +508,11 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
                       {selectedMember.role === 'dj' ? 'DJ' : 
                        selectedMember.role === 'bartender' ? 'Bartender' : 'Wolf'}
                     </Badge>
+                    {selectedMember.is_online && (
+                      <Badge variant="outline" className="text-green-600">
+                        Online
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -519,18 +545,18 @@ export function WolfpackAreaBasedView({ locationId, currentUserId }: WolfpackAre
               )}
 
               {/* Action Buttons */}
-              {selectedMember.user_id !== currentUserId && (
+              {!selectedMember.isCurrentUser && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => void sendInteraction(selectedMember.user_id, 'wink')}
+                    onClick={() => void sendInteraction(selectedMember.id, 'wink')}
                     className="flex-1"
                   >
                     <Heart className="h-4 w-4 mr-2" />
                     Send Wink
                   </Button>
                   <Button
-                    onClick={() => void sendInteraction(selectedMember.user_id, 'message')}
+                    onClick={() => void sendInteraction(selectedMember.id, 'message')}
                     className="flex-1"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />

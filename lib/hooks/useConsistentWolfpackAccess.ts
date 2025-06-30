@@ -38,16 +38,21 @@ export function useConsistentWolfpackAccess(): WolfpackAccessState {
 
   const fetchMembership = async (userId: string): Promise<WolfpackMembership | null> => {
     try {
+      console.log('[WolfpackAccess] Fetching membership for user:', userId);
+      
       // Get current user's membership using the secure client
       const { data: userMembership, error } = await wolfpackRealtimeClient.getCurrentUserMembership();
       
+      console.log('[WolfpackAccess] Membership response:', { data: userMembership, error });
+      
       if (error) {
-        console.error('Error fetching wolfpack membership:', error);
+        console.error('[WolfpackAccess] Error fetching wolfpack membership:', error);
         setError(new Error(error));
         return null;
       }
 
       if (!userMembership) {
+        console.log('[WolfpackAccess] No membership found for user');
         return null;
       }
 
@@ -140,6 +145,14 @@ export function useConsistentWolfpackAccess(): WolfpackAccessState {
   const isActive = isMember;
   const locationId = membership?.location_id || null;
   const locationName = membership?.location?.name || null;
+  
+  console.log('[WolfpackAccess] Membership status:', { 
+    hasMembership: !!membership, 
+    is_active: membership?.is_active, 
+    status: membership?.status,
+    isMember,
+    locationId 
+  });
 
   return {
     isMember,

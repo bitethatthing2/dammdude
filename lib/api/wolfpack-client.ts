@@ -73,8 +73,8 @@ export interface DJEvent extends DJEventRow {
 
 export interface PrivateMessage {
   id: string
-  from_user_id: string
-  to_user_id: string
+  sender_id: string
+  receiver_id: string
   message: string
   image_url?: string
   image_id?: string
@@ -320,7 +320,7 @@ class WolfpackAPIClient {
 
   // Private messaging
   async sendPrivateMessage(data: {
-    to_user_id: string
+    receiver_id: string
     message: string
     is_flirt_message?: boolean
     image_id?: string
@@ -486,14 +486,14 @@ class WolfpackAPIClient {
 
   // User interactions
   async sendWink(data: {
-    to_user_id: string
+    receiver_id: string
     location_id: string
   }): Promise<APIResponse<{ message: string; interaction_id: string }>> {
     return this.makeRequest('POST', '/api/interactions/wink', data)
   }
 
   async sendDrink(data: {
-    to_user_id: string
+    receiver_id: string
     location_id: string
     drink_name: string
     message?: string
@@ -503,7 +503,7 @@ class WolfpackAPIClient {
 
   async getInteractions(
     options?: { limit?: number; type?: string }
-  ): Promise<APIResponse<{ interactions: Array<{ id: string; type: string; from_user_id: string; to_user_id: string; message?: string; created_at: string; status: string }> }>> {
+  ): Promise<APIResponse<{ interactions: Array<{ id: string; type: string; sender_id: string; receiver_id: string; message?: string; created_at: string; status: string }> }>> {
     const params = new URLSearchParams({
       limit: (options?.limit || 20).toString(),
       ...(options?.type && { type: options.type })

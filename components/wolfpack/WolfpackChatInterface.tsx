@@ -47,7 +47,9 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
   const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
   const [activeTab, setActiveTab] = useState('chat');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);  // Get location and membership details
+  const [error, setError] = useState<string | null>(null);
+
+  // Get location and membership details
   useEffect(() => {
     async function loadLocationData() {
       setLoading(true);
@@ -59,26 +61,20 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
           .from("users")
           .select(`
             id,
-            user_id,
             location_id,
-            status,
-            joined_at,
-            last_active,
-            table_location,
-            position_x,
-            position_y,
-            is_active,
+            wolfpack_status,
+            wolfpack_joined_at,
+            last_activity,
+            is_wolfpack_member,
             display_name,
             avatar_url,
-            locations!location_id(
-              id,
-              name,
-              address
-            )
+            first_name,
+            last_name,
+            created_at
           `)
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .order('last_active', { ascending: false })
+          .eq('id', userId)
+          .eq('is_wolfpack_member', true)
+          .order('last_activity', { ascending: false })
           .limit(1);
 
         if (memberError) {
@@ -93,19 +89,19 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
         
         // Type-safe assignment with proper defaults
         const membershipData: MembershipData = {
-          id: member.id,
-          user_id: member.user_id,
-          location_id: member.location_id,
-          status: member.status || 'active',
-          joined_at: member.joined_at,
-          last_active: member.last_active,
-          table_location: member.table_location,
-          position_x: member.position_x,
-          position_y: member.position_y,
-          is_active: member.is_active ?? true,
-          display_name: member.display_name,
-          avatar_url: member.avatar_url,
-          locations: member.locations || null
+          id: member.id || '',
+          user_id: member.id || '',
+          location_id: member.location_id || null,
+          status: (member.wolfpack_status || 'active') as string | null,
+          joined_at: member.wolfpack_joined_at || member.created_at || new Date().toISOString(),
+          last_active: member.last_activity || null,
+          table_location: null,
+          position_x: null,
+          position_y: null,
+          is_active: member.is_wolfpack_member ?? true,
+          display_name: member.display_name || member.first_name || member.last_name || null,
+          avatar_url: member.avatar_url || null,
+          locations: null
         };
         
         setLocationId(membershipData.location_id);
@@ -123,7 +119,7 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
     if (userId) {
       loadLocationData();
     }
-  }, [userId, supabase]);
+  }, [userId]);
 
   // Create a session ID for the chat (location-based)
   const sessionId = locationId ? `location_${locationId}` : null;
@@ -240,12 +236,6 @@ export function WolfpackChatInterface({ currentLocation, userId }: WolfpackChatI
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="font-medium">Active in {locationName} Pack</span>
             </div>
-            {membershipData.table_location && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <span>•</span>
-                <span>Table: {membershipData.table_location}</span>
-              </div>
-            )}
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <span>•</span>
               <span>

@@ -38,7 +38,7 @@ export function useConsistentAuth(): AuthState {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('auth_id', authUser.id)
+        .eq('id', authUser.id)
         .single();
 
       if (error) {

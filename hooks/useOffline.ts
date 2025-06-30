@@ -119,8 +119,11 @@ export function useOffline(options: UseOfflineOptions = {}): UseOfflineReturn {
     // Handle Json type which can be null, array, or other JSON values
     let transformedItems: Array<{ productId: string; quantity: number }> = [];
     
-    if (Array.isArray(orderData.items)) {
-      transformedItems = orderData.items
+    // Note: orderData from bartender_orders table doesn't have items field
+    // Items should be handled separately in order_items table
+    // For now, initialize as empty array
+    if (Array.isArray((orderData as any).items)) {
+      transformedItems = (orderData as any).items
         .filter((item) => item !== null && typeof item === 'object')
         .map((item) => {
           const itemObj = item as Record<string, unknown>;

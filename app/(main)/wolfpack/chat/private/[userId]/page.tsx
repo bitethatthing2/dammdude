@@ -15,8 +15,8 @@ import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-s
 // Updated interface to match wolf_private_messages table schema
 interface PrivateMessage {
   id: string;
-  from_user_id: string;
-  to_user_id: string;
+  sender_id: string;
+  receiver_id: string;
   message: string;
   image_url?: string | null;
   is_read: boolean | null;
@@ -151,13 +151,13 @@ export default function PrivateChatPage() {
           (payload: { new: PrivateMessage }) => {
             const newMsg = payload.new as PrivateMessage;
             if (
-              (newMsg.from_user_id === user.id && newMsg.to_user_id === otherUserId) ||
-              (newMsg.from_user_id === otherUserId && newMsg.to_user_id === user.id)
+              (newMsg.sender_id === user.id && newMsg.receiver_id === otherUserId) ||
+              (newMsg.sender_id === otherUserId && newMsg.receiver_id === user.id)
             ) {
               setMessages(prev => [...prev, newMsg]);
               
               // Mark as read if it's from the other user
-              if (newMsg.from_user_id === otherUserId) {
+              if (newMsg.sender_id === otherUserId) {
                 supabase
                   .from('wolf_private_messages')
                   .update({ 
@@ -212,8 +212,8 @@ export default function PrivateChatPage() {
       const { error } = await supabase
         .from('wolf_private_messages')
         .insert({
-          from_user_id: user.id,
-          to_user_id: otherUserId,
+          sender_id: user.id,
+          receiver_id: otherUserId,
           message: sanitizedMessage,
           is_read: false,
           is_deleted: false,
@@ -240,10 +240,11 @@ export default function PrivateChatPage() {
       const { error } = await supabase
         .from('wolf_pack_interactions')
         .upsert({
-          from_user_id: user.id,
-          to_user_id: otherUserId,
-          interaction_type: 'block',
-          is_flirt: false
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          interaction_type: 'block'
         });
 
       if (error) throw error;
@@ -340,7 +341,7 @@ export default function PrivateChatPage() {
             </div>
           ) : (
             messages.map((message) => {
-              const isMyMessage = message.from_user_id === user?.id;
+              const isMyMessage = message.sender_id === user?.id;
               return (
                 <div
                   key={message.id}

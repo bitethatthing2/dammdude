@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { notifyStaffOfNewOrder } from '@/lib/actions/order-actions';
 import { CartItem } from '@/types/wolfpack-unified';
-import { createClient } from '@/lib/supabase/server';
 
 interface CreateOrderRequest {
   items: CartItem[];
@@ -42,12 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's wolfpack membership to determine table location
+    // Get user's wolfpack status 
     const { data: wolfpackData, error: wolfpackError } = await supabase
-      .from("wolfpack_members_unified")
-      .select('table_location')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
+      .from("users")
+      .select('is_wolfpack_member, wolfpack_status')
+      .eq('id', user.id)
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active')
       .single();
 
     if (wolfpackError || !wolfpackData) {
@@ -57,27 +57,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create order items array for database storage using unified structure
-    const orderItems = items.map(item => ({
-      id: item.id,
-      item_id: item.item_id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      notes: item.notes || null,
-      customizations: item.customizations || null,
-      image_url: item.image_url || null,
-      subtotal: item.subtotal
-    }));
-
     // Create the order
     const { data: orderData, error: orderError } = await supabase
       .from('bartender_orders')
       .insert({
         customer_id: user.id,
-        table_location: wolfpackData.table_location,
-        tab_id: wolfpackData.table_location, // Using table_location as tab_id for now
-        items: JSON.stringify(orderItems),
         total_amount: total,
         status: 'pending',
         customer_notes: notes || null
@@ -85,10 +69,35 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (orderError) {
+    if (orderError || !orderData) {
       console.error('Error creating order:', orderError);
       return NextResponse.json(
         { error: 'Failed to create order' },
+        { status: 500 }
+      );
+    }
+
+    // Insert order items
+    const orderItems = items.map(item => ({
+      order_id: orderData.id,
+      menu_item_id: item.item_id || item.id,
+      item_name: item.name,
+      quantity: item.quantity,
+      unit_price: item.price,
+      subtotal: item.subtotal || (item.price * item.quantity),
+      special_instructions: item.notes || null
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) {
+      console.error('Error creating order items:', itemsError);
+      // Clean up the order if items fail to insert
+      await supabase.from('bartender_orders').delete().eq('id', orderData.id);
+      return NextResponse.json(
+        { error: 'Failed to create order items' },
         { status: 500 }
       );
     }
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
     // Notify staff of new order
     const notificationResult = await notifyStaffOfNewOrder(
       orderData.id,
-      wolfpackData.table_location || 'Unknown Table',
+      'Wolfpack Member',
       itemSummary
     );
 
@@ -115,7 +124,6 @@ export async function POST(request: NextRequest) {
       order: {
         id: orderData.id,
         status: orderData.status,
-        table_location: orderData.table_location,
         total_amount: orderData.total_amount,
         created_at: orderData.created_at
       }

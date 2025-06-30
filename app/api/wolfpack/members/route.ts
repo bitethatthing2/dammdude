@@ -36,11 +36,12 @@ export async function GET(request: NextRequest) {
 
     // Verify user is member of this location
     const { data: userMembership } = await supabase
-      .from('wolfpack_members_unified')
+      .from('users')
       .select('id')
-      .eq('user_id', databaseUserId)
+      .eq('id', databaseUserId)
       .eq('location_id', locationId)
-      .eq('is_active', true)
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active')
       .maybeSingle();
 
     if (!userMembership) {
@@ -52,11 +53,12 @@ export async function GET(request: NextRequest) {
 
     // Get all members at this location
     const { data: members, error: membersError } = await supabase
-      .from('wolfpack_members_unified')
+      .from('users')
       .select('*')
       .eq('location_id', locationId)
-      .eq('is_active', true)
-      .order('joined_at', { ascending: false });
+      .eq('is_wolfpack_member', true)
+      .eq('wolfpack_status', 'active')
+      .order('wolfpack_joined_at', { ascending: false });
 
     if (membersError) {
       console.error('Members error:', membersError);

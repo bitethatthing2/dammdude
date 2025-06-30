@@ -1,12 +1,30 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/lib/database.types';
 
-// Database row types from generated types
-type DatabaseChatMessage = Database['public']['Tables']['wolfpack_chat_messages']['Row'];
-type DatabaseChatReaction = Database['public']['Tables']['wolfpack_chat_reactions']['Row'];
-type DatabaseMember = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+// Database row types from generated types - using proper interfaces for missing tables
+interface DatabaseChatMessage {
+  id: string;
+  session_id: string;
+  user_id: string;
+  display_name?: string;
+  avatar_url?: string;
+  content: string;
+  message_type?: string;
+  image_url?: string;
+  created_at: string;
+  is_flagged?: boolean;
+}
+
+interface DatabaseChatReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+type DatabaseMember = Database['public']['Tables']['users']['Row'];
 type DatabaseEvent = Database['public']['Tables']['dj_events']['Row'];
 
 // Security and validation constants
@@ -68,7 +86,7 @@ export interface MessageReaction {
 export interface WolfPackMember {
   id: string;
   user_id: string;
-  location_id: string;
+  location_id: string | null;
   status: string;
   joined_at: string;
   table_location?: string;
@@ -221,22 +239,22 @@ function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReactio
 function adaptDatabaseMember(dbMember: DatabaseMember): WolfPackMember {
   return {
     id: dbMember.id,
-    user_id: dbMember.user_id,
-    location_id: dbMember.location_id || '',
-    status: dbMember.status || 'active',
-    joined_at: dbMember.joined_at,
-    table_location: dbMember.table_location || undefined,
-    display_name: dbMember.display_name || dbMember.username || undefined,
+    user_id: dbMember.id, // Use id as user_id since there's no separate user_id
+    location_id: dbMember.location_id || null,
+    status: dbMember.wolfpack_status || 'active',
+    joined_at: dbMember.wolfpack_joined_at || dbMember.created_at,
+    table_location: undefined, // This field doesn't exist
+    display_name: dbMember.display_name || undefined,
     avatar_url: dbMember.avatar_url || undefined
   };
 }
 
 // New adapter for user-based members (since wolfpack_members_unified is consolidated)
-function adaptUserToMember(dbUser: any): WolfPackMember {
+function adaptUserToMember(dbUser: Database['public']['Tables']['users']['Row']): WolfPackMember {
   return {
     id: dbUser.id,
     user_id: dbUser.id,
-    location_id: '', // Will be set contextually
+    location_id: null, // Will be set contextually
     status: 'active',
     joined_at: dbUser.created_at,
     table_location: undefined,
@@ -256,11 +274,7 @@ function adaptDatabaseEvent(dbEvent: DatabaseEvent): DJEvent {
     status: dbEvent.status || 'active',
     voting_ends_at: dbEvent.voting_ends_at || undefined,
     created_at: dbEvent.created_at || new Date().toISOString(),
-    options: dbEvent.options 
-      ? Array.isArray(dbEvent.options) 
-        ? dbEvent.options as string[]
-        : (dbEvent.options as { options?: string[] })?.options || []
-      : []
+    options: [] // Default to empty array since options field doesn't exist
   };
 }
 
@@ -476,7 +490,7 @@ export function useWolfpack(
       // Load members from users table (wolfpack_members_unified has been consolidated)
       const { data: membersData, error: membersError } = await supabase
         .from('users')
-        .select('id, first_name, last_name, email, display_name, wolf_emoji, avatar_url, is_wolfpack_member, created_at')
+        .select('id, first_name, last_name, email, display_name, avatar_url, is_wolfpack_member, created_at, location_id, wolfpack_status, wolfpack_joined_at')
         .eq('is_wolfpack_member', true);
 
       if (membersError) {
@@ -512,7 +526,7 @@ export function useWolfpack(
       setState(prev => ({
         ...prev,
         messages: messagesWithReactions,
-        members: (membersData || []).map(adaptUserToMember),
+        members: (membersData || []).map(adaptDatabaseMember),
         events: (eventsData || []).map(adaptDatabaseEvent)
       }));
 
@@ -650,13 +664,13 @@ export function useWolfpack(
           filter: `location_id=eq.${locationId}`
         },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
+          if (payload.event === 'INSERT') {
             const newEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
               events: [newEvent, ...prev.events]
             }));
-          } else if (payload.eventType === 'UPDATE') {
+          } else if (payload.event === 'UPDATE') {
             const updatedEvent = adaptDatabaseEvent(payload.new as DatabaseEvent);
             setState(prev => ({
               ...prev,
@@ -664,7 +678,7 @@ export function useWolfpack(
                 event.id === updatedEvent.id ? updatedEvent : event
               )
             }));
-          } else if (payload.eventType === 'DELETE') {
+          } else if (payload.event === 'DELETE') {
             const deletedEvent = adaptDatabaseEvent(payload.old as DatabaseEvent);
             setState(prev => ({
               ...prev,

@@ -302,32 +302,40 @@ export async function checkWolfPackStatus(userId: string) {  try {
 }
 
 // Get wolfpack locations with proper join syntax
-export async function getWolfPackLocations(userId: string) {  try {
-    // Correct join syntax for locations
-    const { data, error } = await supabase
-      .from('wolfpack_members_unified')
-      .select(`
-        id,
-        location_id,
-        status,
-        joined_at,
-        locations (
-          id,
-          name,
-          address,
-          city,
-          state
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active');
+export async function getWolfPackLocations(userId: string) {
+  try {
+    // First get the user's wolfpack info
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, location_id, wolfpack_status, wolfpack_joined_at')
+      .eq('id', userId)
+      .eq('is_wolfpack_member', true)
+      .single();
 
-    if (error) {
-      console.error('Error fetching wolfpack locations:', error);
+    if (userError || !userData || !userData.location_id) {
+      console.error('Error fetching user wolfpack data:', userError);
       return [];
     }
 
-    return data || [];
+    // Then get the location details
+    const { data: locationData, error: locationError } = await supabase
+      .from('locations')
+      .select('id, name, address, city, state')
+      .eq('id', userData.location_id)
+      .single();
+
+    if (locationError) {
+      console.error('Error fetching location data:', locationError);
+      return [];
+    }
+
+    return [{
+      id: userData.id,
+      location_id: userData.location_id,
+      status: userData.wolfpack_status,
+      joined_at: userData.wolfpack_joined_at,
+      locations: locationData
+    }];
   } catch (error) {
     console.error('Error in getWolfPackLocations:', error);
     return [];

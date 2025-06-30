@@ -269,8 +269,8 @@ CREATE TABLE IF NOT EXISTS public.wolf_reactions (
 
 CREATE TABLE IF NOT EXISTS public.wolf_private_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    from_user_id UUID NOT NULL,
-    to_user_id UUID NOT NULL,
+    sender_id UUID NOT NULL,
+    receiver_id UUID NOT NULL,
     message TEXT NOT NULL,
     image_url TEXT,
     image_id UUID,
@@ -296,8 +296,8 @@ CREATE TABLE IF NOT EXISTS public.wolf_connections (
 
 CREATE TABLE IF NOT EXISTS public.wolf_pack_interactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    from_user_id UUID,
-    to_user_id UUID,
+    sender_id UUID,
+    receiver_id UUID,
     interaction_type TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
@@ -534,16 +534,16 @@ ALTER TABLE public.wolf_chat ADD FOREIGN KEY (flagged_by) REFERENCES public.user
 ALTER TABLE public.wolf_reactions ADD FOREIGN KEY (message_id) REFERENCES public.wolf_chat(id);
 ALTER TABLE public.wolf_reactions ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
 
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (from_user_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (to_user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (sender_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (receiver_id) REFERENCES public.users(id);
 ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (image_id) REFERENCES public.images(id);
 ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (flagged_by) REFERENCES public.users(id);
 
 ALTER TABLE public.wolf_connections ADD FOREIGN KEY (user_one_id) REFERENCES public.users(id);
 ALTER TABLE public.wolf_connections ADD FOREIGN KEY (user_two_id) REFERENCES public.users(id);
 
-ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (from_user_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (to_user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (sender_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (receiver_id) REFERENCES public.users(id);
 
 ALTER TABLE public.wolf_pack_contests ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
 ALTER TABLE public.wolf_pack_contests ADD FOREIGN KEY (created_by) REFERENCES public.users(id);
@@ -599,8 +599,8 @@ CREATE INDEX idx_users_status ON public.users(status);
 CREATE INDEX idx_wolf_chat_created_at ON public.wolf_chat(created_at DESC);
 CREATE INDEX idx_wolf_chat_user_id ON public.wolf_chat(user_id);
 
-CREATE INDEX idx_wolf_private_messages_from_user ON public.wolf_private_messages(from_user_id);
-CREATE INDEX idx_wolf_private_messages_to_user ON public.wolf_private_messages(to_user_id);
+CREATE INDEX idx_wolf_private_messages_from_user ON public.wolf_private_messages(sender_id);
+CREATE INDEX idx_wolf_private_messages_to_user ON public.wolf_private_messages(receiver_id);
 CREATE INDEX idx_wolf_private_messages_created_at ON public.wolf_private_messages(created_at DESC);
 
 CREATE INDEX idx_wolf_pack_members_location ON public.wolf_pack_members(location_id);

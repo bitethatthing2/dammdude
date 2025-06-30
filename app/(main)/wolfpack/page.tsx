@@ -31,6 +31,7 @@ interface User {
   avatar_url: string | null;
   wolfpack_status: string | null;
   is_permanent_pack_member: boolean | null;
+  is_wolfpack_member: boolean | null;
   location_permissions_granted: boolean | null;
 }
 
@@ -78,18 +79,11 @@ const useWolfpack = () => {
 
       try {
         // Check if user is permanent pack member or has active wolfpack status
-        if (user.is_permanent_pack_member === true || user.wolfpack_status === 'active') {
+        if (user?.is_permanent_pack_member === true || user?.wolfpack_status === 'active') {
           setIsInPack(true);
         } else {
-          // Also check if user has active membership in wolfpack_members_unified
-          const { data, error } = await supabase
-            .from('wolfpack_members_unified')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .maybeSingle();
-
-          setIsInPack(!!data && !error);
+          // Use the is_wolfpack_member field from users table
+          setIsInPack(Boolean(user?.is_wolfpack_member));
         }
       } catch (err) {
         console.error('Error checking wolfpack status:', err);
@@ -119,9 +113,10 @@ export default function WolfpackMainPage() {
 
       try {
         const { count } = await supabase
-          .from('wolfpack_members_unified')
+          .from('users')
           .select('*', { count: 'exact', head: true })
-          .eq('is_active', true);
+          .eq('is_wolfpack_member', true)
+          .eq('wolfpack_status', 'active');
 
         setPackMemberCount(count || 0);
       } catch (error) {

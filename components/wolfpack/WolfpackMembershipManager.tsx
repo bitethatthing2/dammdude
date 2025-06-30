@@ -87,6 +87,17 @@ export default function WolfpackMembershipManager() {
       return;
     }
 
+    // Load members for location - moved inside loadStatus to fix dependency issue
+    const loadMembers = async (locationId: string) => {
+      try {
+        const membersData = await apiCall(`/members?location_id=${locationId}`);
+        setState(prev => ({ ...prev, members: membersData.members || [] }));
+      } catch (error) {
+        console.error('Error loading members:', error);
+        setState(prev => ({ ...prev, error: 'Failed to load members' }));
+      }
+    };
+
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
@@ -118,17 +129,6 @@ export default function WolfpackMembershipManager() {
     }
   }, [user?.id]);
 
-  // Load members for location
-  const loadMembers = async (locationId: string) => {
-    try {
-      const membersData = await apiCall(`/members?location_id=${locationId}`);
-      setState(prev => ({ ...prev, members: membersData.members || [] }));
-    } catch (error) {
-      console.error('Error loading members:', error);
-      setState(prev => ({ ...prev, error: 'Failed to load members' }));
-    }
-  };
-
   // Join wolfpack
   const joinWolfPack = async () => {
     if (!user?.id) {
@@ -139,8 +139,8 @@ export default function WolfpackMembershipManager() {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
-      // Get current position for location detection
-      const position = await getCurrentPosition();
+      // Get current position for location detection (but don't store unused variable)
+      await getCurrentPosition();
       
       // For now, let's use a simple location selection
       // In production, you'd calculate distance to actual locations

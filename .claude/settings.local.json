@@ -24,7 +24,12 @@
       "Bash(npm run lint:*)",
       "Bash(git checkout:*)",
       "Bash(wc:*)",
-      "Bash(npm run test:build:*)"
+      "Bash(npm run test:build:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(timeout 30 npx tsc:*)"
     ]
   },
   "enableAllProjectMcpServers": false

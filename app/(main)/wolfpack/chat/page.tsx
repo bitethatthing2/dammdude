@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/lib/database.types';
 import dynamic from 'next/dynamic';
 import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
-import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
+import { useConsistentWolfpackAccess, type WolfpackMembership } from '@/lib/hooks/useConsistentWolfpackAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,8 +65,8 @@ interface LocationData {
   address: string | null;
 }
 
-// Use generated Supabase types for wolfpack_members_unified
-type WolfpackMemberUnified = Database['public']['Tables']['wolfpack_members_unified']['Row'];
+// Use users table for wolfpack members - wolfpack fields are already included
+type WolfpackMemberUnified = Database['public']['Tables']['users']['Row'];
 
 // Use generated Supabase types for dj_events
 type DjEventRow = Database['public']['Tables']['dj_events']['Row'];
@@ -181,34 +181,50 @@ export default function WolfPackChatPage() {
   const [packMembers, setPackMembers] = useState<WolfPackMember[]>([]);
   const [activeEvents, setActiveEvents] = useState<WolfpackEvent[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
-  const [userMembership, setUserMembership] = useState<WolfpackMemberUnified | null>(null);
+  const [userMembership, setUserMembership] = useState<WolfpackMembership | null>(null);
   const [selectedTab, setSelectedTab] = useState('spatial');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sentWinks, setSentWinks] = useState<Set<string>>(new Set());
 
   // Load wolfpack data
   useEffect(() => {
     async function loadWolfpackData() {
-      if (!user || !isInPack) return;
+      // Don't load if auth is still loading or user is not in pack
+      if (authLoading || packLoading) {
+        console.log('[WolfpackChat] Still loading auth/pack status');
+        return;
+      }
+      
+      if (!user || !isInPack) {
+        console.log('[WolfpackChat] User not authenticated or not in pack', { user: !!user, isInPack });
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('[WolfpackChat] Loading wolfpack data for user:', user.id)
 
       try {
         setIsLoading(true);
         setError(null);
 
-        // Get current user's membership data from wolfpack_members_unified
-        const { data: membership, error: membershipError } = await supabase
-          .from('wolfpack_members_unified')
+        // Get current user's wolfpack data from users table
+        const { data: userProfile, error: membershipError } = await supabase
+          .from('users')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
+          .eq('id', user.id)
+          .eq('is_wolfpack_member', true)
           .maybeSingle();
 
+        console.log('[WolfpackChat] Membership query result:', { data: membership, error: membershipError });
+        
         if (membershipError) {
-          console.error('Error loading membership:', membershipError);
+          console.error('[WolfpackChat] Error loading membership:', membershipError);
           throw membershipError;
         }
 
         if (!membership) {
+          console.error('[WolfpackChat] No membership data found for user');
           throw new Error('No active membership found');
         }
 
@@ -225,21 +241,22 @@ export default function WolfPackChatPage() {
           setCurrentLocation(locationData);
         }
 
-        // Get all pack members at the same location using wolfpack_members_unified
-        console.log('Loading members for location:', membership.location_id);
+        // Get all pack members at the same location from users table
+        console.log('Loading members for location:', membership?.location_id);
         
         let membersQuery = supabase
-          .from('wolfpack_members_unified')
+          .from('users')
           .select('*');
 
         // Apply location filter if location_id exists
-        if (membership.location_id) {
+        if (membership?.location_id) {
           membersQuery = membersQuery.eq('location_id', membership.location_id);
         }
         
         membersQuery = membersQuery
-          .eq('is_active', true)
-          .order('joined_at', { ascending: false });
+          .eq('is_wolfpack_member', true)
+          .not('wolfpack_status', 'is', null)
+          .order('wolfpack_joined_at', { ascending: false });
 
         const { data: members, error: membersError } = await membersQuery;
 
@@ -248,20 +265,25 @@ export default function WolfPackChatPage() {
           throw membersError;
         }
 
-        // Transform members data using the unified table
-        const transformedMembers: WolfPackMember[] = members?.map((member: WolfpackMemberUnified) => ({
-          id: member.id,
-          user_id: member.user_id,
-          display_name: member.display_name || member.username || (member.user_id === user.id ? 'You' : 'Pack Member'),
-          avatar_url: member.avatar_url || undefined,
-          status: member.status || member.status_enum || 'In the pack',
-          favorite_drink: member.favorite_drink || undefined,
-          current_vibe: member.current_vibe || undefined,
-          looking_for: member.looking_for || undefined,
-          table_location: member.table_location || undefined,
-          joined_at: member.joined_at,
-          location_name: locationData?.name || 'Unknown'
-        })) || [];
+        // Transform members data from users table
+        const transformedMembers: WolfPackMember[] = members
+          ?.filter((member: WolfpackMemberUnified) => 
+            // Only show users with active wolfpack status
+            member.wolfpack_status === 'active'
+          )
+          ?.map((member: WolfpackMemberUnified) => ({
+            id: member.id,
+            user_id: member.id,
+            display_name: member.first_name || member.last_name || (user && member.id === user.id ? 'You' : 'Pack Member'),
+            avatar_url: member.avatar_url || undefined,
+            status: member.wolfpack_status || 'In the pack',
+            favorite_drink: undefined,
+            current_vibe: undefined,
+            looking_for: undefined,
+            table_location: undefined,
+            joined_at: member.wolfpack_joined_at || member.created_at || new Date().toISOString(),
+            location_name: locationData?.name || 'Unknown'
+          })) || [];
 
         setPackMembers(transformedMembers);
 
@@ -324,32 +346,42 @@ export default function WolfPackChatPage() {
     }
 
     loadWolfpackData();
-  }, [user, isInPack]);
+  }, [user, isInPack, authLoading, packLoading, locationId, locationName]);
 
   // Handle winking at another member
   const sendWink = async (memberId: string, targetUserId: string) => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('wolf_pack_interactions')
         .insert({
           sender_id: user.id,
           receiver_id: targetUserId,
-          interaction_type: 'wink',
-          status: 'sent'
-        });
+          interaction_type: 'wink'
+        })
+        .select();
 
       if (error) {
         console.error('Error sending wink:', error);
+        
+        // Show user-friendly error message
+        if (error.message?.includes('row-level security')) {
+          alert('Can only wink at active pack members. This user may not be fully activated yet.');
+        } else {
+          alert('Failed to send wink. Please try again.');
+        }
       } else {
+        console.log('Wink insert successful:', data);
         const targetMember = packMembers.find(m => m.id === memberId);
         if (targetMember) {
           console.log(`Wink sent to ${targetMember.display_name}! 😉`);
+          setSentWinks(prev => new Set([...prev, targetUserId]));
         }
       }
     } catch (error) {
-      console.error('Error sending wink:', error);
+      console.error('Caught error sending wink:', error);
+      alert('Network error. Please check your connection and try again.');
     }
   };
 
@@ -388,13 +420,26 @@ export default function WolfPackChatPage() {
     return date.toLocaleDateString();
   };
 
-  if (authLoading || packLoading || isLoading) {
+  if (authLoading || packLoading) {
     return (
       <div className="container mx-auto p-4 pb-20 max-w-4xl">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading Wolf Pack chat...</p>
+            <p className="text-muted-foreground">Loading Wolf Pack...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isLoading && user && isInPack) {
+    return (
+      <div className="container mx-auto p-4 pb-20 max-w-4xl">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading pack members...</p>
           </div>
         </div>
       </div>
@@ -536,7 +581,7 @@ export default function WolfPackChatPage() {
             {/* 3D Hexagonal Wolf Pack View */}
             {membership && locationId && (
               <WolfpackHexGrid 
-                sessionId={membership.session_id || `location_${locationId}`}
+                sessionId={`location_${locationId}`}
                 currentUserId={user.id}
                 locationId={locationId}
               />
@@ -561,7 +606,7 @@ export default function WolfPackChatPage() {
             <div className="flex-1 min-h-0">
               {membership && locationId && (
                 <WolfpackRealTimeChat
-                  sessionId={membership.session_id || `location_${locationId}`}
+                  sessionId={`location_${locationId}`}
                 />
               )}
             </div>
@@ -664,15 +709,16 @@ export default function WolfPackChatPage() {
                           </div>
                         </div>
                       </div>
-                      {member.user_id !== user.id && (
+                      {member.user_id !== user.id && member.status === 'active' && (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={sentWinks.has(member.user_id) ? "default" : "outline"}
                           onClick={() => sendWink(member.id, member.user_id)}
+                          disabled={sentWinks.has(member.user_id)}
                           className="flex items-center gap-1"
                         >
-                          <Heart className="h-3 w-3" />
-                          Wink
+                          <Heart className={`h-3 w-3 ${sentWinks.has(member.user_id) ? 'fill-current' : ''}`} />
+                          {sentWinks.has(member.user_id) ? 'Winked! 😉' : 'Wink'}
                         </Button>
                       )}
                     </div>

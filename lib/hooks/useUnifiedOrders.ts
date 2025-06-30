@@ -3,12 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import {
   OrderStatus,
   WolfPackOrder,
-  WolfPackOrderItem,
-  parseOrderItems,
-  normalizeOrderItem
+  WolfPackOrderItem
 } from '@/types/wolfpack-unified';
 
 // Type aliases for this hook
@@ -63,17 +62,6 @@ interface BartenderOrderRow {
   };
 }
 
-// Define realtime payload type
-interface RealtimePayload {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new: BartenderOrderRow | null;
-  old: BartenderOrderRow | null;
-  schema: string;
-  table: string;
-  commit_timestamp: string;
-  errors: string[] | null;
-}
-
 /**
  * Unified hook for all order management needs
  * Works with bartender_orders table
@@ -93,9 +81,6 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const [processingOrders, setProcessingOrders] = useState<ProcessingState>({});
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
-  
-  // If you have a Database type generated, use it here:
-  // const supabase = createClientComponentClient<Database>();
   
   const parseOrderItems = (items: unknown): OrderItem[] => {
     if (!items) return [];
@@ -185,7 +170,7 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [status, customerId, supabase]);
+  }, [status, customerId]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: OrderStatus) => {
     setProcessingOrders(prev => ({ ...prev, [orderId]: true }));
@@ -241,7 +226,7 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
     } finally {
       setProcessingOrders(prev => ({ ...prev, [orderId]: false }));
     }
-  }, [supabase, onOrderStatusChange]);
+  }, [onOrderStatusChange]);
 
   useEffect(() => {
     fetchOrders();
@@ -260,13 +245,13 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
     const channel = supabase
       .channel('unified-orders-changes')
       .on(
-        "postgres_changes" as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'bartender_orders',
-        },
-        (payload: RealtimePayload) => {
+        } as const,
+        (payload: RealtimePostgresChangesPayload<BartenderOrderRow>) => {
           if (payload.eventType === 'INSERT' && onNewOrder && payload.new) {
             const newOrderData = payload.new;
             const newOrder: UnifiedOrder = {
@@ -301,7 +286,7 @@ export function useUnifiedOrders(options: UseUnifiedOrdersOptions = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, enableRealtime, fetchOrders, onNewOrder]);
+  }, [enableRealtime, fetchOrders, onNewOrder]);
 
   const pendingOrders = orders.filter(o => o.status === 'pending');
   const preparingOrders = orders.filter(o => o.status === 'preparing');

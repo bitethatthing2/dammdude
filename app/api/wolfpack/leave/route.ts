@@ -24,17 +24,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Update membership to inactive
+    // Update user's wolfpack status to inactive
     const { error: leaveError } = await supabase
-      .from('wolfpack_members_unified')
+      .from('users')
       .update({
-        status: 'inactive',
-        is_active: false,
-        last_active: new Date().toISOString(),
-        left_at: new Date().toISOString()
+        wolfpack_status: 'inactive',
+        is_wolfpack_member: false,
+        last_activity: new Date().toISOString()
       })
-      .eq('user_id', databaseUserId)
-      .eq('is_active', true);
+      .eq('id', databaseUserId);
 
     if (leaveError) {
       console.error('Leave error:', leaveError);

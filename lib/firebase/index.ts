@@ -8,7 +8,7 @@ const firebaseConfig: FirebaseConfig = {
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'sidehustle-22a6a.firebaseapp.com',
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'sidehustle-22a6a',
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'sidehustle-22a6a.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '993911155207',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_sender_id || '993911155207',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:993911155207:web:610f19ac354d69540bd8a2',
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-RHT2310KWW'
   // clientId and clientSecret removed - should not be exposed in client config

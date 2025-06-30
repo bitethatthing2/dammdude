@@ -169,9 +169,9 @@ export interface ApiResponse<T> {
 }
 
 // Use actual Supabase types for wolfpack members
-export type WolfpackMemberRow = Database['public']['Tables']['wolfpack_members_unified']['Row'];
-export type WolfpackMemberInsert = Database['public']['Tables']['wolfpack_members_unified']['Insert'];
-export type WolfpackMemberUpdate = Database['public']['Tables']['wolfpack_members_unified']['Update'];
+export type WolfpackMemberRow = Database['public']['Tables']['users']['Row'];
+export type WolfpackMemberInsert = Database['public']['Tables']['users']['Insert'];
+export type WolfpackMemberUpdate = Database['public']['Tables']['users']['Update'];
 
 // Map to our component interface for backward compatibility
 export interface WolfpackMemberProfile {

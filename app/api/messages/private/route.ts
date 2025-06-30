@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { to_user_id, message, type = 'message' } = body;
+    const { receiver_id, message, type = 'message' } = body;
 
-    if (!to_user_id || !message) {
+    if (!receiver_id || !message) {
       return NextResponse.json(
         { error: 'Recipient and message required', code: 'VALIDATION_ERROR' },
         { status: 400 }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (to_user_id === user.id) {
+    if (receiver_id === user.id) {
       return NextResponse.json(
         { error: 'Cannot send message to yourself', code: 'VALIDATION_ERROR' },
         { status: 400 }
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const recipientCheck = await WolfpackBackendService.queryOne(
       WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
       'id, user_id',
-      { user_id: to_user_id, status: 'active' }
+      { user_id: receiver_id, status: 'active' }
     );
 
     if (!recipientCheck.data) {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       WOLFPACK_TABLES.WOLF_INTERACTIONS,
       'id',
       {
-        sender_id: to_user_id,
+        sender_id: receiver_id,
         receiver_id: user.id,
         interaction_type: 'block'
       }
@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
       const result = await WolfpackBackendService.insert(
         WOLFPACK_TABLES.WOLF_PRIVATE_MESSAGES,
         {
-          from_user_id: user.id,
-          to_user_id,
+          sender_id: user.id,
+          receiver_id,
           message: sanitizedMessage,
           is_read: false,
           created_at: new Date().toISOString()
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         WOLFPACK_TABLES.WOLF_INTERACTIONS,
         {
           sender_id: user.id,
-          receiver_id: to_user_id,
+          receiver_id: receiver_id,
           interaction_type: type,
           created_at: new Date().toISOString()
         },

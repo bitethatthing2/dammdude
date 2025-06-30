@@ -65,12 +65,12 @@ export async function PATCH(request: NextRequest) {
     // Add last_active timestamp
     updateData.last_active = new Date().toISOString();
 
-    // Update membership
+    // Update user wolfpack profile
     const { data: updatedMembership, error: updateError } = await supabase
-      .from('wolfpack_members_unified')
+      .from('users')
       .update(updateData)
-      .eq('user_id', databaseUserId)
-      .eq('is_active', true)
+      .eq('id', databaseUserId)
+      .eq('is_wolfpack_member', true)
       .select()
       .single();
 

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, TrendingUp, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+
 interface LivePackCounterProps {
   locationId?: string;
 }
@@ -20,7 +21,9 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
     activeMembers: 0,
     locationName: 'All Locations'
   });
-  const [isLoading, setIsLoading] = useState(true);  useEffect(() => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
     async function fetchStats() {
       try {
         setIsLoading(true);
@@ -97,7 +100,7 @@ export function LivePackCounter({ locationId }: LivePackCounterProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [locationId, supabase]);
+  }, [locationId]);
 
   if (isLoading) {
     return (

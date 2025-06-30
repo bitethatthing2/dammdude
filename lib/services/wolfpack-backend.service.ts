@@ -1,598 +1,479 @@
-import type { PostgrestQueryBuilder } from '@supabase/postgrest-js';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-error.service';
-import type { Database } from '@/lib/database.types';
+import { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 
-// Standardized table names - consolidates scattered references
-export const WOLFPACK_TABLES = {
-  // Core tables
-  USERS: 'users',
-  LOCATIONS: 'locations',
-  
-  // Wolfpack specific tables
-  WOLFPACK_MEMBERSHIPS: 'wolfpack_members_unified', // Actual table
-  WOLFPACK_MEMBERSHIPS_VIEW: 'wolfpack_memberships', // View with joins
-  WOLF_PACK_MEMBERS: 'wolf_pack_members', // Legacy support
-  WOLF_PROFILES: 'wolf_profiles',
-  WOLF_CHAT: 'wolfpack_chat_messages',
-  WOLF_REACTIONS: 'wolfpack_chat_reactions',
-  WOLF_PRIVATE_MESSAGES: 'wolf_private_messages',
-  WOLF_INTERACTIONS: 'wolf_pack_interactions',
-  
-  // DJ and events
-  DJ_EVENTS: 'dj_events',
-  DJ_EVENT_PARTICIPANTS: 'dj_event_participants',
-  DJ_BROADCASTS: 'dj_broadcasts',
-  
-  // Unified view (if available)
-  WOLFPACK_MEMBERS_UNIFIED: 'wolfpack_members_unified'
-} as const;
-
-// Standard query configurations
-export const QUERY_CONFIGS = {
-  DEFAULT_LIMIT: 100,
-  MAX_LIMIT: 1000,
-  DEFAULT_TIMEOUT: 10000,
-  
-  // Common select patterns
-  MEMBER_SELECT: `
-    *,
-    user:users(
-      id,
-      email,
-      first_name,
-      last_name,
-      role,
-      avatar_url
-    ),
-    location:locations(
-      id,
-      name,
-      address
-    )
-  `,
-  
-  PROFILE_SELECT: `
-    *,
-    wolf_profile:wolf_profiles(*)
-  `,
-  
-  CHAT_MESSAGE_SELECT: `
-    *,
-    wolfpack_chat_reactions(
-      id,
-      message_id,
-      user_id,
-      emoji,
-      created_at
-    )
-  `,
-  
-  EVENT_SELECT: `
-    *,
-    dj_event_participants(
-      id,
-      participant_id,
-      joined_at
-    )
-  `
-} as const;
-
-export interface QueryOptions {
-  limit?: number;
-  offset?: number;
-  orderBy?: string;
-  ascending?: boolean;
-  timeout?: number;
+export interface UserFriendlyError {
+  message: string;
+  type: 'error' | 'warning' | 'info';
+  code?: string;
+  retryable: boolean;
+  action?: string;
 }
 
-export interface QueryResult<T> {
-  data: T[] | null;
-  error: string | null;
-  count?: number;
+export interface ErrorContext {
+  operation: string;
+  userId?: string;
+  locationId?: string;
+  membershipId?: string;
+  additional?: Record<string, unknown>;
 }
 
-export interface SingleQueryResult<T> {
-  data: T | null;
-  error: string | null;
+// FIXED: Properly typed error interfaces
+interface DatabaseError {
+  code: string;
+  message: string;
+  details?: string;
+  hint?: string;
 }
 
-// Better typing for filters and data
-type FilterValue = string | number | boolean | null | string[] | number[];
-type QueryFilters = Record<string, FilterValue>;
-type InsertData<T = Record<string, unknown>> = Partial<T> | Partial<T>[];
-type RpcParams = Record<string, unknown>;
+interface AuthError {
+  message: string;
+  status?: number;
+  error_description?: string;
+}
 
-// Using properly typed supabase client directly
+interface GeolocationError {
+  code: number;
+  message: string;
+  PERMISSION_DENIED?: number;
+  POSITION_UNAVAILABLE?: number;
+  TIMEOUT?: number;
+}
 
-export class WolfpackBackendService {
+// FIXED: Union type for all possible error types - now exported
+export type WolfpackError = PostgrestError | Error | DatabaseError | AuthError | GeolocationError | { message: string; code?: string };
+
+export class WolfpackErrorHandler {
   /**
-   * Standardized query method with consistent error handling
+   * Handle Supabase PostgrestError consistently across the app
    */
-  static async query<T>(
-    table: string,
-    selectQuery: string = '*',
-    filters: QueryFilters = {},
-    options: QueryOptions = {}
-  ): Promise<QueryResult<T>> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (client as any)
-        .from(table)
-        .select(selectQuery, { count: 'exact' });
+  static handleSupabaseError(
+    error: WolfpackError,
+    context?: ErrorContext
+  ): UserFriendlyError {
+    // Log error for debugging
+    console.error('Wolfpack Error:', {
+      error,
+      context,
+      timestamp: new Date().toISOString()
+    });
 
-      // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            query = query.in(key, value);
-          } else if (typeof value === 'string' && value.includes('%')) {
-            query = query.like(key, value);
-          } else {
-            query = query.eq(key, value);
-          }
-        }
-      });
-
-      // Apply options
-      if (options.orderBy) {
-        query = query.order(options.orderBy, { ascending: options.ascending ?? true });
-      }
-
-      if (options.limit) {
-        query = query.limit(Math.min(options.limit, QUERY_CONFIGS.MAX_LIMIT));
-      }
-
-      if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || QUERY_CONFIGS.DEFAULT_LIMIT) - 1);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `query_${table}`,
-          additional: { filters, options }
-        });
-        return {
-          data: null,
-          error: userError.message,
-          count: 0
-        };
-      }
-
-      return {
-        data: data as T[],
-        error: null,
-        count: count || 0
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `query_${table}`
-      });
-      return {
-        data: null,
-        error: userError.message,
-        count: 0
-      };
+    // Handle PostgrestError specifically
+    if (this.isPostgrestError(error)) {
+      return this.handlePostgrestError(error, context);
     }
+
+    // Handle generic Error
+    if (error instanceof Error) {
+      return this.handleGenericError(error, context);
+    }
+
+    // Handle database errors
+    if (this.isDatabaseError(error)) {
+      return this.handleDatabaseError(error, context);
+    }
+
+    // Handle auth errors
+    if (this.isAuthError(error)) {
+      return this.handleAuthError(error);
+    }
+
+    // Handle geolocation errors
+    if (this.isGeolocationError(error)) {
+      return this.handleLocationError(error);
+    }
+
+    // Handle unknown error format
+    return {
+      message: 'An unexpected error occurred',
+      type: 'error',
+      retryable: true,
+      action: 'Please try again'
+    };
   }
 
   /**
-   * Get single record with consistent error handling
+   * Type guards for different error types
    */
-  static async queryOne<T>(
-    table: string,
-    selectQuery: string = '*',
-    filters: QueryFilters = {}
-  ): Promise<SingleQueryResult<T>> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (client as any)
-        .from(table)
-        .select(selectQuery);
+  private static isPostgrestError(error: WolfpackError): error is PostgrestError {
+    return typeof error === 'object' && error !== null && 'code' in error && 'message' in error && 'details' in error;
+  }
 
-      // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      });
+  private static isDatabaseError(error: WolfpackError): error is DatabaseError {
+    return typeof error === 'object' && error !== null && 'code' in error && 'message' in error && !('details' in error);
+  }
 
-      const { data, error } = await query.maybeSingle();
+  private static isAuthError(error: WolfpackError): error is AuthError {
+    return typeof error === 'object' && error !== null && 'message' in error && 
+           (error.message.includes('auth') || error.message.includes('credentials') || error.message.includes('email'));
+  }
 
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `query_one_${table}`,
-          additional: { filters }
-        });
-        return {
-          data: null,
-          error: userError.message
-        };
-      }
-
-      return {
-        data: data as T,
-        error: null
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `query_one_${table}`
-      });
-      return {
-        data: null,
-        error: userError.message
-      };
-    }
+  private static isGeolocationError(error: WolfpackError): error is GeolocationError {
+    return typeof error === 'object' && error !== null && 'code' in error && typeof (error as GeolocationError).code === 'number';
   }
 
   /**
-   * Insert with consistent error handling
+   * Handle specific PostgrestError codes
    */
-  static async insert<T>(
-    table: string,
-    data: InsertData<T>,
-    selectQuery?: string
-  ): Promise<QueryResult<T>> {
-    try {
-      const client = supabase;
-      // Type assertion needed for dynamic table names and generic data types
-      // The Supabase client expects literal table names, but this service handles dynamic tables
-      const query = selectQuery 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (client as any).from(table).insert(data).select(selectQuery)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        : (client as any).from(table).insert(data);
-
-      const { data: result, error } = await query;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `insert_${table}`,
-          additional: { dataKeys: Array.isArray(data) ? data.map(d => Object.keys(d)) : Object.keys(data) }
-        });
-        return {
-          data: null,
-          error: userError.message
-        };
-      }
-
-      return {
-        data: (result as T[]) || ([] as T[]),
-        error: null
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `insert_${table}`
-      });
-      return {
-        data: null,
-        error: userError.message
-      };
-    }
-  }
-
-  /**
-   * Update with consistent error handling
-   */
-  static async update<T>(
-    table: string,
-    data: Partial<T>,
-    filters: QueryFilters,
-    selectQuery?: string
-  ): Promise<QueryResult<T>> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (client as any).from(table).update(data);
-
-      // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      });
-
-      const finalQuery = selectQuery ? query.select(selectQuery) : query;
-      const { data: result, error } = await finalQuery;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `update_${table}`,
-          additional: { updateKeys: Object.keys(data as Record<string, unknown>), filters }
-        });
-        return {
-          data: null,
-          error: userError.message
-        };
-      }
-
-      return {
-        data: (result as T[]) || ([] as T[]),
-        error: null
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `update_${table}`
-      });
-      return {
-        data: null,
-        error: userError.message
-      };
-    }
-  }
-
-  /**
-   * Delete with consistent error handling
-   */
-  static async delete(
-    table: string,
-    filters: QueryFilters
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (client as any).from(table).delete();
-
-      // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      });
-
-      const { error } = await query;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `delete_${table}`,
-          additional: { filters }
-        });
-        return {
-          success: false,
-          error: userError.message
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `delete_${table}`
-      });
-      return {
-        success: false,
-        error: userError.message
-      };
-    }
-  }
-
-  /**
-   * Upsert with consistent error handling
-   */
-  static async upsert<T>(
-    table: string,
-    data: InsertData<T>,
-    conflictColumns?: string[],
-    selectQuery?: string
-  ): Promise<QueryResult<T>> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query = (client as any).from(table).upsert(data, {
-        onConflict: conflictColumns?.join(',')
-      });
-
-      const finalQuery = selectQuery ? query.select(selectQuery) : query;
-      const { data: result, error } = await finalQuery;
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `upsert_${table}`,
-          additional: { conflictColumns }
-        });
-        return {
-          data: null,
-          error: userError.message
-        };
-      }
-
-      return {
-        data: (result as T[]) || ([] as T[]),
-        error: null
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `upsert_${table}`
-      });
-      return {
-        data: null,
-        error: userError.message
-      };
-    }
-  }
-
-  /**
-   * Call RPC function with consistent error handling
-   */
-  static async callRpc<T>(
-    functionName: string,
-    params: RpcParams = {}
-  ): Promise<SingleQueryResult<T>> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (client as any).rpc(functionName, params);
-
-      if (error) {
-        const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: `rpc_${functionName}`,
-          additional: { params }
-        });
-        return {
-          data: null,
-          error: userError.message
-        };
-      }
-
-      return {
-        data: data as T,
-        error: null
-      };
-    } catch (error) {
-      const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-        operation: `rpc_${functionName}`
-      });
-      return {
-        data: null,
-        error: userError.message
-      };
-    }
-  }
-
-  /**
-   * Get active wolfpack members with standardized query
-   */
-  static async getActiveMembers(locationId: string) {
-    return this.query(
-      WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS,
-      QUERY_CONFIGS.MEMBER_SELECT,
-      {
-        location_id: locationId,
-        status: 'active'
+  private static handlePostgrestError(
+    error: PostgrestError,
+    context?: ErrorContext
+  ): UserFriendlyError {
+    const errorMap: Record<string, UserFriendlyError> = {
+      // Authentication errors
+      'PGRST301': {
+        message: 'Authentication required',
+        type: 'warning',
+        retryable: false,
+        action: 'Please sign in to continue'
       },
-      {
-        orderBy: 'joined_at',
-        ascending: false,
-        limit: QUERY_CONFIGS.DEFAULT_LIMIT
-      }
-    );
-  }
-
-  /**
-   * Get chat messages with standardized query
-   */
-  static async getChatMessages(sessionId: string, limit = 100) {
-    return this.query(
-      WOLFPACK_TABLES.WOLF_CHAT,
-      QUERY_CONFIGS.CHAT_MESSAGE_SELECT,
-      {
-        session_id: sessionId,
-        is_deleted: false
+      'PGRST302': {
+        message: 'Access denied',
+        type: 'error',
+        retryable: false,
+        action: 'You don\'t have permission for this action'
       },
-      {
-        orderBy: 'created_at',
-        ascending: true,
-        limit
-      }
-    );
-  }
 
-  /**
-   * Get active events with standardized query
-   */
-  static async getActiveEvents(locationId: string) {
-    return this.query(
-      WOLFPACK_TABLES.DJ_EVENTS,
-      QUERY_CONFIGS.EVENT_SELECT,
-      {
-        location_id: locationId,
-        status: 'active'
+      // Data errors
+      'PGRST116': {
+        message: 'No data found',
+        type: 'info',
+        retryable: false,
+        action: 'The requested information is not available'
       },
-      {
-        orderBy: 'created_at',
-        ascending: false
+      'PGRST204': {
+        message: 'No content',
+        type: 'info',
+        retryable: false
+      },
+
+      // Database constraint errors
+      '23505': {
+        message: 'Duplicate entry',
+        type: 'warning',
+        retryable: false,
+        action: 'This action has already been completed'
+      },
+      '23503': {
+        message: 'Related data not found',
+        type: 'error',
+        retryable: false,
+        action: 'Please ensure all required information is provided'
+      },
+      '23514': {
+        message: 'Invalid data provided',
+        type: 'error',
+        retryable: false,
+        action: 'Please check your input and try again'
+      },
+
+      // Network/connection errors
+      'PGRST000': {
+        message: 'Connection failed',
+        type: 'error',
+        retryable: true,
+        action: 'Please check your internet connection and try again'
+      },
+
+      // Generic SQL errors
+      '42P01': {
+        message: 'Service temporarily unavailable',
+        type: 'error',
+        retryable: true,
+        action: 'Please try again in a moment'
       }
-    );
-  }
+    };
 
-  /**
-   * Check table existence (for graceful degradation)
-   */
-  static async checkTableExists(tableName: string): Promise<boolean> {
-    try {
-      const client = supabase;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (client as any)
-        .from(tableName)
-        .select('*')
-        .limit(1);
-
-      // If table doesn't exist, we'll get a specific error
-      return !error || error.code !== '42P01';
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Get available tables for the current user
-   */
-  static async getAvailableTables(): Promise<string[]> {
-    const tables = Object.values(WOLFPACK_TABLES);
-    const availableTables: string[] = [];
-
-    for (const table of tables) {
-      const exists = await this.checkTableExists(table);
-      if (exists) {
-        availableTables.push(table);
-      }
-    }
-
-    return availableTables;
-  }
-
-  /**
-   * Health check for backend connectivity
-   */
-  static async healthCheck(): Promise<{
-    connected: boolean;
-    tablesAvailable: string[];
-    errors: string[];
-  }> {
-    const errors: string[] = [];
-    const tablesAvailable: string[] = [];
-
-    try {
-      // Test basic connectivity
-      const { error: authError } = await supabase.auth.getSession();
-      if (authError) {
-        errors.push(`Auth: ${authError.message}`);
-      }
-
-      // Check key tables
-      const keyTables = [
-        WOLFPACK_TABLES.USERS,
-        WOLFPACK_TABLES.LOCATIONS,
-        WOLFPACK_TABLES.WOLFPACK_MEMBERSHIPS
-      ];
-
-      for (const table of keyTables) {
-        try {
-          const exists = await this.checkTableExists(table);
-          if (exists) {
-            tablesAvailable.push(table);
-          } else {
-            errors.push(`Table not accessible: ${table}`);
-          }
-        } catch (error) {
-          errors.push(`Table check failed: ${table}`);
-        }
-      }
-
+    const mappedError = errorMap[error.code];
+    if (mappedError) {
       return {
-        connected: errors.length === 0,
-        tablesAvailable,
-        errors
-      };
-    } catch (error) {
-      return {
-        connected: false,
-        tablesAvailable: [],
-        errors: ['Failed to connect to backend']
+        ...mappedError,
+        code: error.code
       };
     }
+
+    // Default handling for unmapped PostgrestError
+    return {
+      message: this.getGenericErrorMessage(error.message, context),
+      type: 'error',
+      code: error.code,
+      retryable: true,
+      action: 'Please try again'
+    };
+  }
+
+  /**
+   * Handle database errors
+   */
+  private static handleDatabaseError(
+    error: DatabaseError,
+    context?: ErrorContext
+  ): UserFriendlyError {
+    return {
+      message: this.getGenericErrorMessage(error.message, context),
+      type: 'error',
+      code: error.code,
+      retryable: true,
+      action: 'Please try again'
+    };
+  }
+
+  /**
+   * Handle generic JavaScript errors
+   */
+  private static handleGenericError(
+    error: Error,
+    context?: ErrorContext
+  ): UserFriendlyError {
+    // Common error patterns
+    if (error.message.includes('network') || error.message.includes('fetch')) {
+      return {
+        message: 'Network connection failed',
+        type: 'error',
+        retryable: true,
+        action: 'Please check your internet connection and try again'
+      };
+    }
+
+    if (error.message.includes('permission') || error.message.includes('denied')) {
+      return {
+        message: 'Permission denied',
+        type: 'error',
+        retryable: false,
+        action: 'Please enable the required permissions and try again'
+      };
+    }
+
+    if (error.message.includes('timeout')) {
+      return {
+        message: 'Request timed out',
+        type: 'error',
+        retryable: true,
+        action: 'Please try again'
+      };
+    }
+
+    // Location-specific errors
+    if (context?.operation.includes('location')) {
+      if (error.message.includes('geolocation')) {
+        return {
+          message: 'Location access required',
+          type: 'warning',
+          retryable: false,
+          action: 'Please enable location services and try again'
+        };
+      }
+    }
+
+    // Membership-specific errors
+    if (context?.operation.includes('membership') || context?.operation.includes('join')) {
+      if (error.message.includes('location')) {
+        return {
+          message: 'You must be at Side Hustle Bar to join',
+          type: 'warning',
+          retryable: false,
+          action: 'Visit one of our locations to join the Wolf Pack'
+        };
+      }
+    }
+
+    return {
+      message: this.getGenericErrorMessage(error.message, context),
+      type: 'error',
+      retryable: true,
+      action: 'Please try again'
+    };
+  }
+
+  /**
+   * Get user-friendly error message based on operation context
+   */
+  private static getGenericErrorMessage(
+    originalMessage: string,
+    context?: ErrorContext
+  ): string {
+    if (!context?.operation) {
+      return 'An error occurred';
+    }
+
+    const operationMessages: Record<string, string> = {
+      'auth': 'Authentication failed',
+      'login': 'Login failed',
+      'signup': 'Sign up failed',
+      'location': 'Location verification failed',
+      'membership': 'Membership operation failed',
+      'join': 'Failed to join Wolf Pack',
+      'leave': 'Failed to leave Wolf Pack',
+      'profile': 'Profile update failed',
+      'chat': 'Chat operation failed',
+      'event': 'Event operation failed',
+      'vote': 'Voting failed',
+      'order': 'Order operation failed'
+    };
+
+    // Find matching operation
+    for (const [key, message] of Object.entries(operationMessages)) {
+      if (context.operation.toLowerCase().includes(key)) {
+        return message;
+      }
+    }
+
+    return 'Operation failed';
+  }
+
+  /**
+   * Get error message for specific wolfpack operations
+   */
+  static getWolfpackErrorMessage(operation: string, error: WolfpackError): string {
+    const context: ErrorContext = { operation };
+    const userError = this.handleSupabaseError(error, context);
+    return userError.message;
+  }
+
+  /**
+   * Check if error is retryable
+   */
+  static isRetryableError(error: WolfpackError): boolean {
+    const userError = this.handleSupabaseError(error);
+    return userError.retryable;
+  }
+
+  /**
+   * Get suggested action for error
+   */
+  static getErrorAction(error: WolfpackError): string | undefined {
+    const userError = this.handleSupabaseError(error);
+    return userError.action;
+  }
+
+  /**
+   * Log error with context for monitoring
+   */
+  static logError(
+    error: WolfpackError,
+    context: ErrorContext,
+    userId?: string
+  ): void {
+    const errorLog = {
+      timestamp: new Date().toISOString(),
+      error: {
+        message: this.getErrorMessage(error),
+        code: this.getErrorCode(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
+      context,
+      userId,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      url: typeof window !== 'undefined' ? window.location.href : undefined
+    };
+
+    console.error('Wolfpack Error Log:', errorLog);
+
+    // In production, you might want to send this to an error monitoring service
+    // Example: Sentry, LogRocket, etc.
+    if (process.env.NODE_ENV === 'production') {
+      // sendToErrorMonitoring(errorLog);
+    }
+  }
+
+  /**
+   * Helper to safely extract error message
+   */
+  private static getErrorMessage(error: WolfpackError): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      return String(error.message);
+    }
+    return 'Unknown error';
+  }
+
+  /**
+   * Helper to safely extract error code
+   */
+  private static getErrorCode(error: WolfpackError): string {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      return String(error.code);
+    }
+    return 'UNKNOWN';
+  }
+
+  /**
+   * Create error context for consistent logging
+   */
+  static createContext(
+    operation: string,
+    additionalData?: Record<string, unknown>
+  ): ErrorContext {
+    return {
+      operation,
+      additional: additionalData
+    };
+  }
+
+  /**
+   * Handle authentication specific errors
+   */
+  static handleAuthError(error: AuthError): UserFriendlyError {
+    const authErrorMap: Record<string, string> = {
+      'invalid_credentials': 'Invalid email or password',
+      'email_not_confirmed': 'Please confirm your email address',
+      'too_many_requests': 'Too many attempts. Please try again later',
+      'weak_password': 'Password is too weak',
+      'email_address_invalid': 'Invalid email address',
+      'signup_disabled': 'Sign up is currently disabled',
+      'email_address_not_authorized': 'This email is not authorized',
+      'invalid_request': 'Invalid request format'
+    };
+
+    const message = authErrorMap[error.message] || 'Authentication failed';
+
+    return {
+      message,
+      type: 'error',
+      retryable: error.message !== 'email_address_not_authorized',
+      action: error.message === 'email_not_confirmed' 
+        ? 'Check your email for confirmation link' 
+        : 'Please try again'
+    };
+  }
+
+  /**
+   * Handle location specific errors
+   */
+  static handleLocationError(error: GeolocationError): UserFriendlyError {
+    if (error.code === 1) { // PERMISSION_DENIED
+      return {
+        message: 'Location access denied',
+        type: 'warning',
+        retryable: false,
+        action: 'Please enable location services in your browser settings'
+      };
+    }
+
+    if (error.code === 2) { // POSITION_UNAVAILABLE
+      return {
+        message: 'Location unavailable',
+        type: 'error',
+        retryable: true,
+        action: 'Please try again or ensure GPS is enabled'
+      };
+    }
+
+    if (error.code === 3) { // TIMEOUT
+      return {
+        message: 'Location request timed out',
+        type: 'error',
+        retryable: true,
+        action: 'Please try again'
+      };
+    }
+
+    return {
+      message: 'Location verification failed',
+      type: 'error',
+      retryable: true,
+      action: 'Please ensure location services are enabled'
+    };
   }
 }

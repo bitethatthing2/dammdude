@@ -4,10 +4,11 @@
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/supabase'
 import { RealtimeUser } from '@/types/realtime'
+import { RPCFallbacks } from '@/lib/utils/rpc-fallbacks'
 
 type Tables = Database['public']['Tables']
 type UserRow = Tables['users']['Row']
-type WolfProfileRow = Tables['wolf_profiles']['Row']
+// type WolfProfileRow = Tables['wolf_profiles']['Row'] // Table doesn't exist
 
 export interface EnhancedWolfpackMember {
   id: string
@@ -108,15 +109,12 @@ class WolfpackRealtimeClient {
         return { data: [], error: 'Authentication required' }
       }
 
-      // Query members directly from the database
+      // Query wolfpack members from users table
       const query = this.supabase
-        .from('wolfpack_members_unified')
-        .select(`
-          *,
-          users!inner(email, first_name, last_name, avatar_url),
-          wolf_profiles(*)
-        `)
-        .eq('is_active', true)
+        .from('users')
+        .select('*')
+        .eq('is_wolfpack_member', true)
+        .not('wolfpack_status', 'is', null)
 
       if (locationId) {
         query.eq('location_id', locationId)
@@ -129,31 +127,31 @@ class WolfpackRealtimeClient {
         return { data: [], error: error.message }
       }
 
-      // Transform the data to match EnhancedWolfpackMember format
+      // Transform the users table data to match EnhancedWolfpackMember format
       const enhancedMembers: EnhancedWolfpackMember[] = (data || []).map(member => ({
         id: member.id,
-        user_id: member.user_id,
+        user_id: member.id, // In users table, id is the user_id
         location_id: member.location_id,
-        status: member.status,
-        display_name: member.display_name,
-        emoji: member.emoji,
-        current_vibe: member.current_vibe,
-        favorite_drink: member.favorite_drink,
-        looking_for: member.looking_for,
-        instagram_handle: member.instagram_handle,
-        joined_at: member.joined_at,
-        last_active: member.last_active,
-        is_active: member.is_active || false,
-        // User data from join
-        user_email: (member.users as any)?.email || null,
-        user_first_name: (member.users as any)?.first_name || null,
-        user_last_name: (member.users as any)?.last_name || null,
-        user_avatar_url: (member.users as any)?.avatar_url || null,
-        // Wolf profile data from join
-        wolf_profile_id: (member.wolf_profiles as any)?.id || null,
-        wolf_bio: (member.wolf_profiles as any)?.bio || null,
-        wolf_profile_pic_url: (member.wolf_profiles as any)?.profile_pic_url || null,
-        wolf_is_visible: (member.wolf_profiles as any)?.is_visible || null,
+        status: member.wolfpack_status || 'active',
+        display_name: member.display_name || member.first_name || 'Pack Member',
+        emoji: member.wolf_emoji || '🐺',
+        current_vibe: null,
+        favorite_drink: null,
+        looking_for: null,
+        instagram_handle: null,
+        joined_at: member.wolfpack_joined_at || member.created_at,
+        last_active: member.updated_at,
+        is_active: member.is_wolfpack_member || false,
+        // User data is already in the member object
+        user_email: member.email || null,
+        user_first_name: member.first_name || null,
+        user_last_name: member.last_name || null,
+        user_avatar_url: member.avatar_url || null,
+        // Wolf profile data - not available in users table
+        wolf_profile_id: null,
+        wolf_bio: null,
+        wolf_profile_pic_url: null,
+        wolf_is_visible: null,
       }))
 
       console.log('✅ Successfully fetched', enhancedMembers.length, 'wolfpack members')
