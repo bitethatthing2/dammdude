@@ -35,7 +35,7 @@ interface ToastMessage {
 // Define the member interface to match your useWolfpack hook
 interface WolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   display_name?: string;
   avatar_url?: string;
   status: string;
@@ -95,8 +95,8 @@ export default function WolfpackChatPage() {
       return {
         id: member.id || `member_${index}`,
         display_name: member.display_name || 'Wolf Member',
-        avatar_url: member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.user_id || member.id}`,
-        role: member.user_id === user?.id ? 'current' : (
+        avatar_url: member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id || member.id}`,
+        role: member.id === user?.id ? 'current' : (
           // Determine role based on user data or member status
           member.display_name?.toLowerCase().includes('dj') ? 'dj' :
           member.display_name?.toLowerCase().includes('bartender') ? 'bartender' : 'user'

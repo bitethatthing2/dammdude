@@ -101,7 +101,7 @@ export async function PATCH(
         if (devices && devices.length > 0) {
           // Create push notifications for each device
           const notifications = devices.map((device: { device_id: string }) => ({
-            user_id: null, // No specific user, using device token
+            id: null, // No specific user, using device token
             device_token_id: device.device_id,
             title: 'Order Ready',
             body: `Your order for ${tableLocation || 'your table'} is ready for pickup!`,

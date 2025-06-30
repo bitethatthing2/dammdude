@@ -133,7 +133,7 @@ export async function loadWolfpackMembers(
           instagram_handle: null,
           looking_for: null,
           bio: null,
-          is_visible: true,
+          is_profile_visible: true,
           profile_image_url: null,
           allow_messages: true
         }

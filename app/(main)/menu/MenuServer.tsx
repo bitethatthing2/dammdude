@@ -1,6 +1,7 @@
 // app/(main)/menu/MenuServer.tsx
 
 import MenuClient from './MenuClient';
+import { MenuErrorFallback } from 'components/menu/MenuErrorFallback';
 import type { Database } from '@/lib/database.types'; // Still needed for MenuCategory type
 import type { MenuCategoryWithCount } from '@/lib/types/menu'; // Still needed
 import { getCategoriesByTypePublic } from '@/lib/menu-data-public'; // This is your category fetching utility
@@ -94,29 +95,7 @@ export default async function MenuServer() {
     console.error('❌ SERVER CRITICAL ERROR: [MenuServer] Failed to load menu data:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during menu data fetching.';
 
-    // Render a fallback UI for critical server-side errors
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md w-full p-6 border rounded-lg shadow-lg bg-card text-card-foreground">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Menu Unavailable</h1>
-          <p className="text-muted-foreground mb-4">
-            We&#39;re sorry, but we couldn&#39;t load the menu categories right now.
-            This might be a temporary issue. Please try refreshing the page.
-          </p>
-          <details className="mt-4 text-left text-sm text-muted-foreground">
-            <summary className="cursor-pointer font-medium text-primary hover:underline">Show Technical Details</summary>
-            <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto whitespace-pre-wrap">
-              {errorMessage}
-            </pre>
-          </details>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-6 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    );
+    // Use the client component for error handling to avoid event handler issues
+    return <MenuErrorFallback errorMessage={errorMessage} />;
   }
 }

@@ -122,8 +122,8 @@ function analyzeSupabaseQueries() {
           // Check for potential issues
           const issues = [];
           
-          if (trimmed.includes('user_id=eq.') && !trimmed.includes('await')) {
-            issues.push('Missing await on user_id query');
+          if (trimmed.includes('id=eq.') && !trimmed.includes('await')) {
+            issues.push('Missing await on id query');
           }
           
           if (trimmed.includes('.eq(') && trimmed.includes('undefined')) {
@@ -209,7 +209,7 @@ function analyzeSupabaseQueries() {
   console.log('====================================');
   
   // Check for the specific failing URL pattern
-  const failingPattern = 'wolfpack_members?select=id%2Clocation_id%2Cjoined_at%2Cstatus%2Cis_active&user_id=eq.';
+  const failingPattern = 'wolfpack_members?select=id%2Clocation_id%2Cjoined_at%2Cstatus%2Cis_active&id=eq.';
   console.log('Looking for queries matching the failing pattern...\n');
   
   let foundMatchingQueries = false;
@@ -222,7 +222,7 @@ function analyzeSupabaseQueries() {
     // Look for the specific query structure
     if (content.includes('wolfpack_members') && 
         content.includes('.select(') && 
-        content.includes('user_id') &&
+        content.includes('id') &&
         content.includes('.eq(')) {
       
       console.log(`🎯 Found matching query pattern in: ${relativePath}`);
@@ -259,7 +259,7 @@ function analyzeSupabaseQueries() {
   console.log('===================');
   console.log('1. Check the Supabase dashboard logs for the 500 error details');
   console.log('2. Verify RLS policies on wolfpack_members table');
-  console.log('3. Check if the user_id being passed is valid');
+  console.log('3. Check if the id being passed is valid');
   console.log('4. Ensure all required columns exist in the table');
   console.log('5. Check for any database triggers that might be failing');
   

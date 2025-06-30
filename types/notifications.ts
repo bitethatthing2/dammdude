@@ -4,7 +4,7 @@ export interface TopicSubscription {
   id?: string;
   token: string;
   topic: string;
-  user_id?: string | null;
+  id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -21,7 +21,7 @@ export interface NotificationTopic {
 
 export interface DeviceToken {
   id?: string;
-  user_id: string;
+  id: string;
   token: string;
   device_type: 'ios' | 'android' | 'web';
   device_name?: string | null;
@@ -38,7 +38,7 @@ export interface PushNotification {
   body: string;
   data?: Record<string, unknown> | null;
   topic?: string | null;
-  user_id?: string | null;
+  id?: string | null;
   device_token?: string | null;
   sent_at?: string | null;
   status: 'pending' | 'sent' | 'failed';
@@ -48,7 +48,7 @@ export interface PushNotification {
 }
 
 export interface NotificationPreferences {
-  user_id: string;
+  id: string;
   subscribed_topics: string[];
   fcm_token?: string;
   device_type?: 'ios' | 'android' | 'web';

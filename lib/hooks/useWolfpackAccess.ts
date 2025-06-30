@@ -50,7 +50,7 @@ interface DatabaseLocation {
 
 interface DatabaseWolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string;
   status: 'active' | 'inactive' | 'suspended';
   last_activity: string | null;
@@ -391,7 +391,7 @@ export function useWolfpackAccess(
       const { data: membership, error: membershipError } = await supabase
         .from('wolf_pack_members')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);

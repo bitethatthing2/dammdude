@@ -1,4 +1,4 @@
-import { unstable_noStore as noStore } from 'next/cache';
+// lib/menu-data.ts
 import { createServerClient } from './supabase/server';
 import type { Database } from './database.types';
 
@@ -8,14 +8,9 @@ type MenuItem = Database['public']['Tables']['food_drink_items']['Row'];
 /**
  * Fetches all menu categories from Supabase.
  * Gets categories from the 'food_drink_categories' table which contains both food and drink categories.
- * Uses unstable_noStore to prevent caching on the server.
  * @returns {Promise<MenuCategory[]>} A promise that resolves to an array of categories.
  */
 export async function getCategories(): Promise<MenuCategory[]> {
-  // unstable_noStore() is used to prevent the response from being cached.
-  // This is helpful for data that changes often.
-  noStore();
-
   try {
     const supabase = await createServerClient();
 
@@ -66,6 +61,11 @@ interface MenuItemWithModifiers extends MenuItem {
   modifier_groups: ModifierGroupWithOptions[];
 }
 
+// Type for the view response
+interface MenuItemWithWorkingModifiers extends MenuItem {
+  modifiers?: ModifierGroupWithOptions[];
+}
+
 /**
  * Fetches menu items for a specific category, including their modifier groups.
  * Uses the get_item_modifiers function to fetch modifiers efficiently.
@@ -73,14 +73,12 @@ interface MenuItemWithModifiers extends MenuItem {
  * @returns {Promise<MenuItemWithModifiers[]>} A promise resolving to menu items with modifiers.
  */
 export async function getMenuItemsByCategory(categoryId: string): Promise<MenuItemWithModifiers[]> {
-  noStore();
-   
   const supabase = await createServerClient();
    
   try {
     // Fetch items with modifiers from the view
     const { data: items, error: itemsError } = await supabase
-      .from('menu_items_with_working_modifiers' as any)
+      .from('menu_items_with_working_modifiers')
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
@@ -95,16 +93,14 @@ export async function getMenuItemsByCategory(categoryId: string): Promise<MenuIt
       return [];
     }
 
+    // Cast items to the expected type
+    const typedItems = items as unknown as MenuItemWithWorkingModifiers[];
+
     // The view returns data with modifiers already included
-    const itemsWithModifiers = items.map(item => {
-      // Handle potential query errors
-      if (!item || typeof item !== 'object') {
-        return { modifier_groups: [] } as any;
-      }
-      
+    const itemsWithModifiers: MenuItemWithModifiers[] = typedItems.map(item => {
       return {
-        ...(item as any),
-        modifier_groups: (item as any).modifiers || []
+        ...item,
+        modifier_groups: item.modifiers || []
       };
     });
 
@@ -120,14 +116,12 @@ export async function getMenuItemsByCategory(categoryId: string): Promise<MenuIt
  * This approach uses joins but may be less efficient for complex modifier structures
  */
 export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promise<MenuItemWithModifiers[]> {
-  noStore();
-   
   const supabase = await createServerClient();
    
   try {
     // Fetch items with modifiers from the view
     const { data: items, error } = await supabase
-      .from('menu_items_with_working_modifiers' as any)
+      .from('menu_items_with_working_modifiers')
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
@@ -138,16 +132,14 @@ export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promi
       return [];
     }
 
+    // Cast items to the expected type
+    const typedItems = items as unknown as MenuItemWithWorkingModifiers[];
+
     // The view returns data with modifiers already properly formatted
-    const transformedItems: MenuItemWithModifiers[] = (items || []).map(item => {
-      // Handle potential query errors
-      if (!item || typeof item !== 'object') {
-        return { modifier_groups: [] } as any;
-      }
-      
+    const transformedItems: MenuItemWithModifiers[] = (typedItems || []).map(item => {
       return {
-        ...(item as any),
-        modifier_groups: (item as any).modifiers || []
+        ...item,
+        modifier_groups: item.modifiers || []
       };
     });
 
@@ -162,8 +154,6 @@ export async function getMenuItemsByCategoryWithJoins(categoryId: string): Promi
  * Helper function to get categories by type
  */
 export async function getCategoriesByType(type: 'food' | 'drink'): Promise<MenuCategory[]> {
-  noStore();
-  
   const supabase = await createServerClient();
   
   const { data, error } = await supabase
@@ -185,14 +175,12 @@ export async function getCategoriesByType(type: 'food' | 'drink'): Promise<MenuC
  * Get a single menu item with all its modifiers
  */
 export async function getMenuItemById(itemId: string): Promise<MenuItemWithModifiers | null> {
-  noStore();
-  
   const supabase = await createServerClient();
   
   try {
     // Fetch the item with modifiers from the view
     const { data: item, error: itemError } = await supabase
-      .from('menu_items_with_working_modifiers' as any)
+      .from('menu_items_with_working_modifiers')
       .select('*')
       .eq('id', itemId)
       .single();
@@ -202,14 +190,12 @@ export async function getMenuItemById(itemId: string): Promise<MenuItemWithModif
       return null;
     }
     
-    // The view returns data with modifiers already included
-    if (!item || typeof item !== 'object') {
-      return null;
-    }
+    // Cast to the expected type
+    const typedItem = item as unknown as MenuItemWithWorkingModifiers;
     
     return {
-      ...(item as any),
-      modifier_groups: (item as any).modifiers || []
+      ...typedItem,
+      modifier_groups: typedItem.modifiers || []
     };
   } catch (error) {
     console.error(`Error fetching menu item ${itemId}:`, error);

@@ -20,7 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
  */
 interface Notification {
   id: string;
-  user_id: string;
+  id: string;
   type: string;
   title: string;
   message: string;
@@ -46,7 +46,7 @@ export function NotificationPopover() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: undefined, // null means current user
+        p_id: undefined, // null means current user
         p_limit: 50,
         p_offset: 0
       });

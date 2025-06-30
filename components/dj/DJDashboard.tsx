@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Music, Users, MessageSquare, Trophy, Plus, Clock, MapPin, AlertCircle, RefreshCw, Zap, TrendingUp } from 'lucide-react';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { createClient } from '@/lib/supabase/client';
-import { WolfpackEnhancedService } from '@/lib/services/wolfpack-enhanced.service';
+
 import { EventCreator } from './EventCreator';
 import { MassMessageInterface } from './MassMessageInterface';
 
@@ -37,7 +37,7 @@ interface ActiveEvent {
 
 interface PackMember {
   id: string;
-  user_id: string;
+  id: string;
   displayName: string;
   profilePicture: string;
   vibeStatus: string;
@@ -81,7 +81,7 @@ const LOCATION_CONFIG = {
 export function DJDashboard({ location }: DJDashboardProps) {
   const { assignedLocation } = useDJPermissions();
   const currentLocation = location || assignedLocation || 'salem';
-  
+
   // Core State
   const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
   const [packMembers, setPackMembers] = useState<PackMember[]>([]);
@@ -92,18 +92,18 @@ export function DJDashboard({ location }: DJDashboardProps) {
     recentBroadcasts: 0,
     energyLevel: 0
   });
-  
+
   // UI State
   const [showEventCreator, setShowEventCreator] = useState(false);
   const [showMassMessage, setShowMassMessage] = useState(false);
   const [showQuickPoll, setShowQuickPoll] = useState(false);
   const [isLive, setIsLive] = useState(true);
-  
+
   // Status State
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Refs
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const supabase = createClient();
@@ -118,12 +118,12 @@ export function DJDashboard({ location }: DJDashboardProps) {
     try {
       if (showLoadingState) setIsLoading(true);
       else setIsRefreshing(true);
-      
+
       setError(null);
 
       // Fetch all data in parallel using enhanced service
       const [events, members, stats] = await Promise.all([
-        WolfpackEnhancedService.getActiveEvents(locationConfig.id),
+        WolfpackService.getActiveEvents(locationConfig.id),
         WolfpackEnhancedService.getActivePackMembers(locationConfig.id),
         WolfpackEnhancedService.getLocationStats(locationConfig.id)
       ]);
@@ -138,7 +138,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
         voting_ends_at: event.voting_ends_at || new Date().toISOString(),
         options: event.options ? (Array.isArray(event.options) ? event.options : []) : [],
         participantCount: 0, // TODO: Calculate from participants
-        timeRemaining: event.voting_ends_at ? 
+        timeRemaining: event.voting_ends_at ?
           WolfpackEnhancedService.formatTimeRemaining(event.voting_ends_at) : 0,
         dj: event.dj
       }));
@@ -230,10 +230,10 @@ export function DJDashboard({ location }: DJDashboardProps) {
       participantCount: 0,
       timeRemaining: 0
     };
-    
+
     setActiveEvents(prev => [newEvent, ...prev]);
     setShowEventCreator(false);
-    
+
     // Refresh data to get accurate info
     setTimeout(() => fetchDashboardData(false), 1000);
   }, [fetchDashboardData]);
@@ -378,7 +378,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
             </Button>
           </div>
         </div>
-        
+
         {/* Enhanced Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
@@ -397,9 +397,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
             <div className="text-3xl font-bold">{locationStats.energyLevel}%</div>
             <div className="text-sm opacity-90">Energy Level</div>
             <div className="absolute top-2 right-2">
-              {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> : 
-               locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> : 
-               <div className="w-4 h-4" />}
+              {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> :
+                locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> :
+                  <div className="w-4 h-4" />}
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
@@ -412,8 +412,8 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3 flex-shrink-0">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           className="h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
           onClick={() => setShowMassMessage(true)}
           disabled={locationStats.totalPackMembers === 0}
@@ -426,9 +426,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
             </div>
           </div>
         </Button>
-        
-        <Button 
-          size="lg" 
+
+        <Button
+          size="lg"
           className="h-20 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
           onClick={() => setShowQuickPoll(true)}
         >
@@ -438,9 +438,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
             <div className="text-xs opacity-80">What song next?</div>
           </div>
         </Button>
-        
-        <Button 
-          size="lg" 
+
+        <Button
+          size="lg"
           className="h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
           onClick={() => setShowEventCreator(true)}
         >
@@ -450,9 +450,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
             <div className="text-xs opacity-80">Create Contest</div>
           </div>
         </Button>
-        
-        <Button 
-          size="lg" 
+
+        <Button
+          size="lg"
           className="h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
         >
           <div className="text-center">
@@ -531,7 +531,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
             )}
           </CardContent>
         </Card>
-        
+
         {/* Pack Activity & Energy */}
         <Card className="bg-slate-800 border-slate-700 text-white">
           <CardHeader>
@@ -548,14 +548,14 @@ export function DJDashboard({ location }: DJDashboardProps) {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">Energy Level</span>
                 <div className="flex items-center gap-1">
-                  {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> : 
-                   locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> : 
-                   <span className="text-2xl">🔥</span>}
+                  {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> :
+                    locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> :
+                      <span className="text-2xl">🔥</span>}
                   <span className="text-lg font-bold">{locationStats.energyLevel}%</span>
                 </div>
               </div>
               <div className="w-full bg-slate-600 rounded-full h-3">
-                <div 
+                <div
                   className="bg-gradient-to-r from-orange-500 to-red-500 h-3 rounded-full transition-all duration-500"
                   style={{ width: `${locationStats.energyLevel}%` }}
                 />
@@ -565,7 +565,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
                 <span>{locationStats.activeEvents} events live</span>
               </div>
             </div>
-            
+
             <div className="bg-slate-700 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">Recent Activity</span>
@@ -589,7 +589,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
             {/* Quick Actions for Pack */}
             <div className="space-y-2">
-              <Button 
+              <Button
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                 onClick={() => setShowMassMessage(true)}
                 disabled={locationStats.totalPackMembers === 0}
@@ -598,15 +598,15 @@ export function DJDashboard({ location }: DJDashboardProps) {
                 Send Pack Message
               </Button>
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => handleQuickPoll()}
                 >
                   🎵 Song Vote
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => setShowEventCreator(true)}
                 >
@@ -643,7 +643,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="relative">
                     <Image
-                      src={member.profilePicture} 
+                      src={member.profilePicture}
                       alt={member.displayName}
                       width={32}
                       height={32}
@@ -653,9 +653,8 @@ export function DJDashboard({ location }: DJDashboardProps) {
                         target.src = '/images/avatar-placeholder.png';
                       }}
                     />
-                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 border border-slate-700 rounded-full ${
-                      member.isOnline ? 'bg-green-500' : 'bg-gray-500'
-                    }`} />
+                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 border border-slate-700 rounded-full ${member.isOnline ? 'bg-green-500' : 'bg-gray-500'
+                      }`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">
@@ -672,7 +671,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
               </div>
             ))}
           </div>
-          
+
           {locationStats.totalPackMembers === 0 && (
             <div className="text-center py-8 text-slate-400">
               <Users className="w-12 h-12 mx-auto mb-4" />
@@ -690,8 +689,8 @@ export function DJDashboard({ location }: DJDashboardProps) {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 🎵 Quick Song Vote
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => setShowQuickPoll(false)}
                 >
@@ -714,13 +713,13 @@ export function DJDashboard({ location }: DJDashboardProps) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600"
                     onClick={handleQuickPoll}
                     disabled={locationStats.totalPackMembers === 0}
                   >
-                    {locationStats.totalPackMembers > 0 
-                      ? `Send to ${locationStats.totalPackMembers} Members` 
+                    {locationStats.totalPackMembers > 0
+                      ? `Send to ${locationStats.totalPackMembers} Members`
                       : 'No Members Online'
                     }
                   </Button>

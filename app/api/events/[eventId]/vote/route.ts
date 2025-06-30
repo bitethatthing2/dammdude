@@ -109,7 +109,7 @@ interface Database {
         Row: {
           id: string;
           session_id: string;
-          user_id: string | null;
+          id: string | null;
           display_name: string;
           avatar_url: string | null;
           content: string;
@@ -123,7 +123,7 @@ interface Database {
         Insert: {
           id?: string;
           session_id: string;
-          user_id?: string | null;
+          id?: string | null;
           display_name: string;
           avatar_url?: string | null;
           content: string;
@@ -137,7 +137,7 @@ interface Database {
         Update: {
           id?: string;
           session_id?: string;
-          user_id?: string | null;
+          id?: string | null;
           display_name?: string;
           avatar_url?: string | null;
           content?: string;
@@ -467,7 +467,7 @@ async function sendConfirmationMessage(
 
     const chatMessage: ChatMessageInsert = {
       session_id: `location_${event.location_id}`,
-      user_id: user.id,
+      id: user.id,
       display_name: displayName,
       avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
       content: confirmationMessage,

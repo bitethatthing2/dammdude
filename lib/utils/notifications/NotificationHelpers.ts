@@ -5,7 +5,7 @@ type NotificationType = 'info' | 'warning' | 'error' | 'order_new' | 'order_read
 
 interface NotificationRow {
   id: string;
-  user_id: string;
+  id: string;
   type: string;
   title: string;
   message: string;
@@ -293,7 +293,7 @@ export class NotificationHelpers {
       const supabase = this.getSupabaseClient();
       
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: userId || undefined,
+        p_id: userId || undefined,
         p_limit: limit,
         p_offset: 0
       });

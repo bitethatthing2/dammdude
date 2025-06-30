@@ -12,7 +12,7 @@ type UserRow = Tables['users']['Row']
 
 export interface EnhancedWolfpackMember {
   id: string
-  user_id: string
+  id: string
   location_id: string | null
   status: string | null
   display_name: string | null
@@ -33,7 +33,7 @@ export interface EnhancedWolfpackMember {
   wolf_profile_id: string | null
   wolf_bio: string | null
   wolf_profile_pic_url: string | null
-  wolf_is_visible: boolean | null
+  wolf_is_profile_visible: boolean | null
 }
 
 export interface WolfpackMembershipCheck {
@@ -130,7 +130,7 @@ class WolfpackRealtimeClient {
       // Transform the users table data to match EnhancedWolfpackMember format
       const enhancedMembers: EnhancedWolfpackMember[] = (data || []).map(member => ({
         id: member.id,
-        user_id: member.id, // In users table, id is the user_id
+        id: member.id, // In users table, id is the id
         location_id: member.location_id,
         status: member.wolfpack_status || 'active',
         display_name: member.display_name || member.first_name || 'Pack Member',
@@ -151,7 +151,7 @@ class WolfpackRealtimeClient {
         wolf_profile_id: null,
         wolf_bio: null,
         wolf_profile_pic_url: null,
-        wolf_is_visible: null,
+        wolf_is_profile_visible: null,
       }))
 
       console.log('✅ Successfully fetched', enhancedMembers.length, 'wolfpack members')
@@ -182,7 +182,7 @@ class WolfpackRealtimeClient {
 
       // Find the user's active membership
       const userMembership = members.find(member => 
-        member.user_id === user.id && member.is_active
+        member.id === user.id && member.is_active
       )
 
       return { data: userMembership || null, error: null }
@@ -368,7 +368,7 @@ class WolfpackRealtimeClient {
             
             if (payload.new.is_active === false) {
               // Member left
-              onMemberLeft(payload.new.user_id)
+              onMemberLeft(payload.new.id)
             } else {
               // Member updated
               const { data: members } = await this.getWolfpackMembers(locationId)
@@ -389,7 +389,7 @@ class WolfpackRealtimeClient {
           },
           (payload) => {
             console.log('➖ Member deleted:', payload.old)
-            onMemberLeft(payload.old.user_id)
+            onMemberLeft(payload.old.id)
           }
         )
         .subscribe((status) => {
@@ -472,7 +472,7 @@ class WolfpackRealtimeClient {
         const { error: profileError } = await this.supabase
           .from('wolf_profiles')
           .upsert({
-            user_id: user.id,
+            id: user.id,
             bio: updates.bio,
             display_name: updates.displayName,
             updated_at: new Date().toISOString()
@@ -499,7 +499,7 @@ class WolfpackRealtimeClient {
         const { error: memberError } = await this.supabase
           .from('wolfpack_members')
           .update(memberUpdates)
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .eq('is_active', true)
 
         if (memberError) {
@@ -532,7 +532,7 @@ export const wolfpackRealtimeClient = new WolfpackRealtimeClient()
 // Helper function to convert enhanced member to RealtimeUser
 export function enhancedMemberToRealtimeUser(member: EnhancedWolfpackMember): RealtimeUser {
   return {
-    id: member.user_id,
+    id: member.id,
     email: member.user_email || '',
     first_name: member.user_first_name || null,
     last_name: member.user_last_name || null,
@@ -572,7 +572,7 @@ export function enhancedMemberToRealtimeUser(member: EnhancedWolfpackMember): Re
     wolfpack_tier: 'basic',
     wolf_profile: member.wolf_profile_id ? {
       id: member.wolf_profile_id,
-      user_id: member.user_id,
+      id: member.id,
       display_name: member.display_name,
       wolf_emoji: member.emoji || '🐺',
       bio: member.wolf_bio || null,
@@ -580,7 +580,7 @@ export function enhancedMemberToRealtimeUser(member: EnhancedWolfpackMember): Re
       vibe_status: member.current_vibe || null,
       looking_for: member.looking_for || null,
       instagram_handle: member.instagram_handle || null,
-      is_visible: member.wolf_is_visible ?? true,
+      is_profile_visible: member.wolf_is_profile_visible ?? true,
       profile_pic_url: member.wolf_profile_pic_url || null,
       created_at: member.joined_at,
       updated_at: member.joined_at,

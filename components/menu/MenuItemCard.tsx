@@ -220,7 +220,7 @@ const checkWolfPackMembership = async (userId: string): Promise<boolean> => {
     const { data: memberData } = await supabase
       .from('wolfpack_members')
       .select('id')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .eq('is_active', true)
       .maybeSingle();
     

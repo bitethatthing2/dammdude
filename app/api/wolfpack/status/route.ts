@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
           state
         )
       `)
-      .eq('user_id', databaseUserId)
+      .eq('id', databaseUserId)
       .eq('is_active', true)
       .maybeSingle();
 

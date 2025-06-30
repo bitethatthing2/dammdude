@@ -52,7 +52,7 @@ if (fs.existsSync(realtimeClientPath)) {
   // Fix user_uuid parameter issue
   content = content.replace(
     /user_uuid: user\.id,/g,
-    'p_user_id: user.id,'
+    'p_id: user.id,'
   );
   
   // Fix RPC function calls with proper error handling

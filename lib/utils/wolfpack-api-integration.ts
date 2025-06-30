@@ -13,7 +13,7 @@ export interface WolfpackApiResponse<T = any> {
 
 export interface WolfpackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string;
   display_name: string;
   emoji: string;
@@ -114,7 +114,7 @@ export class WolfpackApiClient {
   async getMembers(locationId: string): Promise<WolfpackApiResponse<{
     members: WolfpackMember[];
     location_id: string;
-    current_user_id: string;
+    current_id: string;
   }>> {
     try {
       const response = await fetch(`${this.baseUrl}/members?location_id=${locationId}`);

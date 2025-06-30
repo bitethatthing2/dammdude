@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         WOLFPACK_TABLES.WOLF_CHAT,
         {
           session_id: `location_${location.id}`,
-          user_id: '00000000-0000-0000-0000-000000000000', // System user
+          id: '00000000-0000-0000-0000-000000000000', // System user
           display_name: 'Wolf Pack System',
           avatar_url: null,
           content: resetMessage,
@@ -202,7 +202,7 @@ export async function GET() {
     const { data: lastResetMessage } = await supabase
       .from(WOLFPACK_TABLES.WOLF_CHAT)
       .select('created_at, content')
-      .eq('user_id', '00000000-0000-0000-0000-000000000000')
+      .eq('id', '00000000-0000-0000-0000-000000000000')
       .eq('message_type', 'dj_broadcast')
       .like('content', '%Wolf Pack has been reset%')
       .order('created_at', { ascending: false })

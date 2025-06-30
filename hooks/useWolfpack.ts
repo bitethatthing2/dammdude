@@ -10,7 +10,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  user_id: string | null;
+  id: string | null;
   display_name: string;
   avatar_url: string | null;
   content: string;
@@ -25,14 +25,14 @@ interface DatabaseChatMessage {
 interface DatabaseChatReaction {
   id: string;
   message_id: string | null;
-  user_id: string | null;
+  id: string | null;
   emoji: string;
   created_at: string | null;
 }
 
 interface DatabaseWolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string;
   status: string;
   last_activity: string | null;
@@ -102,7 +102,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 export interface WolfChatMessage {
   id: string;
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url?: string;
   content: string;
@@ -116,14 +116,14 @@ export interface WolfChatMessage {
 export interface MessageReaction {
   id: string;
   message_id: string;
-  user_id: string;
+  id: string;
   emoji: string;
   created_at: string;
 }
 
 export interface WolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string | null;
   status: 'active' | 'inactive' | 'suspended';
   joined_at: string;
@@ -278,7 +278,7 @@ function adaptDatabaseChatMessage(dbMessage: DatabaseChatMessage): WolfChatMessa
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
-    user_id: dbMessage.user_id || '',
+    id: dbMessage.id || '',
     display_name: dbMessage.display_name,
     avatar_url: dbMessage.avatar_url || undefined,
     content: dbMessage.content,
@@ -294,7 +294,7 @@ function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReactio
   return {
     id: dbReaction.id,
     message_id: dbReaction.message_id || '',
-    user_id: dbReaction.user_id || '',
+    id: dbReaction.id || '',
     emoji: dbReaction.emoji,
     created_at: dbReaction.created_at || new Date().toISOString()
   };
@@ -303,7 +303,7 @@ function adaptDatabaseReaction(dbReaction: DatabaseChatReaction): MessageReactio
 function adaptDatabaseMember(dbMember: DatabaseWolfPackMember, userInfo?: DatabaseUser): WolfPackMember {
   return {
     id: dbMember.id,
-    user_id: dbMember.user_id,
+    id: dbMember.id,
     location_id: dbMember.location_id,
     status: (dbMember.status as 'active' | 'inactive' | 'suspended') || 'active',
     joined_at: dbMember.created_at || new Date().toISOString(),
@@ -520,7 +520,7 @@ export function useWolfpack(
         .from('wolf_pack_members')
         .select(`
           *,
-          users:user_id (
+          users:id (
             id,
             display_name,
             first_name,
@@ -788,7 +788,7 @@ export function useWolfpack(
         .from('wolfpack_chat_messages')
         .insert({
           session_id: sessionId,
-          user_id: authUser.id,
+          id: authUser.id,
           display_name: SecurityValidator.sanitizeDisplayName(displayName),
           avatar_url: authUser.profile?.avatar_url,
           content: sanitizedContent,
@@ -829,7 +829,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .select('id')
         .eq('message_id', messageId)
-        .eq('user_id', authUser.id)
+        .eq('id', authUser.id)
         .eq('emoji', emoji)
         .single();
 
@@ -841,7 +841,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .insert({
           message_id: messageId,
-          user_id: authUser.id,
+          id: authUser.id,
           emoji
         });
 
@@ -867,7 +867,7 @@ export function useWolfpack(
         .from('wolfpack_chat_reactions')
         .delete()
         .eq('id', reactionId)
-        .eq('user_id', authUser.id);
+        .eq('id', authUser.id);
 
       return { success: !error, error: error?.message };
     } catch (error) {
@@ -891,7 +891,7 @@ export function useWolfpack(
       const { data: existingMember } = await supabase
         .from('wolf_pack_members')
         .select('id')
-        .eq('user_id', authUser.id)
+        .eq('id', authUser.id)
         .eq('location_id', locationId)
         .eq('status', 'active')
         .single();
@@ -904,7 +904,7 @@ export function useWolfpack(
       const { error: memberError } = await supabase
         .from('wolf_pack_members')
         .insert({
-          user_id: authUser.id,
+          id: authUser.id,
           location_id: locationId,
           status: 'active'
         });
@@ -955,7 +955,7 @@ export function useWolfpack(
       const { error } = await supabase
         .from('wolf_pack_members')
         .update({ status: 'inactive' })
-        .eq('user_id', authUser.id);
+        .eq('id', authUser.id);
 
       return { success: !error, error: error?.message };
     } catch (error) {
@@ -1017,37 +1017,37 @@ export function useTypingIndicators(sessionId: string | null) {
     const channel = supabase
       .channel(`typing_${sessionId}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
-        const { user_id, display_name, isTyping } = payload.payload as {
-          user_id: string;
+        const { id, display_name, isTyping } = payload.payload as {
+          id: string;
           display_name: string;
           isTyping: boolean;
         };
 
         if (isTyping) {
-          setTypingUsers(prev => ({ ...prev, [user_id]: display_name }));
+          setTypingUsers(prev => ({ ...prev, [id]: display_name }));
           
-          if (typingTimeoutRef.current[user_id]) {
-            clearTimeout(typingTimeoutRef.current[user_id]);
+          if (typingTimeoutRef.current[id]) {
+            clearTimeout(typingTimeoutRef.current[id]);
           }
           
-          typingTimeoutRef.current[user_id] = setTimeout(() => {
+          typingTimeoutRef.current[id] = setTimeout(() => {
             setTypingUsers(prev => {
               const newState = { ...prev };
-              delete newState[user_id];
+              delete newState[id];
               return newState;
             });
-            delete typingTimeoutRef.current[user_id];
+            delete typingTimeoutRef.current[id];
           }, 3000);
         } else {
           setTypingUsers(prev => {
             const newState = { ...prev };
-            delete newState[user_id];
+            delete newState[id];
             return newState;
           });
           
-          if (typingTimeoutRef.current[user_id]) {
-            clearTimeout(typingTimeoutRef.current[user_id]);
-            delete typingTimeoutRef.current[user_id];
+          if (typingTimeoutRef.current[id]) {
+            clearTimeout(typingTimeoutRef.current[id]);
+            delete typingTimeoutRef.current[id];
           }
         }
       })
@@ -1068,7 +1068,7 @@ export function useTypingIndicators(sessionId: string | null) {
       .send({
         type: 'broadcast',
         event: 'typing',
-        payload: { user_id: userId, display_name: displayName, isTyping }
+        payload: { id: userId, display_name: displayName, isTyping }
       });
   }, [sessionId]);
 

@@ -62,7 +62,7 @@ function fixCriticalIssues(content, filePath) {
   fixed = fixed.replace(/contestant_id:/g, 'p_contestant_id:');
 
   // Fix property existence checks
-  fixed = fixed.replace(/p_user_id:/g, '// p_user_id: // Removed as not supported by RPC');
+  fixed = fixed.replace(/p_id:/g, '// p_id: // Removed as not supported by RPC');
   fixed = fixed.replace(/rpcResult\.success/g, 'typeof rpcResult === "object" && rpcResult && "success" in rpcResult ? rpcResult.success : true');
   fixed = fixed.replace(/rpcResult\.error/g, 'typeof rpcResult === "object" && rpcResult && "error" in rpcResult ? rpcResult.error : null');
 

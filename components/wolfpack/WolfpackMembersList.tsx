@@ -19,7 +19,7 @@ type LocationRow = Database['public']['Tables']['locations']['Row']
 // Simplified membership type based on users table
 export interface WolfpackMembership {
   id: string
-  user_id: string
+  id: string
   display_name: string | null
   avatar_url: string | null
   location_id: string | null
@@ -120,7 +120,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
       if (isActiveMember) {
         const adaptedMembership: WolfpackMembership = {
           id: membershipData.id,
-          user_id: membershipData.id,
+          id: membershipData.id,
           display_name: membershipData.display_name || membershipData.first_name || membershipData.last_name,
           avatar_url: membershipData.profile_image_url || membershipData.avatar_url,
           location_id: membershipData.location_id,

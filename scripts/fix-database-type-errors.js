@@ -22,8 +22,8 @@ const fixes = [
     file: 'components/unified/notifications/NotificationIndicator.tsx',
     changes: [
       {
-        search: /p_user_id: null/g,
-        replace: 'p_user_id: undefined'
+        search: /p_id: null/g,
+        replace: 'p_id: undefined'
       }
     ]
   },
@@ -33,8 +33,8 @@ const fixes = [
     file: 'components/unified/notifications/NotificationPopover.tsx',
     changes: [
       {
-        search: /p_user_id: null/g,
-        replace: 'p_user_id: undefined'
+        search: /p_id: null/g,
+        replace: 'p_id: undefined'
       },
       {
         search: /setNotifications\(data \|\| \[\]\)/g,
@@ -78,8 +78,8 @@ const fixes = [
     file: 'lib/contexts/unified-notification-context.tsx',
     changes: [
       {
-        search: /p_user_id: null/g,
-        replace: 'p_user_id: undefined'
+        search: /p_id: null/g,
+        replace: 'p_id: undefined'
       }
     ]
   },
@@ -108,8 +108,8 @@ const fixes = [
         replace: 'p_metadata: metadata as any'
       },
       {
-        search: /p_user_id: userId \|\| null/g,
-        replace: 'p_user_id: userId || undefined'
+        search: /p_id: userId \|\| null/g,
+        replace: 'p_id: userId || undefined'
       },
       {
         search: /return data \|\| \[\];/g,

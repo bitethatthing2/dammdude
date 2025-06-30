@@ -37,7 +37,7 @@ interface BroadcastData {
 interface ChatData {
   id: string;
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url: string | null;
   content: string;
@@ -227,7 +227,7 @@ async function createChatMessage(
     
     const chatData = {
       session_id: `location_${locationId}`,
-      user_id: userId,
+      id: userId,
       display_name: djName,
       avatar_url: avatarUrl || null,
       content: chatMessage,

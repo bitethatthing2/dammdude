@@ -12,7 +12,7 @@ export const WOLFPACK_FIELD_MAPPING = {
   // Fields that don't exist in wolfpack_members
   missing_fields: [
     'bio',               // Use wolf_profiles table
-    'is_visible',        // Use status field
+    'is_profile_visible',        // Use status field
     'allow_messages',    // Use wolf_profiles table
     'phone'             // Use wolf_profiles table
   ],
@@ -24,12 +24,12 @@ export const WOLFPACK_FIELD_MAPPING = {
 export function transformDatabaseToInterface(dbRow: any) {
   return {
     id: dbRow.id,
-    user_id: dbRow.user_id,
+    id: dbRow.id,
     display_name: dbRow.display_name,
     wolf_emoji: dbRow.emoji,
     vibe_status: dbRow.current_vibe,
     bio: null, // Not in wolfpack_members
-    is_visible: dbRow.status === 'active',
+    is_profile_visible: dbRow.status === 'active',
     allow_messages: true, // Default value
     location_permissions_granted: true,
     last_active: dbRow.last_active,

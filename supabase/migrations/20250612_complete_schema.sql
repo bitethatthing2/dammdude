@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS public.wolf_profiles (
     favorite_song TEXT,
     instagram_handle TEXT,
     profile_pic_url TEXT,
-    is_visible BOOLEAN DEFAULT true,
+    is_profile_visible BOOLEAN DEFAULT true,
     last_seen_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );

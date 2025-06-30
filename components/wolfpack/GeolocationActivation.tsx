@@ -69,7 +69,7 @@ const joinWolfPackFromLocation = async (locationId: string, user: DatabaseUser) 
     const { data, error } = await supabase
       .from('wolf_pack_members')
       .insert({
-        user_id: user.id,
+        id: user.id,
         location_id: locationId,
         status: 'active',
         joined_at: new Date().toISOString()
@@ -126,7 +126,7 @@ export function GeolocationActivation() {
         const { data: memberData, error: memberError } = await supabase
           .from("wolf_pack_members")
           .select("id, location_id")
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .eq('status', 'active')
           .maybeSingle();
 

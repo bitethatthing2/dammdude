@@ -52,7 +52,7 @@ export interface ChatMessage extends WolfChatMessageRow {
   wolf_profile?: Pick<WolfProfileRow, 'display_name' | 'wolf_emoji'>
   reactions?: Array<{
     id: string
-    user_id: string
+    id: string
     reaction: string
     created_at: string
   }>
@@ -231,7 +231,7 @@ class WolfpackAPIClient {
       looking_for?: string
       instagram_handle?: string
       bio?: string
-      is_visible?: boolean
+      is_profile_visible?: boolean
     }
   ): Promise<APIResponse<{ membership: WolfpackMembership; message: string }>> {
     return this.makeRequest('PUT', `/api/profile/${membershipId}`, data)
@@ -290,7 +290,7 @@ class WolfpackAPIClient {
   async reactToMessage(data: {
     message_id: string
     reaction: string
-  }): Promise<APIResponse<{ reaction: { id: string; message_id: string; user_id: string; emoji: string; created_at: string } }>> {
+  }): Promise<APIResponse<{ reaction: { id: string; message_id: string; id: string; emoji: string; created_at: string } }>> {
     return this.makeRequest('POST', '/api/messages/react', data)
   }
 

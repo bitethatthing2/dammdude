@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       success: true,
       members: members || [],
       location_id: locationId,
-      current_user_id: databaseUserId
+      current_id: databaseUserId
     });
 
   } catch (error) {

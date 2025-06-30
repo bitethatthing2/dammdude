@@ -95,7 +95,7 @@ export async function PATCH(
             title: 'Order Ready!',
             body: notificationMessage,
             type: 'info',
-            user_id: null, // For anonymous orders
+            id: null, // For anonymous orders
             data: {
               order_id: orderId,
               order_status: status,
@@ -108,7 +108,7 @@ export async function PATCH(
         const { data: deviceTokens } = await supabase
           .from('device_tokens')
           .select('token')
-          .eq('user_id', order.customer_id)
+          .eq('id', order.customer_id)
           .eq('is_active', true);
         
         if (deviceTokens && deviceTokens.length > 0) {
@@ -116,7 +116,7 @@ export async function PATCH(
           await supabase
             .from('push_notifications')
             .insert({
-              user_id: order.customer_id,
+              id: order.customer_id,
               title: 'Order Ready!',
               body: notificationMessage,
               data: {

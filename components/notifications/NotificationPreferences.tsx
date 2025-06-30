@@ -147,7 +147,7 @@ export function NotificationPreferences({
       // Update preferences using the RPC function
       const { data, error: updateError } = await supabase
         .rpc('update_notification_preferences', {
-          p_user_id: userId || user.id,
+          p_id: userId || user.id,
           p_preferences: { [key]: enabled }
         });
 

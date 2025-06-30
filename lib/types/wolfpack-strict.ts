@@ -57,7 +57,7 @@ export interface DatabaseLocation {
 
 export interface DatabaseWolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string;
   status: MembershipStatus;
   last_activity: string | null;
@@ -68,7 +68,7 @@ export interface DatabaseWolfPackMember {
 export interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  user_id: string | null;
+  id: string | null;
   display_name: string;
   avatar_url: string | null;
   content: string;
@@ -133,7 +133,7 @@ export interface WolfpackStats {
 export interface WolfChatMessage {
   id: string;
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url?: string;
   content: string;
@@ -147,14 +147,14 @@ export interface WolfChatMessage {
 export interface MessageReaction {
   id: string;
   message_id: string;
-  user_id: string;
+  id: string;
   emoji: string;
   created_at: string;
 }
 
 export interface WolfPackMember {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string | null;
   status: MembershipStatus;
   joined_at: string;
@@ -342,7 +342,7 @@ export function adaptDatabaseMember(
 ): WolfPackMember {
   return {
     id: dbMember.id,
-    user_id: dbMember.user_id,
+    id: dbMember.id,
     location_id: dbMember.location_id,
     status: dbMember.status,
     joined_at: dbMember.created_at || new Date().toISOString(),

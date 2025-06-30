@@ -46,54 +46,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle profile image upload differently
+    // Handle profile image upload - use direct storage upload
     if (imageType === 'profile') {
       try {
         // Generate unique filename for profile images
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 15);
         const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const fileName = `${user.id}/profile/${timestamp}-${randomString}.${fileExt}`;
+        const userFolder = user.id.substring(0, 8); // Match the pattern used by handle_image_upload
+        const fileName = `profile/${userFolder}/${timestamp}-${randomString}.${fileExt}`;
 
         // Convert file to array buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = new Uint8Array(arrayBuffer);
 
-        // Try to upload to 'profiles' bucket first
-        let uploadResult = await supabase.storage
-          .from('profiles')
+        // Upload to the 'images' bucket (which exists in your backend)
+        const { error: uploadError } = await supabase.storage
+          .from('images')
           .upload(fileName, buffer, {
             contentType: file.type,
             upsert: false
           });
 
-        let bucketName = 'profiles';
-
-        // If profiles bucket doesn't exist, try 'avatars'
-        if (uploadResult.error) {
-          console.log('Profiles bucket failed, trying avatars bucket:', uploadResult.error.message);
-          
-          uploadResult = await supabase.storage
-            .from('avatars')
-            .upload(fileName, buffer, {
-              contentType: file.type,
-              upsert: false
-            });
-          
-          bucketName = 'avatars';
-
-          if (uploadResult.error) {
-            console.error('Storage upload error:', uploadResult.error);
-            return NextResponse.json(
-              { error: `Failed to upload file to storage: ${uploadResult.error.message}` },
-              { status: 500 }
-            );
-          }
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          return NextResponse.json(
+            { error: `Failed to upload file to storage: ${uploadError.message}` },
+            { status: 500 }
+          );
         }
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from(bucketName)
+          .from('images')
           .getPublicUrl(fileName);
 
         // Update user profile with the new image URL
@@ -126,39 +111,54 @@ export async function POST(request: NextRequest) {
     }
 
     // For menu item images, use the existing RPC function logic
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Data = buffer.toString('base64');
-
-    // Define the return type for the RPC function
-    type ImageUploadResult = {
-      image_id: string;
-      public_url: string;
-    };
-
-    // Call the RPC function to upload the image
-    // @ts-expect-error: Custom RPC function not in generated types
-        const { data: uploadResult, error: uploadError } = await supabase.rpc('admin_upload_image', {
-          p_image_data: base64Data,
-          p_image_type: imageType,
-          p_user_id: user.id
-        });
-
-    const typedUploadResult = uploadResult as ImageUploadResult | null;
+    // Note: This function only creates a database record, doesn't upload the actual file
+    const { data: imageId, error: uploadError } = await supabase.rpc('handle_image_upload', {
+      p_id: user.id,
+      p_file_name: file.name,
+      p_file_size: file.size,
+      p_mime_type: file.type,
+      p_image_type: imageType
+    });
 
     if (uploadError) {
-      console.error('Error uploading image:', uploadError);
+      console.error('Error creating image record:', uploadError);
       return NextResponse.json(
-        { error: 'Failed to upload image' },
+        { error: 'Failed to create image record' },
+        { status: 500 }
+      );
+    }
+
+    // Build the URL based on how the function constructs it
+    const userFolder = user.id.substring(0, 8);
+    const storagePath = `${imageType}/${userFolder}/${imageId}_${file.name}`;
+    const publicUrl = `https://tvnpgbjypnezoasbhbwx.supabase.co/storage/v1/object/public/images/${storagePath}`;
+
+    // Now we need to actually upload the file to storage
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+
+    const { error: storageError } = await supabase.storage
+      .from('images')
+      .upload(storagePath, buffer, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (storageError) {
+      console.error('Storage upload error:', storageError);
+      // Clean up the database record since upload failed
+      await supabase.from('images').delete().eq('id', imageId);
+      return NextResponse.json(
+        { error: 'Failed to upload file to storage' },
         { status: 500 }
       );
     }
 
     // If itemId is provided and this is a menu item image, update the item
-    if (itemId && imageType === 'menu_item' && typedUploadResult?.image_id) {
+    if (itemId && imageType === 'menu_item' && imageId) {
       const { error: updateError } = await supabase.rpc('admin_update_item_image', {
         p_item_id: itemId,
-        p_image_url: typedUploadResult.public_url
+        p_image_url: publicUrl
       });
 
       if (updateError) {
@@ -169,8 +169,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      image_id: typedUploadResult?.image_id || null,
-      image_url: typedUploadResult?.public_url || null,
+      image_id: imageId,
+      image_url: publicUrl,
       message: 'Image uploaded successfully'
     });
 

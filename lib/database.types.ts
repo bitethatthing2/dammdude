@@ -88,7 +88,7 @@ export type Database = {
             columns: ["admin_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "admin_logs_admin_id_fkey"
@@ -192,7 +192,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "announcements_created_by_fkey"
@@ -327,7 +327,7 @@ export type Database = {
             columns: ["bartender_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_orders_bartender_id_fkey"
@@ -355,7 +355,7 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_orders_customer_id_fkey"
@@ -458,7 +458,7 @@ export type Database = {
             columns: ["flagged_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "content_flags_flagged_by_fkey"
@@ -486,7 +486,7 @@ export type Database = {
             columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "content_flags_resolved_by_fkey"
@@ -578,7 +578,7 @@ export type Database = {
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "device_registrations_staff_id_fkey"
@@ -619,7 +619,7 @@ export type Database = {
           registration_attempts: number | null
           token: string
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -636,7 +636,7 @@ export type Database = {
           registration_attempts?: number | null
           token: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -653,33 +653,33 @@ export type Database = {
           registration_attempts?: number | null
           token?: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "device_tokens_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "device_tokens_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "device_tokens_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "device_tokens_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "device_tokens_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "device_tokens_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "device_tokens_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "device_tokens_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -730,7 +730,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcast_templates_dj_id_fkey"
@@ -786,7 +786,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
@@ -884,7 +884,7 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_event_participants_participant_id_fkey"
@@ -970,7 +970,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_events_dj_id_fkey"
@@ -1033,7 +1033,7 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_events_winner_id_fkey"
@@ -1128,7 +1128,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "food_drink_categories_created_by_fkey"
@@ -1206,7 +1206,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "food_drink_items_created_by_fkey"
@@ -1287,7 +1287,7 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "images_uploaded_by_fkey"
@@ -1586,7 +1586,7 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "notifications_recipient_id_fkey"
@@ -1697,7 +1697,7 @@ export type Database = {
           status: string | null
           title: string
           type: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           announcement_id?: string | null
@@ -1717,7 +1717,7 @@ export type Database = {
           status?: string | null
           title: string
           type?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           announcement_id?: string | null
@@ -1737,7 +1737,7 @@ export type Database = {
           status?: string | null
           title?: string
           type?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1755,29 +1755,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "push_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "push_notifications_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "push_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "push_notifications_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "push_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "push_notifications_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "push_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "push_notifications_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1792,7 +1792,7 @@ export type Database = {
           message_template: string
           reply_type: string
           role_required: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1801,7 +1801,7 @@ export type Database = {
           message_template: string
           reply_type: string
           role_required?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1810,33 +1810,33 @@ export type Database = {
           message_template?: string
           reply_type?: string
           role_required?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "quick_reply_templates_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "quick_reply_templates_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "quick_reply_templates_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "quick_reply_templates_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "quick_reply_templates_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "quick_reply_templates_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "quick_reply_templates_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "quick_reply_templates_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2123,7 +2123,7 @@ export type Database = {
           token: string
           topic: string
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2131,7 +2131,7 @@ export type Database = {
           token: string
           topic: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2139,33 +2139,33 @@ export type Database = {
           token?: string
           topic?: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "topic_subscriptions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "topic_subscriptions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "topic_subscriptions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "topic_subscriptions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "topic_subscriptions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "topic_subscriptions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "topic_subscriptions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "topic_subscriptions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2183,7 +2183,7 @@ export type Database = {
           location_permission_requested_at: string | null
           platform: string | null
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -2195,7 +2195,7 @@ export type Database = {
           location_permission_requested_at?: string | null
           platform?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -2207,33 +2207,33 @@ export type Database = {
           location_permission_requested_at?: string | null
           platform?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_app_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_app_settings_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "user_app_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_app_settings_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_app_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_app_settings_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_app_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_app_settings_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2248,7 +2248,7 @@ export type Database = {
           latitude: number
           location_id: string | null
           longitude: number
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2257,7 +2257,7 @@ export type Database = {
           latitude: number
           location_id?: string | null
           longitude: number
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2266,7 +2266,7 @@ export type Database = {
           latitude?: number
           location_id?: string | null
           longitude?: number
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -2305,29 +2305,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_location_history_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_location_history_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "user_location_history_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_location_history_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_location_history_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_location_history_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_location_history_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_location_history_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2528,7 +2528,7 @@ export type Database = {
             columns: ["blocked_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_users_blocked_by"
@@ -2684,7 +2684,7 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
@@ -2712,7 +2712,7 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
@@ -2738,7 +2738,7 @@ export type Database = {
           location_id: string
           status: string
           updated_at: string | null
-          user_id: string
+          id: string
         }
         Insert: {
           created_at?: string | null
@@ -2747,7 +2747,7 @@ export type Database = {
           location_id: string
           status?: string
           updated_at?: string | null
-          user_id: string
+          id: string
         }
         Update: {
           created_at?: string | null
@@ -2756,7 +2756,7 @@ export type Database = {
           location_id?: string
           status?: string
           updated_at?: string | null
-          user_id?: string
+          id?: string
         }
         Relationships: [
           {
@@ -2795,29 +2795,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_pack_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_pack_members_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolf_pack_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_pack_members_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_pack_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_pack_members_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_pack_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_pack_members_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2875,7 +2875,7 @@ export type Database = {
             columns: ["voter_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_votes_voter_id_fkey"
@@ -2958,7 +2958,7 @@ export type Database = {
             columns: ["flagged_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_flagged_by_fkey"
@@ -2993,7 +2993,7 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
@@ -3021,7 +3021,7 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
@@ -3050,7 +3050,7 @@ export type Database = {
           location_id: string | null
           orders_placed: number | null
           session_duration: unknown | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -3062,7 +3062,7 @@ export type Database = {
           location_id?: string | null
           orders_placed?: number | null
           session_duration?: unknown | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -3074,7 +3074,7 @@ export type Database = {
           location_id?: string | null
           orders_placed?: number | null
           session_duration?: unknown | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -3113,29 +3113,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_analytics_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_analytics_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolfpack_analytics_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_analytics_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_analytics_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_analytics_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_analytics_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_analytics_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3155,7 +3155,7 @@ export type Database = {
           is_flagged: boolean | null
           message_type: string
           session_id: string
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -3169,7 +3169,7 @@ export type Database = {
           is_flagged?: boolean | null
           message_type?: string
           session_id: string
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -3183,33 +3183,33 @@ export type Database = {
           is_flagged?: boolean | null
           message_type?: string
           session_id?: string
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3222,21 +3222,21 @@ export type Database = {
           emoji: string
           id: string
           message_id: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
           emoji: string
           id?: string
           message_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
           emoji?: string
           id?: string
           message_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -3254,29 +3254,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_reactions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_reactions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_reactions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_reactions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3368,7 +3368,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_sessions_created_by_fkey"
@@ -3394,7 +3394,7 @@ export type Database = {
           created_by: string | null
           id: string
           reason: string | null
-          user_id: string
+          id: string
         }
         Insert: {
           always_active?: boolean | null
@@ -3403,7 +3403,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           reason?: string | null
-          user_id: string
+          id: string
         }
         Update: {
           always_active?: boolean | null
@@ -3412,7 +3412,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           reason?: string | null
-          user_id?: string
+          id?: string
         }
         Relationships: [
           {
@@ -3427,7 +3427,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_whitelist_created_by_fkey"
@@ -3444,29 +3444,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_whitelist_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_whitelist_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolfpack_whitelist_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_whitelist_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_whitelist_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_whitelist_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_whitelist_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_whitelist_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3622,7 +3622,7 @@ export type Database = {
           total_bytes: number | null
           total_images: number | null
           total_size_formatted: string | null
-          user_id: string | null
+          id: string | null
         }
         Relationships: []
       }
@@ -3998,7 +3998,7 @@ export type Database = {
         Row: {
           created_at: string | null
           expires_at: string | null
-          from_user_id: string | null
+          from_id: string | null
           id: string | null
           interaction_type: string | null
           location_id: string | null
@@ -4008,13 +4008,13 @@ export type Database = {
           receiver_id: string | null
           sender_id: string | null
           status: string | null
-          to_user_id: string | null
+          to_id: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           expires_at?: string | null
-          from_user_id?: string | null
+          from_id?: string | null
           id?: string | null
           interaction_type?: string | null
           location_id?: string | null
@@ -4024,13 +4024,13 @@ export type Database = {
           receiver_id?: string | null
           sender_id?: string | null
           status?: string | null
-          to_user_id?: string | null
+          to_id?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           expires_at?: string | null
-          from_user_id?: string | null
+          from_id?: string | null
           id?: string | null
           interaction_type?: string | null
           location_id?: string | null
@@ -4040,7 +4040,7 @@ export type Database = {
           receiver_id?: string | null
           sender_id?: string | null
           status?: string | null
-          to_user_id?: string | null
+          to_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4088,7 +4088,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
@@ -4098,14 +4098,14 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
@@ -4116,7 +4116,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
@@ -4130,7 +4130,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4144,7 +4144,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
@@ -4154,14 +4154,14 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
@@ -4172,7 +4172,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
@@ -4186,7 +4186,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4200,7 +4200,7 @@ export type Database = {
           flagged: boolean | null
           flagged_at: string | null
           flagged_by: string | null
-          from_user_id: string | null
+          from_id: string | null
           id: string | null
           image_id: string | null
           image_url: string | null
@@ -4211,7 +4211,7 @@ export type Database = {
           read_at: string | null
           receiver_id: string | null
           sender_id: string | null
-          to_user_id: string | null
+          to_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -4219,7 +4219,7 @@ export type Database = {
           flagged?: boolean | null
           flagged_at?: string | null
           flagged_by?: string | null
-          from_user_id?: string | null
+          from_id?: string | null
           id?: string | null
           image_id?: string | null
           image_url?: string | null
@@ -4230,7 +4230,7 @@ export type Database = {
           read_at?: string | null
           receiver_id?: string | null
           sender_id?: string | null
-          to_user_id?: string | null
+          to_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -4238,7 +4238,7 @@ export type Database = {
           flagged?: boolean | null
           flagged_at?: string | null
           flagged_by?: string | null
-          from_user_id?: string | null
+          from_id?: string | null
           id?: string | null
           image_id?: string | null
           image_url?: string | null
@@ -4249,7 +4249,7 @@ export type Database = {
           read_at?: string | null
           receiver_id?: string | null
           sender_id?: string | null
-          to_user_id?: string | null
+          to_id?: string | null
         }
         Relationships: [
           {
@@ -4264,7 +4264,7 @@ export type Database = {
             columns: ["flagged_by"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_flagged_by_fkey"
@@ -4296,7 +4296,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
@@ -4306,14 +4306,14 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
@@ -4324,7 +4324,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
@@ -4338,7 +4338,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_receiver_id_fkey"
-            columns: ["to_user_id"]
+            columns: ["to_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4352,7 +4352,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
@@ -4362,14 +4362,14 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
@@ -4380,7 +4380,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
@@ -4394,7 +4394,7 @@ export type Database = {
           },
           {
             foreignKeyName: "wolf_private_messages_sender_id_fkey"
-            columns: ["from_user_id"]
+            columns: ["from_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4418,33 +4418,33 @@ export type Database = {
           reaction_count: number | null
           role: string | null
           session_id: string | null
-          user_id: string | null
+          id: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "active_orders_dashboard"
             referencedColumns: ["customer_id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "image_usage_summary"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolfpack_chat_messages_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4629,7 +4629,7 @@ export type Database = {
         Returns: Json
       }
       admin_block_user: {
-        Args: { p_user_id: string; p_reason?: string }
+        Args: { p_id: string; p_reason?: string }
         Returns: Json
       }
       admin_create_menu_category: {
@@ -4683,7 +4683,7 @@ export type Database = {
         Returns: boolean
       }
       admin_delete_user: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: Json
       }
       admin_force_checkout: {
@@ -4715,7 +4715,7 @@ export type Database = {
         Returns: Json
       }
       admin_get_checkin_history: {
-        Args: { p_user_id?: string; p_limit?: number }
+        Args: { p_id?: string; p_limit?: number }
         Returns: Json
       }
       admin_get_connection_stats: {
@@ -4751,7 +4751,7 @@ export type Database = {
         Returns: Json
       }
       admin_get_notification_preferences: {
-        Args: { p_user_id?: string }
+        Args: { p_id?: string }
         Returns: Json
       }
       admin_get_private_message_overview: {
@@ -4763,17 +4763,17 @@ export type Database = {
         Returns: Json
       }
       admin_get_private_message_overview_explicit: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: Json
       }
       admin_get_private_messages: {
         Args: { p_limit?: number; p_offset?: number; p_user_filter?: string }
         Returns: {
           message_id: string
-          from_user_id: string
+          from_id: string
           from_email: string
           from_name: string
-          to_user_id: string
+          to_id: string
           to_email: string
           to_name: string
           message: string
@@ -4787,7 +4787,7 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number; p_filter_admin?: boolean }
         Returns: {
           message_id: string
-          user_id: string
+          id: string
           user_email: string
           user_name: string
           message: string
@@ -4831,7 +4831,7 @@ export type Database = {
         Returns: Json
       }
       admin_get_user_connections: {
-        Args: { p_user_id?: string }
+        Args: { p_id?: string }
         Returns: Json
       }
       admin_get_user_stats: {
@@ -4841,7 +4841,7 @@ export type Database = {
       admin_get_users: {
         Args: { p_search?: string; p_status?: string; p_role?: string }
         Returns: {
-          user_id: string
+          id: string
           email: string
           first_name: string
           last_name: string
@@ -4856,7 +4856,7 @@ export type Database = {
         }[]
       }
       admin_manage_user_status: {
-        Args: { p_user_id: string; p_action: string; p_reason?: string }
+        Args: { p_id: string; p_action: string; p_reason?: string }
         Returns: boolean
       }
       admin_moderate_report: {
@@ -4864,7 +4864,7 @@ export type Database = {
         Returns: Json
       }
       admin_restore_user: {
-        Args: { target_user_id: string }
+        Args: { target_id: string }
         Returns: Json
       }
       admin_search_private_messages: {
@@ -4880,11 +4880,11 @@ export type Database = {
         Returns: Json
       }
       admin_send_message: {
-        Args: { p_to_user_id: string; p_message: string; p_image_id?: string }
+        Args: { p_to_id: string; p_message: string; p_image_id?: string }
         Returns: string
       }
       admin_send_private_message: {
-        Args: { p_to_user_id: string; p_message: string; p_image_url?: string }
+        Args: { p_to_id: string; p_message: string; p_image_url?: string }
         Returns: Json
       }
       admin_send_push_notification: {
@@ -4906,7 +4906,7 @@ export type Database = {
         Returns: Json
       }
       admin_unblock_user: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: Json
       }
       admin_update_announcement: {
@@ -4936,7 +4936,7 @@ export type Database = {
       }
       admin_update_user: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_email?: string
           p_first_name?: string
           p_last_name?: string
@@ -4946,11 +4946,11 @@ export type Database = {
         Returns: Json
       }
       admin_update_user_password: {
-        Args: { p_user_id: string; p_new_password: string }
+        Args: { p_id: string; p_new_password: string }
         Returns: Json
       }
       admin_update_user_status: {
-        Args: { target_user_id: string; new_status: string }
+        Args: { target_id: string; new_status: string }
         Returns: Json
       }
       analyze_index_usage: {
@@ -4969,11 +4969,11 @@ export type Database = {
         Returns: Json
       }
       approve_wolfpack_membership: {
-        Args: { target_user_id: string }
+        Args: { target_id: string }
         Returns: Json
       }
       assign_user_role: {
-        Args: { p_user_id: string; p_role: string; p_assigned_by?: string }
+        Args: { p_id: string; p_role: string; p_assigned_by?: string }
         Returns: Json
       }
       background_location_sync: {
@@ -5033,7 +5033,7 @@ export type Database = {
         Returns: string
       }
       can_access_bar_tab: {
-        Args: { user_id: string; location_id: string }
+        Args: { id: string; location_id: string }
         Returns: boolean
       }
       can_access_wolf_chat: {
@@ -5041,11 +5041,11 @@ export type Database = {
         Returns: Json
       }
       can_bypass_location_verification: {
-        Args: { p_user_id?: string }
+        Args: { p_id?: string }
         Returns: boolean
       }
       can_message_user: {
-        Args: { p_target_user_id: string }
+        Args: { p_target_id: string }
         Returns: Json
       }
       cart_implementation_guide: {
@@ -5073,7 +5073,7 @@ export type Database = {
       }
       check_cart_access: {
         Args: {
-          user_id: string
+          id: string
           user_lat: number
           user_lng: number
           location_id: string
@@ -5121,7 +5121,7 @@ export type Database = {
         Returns: {
           role_name: string
           is_logged_in: boolean
-          user_id: string
+          id: string
           can_access_wolf_pack: boolean
           can_place_orders: boolean
           can_view_menu: boolean
@@ -5181,7 +5181,7 @@ export type Database = {
         }[]
       }
       check_wolfpack_access: {
-        Args: Record<PropertyKey, never> | { p_user_id: string }
+        Args: Record<PropertyKey, never> | { p_id: string }
         Returns: Json
       }
       check_wolfpack_eligibility: {
@@ -5239,7 +5239,7 @@ export type Database = {
         Returns: Json
       }
       create_auth_account_for_user: {
-        Args: { p_user_id: string; p_temporary_password: string }
+        Args: { p_id: string; p_temporary_password: string }
         Returns: Json
       }
       create_auth_accounts_for_existing_users: {
@@ -5330,7 +5330,7 @@ export type Database = {
       }
       create_push_notification: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_title: string
           p_body: string
           p_type?: string
@@ -5436,11 +5436,11 @@ export type Database = {
         Returns: string
       }
       ensure_user_exists: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: undefined
       }
       ensure_user_in_public: {
-        Args: { p_auth_user_id: string }
+        Args: { p_auth_id: string }
         Returns: undefined
       }
       ensure_whitelisted_users_in_wolfpack: {
@@ -5456,10 +5456,10 @@ export type Database = {
         Returns: undefined
       }
       fetch_notifications: {
-        Args: { p_user_id?: string; p_limit?: number; p_offset?: number }
+        Args: { p_id?: string; p_limit?: number; p_offset?: number }
         Returns: {
           id: string
-          user_id: string
+          id: string
           type: string
           title: string
           message: string
@@ -5762,7 +5762,7 @@ export type Database = {
       get_active_users: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
+          id: string
           email: string
           first_name: string
           last_name: string
@@ -5898,7 +5898,7 @@ export type Database = {
       get_available_contestants: {
         Args: { p_location_id?: string }
         Returns: {
-          user_id: string
+          id: string
           display_name: string
           avatar_url: string
           wolf_emoji: string
@@ -5925,7 +5925,7 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
           message_id: string
-          user_id: string
+          id: string
           email: string
           first_name: string
           last_name: string
@@ -5940,7 +5940,7 @@ export type Database = {
         }[]
       }
       get_chat_messages: {
-        Args: { p_other_user_id: string; p_limit?: number }
+        Args: { p_other_id: string; p_limit?: number }
         Returns: {
           message_id: string
           message: string
@@ -5966,8 +5966,8 @@ export type Database = {
         Args: { p_user1_id: string; p_user2_id: string; p_limit?: number }
         Returns: {
           id: string
-          from_user_id: string
-          to_user_id: string
+          from_id: string
+          to_id: string
           message: string
           image_url: string
           is_read: boolean
@@ -5978,7 +5978,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
-      get_current_user_id: {
+      get_current_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
@@ -6191,7 +6191,7 @@ export type Database = {
       get_private_chats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          other_user_id: string
+          other_id: string
           display_name: string
           wolf_emoji: string
           last_message: string
@@ -6201,10 +6201,10 @@ export type Database = {
         }[]
       }
       get_private_conversation: {
-        Args: { p_user_id: string; p_other_user_id: string; p_limit?: number }
+        Args: { p_id: string; p_other_id: string; p_limit?: number }
         Returns: {
           message_id: string
-          from_user_id: string
+          from_id: string
           from_user_name: string
           from_user_emoji: string
           is_from_me: boolean
@@ -6253,7 +6253,7 @@ export type Database = {
         }[]
       }
       get_unread_count: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: number
       }
       get_unread_counts: {
@@ -6280,7 +6280,7 @@ export type Database = {
           recent_announcements: Json
         }[]
       }
-      get_user_id_from_auth: {
+      get_id_from_auth: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
@@ -6288,7 +6288,7 @@ export type Database = {
         Args: { user_uuid: string; interaction_types?: string[] }
         Returns: {
           id: string
-          other_user_id: string
+          other_id: string
           interaction_type: string
           is_sender: boolean
           message_content: string
@@ -6302,9 +6302,9 @@ export type Database = {
         Returns: Json
       }
       get_user_profile: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: {
-          user_id: string
+          id: string
           display_name: string
           wolf_emoji: string
           bio: string
@@ -6320,11 +6320,11 @@ export type Database = {
         }[]
       }
       get_user_role: {
-        Args: { user_id: string }
+        Args: { id: string }
         Returns: string
       }
       get_user_storage_usage: {
-        Args: { user_id: string }
+        Args: { id: string }
         Returns: {
           total_size_bytes: number
           image_count: number
@@ -6334,7 +6334,7 @@ export type Database = {
       get_users_at_bar: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
+          id: string
           display_name: string
           wolf_emoji: string
           table_number: number
@@ -6344,9 +6344,9 @@ export type Database = {
         }[]
       }
       get_users_for_notification: {
-        Args: { p_notification_type: string; p_user_ids?: string[] }
+        Args: { p_notification_type: string; p_ids?: string[] }
         Returns: {
-          user_id: string
+          id: string
           auth_id: string
           email: string
           display_name: string
@@ -6356,7 +6356,7 @@ export type Database = {
       get_users_needing_auth: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
+          id: string
           email: string
           first_name: string
           last_name: string
@@ -6372,7 +6372,7 @@ export type Database = {
         Args: { p_location_id: string }
         Returns: {
           member_id: string
-          user_id: string
+          id: string
           display_name: string
           wolf_emoji: string
           vibe_status: string
@@ -6382,7 +6382,7 @@ export type Database = {
         }[]
       }
       get_wolfpack_access_status: {
-        Args: { p_user_id?: string }
+        Args: { p_id?: string }
         Returns: Json
       }
       get_wolfpack_dashboard: {
@@ -6397,7 +6397,7 @@ export type Database = {
         Args: { location_uuid?: string }
         Returns: {
           id: string
-          user_id: string
+          id: string
           location_id: string
           status: string
           display_name: string
@@ -6416,7 +6416,7 @@ export type Database = {
           wolf_profile_id: string
           wolf_bio: string
           wolf_profile_pic_url: string
-          wolf_is_visible: boolean
+          wolf_is_profile_visible: boolean
         }[]
       }
       get_wolfpack_metrics: {
@@ -6445,7 +6445,7 @@ export type Database = {
       }
       handle_image_upload: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_file_name: string
           p_file_size: number
           p_mime_type: string
@@ -6514,7 +6514,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_in_wolf_pack: {
-        Args: { user_id: string; location_id: string }
+        Args: { id: string; location_id: string }
         Returns: boolean
       }
       is_user_within_location: {
@@ -6525,7 +6525,7 @@ export type Database = {
         Args: { p_role: string }
         Returns: boolean
       }
-      is_valid_user_id: {
+      is_valid_id: {
         Args: { input_id: string }
         Returns: boolean
       }
@@ -6538,7 +6538,7 @@ export type Database = {
         Returns: boolean
       }
       is_wolfpack_member: {
-        Args: { check_user_id?: string }
+        Args: { check_id?: string }
         Returns: boolean
       }
       is_wolfpack_open: {
@@ -6548,7 +6548,7 @@ export type Database = {
       join_wolf_pack: {
         Args:
           | {
-              p_user_id: string
+              p_id: string
               p_location_id: string
               p_latitude: number
               p_longitude: number
@@ -6662,13 +6662,13 @@ export type Database = {
         Returns: Json
       }
       mark_message_read: {
-        Args: { p_user_id: string; p_message_id: string }
+        Args: { p_id: string; p_message_id: string }
         Returns: boolean
       }
       mark_messages_read: {
         Args:
-          | { p_from_user_id: string }
-          | { p_user_id: string; p_from_user_id: string }
+          | { p_from_id: string }
+          | { p_id: string; p_from_id: string }
         Returns: Json
       }
       mark_notification_read: {
@@ -6690,7 +6690,7 @@ export type Database = {
         }[]
       }
       needs_location_verification: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: boolean
       }
       next_opening_time: {
@@ -6970,7 +6970,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      resolve_user_id: {
+      resolve_id: {
         Args: { input_id: string }
         Returns: string
       }
@@ -7017,8 +7017,8 @@ export type Database = {
       }
       send_flirt_interaction: {
         Args: {
-          p_from_user_id: string
-          p_to_user_id: string
+          p_from_id: string
+          p_to_id: string
           p_location_id: string
           p_flirt_type: string
         }
@@ -7026,14 +7026,14 @@ export type Database = {
       }
       send_food_ready_notification: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_order_details: string
           p_table_number?: number
         }
         Returns: Json
       }
       send_message: {
-        Args: { p_message: string; p_to_user_id?: string; p_image_url?: string }
+        Args: { p_message: string; p_to_id?: string; p_image_url?: string }
         Returns: Json
       }
       send_order_ready_notification: {
@@ -7047,16 +7047,16 @@ export type Database = {
       send_private_message: {
         Args:
           | {
-              p_from_user_id: string
-              p_to_user_id: string
+              p_from_id: string
+              p_to_id: string
               p_message: string
               p_image_url?: string
             }
-          | { p_to_user_id: string; p_message: string; p_image_url?: string }
+          | { p_to_id: string; p_message: string; p_image_url?: string }
         Returns: Json
       }
       send_private_message_simple: {
-        Args: { p_to_user_id: string; p_message: string }
+        Args: { p_to_id: string; p_message: string }
         Returns: Json
       }
       send_test_push_notification: {
@@ -7065,7 +7065,7 @@ export type Database = {
       }
       send_wolf_chat_message: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_location_id: string
           p_message: string
           p_image_id?: string
@@ -7075,15 +7075,15 @@ export type Database = {
       }
       send_wolf_pack_interaction: {
         Args: {
-          p_from_user_id: string
-          p_to_user_id: string
+          p_from_id: string
+          p_to_id: string
           p_location_id: string
           p_interaction_type: string
         }
         Returns: string
       }
       send_wolf_pack_welcome_notification: {
-        Args: { p_user_id: string; p_location_name: string }
+        Args: { p_id: string; p_location_name: string }
         Returns: undefined
       }
       set_cached_data: {
@@ -8234,7 +8234,7 @@ export type Database = {
         Returns: string
       }
       toggle_block_user: {
-        Args: { p_user_id: string }
+        Args: { p_id: string }
         Returns: Json
       }
       track_wolfpack_event: {
@@ -8271,7 +8271,7 @@ export type Database = {
         Returns: Json
       }
       update_notification_preferences: {
-        Args: { p_user_id: string; p_preferences: Json }
+        Args: { p_id: string; p_preferences: Json }
         Returns: Json
       }
       update_notification_status: {
@@ -8291,7 +8291,7 @@ export type Database = {
         Returns: boolean
       }
       update_pack_member_position: {
-        Args: { p_user_id: string; p_position_x: number; p_position_y: number }
+        Args: { p_id: string; p_position_x: number; p_position_y: number }
         Returns: Json
       }
       update_user_online_status: {
@@ -8299,12 +8299,12 @@ export type Database = {
         Returns: undefined
       }
       update_user_role: {
-        Args: { user_id: string; new_role: string }
+        Args: { id: string; new_role: string }
         Returns: Json
       }
       update_wolf_profile: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_display_name?: string
           p_bio?: string
           p_favorite_drink?: string
@@ -8328,7 +8328,7 @@ export type Database = {
       }
       upload_wolf_profile_image: {
         Args: {
-          p_user_id: string
+          p_id: string
           p_image_data: string
           p_content_type: string
           p_filename: string

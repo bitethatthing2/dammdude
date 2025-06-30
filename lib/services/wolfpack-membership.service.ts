@@ -35,7 +35,7 @@ export interface JoinResult {
 
 export interface MemberProfile {
   id: string;
-  user_id: string;
+  id: string;
   display_name: string | null;
   wolf_emoji: string | null;
   favorite_drink: string | null;
@@ -44,7 +44,7 @@ export interface MemberProfile {
   instagram_handle: string | null;
   bio: string | null;
   profile_image_url: string | null;
-  is_visible: boolean | null;
+  is_profile_visible: boolean | null;
   allow_messages: boolean | null;
 }
 
@@ -296,7 +296,7 @@ export class WolfpackMembershipService {
       // Convert to MemberProfile format
       return memberData ? {
         id: memberData.id || '',
-        user_id: memberData.id || '',
+        id: memberData.id || '',
         display_name: memberData.display_name || null,
         wolf_emoji: null,
         favorite_drink: memberData.favorite_drink || null,
@@ -305,7 +305,7 @@ export class WolfpackMembershipService {
         instagram_handle: memberData.instagram_handle || null,
         bio: memberData.bio || null,
         profile_image_url: memberData.profile_image_url || null,
-        is_visible: memberData.is_profile_visible ?? true,
+        is_profile_visible: memberData.is_profile_visible ?? true,
         allow_messages: memberData.allow_messages ?? true
       } : null;
     } catch (error) {

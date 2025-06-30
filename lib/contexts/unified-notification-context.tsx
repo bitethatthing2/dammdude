@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase/client'; // Use shared instance
  */
 interface Notification {
   id: string;
-  user_id: string;
+  id: string;
   type: string;
   title: string;
   message: string;
@@ -57,7 +57,7 @@ export function NotificationProvider({ children, recipientId }: NotificationProv
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: undefined, // null means current user
+        p_id: undefined, // null means current user
         p_limit: 50,
         p_offset: 0
       });

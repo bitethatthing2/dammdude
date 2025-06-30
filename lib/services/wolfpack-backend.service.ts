@@ -510,7 +510,7 @@ interface DJBroadcastInsert {
 
 interface ChatMessageInsert {
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url: string | null;
   content: string; // FIXED: Use 'content' instead of 'message' to match DB schema
@@ -669,7 +669,7 @@ export class WolfpackBackendService {
     try {
       const insertData: ChatMessageInsert = {
         session_id: sessionId,
-        user_id: userId,
+        id: userId,
         display_name: displayName,
         avatar_url: avatarUrl || null,
         content: content, // FIXED: Use 'content' to match table schema
@@ -912,7 +912,7 @@ export class WolfpackBackendService {
       case WOLFPACK_TABLES.WOLF_CHAT:
         return this.createChatMessage(
           data.session_id as string,
-          data.user_id as string,
+          data.id as string,
           data.display_name as string,
           (data.content as string) || (data.message as string), // Handle both field names
           data.message_type as string,
@@ -1041,7 +1041,7 @@ export class WolfpackSimpleService {
 
   static async createChatMessage(params: {
     session_id: string;
-    user_id: string;
+    id: string;
     display_name: string;
     avatar_url?: string;
     content: string;
@@ -1049,7 +1049,7 @@ export class WolfpackSimpleService {
   }) {
     return WolfpackBackendService.createChatMessage(
       params.session_id,
-      params.user_id,
+      params.id,
       params.display_name,
       params.content,
       params.message_type,
@@ -1067,7 +1067,7 @@ export class WolfpackSimpleService {
     // Transform to match frontend interface
     const transformedData = (result.data as UserData[]).map(user => ({
       id: user.id,
-      user_id: user.id,
+      id: user.id,
       displayName: user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Pack Member',
       profilePicture: user.profile_image_url || user.avatar_url || '/images/avatar-placeholder.png',
       vibeStatus: user.wolf_emoji || '🐺',

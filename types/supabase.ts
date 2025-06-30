@@ -428,7 +428,7 @@ export type Database = {
           registration_attempts: number | null
           token: string
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -445,7 +445,7 @@ export type Database = {
           registration_attempts?: number | null
           token: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -462,12 +462,12 @@ export type Database = {
           registration_attempts?: number | null
           token?: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "device_tokens_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "device_tokens_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -939,7 +939,7 @@ export type Database = {
           quiet_hours_start: string | null
           sound_enabled: boolean | null
           updated_at: string | null
-          user_id: string | null
+          id: string | null
           vibration_enabled: boolean | null
         }
         Insert: {
@@ -954,7 +954,7 @@ export type Database = {
           quiet_hours_start?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
           vibration_enabled?: boolean | null
         }
         Update: {
@@ -969,13 +969,13 @@ export type Database = {
           quiet_hours_start?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
           vibration_enabled?: boolean | null
         }
         Relationships: [
           {
-            foreignKeyName: "notification_preferences_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "notification_preferences_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1130,7 +1130,7 @@ export type Database = {
           sent_at: string | null
           status: string | null
           title: string
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           announcement_id?: string | null
@@ -1147,7 +1147,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           title: string
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           announcement_id?: string | null
@@ -1164,7 +1164,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           title?: string
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1182,8 +1182,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "push_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "push_notifications_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1249,7 +1249,7 @@ export type Database = {
           location_permission_requested_at: string | null
           platform: string | null
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -1261,7 +1261,7 @@ export type Database = {
           location_permission_requested_at?: string | null
           platform?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -1273,12 +1273,12 @@ export type Database = {
           location_permission_requested_at?: string | null
           platform?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_app_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_app_settings_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1293,7 +1293,7 @@ export type Database = {
           latitude: number
           location_id: string | null
           longitude: number
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1302,7 +1302,7 @@ export type Database = {
           latitude: number
           location_id?: string | null
           longitude: number
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1311,7 +1311,7 @@ export type Database = {
           latitude?: number
           location_id?: string | null
           longitude?: number
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1322,8 +1322,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_location_history_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "user_location_history_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1436,7 +1436,7 @@ export type Database = {
           is_deleted: boolean | null
           message: string
           updated_at: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           chat_type?: string | null
@@ -1453,7 +1453,7 @@ export type Database = {
           is_deleted?: boolean | null
           message: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           chat_type?: string | null
@@ -1470,7 +1470,7 @@ export type Database = {
           is_deleted?: boolean | null
           message?: string
           updated_at?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1488,8 +1488,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_chat_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_chat_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1503,7 +1503,7 @@ export type Database = {
           duration_minutes: number | null
           id: string
           location_id: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           checked_in_at?: string | null
@@ -1511,7 +1511,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           location_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           checked_in_at?: string | null
@@ -1519,7 +1519,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           location_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1530,8 +1530,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_check_ins_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_check_ins_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1680,7 +1680,7 @@ export type Database = {
           longitude: number | null
           status: string | null
           table_location: string | null
-          user_id: string
+          id: string
         }
         Insert: {
           id?: string
@@ -1691,7 +1691,7 @@ export type Database = {
           longitude?: number | null
           status?: string | null
           table_location?: string | null
-          user_id: string
+          id: string
         }
         Update: {
           id?: string
@@ -1702,7 +1702,7 @@ export type Database = {
           longitude?: number | null
           status?: string | null
           table_location?: string | null
-          user_id?: string
+          id?: string
         }
         Relationships: [
           {
@@ -1713,8 +1713,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_pack_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_pack_members_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1876,11 +1876,11 @@ export type Database = {
           favorite_song: string | null
           id: string
           instagram_handle: string | null
-          is_visible: boolean | null
+          is_profile_visible: boolean | null
           last_seen_at: string | null
           looking_for: string | null
           profile_pic_url: string | null
-          user_id: string
+          id: string
           vibe_status: string | null
           wolf_emoji: string | null
         }
@@ -1892,11 +1892,11 @@ export type Database = {
           favorite_song?: string | null
           id?: string
           instagram_handle?: string | null
-          is_visible?: boolean | null
+          is_profile_visible?: boolean | null
           last_seen_at?: string | null
           looking_for?: string | null
           profile_pic_url?: string | null
-          user_id: string
+          id: string
           vibe_status?: string | null
           wolf_emoji?: string | null
         }
@@ -1908,18 +1908,18 @@ export type Database = {
           favorite_song?: string | null
           id?: string
           instagram_handle?: string | null
-          is_visible?: boolean | null
+          is_profile_visible?: boolean | null
           last_seen_at?: string | null
           looking_for?: string | null
           profile_pic_url?: string | null
-          user_id?: string
+          id?: string
           vibe_status?: string | null
           wolf_emoji?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wolf_profiles_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_profiles_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1932,21 +1932,21 @@ export type Database = {
           emoji: string
           id: string
           message_id: string | null
-          user_id: string | null
+          id: string | null
         }
         Insert: {
           created_at?: string | null
           emoji: string
           id?: string
           message_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Update: {
           created_at?: string | null
           emoji?: string
           id?: string
           message_id?: string | null
-          user_id?: string | null
+          id?: string | null
         }
         Relationships: [
           {
@@ -1957,8 +1957,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wolf_reactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "wolf_reactions_id_fkey"
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

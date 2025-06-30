@@ -314,7 +314,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
         WOLFPACK_TABLES.WOLF_CHAT,
         {
           session_id: `location_${location_id}`,
-          user_id: user.id,
+          id: user.id,
           display_name: djDisplayName,
           avatar_url: WolfpackAuthService.getUserAvatarUrl(user) || userData.avatar_url,
           content: announcementMessage,

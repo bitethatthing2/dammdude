@@ -104,13 +104,13 @@ export function useDeviceToken(userId?: string) {
       await supabase
         .from('device_tokens')
         .update({ is_active: false })
-        .eq('user_id', userId);
+        .eq('id', userId);
 
       // Insert new active token
       const { data, error } = await supabase
         .from('device_tokens')
         .insert({
-          user_id: userId,
+          id: userId,
           token: tokenData.token,
           device_type: deviceInfo.type,
           device_name: deviceInfo.name,
@@ -148,7 +148,7 @@ export function useDeviceToken(userId?: string) {
     try {      const { data, error } = await supabase
         .from('device_tokens')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1)

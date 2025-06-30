@@ -24,7 +24,7 @@ export interface FrontendUser {
 
 export interface FrontendWolfpackMembership {
   id: string;
-  user_id: string;
+  id: string;
   location_id: string;
   status: string;
   display_name?: string;
@@ -36,7 +36,7 @@ export interface FrontendWolfpackMembership {
   table_location?: string;
   joined_at: string;
   last_active?: string;
-  is_visible: boolean;
+  is_profile_visible: boolean;
   allow_messages: boolean;
   user?: FrontendUser;
   location?: FrontendLocation;
@@ -57,7 +57,7 @@ export interface FrontendLocation {
 export interface FrontendWolfChatMessage {
   id: string;
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url?: string;
   content: string;
@@ -67,7 +67,7 @@ export interface FrontendWolfChatMessage {
   is_flagged: boolean;
   reactions?: Array<{
     id: string;
-    user_id: string;
+    id: string;
     emoji: string;
     created_at: string;
   }>;
@@ -97,7 +97,7 @@ export function adaptUserType(dbUser: DatabaseUser): FrontendUser {
 export function adaptWolfpackMembership(dbMembership: DatabaseWolfpackMember): FrontendWolfpackMembership {
   return {
     id: dbMembership.id,
-    user_id: dbMembership.user_id,
+    id: dbMembership.id,
     location_id: dbMembership.location_id || '',
     status: dbMembership.status || 'inactive',
     display_name: nullToUndefined(dbMembership.display_name),
@@ -109,7 +109,7 @@ export function adaptWolfpackMembership(dbMembership: DatabaseWolfpackMember): F
     table_location: nullToUndefined(dbMembership.table_location),
     joined_at: dbMembership.joined_at,
     last_active: nullToUndefined(dbMembership.last_active),
-    is_visible: dbMembership.is_active ?? true,
+    is_profile_visible: dbMembership.is_active ?? true,
     allow_messages: true, // Default value since this field may not exist in unified table
   };
 }
@@ -133,7 +133,7 @@ export function adaptLocation(dbLocation: DatabaseLocation): FrontendLocation {
 interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_url?: string | null;
   content: string;
@@ -143,7 +143,7 @@ interface DatabaseChatMessage {
   is_flagged?: boolean | null;
   reactions?: Array<{
     id: string;
-    user_id: string;
+    id: string;
     emoji: string;
     created_at: string;
   }> | null;
@@ -154,7 +154,7 @@ export function adaptWolfChatMessage(dbMessage: DatabaseChatMessage): FrontendWo
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
-    user_id: dbMessage.user_id,
+    id: dbMessage.id,
     display_name: dbMessage.display_name,
     avatar_url: nullToUndefined(dbMessage.avatar_url),
     content: dbMessage.content,
@@ -164,7 +164,7 @@ export function adaptWolfChatMessage(dbMessage: DatabaseChatMessage): FrontendWo
     is_flagged: dbMessage.is_flagged ?? false,
     reactions: dbMessage.reactions?.map((reaction) => ({
       id: reaction.id,
-      user_id: reaction.user_id,
+      id: reaction.id,
       emoji: reaction.emoji,
       created_at: reaction.created_at,
     })) || [],
@@ -249,10 +249,10 @@ export function isValidWolfpackMembership(membership: unknown): membership is Fr
   return membership !== null && 
          typeof membership === 'object' && 
          'id' in membership && 
-         'user_id' in membership && 
+         'id' in membership && 
          'location_id' in membership &&
          typeof (membership as Record<string, unknown>).id === 'string' && 
-         typeof (membership as Record<string, unknown>).user_id === 'string' && 
+         typeof (membership as Record<string, unknown>).id === 'string' && 
          typeof (membership as Record<string, unknown>).location_id === 'string';
 }
 

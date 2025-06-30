@@ -63,8 +63,8 @@ export async function sendChatMessageNotification(
     // Get active device tokens
     const { data: deviceTokens, error: tokensError } = await supabase
       .from('device_tokens')
-      .select('id, user_id, token, platform')
-      .in('user_id', userIds)
+      .select('id, id, token, platform')
+      .in('id', userIds)
       .eq('is_active', true);
 
     if (tokensError || !deviceTokens || deviceTokens.length === 0) {
@@ -76,13 +76,13 @@ export async function sendChatMessageNotification(
     const notifications = [];
     
     for (const token of deviceTokens) {
-      const user = users?.find(u => u.id === token.user_id);
+      const user = users?.find(u => u.id === token.id);
       const prefs = user?.notification_preferences as NotificationPreferences | null;
       
       // Check if user wants chat notifications (default true if not set)
       if (!prefs || prefs.chat_messages !== false) {
         notifications.push({
-          user_id: token.user_id,
+          id: token.id,
           device_token_id: token.id,
           title: `${senderName} in WolfPack`,
           body: messageContent.length > 50 
@@ -159,7 +159,7 @@ export async function sendOrderUpdateNotification(
     const { data: deviceTokens, error: tokensError } = await supabase
       .from('device_tokens')
       .select('id, token, platform')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .eq('is_active', true);
 
     if (tokensError || !deviceTokens || deviceTokens.length === 0) {
@@ -198,7 +198,7 @@ export async function sendOrderUpdateNotification(
 
     // Create notifications for all devices
     const notifications = deviceTokens.map(token => ({
-      user_id: userId,
+      id: userId,
       device_token_id: token.id,
       title,
       body,
@@ -267,8 +267,8 @@ export async function sendMemberJoinedNotification(
     // Get device tokens
     const { data: deviceTokens, error: tokensError } = await supabase
       .from('device_tokens')
-      .select('id, user_id, token, platform')
-      .in('user_id', userIds)
+      .select('id, id, token, platform')
+      .in('id', userIds)
       .eq('is_active', true);
 
     if (tokensError || !deviceTokens || deviceTokens.length === 0) {
@@ -279,12 +279,12 @@ export async function sendMemberJoinedNotification(
     const notifications = [];
     
     for (const token of deviceTokens) {
-      const user = users?.find(u => u.id === token.user_id);
+      const user = users?.find(u => u.id === token.id);
       const prefs = user?.notification_preferences as NotificationPreferences | null;
       
       if (!prefs || prefs.member_activity !== false) {
         notifications.push({
-          user_id: token.user_id,
+          id: token.id,
           device_token_id: token.id,
           title: '🐺 New Pack Member!',
           body: `${newMemberName} has joined your WolfPack`,
@@ -356,8 +356,8 @@ export async function sendEventAnnouncementNotification(
     // Get device tokens
     const { data: deviceTokens, error: tokensError } = await supabase
       .from('device_tokens')
-      .select('id, user_id, token, platform')
-      .in('user_id', userIds)
+      .select('id, id, token, platform')
+      .in('id', userIds)
       .eq('is_active', true);
 
     if (tokensError || !deviceTokens || deviceTokens.length === 0) {
@@ -372,12 +372,12 @@ export async function sendEventAnnouncementNotification(
     const notifications = [];
     
     for (const token of deviceTokens) {
-      const user = users?.find(u => u.id === token.user_id);
+      const user = users?.find(u => u.id === token.id);
       const prefs = user?.notification_preferences as NotificationPreferences | null;
       
       if (!prefs || prefs.events !== false) {
         notifications.push({
-          user_id: token.user_id,
+          id: token.id,
           device_token_id: token.id,
           title: `🎉 ${eventTitle}`,
           body: body.length > 100 ? `${body.substring(0, 100)}...` : body,
@@ -452,7 +452,7 @@ export async function sendWinkNotification(
     const { data: deviceTokens, error: tokensError } = await supabase
       .from('device_tokens')
       .select('id, token, platform')
-      .eq('user_id', recipientUserId)
+      .eq('id', recipientUserId)
       .eq('is_active', true);
 
     if (tokensError || !deviceTokens || deviceTokens.length === 0) {
@@ -462,7 +462,7 @@ export async function sendWinkNotification(
 
     // Create notifications
     const notifications = deviceTokens.map(token => ({
-      user_id: recipientUserId,
+      id: recipientUserId,
       device_token_id: token.id,
       title: '😉 Someone winked at you!',
       body: `${senderName} sent you a wink`,
@@ -532,7 +532,7 @@ export async function updateNotificationPreferences(
     // Use the database function to properly merge preferences
     const { data, error } = await supabase
       .rpc('update_notification_preferences', {
-        p_user_id: userId,
+        p_id: userId,
         p_preferences: preferences
       });
 
@@ -584,7 +584,7 @@ export async function registerDeviceToken(token: string, platform: 'ios' | 'andr
       const { error: updateError } = await supabase
         .from('device_tokens')
         .update({
-          user_id: userData.id,
+          id: userData.id,
           platform,
           is_active: true,
           last_used: new Date().toISOString(),
@@ -601,7 +601,7 @@ export async function registerDeviceToken(token: string, platform: 'ios' | 'andr
       const { error: insertError } = await supabase
         .from('device_tokens')
         .insert({
-          user_id: userData.id,
+          id: userData.id,
           token,
           platform,
           is_active: true
@@ -665,7 +665,7 @@ export async function getNotificationHistory(userId: string, limit: number = 50)
         clicked_at,
         link
       `)
-      .eq('user_id', userId)
+      .eq('id', userId)
       .order('sent_at', { ascending: false })
       .limit(limit);
 

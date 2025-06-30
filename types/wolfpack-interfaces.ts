@@ -21,7 +21,7 @@ export interface SupabaseError {
 // Wolfpack membership interface matching the database schema
 export interface WolfpackMembership {
   id: string;
-  user_id: string;
+  id: string;
   status: 'active' | 'inactive';
   table_location: string | null;
   joined_at: string | null;
@@ -32,7 +32,7 @@ export interface WolfpackMembership {
 // Wolf profile interface - unified from useWolfpackQuery
 export interface WolfProfile {
   id?: string;
-  user_id: string;
+  id: string;
   display_name: string;
   wolf_emoji: string;
   bio?: string;
@@ -41,7 +41,7 @@ export interface WolfProfile {
   profile_image_url?: string;
   instagram_handle?: string;
   looking_for?: string;
-  is_visible: boolean;
+  is_profile_visible: boolean;
   allow_messages: boolean;
   phone?: string;
 }
@@ -61,7 +61,7 @@ export interface Location {
 // Extended membership with profile data
 export interface WolfpackMembershipWithProfile {
   id: string;
-  user_id: string;
+  id: string;
   status: string;
   joined_at: string;
   location_id: string;
@@ -133,12 +133,12 @@ export const createDefaultWolfProfile = (user: {
   first_name?: string;
   avatar_url?: string;
 }): WolfProfile => ({
-  user_id: user.id,
+  id: user.id,
   display_name: user.first_name || 'Anonymous Wolf',
   wolf_emoji: '🐺',
   vibe_status: 'Just joined the pack!',
   profile_image_url: user.avatar_url,
-  is_visible: true,
+  is_profile_visible: true,
   allow_messages: true,
   bio: '',
 });
@@ -156,7 +156,7 @@ export interface JoinPackResponse {
   success: boolean;
   error?: string;
   data?: {
-    user_id: string;
+    id: string;
     wolf_profile_id: string;
     status: string;
   };
@@ -176,12 +176,12 @@ export type WolfpackMemberUpdate = Database['public']['Tables']['users']['Update
 // Map to our component interface for backward compatibility
 export interface WolfpackMemberProfile {
   id: string;
-  user_id: string;
+  id: string;
   display_name: string | null;
   wolf_emoji: string | null; // Maps to 'emoji' in database
   vibe_status: string | null; // Maps to 'current_vibe' in database
   bio?: string | null;
-  is_visible?: boolean; // Not in database, will be handled at app level
+  is_profile_visible?: boolean; // Not in database, will be handled at app level
   allow_messages?: boolean; // Not in database, will be handled at app level
   location_permissions_granted?: boolean;
   last_active?: string | null;

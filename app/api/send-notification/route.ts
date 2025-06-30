@@ -51,7 +51,7 @@ async function getUserTokens(userId: string, supabase: Awaited<ReturnType<typeof
   const { data, error } = await supabase
     .from('device_tokens')
     .select('token')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .eq('is_active', true);
   
   if (error) {
@@ -307,7 +307,7 @@ async function logNotification(
       body,
       data: data ? JSON.stringify(data) : null,
       topic: target.topic || null,
-      user_id: target.userId || null,
+      id: target.userId || null,
       status: 'success' in result && result.success ? 'sent' : 
               'successCount' in result && result.successCount > 0 ? 'partial' : 'failed',
       sent_at: new Date().toISOString(),

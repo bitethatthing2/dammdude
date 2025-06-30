@@ -10,6 +10,7 @@ import { BottomNav } from '@/components/shared/BottomNav';
 import { PwaInitializer } from '@/components/shared/PwaInitializer';
 import { LogoPreloader } from '@/components/shared/LogoPreloader';
 import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
+import { LocationProvider } from '@/lib/hooks/useLocationState';
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -322,16 +323,18 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProviderWrapper>
           <AuthProvider>
-            <CartProvider>
-              <NotificationProvider>
-                <NuqsAdapter>
-                  <LogoPreloader />
-                  <PwaInitializer />
-                  {children}
-                  <BottomNav />
-                </NuqsAdapter>
-              </NotificationProvider>
-            </CartProvider>
+            <LocationProvider>
+              <CartProvider>
+                <NotificationProvider>
+                  <NuqsAdapter>
+                    <LogoPreloader />
+                    <PwaInitializer />
+                    {children}
+                    <BottomNav />
+                  </NuqsAdapter>
+                </NotificationProvider>
+              </CartProvider>
+            </LocationProvider>
           </AuthProvider>
         </ThemeProviderWrapper>
         

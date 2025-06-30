@@ -22,7 +22,7 @@ export async function createNotification(data: NotificationData) {
     const { data: notification, error } = await supabase
       .from('push_notifications')
       .insert({
-        user_id: data.userId,
+        id: data.userId,
         title: data.type.charAt(0).toUpperCase() + data.type.slice(1), // Convert type to title
         body: data.body,
         type: data.type,
@@ -48,7 +48,7 @@ export async function createBulkNotifications(userIds: string[], data: BulkNotif
     const supabase = await createServerClient();
     
     const notifications = userIds.map(userId => ({
-      user_id: userId,
+      id: userId,
       title: data.type.charAt(0).toUpperCase() + data.type.slice(1), // Convert type to title
       body: data.body,
       type: data.type,

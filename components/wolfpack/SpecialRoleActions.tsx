@@ -21,7 +21,7 @@ interface SpecialRoleActionsProps {
   onClose: () => void;
   memberData: {
     id: string;
-    user_id: string;
+    id: string;
     display_name: string;
     role: 'dj' | 'bartender';
     avatar_url?: string;

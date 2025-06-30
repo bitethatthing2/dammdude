@@ -27,13 +27,13 @@ export interface RealtimeUser {
     instagram_handle: string | null
     pronouns: string | null
     age: number | null
-    user_id: string
+    id: string
     created_at: string
     updated_at: string
   } | null
   wolfpack_member?: {
     id: string
-    user_id: string
+    id: string
     status: string | null
     joined_at: string | null
     left_at: string | null
@@ -105,7 +105,7 @@ export interface RealtimeSubscription {
 
 export interface WolfpackMembership {
   id: string
-  user_id: string
+  id: string
   status: string | null
   joined_at: string | null
   left_at: string | null
@@ -118,7 +118,7 @@ export interface WolfpackMembership {
 }
 
 export interface WolfProfile {
-  user_id: string
+  id: string
   display_name: string | null
   bio: string | null
   vibe_status: string | null

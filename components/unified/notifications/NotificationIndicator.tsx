@@ -35,7 +35,7 @@ export const NotificationIndicator = forwardRef<NotificationIndicatorRef, Notifi
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: undefined, // null means current user
+        p_id: undefined, // null means current user
         p_limit: 100, // Get enough to count unread
         p_offset: 0
       });

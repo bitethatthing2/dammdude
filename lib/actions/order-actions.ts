@@ -47,7 +47,7 @@ export async function updateOrderStatus(
         const { error: notificationError } = await supabase
           .from("push_notifications")
           .insert({
-            user_id: order.customer_id,
+            id: order.customer_id,
             title: "Order Ready!",
             body: `Your order for ${order.table_location || 'your table'} is ready for pickup!`,
             status: "pending"
@@ -111,7 +111,7 @@ export async function notifyStaffOfNewOrder(
     
     // Create push notifications for each staff member
     const notifications = staffUsers.map((staff: { id: string }) => ({
-      user_id: staff.id,
+      id: staff.id,
       title: "New Order!",
       body: `New order from ${tableLocation}: ${orderDetails}`,
       status: "pending" as const

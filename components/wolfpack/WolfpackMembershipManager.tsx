@@ -16,7 +16,7 @@ import {
 // Type definitions
 interface WolfpackMember {
   id: string;
-  user_id: string;
+  id: string;
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
@@ -438,7 +438,7 @@ export default function WolfpackMembershipManager() {
         <div className="p-6">
           <div className="space-y-3">
             {state.members.map((member, index) => {
-              const isCurrentUser = member.user_id === state.status?.databaseUserId;
+              const isCurrentUser = member.id === state.status?.databaseUserId;
               const displayName = member.display_name || member.username || 'Anonymous Wolf';
               const memberEmoji = member.emoji || '🐺';
               

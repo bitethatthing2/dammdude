@@ -20,7 +20,7 @@ interface FeedbackData {
   rating: number;
   comment: string;
   category: string;
-  user_id?: string;
+  id?: string;
   order_id?: string;
   location_id?: string;
 }

@@ -118,7 +118,7 @@ export class TopicManagement {
     const { data, error } = await this.supabase
       .from('topic_subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -183,7 +183,7 @@ export class TopicManagement {
     const subscriptions: TopicSubscriptionInsert[] = topics.map(topic => ({
       token,
       topic,
-      user_id: userId || null
+      id: userId || null
     }));
 
     const { data, error } = await this.supabase
@@ -217,7 +217,7 @@ export class TopicManagement {
   // User-specific operations
   async subscribeUserToTopic(userId: string, topic: string, token: string): Promise<TopicSubscription> {
     return this.createSubscription({
-      user_id: userId,
+      id: userId,
       topic,
       token
     });
@@ -227,7 +227,7 @@ export class TopicManagement {
     const { error } = await this.supabase
       .from('topic_subscriptions')
       .delete()
-      .eq('user_id', userId)
+      .eq('id', userId)
       .eq('topic', topic);
 
     if (error) throw error;
@@ -237,7 +237,7 @@ export class TopicManagement {
     const { data, error } = await this.supabase
       .from('topic_subscriptions')
       .select('topic')
-      .eq('user_id', userId);
+      .eq('id', userId);
 
     if (error) throw error;
     return data?.map(sub => sub.topic) || [];

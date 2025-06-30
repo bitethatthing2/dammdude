@@ -11,13 +11,13 @@ const SW_VERSION = '1.0.9';
 // These values WILL be publicly visible in the browser's service worker code.
 // DO NOT include sensitive keys like FIREBASE_ADMIN_* or GOOGLE_OAUTH_CLIENT_SECRET here.
 const firebaseConfig = {
-  apiKey: "AIzaSyAUWCAf5xHLMitmAgI5gfy8d2o48pnjXeo",             // Replace with value from .env.local
-  authDomain: "sidehustle-22a6a.firebaseapp.com",       // Replace with value from .env.local
-  projectId: "sidehustle-22a6a",        // Replace with value from .env.local
-  storageBucket: "sidehustle-22a6a.firebasestorage.app",  // Replace with value from .env.local
-  messagingSenderId: "993911155207", // Replace with value from .env.local
-  appId: "1:993911155207:web:610f19ac354d69540bd8a2",              // Replace with value from .env.local
-  measurementId: "G-RHT2310KWW" // Optional, replace if you use it
+  apiKey: "",             // Replace with value from .env.local
+  authDomain: "",       // Replace with value from .env.local
+  projectId: "",        // Replace with value from .env.local
+  storageBucket: "",  // Replace with value from .env.local
+  messagingSenderId: "", // Replace with value from .env.local
+  appId: "",              // Replace with value from .env.local
+  measurementId: "" // Optional, replace if you use it
 };
 
 // Service Worker Lifecycle Events

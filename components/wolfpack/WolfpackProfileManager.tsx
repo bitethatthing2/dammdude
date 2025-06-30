@@ -28,8 +28,7 @@ import { cn } from '@/lib/utils';
 
 // Type definitions based on your Supabase schema
 interface WolfProfile {
-  id?: string;
-  user_id: string;
+  id: string;
   display_name: string | null;
   bio: string | null;
   favorite_drink: string | null;
@@ -40,7 +39,7 @@ interface WolfProfile {
   looking_for: string | null;
   gender: string | null;
   pronouns: string | null;
-  is_visible: boolean;
+  is_profile_visible: boolean;
   profile_pic_url: string | null;
   profile_image_url: string | null;
   custom_avatar_id: string | null;
@@ -65,7 +64,7 @@ interface FormData {
   looking_for: string;
   gender: string;
   pronouns: string;
-  is_visible: boolean;
+  is_profile_visible: boolean;
   allow_messages: boolean;
   favorite_bartender: string;
   profile_image_url: string;
@@ -137,7 +136,7 @@ export function WolfpackProfileManager() {
     looking_for: '',
     gender: '',
     pronouns: '',
-    is_visible: true,
+    is_profile_visible: true,
     allow_messages: true,
     favorite_bartender: '',
     profile_image_url: ''
@@ -164,8 +163,8 @@ export function WolfpackProfileManager() {
         // Transform the data to match WolfProfile interface, ensuring boolean fields are not null
         const transformedProfile: WolfProfile = {
           ...data,
-          user_id: data.id, // Add missing user_id field
-          is_visible: data.is_profile_visible ?? true,
+          id: data.id, // Add missing id field
+          is_profile_visible: data.is_profile_visible ?? true,
           allow_messages: data.allow_messages ?? true,
           profile_image_url: data.profile_pic_url // Map profile_pic_url to profile_image_url
         };
@@ -181,7 +180,7 @@ export function WolfpackProfileManager() {
           looking_for: data.looking_for || '',
           gender: data.gender || '',
           pronouns: data.pronouns || '',
-          is_visible: data.is_profile_visible ?? true,
+          is_profile_visible: data.is_profile_visible ?? true,
           allow_messages: data.allow_messages ?? true,
           favorite_bartender: '', // This field doesn't exist in users table
           profile_image_url: data.profile_pic_url || ''
@@ -204,7 +203,7 @@ export function WolfpackProfileManager() {
           looking_for: '',
           gender: '',
           pronouns: '',
-          is_visible: true,
+          is_profile_visible: true,
           allow_messages: true,
           favorite_bartender: '',
           profile_image_url: ''
@@ -289,7 +288,7 @@ export function WolfpackProfileManager() {
     try {
       // Prepare profile data with proper typing
       const profileData = {
-        user_id: user.id,
+        id: user.id,
         display_name: data.display_name || null,
         bio: data.bio || null,
         favorite_drink: data.favorite_drink || null,
@@ -301,7 +300,7 @@ export function WolfpackProfileManager() {
         looking_for: data.looking_for || null,
         gender: data.gender || null,
         pronouns: data.pronouns || null,
-        is_visible: data.is_visible,
+        is_profile_visible: data.is_profile_visible,
         allow_messages: data.allow_messages,
         favorite_bartender: data.favorite_bartender || null,
         // Preserve existing image URLs if they exist
@@ -330,8 +329,8 @@ export function WolfpackProfileManager() {
       // Ensure savedData has proper boolean types before setting
       const typedSavedData: WolfProfile = {
         ...savedData,
-        user_id: savedData.id, // Add missing user_id field
-        is_visible: savedData.is_profile_visible ?? true,
+        id: savedData.id, // Add missing id field
+        is_profile_visible: savedData.is_profile_visible ?? true,
         allow_messages: savedData.allow_messages ?? true,
         profile_image_url: savedData.profile_pic_url || savedData.profile_image_url
       };
@@ -421,8 +420,8 @@ export function WolfpackProfileManager() {
               <div className="text-center">
                 <p className="font-medium">{formData.display_name || 'Your Name'}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={formData.is_visible ? "default" : "secondary"}>
-                    {formData.is_visible ? (
+                  <Badge variant={formData.is_profile_visible ? "default" : "secondary"}>
+                    {formData.is_profile_visible ? (
                       <><Eye className="h-3 w-3 mr-1" /> Visible</>
                     ) : (
                       <><EyeOff className="h-3 w-3 mr-1" /> Private</>
@@ -541,8 +540,8 @@ export function WolfpackProfileManager() {
               <input
                 type="checkbox"
                 id="is-visible"
-                checked={formData.is_visible}
-                onChange={(e) => handleInputChange('is_visible', e.target.checked)}
+                checked={formData.is_profile_visible}
+                onChange={(e) => handleInputChange('is_profile_visible', e.target.checked)}
                 className="rounded"
                 title="Make profile visible to other wolves"
               />
@@ -713,8 +712,8 @@ export function WolfpackProfileManager() {
                     <input
                       type="checkbox"
                       id="visibility-toggle"
-                      checked={formData.is_visible}
-                      onChange={(e) => handleInputChange('is_visible', e.target.checked)}
+                      checked={formData.is_profile_visible}
+                      onChange={(e) => handleInputChange('is_profile_visible', e.target.checked)}
                       className="rounded"
                       aria-label="Toggle profile visibility"
                     />
