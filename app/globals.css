@@ -265,20 +265,38 @@
   
   .chat-header-fixed {
     position: fixed;
-    top: 1rem;
-    left: 1rem;
-    right: 1rem;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 40;
-    height: var(--chat-header-height);
+    max-height: 5rem; /* Limit header height on mobile */
+    background: white;
+  }
+  
+  /* Mobile-specific header adjustments */
+  @media (max-width: 640px) {
+    .chat-header-fixed {
+      top: env(safe-area-inset-top, 0); /* Respect iOS notch */
+      padding-top: 0.5rem;
+      max-height: 4.5rem;
+    }
   }
   
   .chat-content-area {
     position: absolute;
-    top: calc(var(--chat-header-height) + 1rem);
+    top: 5.5rem; /* Fixed top spacing for header */
     bottom: calc(var(--bottom-nav-height) + 6rem);
     left: 0;
     right: 0;
     overflow: visible;
+  }
+  
+  /* Mobile-specific content area adjustments */
+  @media (max-width: 640px) {
+    .chat-content-area {
+      top: calc(4.5rem + env(safe-area-inset-top, 0));
+      bottom: calc(var(--bottom-nav-height) + 5rem);
+    }
   }
   
   .chat-input-area {
@@ -291,6 +309,15 @@
     padding: 1rem;
     padding-left: calc(1rem + env(safe-area-inset-left));
     padding-right: calc(1rem + env(safe-area-inset-right));
+  }
+  
+  /* Mobile-specific input area adjustments */
+  @media (max-width: 640px) {
+    .chat-input-area {
+      padding: 0.5rem;
+      padding-left: calc(0.5rem + env(safe-area-inset-left));
+      padding-right: calc(0.5rem + env(safe-area-inset-right));
+    }
   }
   
   /* Bottom navigation spacing - ensures content never scrolls behind fixed nav */

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Trophy, 
@@ -680,12 +680,12 @@ export function LiveEventsDisplay({ locationId, userId }: { locationId: string; 
                                   {isLeading && !isWinner && <Star className="h-5 w-5 text-green-500" />}
                                   
                                   {contestant.participant_id && (
-                                    <Avatar className="h-10 w-10">
-                                      <AvatarImage src={contestant.avatar_url} />
-                                      <AvatarFallback>
-                                        {contestant.wolf_emoji || contestant.display_name?.charAt(0)?.toUpperCase() || 'W'}
-                                      </AvatarFallback>
-                                    </Avatar>
+                                    <AvatarWithFallback
+                                      src={contestant.avatar_url}
+                                      name={contestant.display_name}
+                                      emoji={contestant.wolf_emoji}
+                                      size="md"
+                                    />
                                   )}
                                   
                                   <div>

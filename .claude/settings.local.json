@@ -29,7 +29,13 @@
       "Bash(true)",
       "Bash(cp:*)",
       "Bash(mv:*)",
-      "Bash(timeout 30 npx tsc:*)"
+      "Bash(timeout 30 npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(chmod:*)",
+      "Bash(./DEPLOY_OPTIMIZED_COMPONENTS.sh)",
+      "Bash(npm --version)",
+      "Bash(kill:*)",
+      "Bash(PORT=3001 npm run dev)"
     ]
   },
   "enableAllProjectMcpServers": false

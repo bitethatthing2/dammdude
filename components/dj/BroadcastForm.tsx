@@ -4,15 +4,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner'; // or your toast library
-import { captureError } from '@/lib/utils/error-utils';
 
 interface BroadcastFormProps {
-  djId: string;
   locationId: string;
   locationName: string;
 }
 
-export function BroadcastForm({ djId, locationId, locationName }: BroadcastFormProps) {
+export function BroadcastForm({ locationId, locationName }: BroadcastFormProps) {
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [broadcastType, setBroadcastType] = useState('general');
@@ -63,22 +61,16 @@ export function BroadcastForm({ djId, locationId, locationName }: BroadcastFormP
       
     } catch (error) {
       // Network or unexpected errors
-      const { error: userError } = await wolfpackErrorUtils.safe(
-        async () => { throw error; },
-        'send_broadcast'
-      );
+      // Fallback error handling if wolfpackErrorUtils is not available
+      toast.error((error as Error)?.message || 'Network error. Please try again.');
       
-      toast.error(userError?.message || 'Network error. Please try again.');
-      
-      // If retryable, show retry option
-      if (userError?.retryable) {
-        toast.error('Connection failed', {
-          action: {
-            label: 'Retry',
-            onClick: () => handleSubmit(e)
-          }
-        });
-      }
+      // Optionally, show retry option for network errors
+      toast.error('Connection failed', {
+        action: {
+          label: 'Retry',
+          onClick: () => handleSubmit(e)
+        }
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -134,10 +134,10 @@ const config: Config = {
         'xs': '475px',
       },
     },
+  },
   plugins: [
     tailwindcssAnimate,
   ],
-}
-}
+};
 
 export default config;

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
@@ -388,15 +388,13 @@ export function WolfpackProfileManager() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage 
-                    src={avatarUrl || undefined} 
-                    alt={formData.display_name || 'Avatar'} 
-                  />
-                  <AvatarFallback className="text-2xl">
-                    {formData.wolf_emoji}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarWithFallback
+                  src={avatarUrl}
+                  name={formData.display_name}
+                  emoji={formData.wolf_emoji}
+                  size="xl"
+                  className="h-24 w-24"
+                />
                 
                 <label className={cn(
                   "absolute -bottom-2 -right-2 p-2 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors",

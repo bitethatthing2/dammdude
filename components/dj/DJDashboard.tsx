@@ -9,7 +9,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Music, Users, MessageSquare, Trophy, Plus, Clock, MapPin, AlertCircle, RefreshCw, Zap, TrendingUp } from 'lucide-react';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
+import { WolfpackService } from '@/lib/services/wolfpack.service';
+import { WolfpackEnhancedService } from '@/lib/services/wolfpack-enhanced.service';
+import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service';
+import { dataService } from '@/lib/services/data-service';
+import { authService, Permission } from '@/lib/services/auth-service';
+import { toast } from 'sonner';
 
 import { EventCreator } from './EventCreator';
 import { MassMessageInterface } from './MassMessageInterface';
@@ -36,7 +42,6 @@ interface ActiveEvent {
 }
 
 interface PackMember {
-  id: string;
   id: string;
   displayName: string;
   profilePicture: string;
@@ -79,7 +84,8 @@ const LOCATION_CONFIG = {
 // =============================================================================
 
 export function DJDashboard({ location }: DJDashboardProps) {
-  const { assignedLocation } = useDJPermissions();
+  const djPermissions = useDJPermissions();
+  const { assignedLocation, isActiveDJ, canSendMassMessages, isLoading: permissionsLoading } = djPermissions;
   const currentLocation = location || assignedLocation || 'salem';
 
   // Core State
@@ -106,7 +112,6 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
   // Refs
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
-  const supabase = createClient();
 
   const locationConfig = useMemo(() => LOCATION_CONFIG[currentLocation], [currentLocation]);
 
@@ -121,41 +126,109 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
       setError(null);
 
-      // Fetch all data in parallel using enhanced service
-      const [events, members, stats] = await Promise.all([
-        WolfpackService.getActiveEvents(locationConfig.id),
-        WolfpackEnhancedService.getActivePackMembers(locationConfig.id),
-        WolfpackEnhancedService.getLocationStats(locationConfig.id)
-      ]);
+      // Check permissions using DJ permissions from hook
+      console.log('🔍 DJ Permission Check:', { 
+        isActiveDJ, 
+        canSendMassMessages, 
+        permissionsLoading,
+        currentLocation,
+        djPermissions 
+      });
+      
+      if (!isActiveDJ || !canSendMassMessages) {
+        throw errorService.handleBusinessLogicError(
+          'fetchDashboardData',
+          'Insufficient permissions',
+          'You need DJ permissions to view the dashboard',
+          { component: 'DJDashboard', location: currentLocation, isActiveDJ, canSendMassMessages }
+        );
+      }
 
-      // Transform events to include time remaining
-      const eventsWithTimeRemaining: ActiveEvent[] = events.map(event => ({
-        id: event.id,
-        title: event.title,
-        event_type: event.event_type,
-        status: event.status,
-        created_at: event.created_at,
-        voting_ends_at: event.voting_ends_at || new Date().toISOString(),
-        options: event.options ? (Array.isArray(event.options) ? event.options : []) : [],
-        participantCount: 0, // TODO: Calculate from participants
-        timeRemaining: event.voting_ends_at ?
-          WolfpackEnhancedService.formatTimeRemaining(event.voting_ends_at) : 0,
-        dj: event.dj
+      // Use Data Service for optimized, cached, parallel data fetching
+      const operations = [
+        () => dataService.getDJEvents(currentLocation, 'active'),
+        () => dataService.getWolfpackMembers(currentLocation),
+        () => WolfpackEnhancedService.getLocationStats(locationConfig.id) // Keep legacy for now
+      ];
+
+      const [events, members, stats] = await dataService.batchExecute(
+        operations,
+        'djDashboardData'
+      );
+
+      // Transform events to include time remaining with error handling
+      const eventsWithTimeRemaining: ActiveEvent[] = events.map(event => {
+        try {
+          return {
+            id: event.id,
+            title: event.title || 'Untitled Event',
+            event_type: event.event_type || 'unknown',
+            status: event.status || 'active',
+            created_at: event.created_at || new Date().toISOString(),
+            voting_ends_at: event.voting_ends_at || new Date().toISOString(),
+            options: event.options ? (Array.isArray(event.options) ? event.options : []) : [],
+            participantCount: event.contestants?.length || 0,
+            timeRemaining: event.voting_ends_at ?
+              WolfpackEnhancedService.formatTimeRemaining(event.voting_ends_at) : 0,
+            dj: event.dj
+          };
+        } catch (transformError) {
+          errorService.handleUnknownError(
+            transformError as Error,
+            { 
+              component: 'DJDashboard',
+              action: 'transformEvent',
+              eventId: event.id 
+            }
+          );
+          return null;
+        }
+      }).filter(Boolean) as ActiveEvent[];
+
+      // Transform members with error handling
+      const transformedMembers: PackMember[] = members.map(member => ({
+        id: member.id,
+        displayName: member.display_name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Wolf',
+        profilePicture: member.profile_image_url || '',
+        vibeStatus: member.vibe_status || 'chillin',
+        isOnline: member.is_online || false,
+        lastSeen: member.last_seen_at || new Date().toISOString()
       }));
 
       setActiveEvents(eventsWithTimeRemaining);
-      setPackMembers(members);
+      setPackMembers(transformedMembers);
       setLocationStats(stats);
 
+      // Success feedback
+      if (showLoadingState) {
+        toast.success(`Dashboard loaded for ${locationConfig.displayName}`);
+      }
+
     } catch (error: unknown) {
-      console.error('Dashboard data fetch error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data';
-      setError(errorMessage);
+      const appError = errorService.handleUnknownError(
+        error as Error,
+        {
+          component: 'DJDashboard',
+          action: 'fetchDashboardData',
+          location: currentLocation,
+          showLoadingState
+        }
+      );
+      
+      setError(appError.userMessage);
+      toast.error(appError.userMessage);
+      
+      // Log additional context for debugging
+      console.error('DJ Dashboard Error Details:', {
+        error: appError,
+        location: currentLocation,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [locationConfig.id]);
+  }, [locationConfig.id, locationConfig.displayName, currentLocation]);
 
   // =============================================================================
   // REAL-TIME SUBSCRIPTIONS
@@ -171,43 +244,86 @@ export function DJDashboard({ location }: DJDashboardProps) {
         locationConfig.id,
         {
           onEventUpdate: () => {
-            console.log('Event updated, refreshing...');
-            fetchDashboardData(false);
+            console.log('Event updated, refreshing dashboard...');
+            // Use debounced refresh to prevent excessive updates
+            setTimeout(() => fetchDashboardData(false), 1000);
+            setIsLive(true);
           },
           onBroadcast: (payload) => {
-            console.log('New broadcast:', payload);
-            // Could show notification here
+            console.log('New broadcast received:', payload);
+            toast.info('New broadcast sent to Wolf Pack members');
+            // Invalidate relevant cache
+            dataService.invalidateCachePattern('wolfpack_members_');
           },
           onChatMessage: (payload) => {
             console.log('New chat message:', payload);
-            // Could update chat interface if visible
+            // Update activity indicators
+            setIsLive(true);
           },
           onMemberUpdate: () => {
-            console.log('Member updated, refreshing...');
-            fetchDashboardData(false);
+            console.log('Member activity detected, refreshing...');
+            // Invalidate member cache and refresh
+            dataService.invalidateCachePattern('wolfpack_members_');
+            setTimeout(() => fetchDashboardData(false), 500);
           }
         }
       );
 
+      setIsLive(true);
+      console.log(`Real-time subscription active for ${locationConfig.displayName}`);
+
     } catch (error) {
-      console.error('Subscription setup error:', error);
+      const appError = errorService.handleExternalServiceError(
+        'WolfpackEnhancedService',
+        error as Error,
+        {
+          component: 'DJDashboard',
+          action: 'setupRealtimeSubscription',
+          location: currentLocation
+        }
+      );
+      
+      setIsLive(false);
+      toast.error('Real-time updates unavailable');
+      console.error('Subscription setup failed:', appError);
+      
+      // Retry subscription after delay
+      setTimeout(() => {
+        console.log('Retrying real-time subscription...');
+        setupRealtimeSubscription();
+      }, 5000);
     }
-  }, [locationConfig.id, fetchDashboardData]);
+  }, [locationConfig.id, locationConfig.displayName, currentLocation, fetchDashboardData]);
 
   // =============================================================================
   // LIFECYCLE
   // =============================================================================
 
   useEffect(() => {
-    fetchDashboardData(true);
-    setupRealtimeSubscription();
+    // Don't initialize until permissions are loaded
+    if (permissionsLoading) return;
 
-    return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+    let mounted = true;
+
+    const initializeDashboard = async () => {
+      if (mounted) {
+        await fetchDashboardData(true);
+        setupRealtimeSubscription();
       }
     };
-  }, [fetchDashboardData, setupRealtimeSubscription]);
+
+    initializeDashboard();
+
+    return () => {
+      mounted = false;
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      // Cleanup WolfpackEnhancedService
+      WolfpackEnhancedService.cleanup();
+    };
+  }, [permissionsLoading, fetchDashboardData, setupRealtimeSubscription]);
 
   // =============================================================================
   // EVENT HANDLERS

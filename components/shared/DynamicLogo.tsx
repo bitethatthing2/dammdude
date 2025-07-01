@@ -41,12 +41,12 @@ export function DynamicLogo({
   
   const logoSources = {
     brand: {
-      light: '/icons/sidehustle-font-lightscreen.png',
-      dark: '/icons/sidehustle-font-darkscreen.png'
+      light: '/icons/wolf-icon.png',
+      dark: '/icons/wolf-icon.png'
     },
     wolf: {
-      light: '/icons/wolf-icon-main-page-light-screen.png',
-      dark: '/icons/wolf-icon-main-page.png'
+      light: '/icons/wolf-icon.png',
+      dark: '/icons/wolf-icon.png'
     }
   };
 
@@ -76,10 +76,10 @@ export function preloadLogos() {
   if (typeof window === 'undefined') return;
 
   const imagesToPreload = [
-    '/icons/sidehustle-font-lightscreen.png',
-    '/icons/sidehustle-font-darkscreen.png',
-    '/icons/wolf-icon-main-page-light-screen.png',
-    '/icons/wolf-icon-main-page.png'
+    '/icons/wolf-icon.png',
+    '/icons/sidehustle.png',
+    '/icons/wolf-icon.png',
+    '/icons/wolf-icon.png'
   ];
 
   imagesToPreload.forEach(src => {

@@ -11,8 +11,8 @@ export function ThemeProviderWrapper({ children }: ThemeProviderWrapperProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="dark"  // Default to dark instead of system
+      enableSystem        // Still allow system preference if user wants
       disableTransitionOnChange
     >
       {children}

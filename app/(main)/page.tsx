@@ -53,8 +53,8 @@ export default function Page() {
   }, []);
 
   // Use light mode images only
-  const wolfIconSrc = '/icons/wolf-icon-main-page-light-screen.png';
-  const sideHustleFontSrc = '/icons/sidehustle-font-lightscreen.png';
+  const wolfIconSrc = '/icons/wolf-icon.png';
+  const sideHustleFontSrc = '/icons/sidehustle.png';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -70,8 +70,9 @@ export default function Page() {
                 alt="Side Hustle" 
                 width={200}
                 height={40}
-                className="h-6 w-auto sm:h-8 md:h-10 max-w-[150px] sm:max-w-[180px] md:max-w-[200px]" 
+                className="h-6 sm:h-8 md:h-10 max-w-[150px] sm:max-w-[180px] md:max-w-[200px]" 
                 priority
+                style={{ width: 'auto' }}
               />
             ) : (
               <div className="h-6 w-20 sm:h-8 sm:w-24 bg-muted animate-pulse rounded" />

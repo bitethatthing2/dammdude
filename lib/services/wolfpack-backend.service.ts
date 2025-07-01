@@ -1067,7 +1067,6 @@ export class WolfpackSimpleService {
     // Transform to match frontend interface
     const transformedData = (result.data as UserData[]).map(user => ({
       id: user.id,
-      id: user.id,
       displayName: user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Pack Member',
       profilePicture: user.profile_image_url || user.avatar_url || '/images/avatar-placeholder.png',
       vibeStatus: user.wolf_emoji || '🐺',

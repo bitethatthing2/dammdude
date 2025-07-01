@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function HeaderLogo() {
   // Use light mode logo only
-  const logoSrc = '/icons/sidehustle-font-lightscreen.png';
+  const logoSrc = '/icons/wolf-icon.png';
     
   return (
     <div className="flex items-center">

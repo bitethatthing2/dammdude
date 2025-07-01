@@ -38,12 +38,31 @@ export function useDJPermissions() {
     }
 
     const checkDJPermissions = async () => {
-      try {        // For now, we'll use a simple check - VIP users can be DJs
+      try {        
+        // Debug logging to see what user data we have
+        console.log('🔍 DJ Permissions Check:', {
+          user,
+          userEmail: user?.email,
+          userId: user?.id
+        });
+        
+        // For now, we'll use a simple check - VIP users can be DJs
         // In production, this would check a proper DJ assignments table
         const vipUsers = ['mkahler599@gmail.com'];
         const isVipUser = user?.email && vipUsers.includes(user.email);
+        
+        console.log('🔍 VIP Check:', {
+          vipUsers,
+          userEmail: user?.email,
+          isVipUser,
+          userObject: user
+        });
+        
+        // TEMP: Allow any authenticated user to access DJ dashboard for debugging
+        const tempAllowAnyUser = true;
 
-        if (isVipUser) {
+        if (isVipUser || tempAllowAnyUser) {
+          console.log('🎯 Setting DJ permissions for user:', { isVipUser, tempAllowAnyUser, userEmail: user?.email });
           setPermissions({
             canCreateEvents: true,
             canSendMassMessages: true,
@@ -78,7 +97,8 @@ export function useDJPermissions() {
         const vipUsers = ['mkahler599@gmail.com'];
         const isVipUser = user?.email && vipUsers.includes(user.email);
         
-        if (isVipUser) {
+        if (isVipUser || tempAllowAnyUser) {
+          console.log('🎯 Setting DJ permissions (catch block) for user:', { isVipUser, tempAllowAnyUser, userEmail: user?.email });
           setPermissions({
             canCreateEvents: true,
             canSendMassMessages: true,

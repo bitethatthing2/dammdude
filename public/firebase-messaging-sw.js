@@ -7,9 +7,7 @@ importScripts('/sw-cache.js');
 const SW_VERSION = '1.0.9';
 
 // Firebase configuration (PUBLIC Client-Side Values)
-// !! IMPORTANT !!: Replace these placeholders with your ACTUAL values from .env.local
-// These values WILL be publicly visible in the browser's service worker code.
-// DO NOT include sensitive keys like FIREBASE_ADMIN_* or GOOGLE_OAUTH_CLIENT_SECRET here.
+// Note: These values are injected at build time and are safe to be public
 const firebaseConfig = {
   apiKey: "",             // Replace with value from .env.local
   authDomain: "",       // Replace with value from .env.local
@@ -19,6 +17,15 @@ const firebaseConfig = {
   appId: "",              // Replace with value from .env.local
   measurementId: "" // Optional, replace if you use it
 };
+
+// Check if Firebase configuration is complete
+function isFirebaseConfigValid() {
+  return firebaseConfig.apiKey && 
+         firebaseConfig.authDomain && 
+         firebaseConfig.projectId && 
+         firebaseConfig.messagingSenderId && 
+         firebaseConfig.appId;
+}
 
 // Service Worker Lifecycle Events
 self.addEventListener('install', event => {

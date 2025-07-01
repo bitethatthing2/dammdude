@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
+import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Database } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,87 +24,12 @@ import {
   Star
 } from 'lucide-react';
 
-// User type from database
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  wolfpack_status: string | null;
-  is_permanent_pack_member: boolean | null;
-  is_wolfpack_member: boolean | null;
-  location_permissions_granted: boolean | null;
-}
-
-// Simple auth hook
-const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const supabase = createClientComponentClient<Database>();
-  
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        // Get additional user data from users table
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_id', authUser.id)
-          .single();
-          
-        if (userData && !error) {
-          setUser(userData);
-        }
-      }
-    };
-    getUser();
-  }, []);
-
-  return { user };
-};
-
-// Simple wolfpack hook
-const useWolfpack = () => {
-  const [isInPack, setIsInPack] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  const supabase = createClientComponentClient<Database>();
-  
-  useEffect(() => {
-    const checkWolfpackStatus = async () => {
-      if (!user) {
-        setIsInPack(false);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Check if user is permanent pack member or has active wolfpack status
-        if (user?.is_permanent_pack_member === true || user?.wolfpack_status === 'active') {
-          setIsInPack(true);
-        } else {
-          // Use the is_wolfpack_member field from users table
-          setIsInPack(Boolean(user?.is_wolfpack_member));
-        }
-      } catch (err) {
-        console.error('Error checking wolfpack status:', err);
-        setIsInPack(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkWolfpackStatus();
-  }, [user]);
-
-  return { isInPack, isLoading };
-};
+// Remove custom hooks - using consistent hooks instead
 
 export default function WolfpackMainPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isInPack, isLoading } = useWolfpack();
+  const { user, loading: authLoading } = useConsistentAuth();
+  const { isMember: isInPack, isLoading: packLoading } = useConsistentWolfpackAccess();
   const [packMemberCount, setPackMemberCount] = useState(0);
   const supabase = createClientComponentClient<Database>();
 
@@ -126,6 +53,8 @@ export default function WolfpackMainPage() {
 
     loadPackStats();
   }, [isInPack]);
+
+  const isLoading = authLoading || packLoading;
 
   if (isLoading) {
     return (

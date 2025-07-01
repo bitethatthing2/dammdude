@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CenteredModal } from '@/components/shared/CenteredModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Trophy, Music, Star, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service';
+import { dataService } from '@/lib/services/data-service';
+import { authService, Permission } from '@/lib/services/auth-service';
+import { toast } from 'sonner';
 interface Member {
   id: string;
   displayName: string;
@@ -140,39 +144,129 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
   };
 
   const createEvent = async () => {
-    if (!eventTitle.trim()) return;
+    if (!eventTitle.trim()) {
+      const validationError = errorService.handleValidationError(
+        'eventTitle',
+        eventTitle,
+        'Event title is required',
+        { component: 'EventCreator' }
+      );
+      toast.error(validationError.userMessage);
+      return;
+    }
+
+    // Check permissions
+    if (!authService.hasPermission(Permission.CREATE_EVENTS)) {
+      const permissionError = errorService.handleBusinessLogicError(
+        'createEvent',
+        'Insufficient permissions',
+        'You need DJ permissions to create events',
+        { component: 'EventCreator' }
+      );
+      toast.error(permissionError.userMessage);
+      return;
+    }
 
     setIsCreating(true);
-    try {      const eventData = {
-        title: eventTitle,
-        description: eventDescription,
-        duration: duration,
-        contestants: selectedContestants,
-        voting_options: votingOptions,
-        event_type: selectedTemplate?.id || 'custom',
-        voting_type: selectedTemplate?.votingType || 'single',
-        location: location,
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-
-      // For now, we'll just call the callback with mock data
-      // In a real implementation, this would save to the database
+    try {
+      // Validate selected contestants exist
       const selectedMembers: Member[] = selectedContestants
         .map(id => availableMembers.find(m => m.id === id))
         .filter((member): member is Member => member !== undefined);
 
-      const mockEvent: CreatedEvent = {
-        id: `event-${Date.now()}`,
-        ...eventData,
-        contestants: selectedMembers
+      if (selectedContestants.length > 0 && selectedMembers.length === 0) {
+        throw errorService.handleValidationError(
+          'contestants',
+          selectedContestants,
+          'Selected contestants not found',
+          { component: 'EventCreator' }
+        );
+      }
+
+      // Validate voting options for voting events
+      if (selectedTemplate?.votingType && votingOptions.length < 2) {
+        throw errorService.handleValidationError(
+          'votingOptions',
+          votingOptions,
+          'At least 2 voting options required',
+          { component: 'EventCreator' }
+        );
+      }
+
+      const eventData = {
+        title: eventTitle.trim(),
+        description: eventDescription.trim(),
+        duration: duration,
+        contestants: selectedMembers,
+        voting_options: votingOptions.filter(option => option.trim()),
+        event_type: selectedTemplate?.id || 'custom',
+        voting_type: selectedTemplate?.votingType || 'single',
+        location: location,
+        status: 'active',
+        voting_ends_at: new Date(Date.now() + duration * 60 * 1000).toISOString(),
+        created_by: authService.getCurrentUser()?.id,
+        created_at: new Date().toISOString()
       };
 
-      onEventCreated(mockEvent);
+      // Create event using Data Service
+      const createdEvent = await dataService.createDJEvent(eventData);
+
+      // Transform for UI
+      const uiEvent: CreatedEvent = {
+        id: createdEvent.id,
+        title: createdEvent.title,
+        description: createdEvent.description,
+        duration: createdEvent.duration,
+        contestants: selectedMembers,
+        voting_options: createdEvent.voting_options || [],
+        event_type: createdEvent.event_type,
+        voting_type: createdEvent.voting_type,
+        location: createdEvent.location,
+        status: createdEvent.status,
+        created_at: createdEvent.created_at
+      };
+
+      // Success feedback
+      toast.success(`Event "${eventTitle}" created successfully!`);
+      
+      // Invalidate relevant caches
+      dataService.invalidateCachePattern('dj_events_');
+      
+      // Callback and cleanup
+      onEventCreated(uiEvent);
       onClose();
       resetForm();
+
+      console.log(`Event created successfully:`, {
+        id: createdEvent.id,
+        title: eventTitle,
+        location: location,
+        duration: duration
+      });
+
     } catch (error) {
-      console.error('Error creating event:', error);
+      const appError = errorService.handleUnknownError(
+        error as Error,
+        {
+          component: 'EventCreator',
+          action: 'createEvent',
+          eventTitle,
+          location,
+          selectedContestants: selectedContestants.length,
+          votingOptions: votingOptions.length
+        }
+      );
+      
+      toast.error(appError.userMessage);
+      
+      console.error('Event creation failed:', {
+        error: appError,
+        eventData: {
+          title: eventTitle,
+          location,
+          contestants: selectedContestants.length
+        }
+      });
     } finally {
       setIsCreating(false);
     }
@@ -194,18 +288,19 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Event</DialogTitle>
-        </DialogHeader>
-
+    <CenteredModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Create New Event"
+      maxWidth="4xl"
+    >
+      <div className="p-6">
         <div className="space-y-6">
           {/* Event Template Selection */}
           {!selectedTemplate && !isCustomEvent && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Choose Event Type</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {eventTemplates.map(template => {
                   const IconComponent = template.icon;
                   return (
@@ -256,7 +351,7 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Event Title</label>
                   <Input 
@@ -292,7 +387,7 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                 <label className="text-sm font-medium mb-2 block">
                   Select Contestants ({selectedContestants.length} selected)
                 </label>
-                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded p-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded p-2">
                   {availableMembers.map(member => (
                     <div 
                       key={member.id}
@@ -351,7 +446,7 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-4">
                 <Button 
                   onClick={createEvent} 
                   className="flex-1"
@@ -359,14 +454,14 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                 >
                   {isCreating ? 'Creating Event...' : 'Create Event'}
                 </Button>
-                <Button variant="outline" onClick={handleClose}>
+                <Button variant="outline" onClick={handleClose} className="sm:w-auto">
                   Cancel
                 </Button>
               </div>
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </CenteredModal>
   );
 }

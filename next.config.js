@@ -27,6 +27,18 @@ const nextConfig = {
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -37,30 +49,18 @@ const nextConfig = {
   // Skip API routes from build to avoid NextJS 15 type issues
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   
+  // Disable experimental features causing issues
   experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-radio-group',
-    ],
-    optimizeCss: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    allowedDevOrigins: [
-      'http://localhost:3000',
-      'http://127.0.0.1:64913',
-      'http://127.0.0.1:*',
-    ],
   },
   
   // Compression
   compress: true,
   
   // Generate static pages where possible
-  output: 'standalone',
+  // output: 'standalone', // Temporarily disabled for development
   
   async headers() {
     return [
@@ -162,31 +162,21 @@ const nextConfig = {
     ];
   },
   
-  // Webpack optimization - simplified for stability
-  webpack: (config, { isServer, dev }) => {
-    // Only apply optimizations in production
+  // Minimal webpack config to avoid issues
+  webpack: (config, { isServer, dev, webpack }) => {
+    // Only inject Firebase config into service worker in production
     if (!isServer && !dev) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            framework: {
-              name: 'framework',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types)[\\/]/,
-              priority: 40,
-              enforce: true,
-            },
-            commons: {
-              name: 'commons',
-              chunks: 'all',
-              minChunks: 2,
-              priority: 20,
-            },
-          },
-        },
-      };
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'self.FIREBASE_API_KEY': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_API_KEY || ''),
+          'self.FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || ''),
+          'self.FIREBASE_PROJECT_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ''),
+          'self.FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || ''),
+          'self.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || ''),
+          'self.FIREBASE_APP_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''),
+          'self.FIREBASE_MEASUREMENT_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ''),
+        })
+      );
     }
     
     return config;
