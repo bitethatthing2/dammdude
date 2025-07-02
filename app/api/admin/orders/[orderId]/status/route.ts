@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+
 // Input validation schema
 const updateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'delivered', 'completed', 'cancelled']),
@@ -47,7 +47,7 @@ export async function PATCH(
     // Fetch current order to verify it exists
     const { data: order, error: orderError } = await supabase
       .from('bartender_orders')
-      .select('id, status, table_location')
+      .select('id, status, table_location, customer_id')
       .eq('id', orderId)
       .single();
     
@@ -79,46 +79,72 @@ export async function PATCH(
     
     if (notify && status === 'ready') {
       try {
-        // Get table information
         const tableLocation = order.table_location || null;
         
-        // Find registered devices for this table if device_registrations table exists
-        let devices: Array<{ device_id: string }> = [];
-        if (tableLocation) {
-          try {
-            const { data: deviceData } = await supabase
-              .from('device_registrations')
-              .select('device_id')
-              .eq('table_location', tableLocation)
-              .eq('type', 'customer');
-            devices = deviceData || [];
-          } catch {
-            // device_registrations table may not exist yet
-            devices = [];
+        // Find device tokens for notifications
+        let deviceTokens: Array<{ id: string, token: string }> = [];
+        
+        if (order.customer_id) {
+          // First, try to get device tokens directly from the customer
+          const { data: customerTokens } = await supabase
+            .from('device_tokens')
+            .select('id, token')
+            .eq('user_id', order.customer_id)
+            .eq('is_active', true);
+          
+          if (customerTokens && customerTokens.length > 0) {
+            deviceTokens = customerTokens;
           }
         }
         
-        if (devices && devices.length > 0) {
-          // Create push notifications for each device
-          const notifications = devices.map((device: { device_id: string }) => ({
-            id: null, // No specific user, using device token
-            device_token_id: device.device_id,
-            title: 'Order Ready',
-            body: `Your order for ${tableLocation || 'your table'} is ready for pickup!`,
-            data: { orderId, tableLocation },
+        // Note: Table-based device lookup could be implemented here
+        // if there's a way to map table_location to table_id in device_registrations
+        // For now, we rely on customer_id based device token lookup
+        
+        // Create push notifications
+        if (deviceTokens.length > 0) {
+          const notifications = deviceTokens.map((device) => ({
+            user_id: order.customer_id,
+            device_token_id: device.id,
+            title: 'Order Ready! 🍺',
+            body: tableLocation 
+              ? `Your order for ${tableLocation} is ready for pickup!`
+              : 'Your order is ready for pickup!',
+            data: { 
+              orderId, 
+              tableLocation,
+              type: 'order_ready'
+            },
+            type: 'order_update',
+            priority: 'high',
             status: 'pending'
           }));
           
-          // Insert notifications (use push_notifications table instead)
-          await supabase
+          const { error: notificationError } = await supabase
             .from('push_notifications')
             .insert(notifications);
           
-          notificationSent = true;
+          if (notificationError) {
+            console.error('Failed to create push notifications:', notificationError);
+          } else {
+            notificationSent = true;
+          }
         }
+        
+        // Also update the order to mark that a ready notification was sent
+        if (notificationSent) {
+          await supabase
+            .from('bartender_orders')
+            .update({ 
+              ready_notification_sent: true,
+              ready_at: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        }
+        
       } catch (notificationError) {
-        console.error('Error sending notifications:', notificationError);
-        // Continue even if notification fails
+        console.error('Error in notification process:', notificationError);
+        // Continue even if notification fails - the order status update succeeded
       }
     }
     
@@ -127,9 +153,11 @@ export async function PATCH(
       success: true,
       order: {
         id: orderId,
-        status
+        status,
+        previousStatus: order.status
       },
-      notificationSent
+      notificationSent,
+      tableLocation: order.table_location
     });
     
   } catch (err) {

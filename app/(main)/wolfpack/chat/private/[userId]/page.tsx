@@ -1,394 +1,158 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, Shield, UserX, WifiOff, Wifi } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { useUser } from '@/hooks/useUser';
-import { toast } from 'sonner';
-import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-sanitization';
-import { AvatarWithFallback, preloadImages } from '@/components/shared/ImageWithFallback';
+import { 
+  ArrowLeft, 
+  Send, 
+  Shield, 
+  UserX, 
+  WifiOff, 
+  Wifi, 
+  Loader2,
+  AlertTriangle
+} from 'lucide-react';
+// Try one of these toast imports:
+// import { toast } from 'sonner';
+// import { toast } from '@/components/ui/toast';
+// import { useToast } from '@/components/ui/use-toast';
 
-// Fixed interface to match actual wolf_private_messages table schema
-interface PrivateMessage {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  message: string;
-  image_url?: string | null;
-  is_read: boolean | null;
-  created_at: string | null;
-  read_at?: string | null;
-  is_deleted: boolean | null;
-  flagged: boolean | null;
-  flag_reason?: string | null;
-  flagged_by?: string | null;
-  flagged_at?: string | null;
-  image_id?: string | null;
-  // Fixed: Use sender_user instead of from_user to match actual foreign key
-  sender_user?: {
-    display_name: string | null;
-    wolf_emoji: string | null;
-    profile_image_url?: string | null;
-  } | null;
-}
-
-interface ChatUser {
-  id: string;
-  email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  role?: string | null;
-  display_name?: string | null;
-  wolf_emoji?: string | null;
-  vibe_status?: string | null;
-  profile_image_url?: string | null;
-  allow_messages?: boolean | null;
-  bio?: string | null;
-  favorite_drink?: string | null;
-  is_profile_visible?: boolean | null;
-}
-
-// Debounce helper for real-time updates
-function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number
-): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const callbackRef = useRef(callback);
-
-  useEffect(() => {
-    callbackRef.current = callback;
-  }, [callback]);
-
-  const debouncedCallback = useCallback(
-    (...args: Parameters<T>) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
-        callbackRef.current(...args);
-      }, delay);
-    },
-    [delay]
-  ) as T;
-
-  return debouncedCallback;
-}
+// Temporary simple toast for testing
+const toast = {
+  success: (message: string) => alert(`✅ ${message}`),
+  error: (message: string) => alert(`❌ ${message}`),
+};
+import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
+import { useChat, ConnectionState } from '@/hooks/useChat';
 
 export default function OptimizedPrivateChatPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useUser();
   
   const otherUserId = params.userId as string;
   const otherUserName = searchParams.get('name') || 'Wolf';
   
-  const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Use the chat hook
+  const {
+    messages,
+    otherUser,
+    isLoading,
+    isSending,
+    isBlocked,
+    connectionState,
+    unreadCount,
+    isTyping,
+    error,
+    sendMessage,
+    blockUser,
+    reportMessage,
+    setTypingStatus,
+    formatMessageTime,
+    groupMessages
+  } = useChat({ 
+    otherUserId,
+    enableTypingIndicator: true,
+    enableOptimisticUpdates: true,
+    messageLimit: 50
+  });
+
+  // Memoized display name
+  const displayName = useMemo(() => {
+    return otherUser?.display_name || 
+           `${otherUser?.first_name || ''} ${otherUser?.last_name || ''}`.trim() ||
+           otherUserName;
+  }, [otherUser, otherUserName]);
+
+  // Memoized grouped messages for better performance
+  const groupedMessages = useMemo(() => {
+    return groupMessages(messages);
+  }, [messages, groupMessages]);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'end'
+    });
+  };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
+  // Handle send message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isSending) return;
+
+    const messageText = newMessage.trim();
+    setNewMessage(''); // Clear input immediately for better UX
+    
+    const success = await sendMessage(messageText);
+    
+    if (!success) {
+      setNewMessage(messageText); // Restore message on failure
+    }
+  };
+
+  // Handle typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    // Trigger typing indicator
+    if (value.length > 0) {
+      setTypingStatus(true);
+    } else {
+      setTypingStatus(false);
+    }
+  };
+
+  // Handle report message (simplified)
+  const handleReportMessage = async (messageId: string) => {
+    const reason = prompt('Please provide a reason for reporting this message:');
+    if (!reason) return;
+
+    const success = await reportMessage(messageId, reason);
+    if (success) {
+      toast.success('Message reported');
+    }
+  };
+
+  // Handle block user (simplified)
+  const handleBlockUser = async () => {
+    if (!confirm(`Are you sure you want to block ${displayName}?`)) return;
+    
+    const success = await blockUser();
+    if (success) {
+      router.back();
+    }
+  };
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, []);
 
-  // Debounced message update handler
-  const handleNewMessage = useDebouncedCallback((newMsg: PrivateMessage) => {
-    setMessages(prev => [...prev, newMsg]);
-    scrollToBottom();
-    
-    // Mark as read if it's from the other user
-    if (newMsg.sender_id === otherUserId) {
-      supabase
-        .from('wolf_private_messages')
-        .update({ 
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('id', newMsg.id)
-        .then();
-    }
-  }, 500);
-
-  // Load chat data with parallel queries and timeout protection
-  useEffect(() => {
-    async function loadChatData() {
-      if (!user || !otherUserId) return;
-
-      try {
-        setIsLoading(true);
-
-        // Parallel queries with timeout protection
-        const [userResult, blockResult, messagesResult] = await Promise.allSettled([
-          // Load other user's profile
-          Promise.race([
-            supabase
-              .from('users')
-              .select(`
-                id, email, first_name, last_name, role,
-                display_name, wolf_emoji, vibe_status,
-                profile_image_url, allow_messages, bio,
-                favorite_drink, is_profile_visible
-              `)
-              .eq('id', otherUserId)
-              .single(),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('User query timeout')), 5000)
-            )
-          ]),
-          
-          // Check block status
-          Promise.race([
-            supabase
-              .from('wolf_pack_interactions')
-              .select('*')
-              .in('interaction_type', ['block'])
-              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
-              .eq('status', 'active'),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Block query timeout')), 3000)
-            )
-          ]),
-          
-          // Load messages
-          Promise.race([
-            supabase
-              .from('wolf_private_messages')
-              .select(`
-                *,
-                sender_user:users!wolf_private_messages_sender_id_fkey(
-                  display_name,
-                  wolf_emoji,
-                  profile_image_url
-                )
-              `)
-              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
-              .eq('is_deleted', false)
-              .order('created_at', { ascending: true })
-              .limit(100),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Messages query timeout')), 5000)
-            )
-          ])
-        ]);
-
-        // Handle user data
-        if (userResult.status === 'fulfilled') {
-          const { data: userData, error: userError } = userResult.value as any;
-          
-          if (userError || !userData) {
-            console.error('Error loading user:', userError);
-            toast.error('User not found');
-            router.back();
-            return;
-          }
-
-          setOtherUser(userData);
-
-          // Check if messaging is allowed
-          if (userData.allow_messages === false) {
-            toast.error('This user has disabled private messages');
-            router.back();
-            return;
-          }
-
-          // Preload user avatar if available
-          if (userData.profile_image_url) {
-            preloadImages([userData.profile_image_url]).catch(() => {
-              console.warn('Failed to preload user avatar');
-            });
-          }
-        } else {
-          console.error('Failed to load user data');
-          toast.error('Failed to load user profile');
-          router.back();
-          return;
-        }
-
-        // Handle block status
-        if (blockResult.status === 'fulfilled') {
-          const { data: blockData } = blockResult.value as any;
-          if (blockData && blockData.length > 0) {
-            setIsBlocked(true);
-            return;
-          }
-        }
-
-        // Handle messages
-        if (messagesResult.status === 'fulfilled') {
-          const { data: messageData } = messagesResult.value as any;
-          if (messageData) {
-            setMessages(messageData);
-            
-            // Mark unread messages as read
-            const unreadMessages = messageData.filter(
-              (msg: PrivateMessage) => msg.sender_id === otherUserId && !msg.is_read
-            );
-
-            if (unreadMessages.length > 0) {
-              await supabase
-                .from('wolf_private_messages')
-                .update({ 
-                  is_read: true,
-                  read_at: new Date().toISOString()
-                })
-                .in('id', unreadMessages.map((msg: PrivateMessage) => msg.id));
-            }
-          }
-        }
-
-        setIsBlocked(false);
-
-      } catch (error) {
-        console.error('Error loading chat data:', error);
-        toast.error('Failed to load chat');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadChatData();
-
-    // Set up real-time subscription with connection monitoring
-    if (user && otherUserId) {
-      const channel = supabase
-        .channel(`private_chat_${user.id}_${otherUserId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'wolf_private_messages',
-            filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id}))`
-          },
-          (payload) => {
-            try {
-              const newMsg = payload.new as PrivateMessage;
-              handleNewMessage(newMsg);
-            } catch (error) {
-              console.error('Error handling real-time message:', error);
-            }
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            setIsOnline(true);
-            console.log('Successfully subscribed to private messages');
-          } else if (status === 'CHANNEL_ERROR') {
-            setIsOnline(false);
-            console.error('Error subscribing to private messages');
-          } else if (status === 'TIMED_OUT') {
-            setIsOnline(false);
-            console.error('Subscription timed out');
-          }
-        });
-
-      return () => {
-        channel.unsubscribe();
-      };
-    }
-  }, [user, otherUserId, router, handleNewMessage]);
-
-  // Send message with improved error handling
-  const sendMessage = async () => {
-    if (!user || !newMessage.trim() || isSending || isBlocked) return;
-
-    try {
-      setIsSending(true);
-
-      // Rate limiting check
-      if (!checkRateLimit(user.id, 10, 60000)) {
-        toast.error('Please slow down - too many messages');
-        return;
-      }
-
-      // Sanitize and validate the message
-      const sanitizedMessage = sanitizeMessage(newMessage, {
-        maxLength: 500,
-        allowLineBreaks: true,
-        trimWhitespace: true
-      });
-
-      if (!sanitizedMessage) {
-        toast.error('Message cannot be empty');
-        return;
-      }
-
-      // Check for spam content
-      if (detectSpam(sanitizedMessage)) {
-        toast.error('Message appears to contain spam or inappropriate content');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('wolf_private_messages')
-        .insert({
-          sender_id: user.id,
-          receiver_id: otherUserId,
-          message: sanitizedMessage,
-          is_read: false,
-          is_deleted: false,
-          flagged: false,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Error sending message:', error);
-        throw error;
-      }
-
-      setNewMessage('');
-      toast.success('Message sent!');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Block user with proper error handling
-  const blockUser = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('wolf_pack_interactions')
-        .upsert({
-          sender_id: user.id,
-          receiver_id: otherUserId,
-          interaction_type: 'block',
-          status: 'active',
-          created_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-
-      toast.success('User blocked');
-      router.back();
-    } catch (error) {
-      console.error('Error blocking user:', error);
-      toast.error('Failed to block user');
-    }
-  };
-
+  // Loading state
   if (isLoading) {
     return (
       <div className="container mx-auto p-4 max-w-2xl">
         <Card>
           <CardContent className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
               <p className="text-muted-foreground">Loading chat...</p>
             </div>
           </CardContent>
@@ -397,6 +161,34 @@ export default function OptimizedPrivateChatPage() {
     );
   }
 
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Error Loading Chat
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Blocked state
   if (isBlocked) {
     return (
       <div className="container mx-auto p-4 max-w-2xl">
@@ -420,17 +212,13 @@ export default function OptimizedPrivateChatPage() {
     );
   }
 
-  const displayName = otherUser?.display_name || 
-                     `${otherUser?.first_name || ''} ${otherUser?.last_name || ''}`.trim() ||
-                     otherUserName;
-
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <Card className="h-[80vh] flex flex-col">
         {/* Chat Header */}
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 border-b">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -440,27 +228,49 @@ export default function OptimizedPrivateChatPage() {
                 name={displayName}
                 emoji={otherUser?.wolf_emoji}
                 size="md"
+                className="flex-shrink-0"
               />
               
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg truncate">
                     {displayName}
                   </CardTitle>
-                  {!isOnline && (
-                    <WifiOff className="h-3 w-3 text-muted-foreground" />
-                  )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {otherUser?.is_online && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    )}
+                    {connectionState !== ConnectionState.CONNECTED && (
+                      <WifiOff className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    {unreadCount > 0 && (
+                      <span className="bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5 min-w-[1.25rem] text-center">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {otherUser?.vibe_status || otherUser?.bio || 'Wolf Pack Member'}
+                <p className="text-sm text-muted-foreground truncate">
+                  {isTyping ? (
+                    <span className="text-sm">Typing...</span>
+                  ) : (
+                    otherUser?.vibe_status || 
+                    otherUser?.bio || 
+                    (otherUser?.is_online ? 'Online' : (
+                      otherUser?.last_activity ? 
+                        `Last seen ${formatMessageTime(otherUser.last_activity)}` : 
+                        'Offline'
+                    ))
+                  )}
                 </p>
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={blockUser}
+            {/* Simple block button */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBlockUser}
               className="text-destructive hover:text-destructive"
             >
               <UserX className="h-4 w-4" />
@@ -469,75 +279,119 @@ export default function OptimizedPrivateChatPage() {
         </CardHeader>
 
         {/* Messages */}
-        <CardContent className="flex-1 overflow-y-auto space-y-4 pb-4">
-          {messages.length === 0 ? (
+        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+          {groupedMessages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Start a conversation with {displayName}!</p>
+              <p className="text-lg mb-2">Start a conversation with {displayName}!</p>
               {otherUser?.favorite_drink && (
-                <p className="text-xs mt-1">🍹 Favorite drink: {otherUser.favorite_drink}</p>
+                <p className="text-sm opacity-75">🍹 Their favorite drink: {otherUser.favorite_drink}</p>
+              )}
+              {otherUser?.bio && (
+                <p className="text-sm opacity-75 mt-1">&quot;{otherUser.bio}&quot;</p>
               )}
             </div>
           ) : (
             <>
-              {messages.map((message) => {
-                const isMyMessage = message.sender_id === user?.id;
-                const senderInfo = isMyMessage ? null : message.sender_user;
-                
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} items-end gap-2`}
-                  >
-                    {!isMyMessage && (
+              {groupedMessages.map((group) => (
+                <div key={`${group.senderId}_${group.timestamp}`} className="space-y-2">
+                  <div className={`flex items-start gap-3 ${
+                    group.senderId === otherUserId ? 'flex-row' : 'flex-row-reverse'
+                  }`}>
+                    {group.senderId === otherUserId && (
                       <AvatarWithFallback
-                        src={senderInfo?.profile_image_url || otherUser?.profile_image_url}
-                        name={senderInfo?.display_name || displayName}
-                        emoji={senderInfo?.wolf_emoji || otherUser?.wolf_emoji}
+                        src={group.senderAvatar || otherUser?.profile_image_url}
+                        name={group.senderName}
+                        emoji={otherUser?.wolf_emoji}
                         size="sm"
-                        className="mb-1"
+                        className="mt-1 flex-shrink-0"
                       />
                     )}
                     
-                    <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
-                        isMyMessage
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className={`text-xs ${
-                          isMyMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                        }`}>
-                          {message.created_at ? new Date(message.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : 'Unknown time'}
-                        </p>
-                        {isMyMessage && (
-                          <span className={`text-xs ${
-                            message.is_read ? 'text-primary-foreground/70' : 'text-primary-foreground/50'
-                          }`}>
-                            {message.is_read ? '✓✓' : '✓'}
-                          </span>
-                        )}
-                      </div>
+                    <div className={`flex flex-col space-y-1 max-w-[70%] ${
+                      group.senderId === otherUserId ? 'items-start' : 'items-end'
+                    }`}>
+                      {group.messages.map((message, index) => (
+                        <div
+                          key={message.id}
+                          className={`group relative p-3 rounded-2xl ${
+                            group.senderId === otherUserId
+                              ? 'bg-muted text-muted-foreground'
+                              : 'bg-primary text-primary-foreground'
+                          } ${
+                            index === 0 ? (
+                              group.senderId === otherUserId 
+                                ? 'rounded-tl-md' 
+                                : 'rounded-tr-md'
+                            ) : ''
+                          } ${
+                            index === group.messages.length - 1 ? (
+                              group.senderId === otherUserId 
+                                ? 'rounded-bl-md' 
+                                : 'rounded-br-md'
+                            ) : ''
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {message.content}
+                          </p>
+                          
+                          <div className="flex items-center justify-between mt-1 gap-2">
+                            <span className={`text-xs opacity-70`}>
+                              {formatMessageTime(message.timestamp)}
+                            </span>
+                            
+                            {group.senderId !== otherUserId && (
+                              <span className={`text-xs opacity-70`}>
+                                {message.isRead ? '✓✓' : '✓'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Simple report button for other user's messages */}
+                          {group.senderId === otherUserId && (
+                            <div className="absolute top-0 right-0 translate-x-full opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleReportMessage(message.id)}
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
               <div ref={messagesEndRef} />
             </>
           )}
         </CardContent>
 
         {/* Connection Status Bar */}
-        {!isOnline && (
-          <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 flex items-center gap-2">
-            <WifiOff className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-            <p className="text-xs text-yellow-600 dark:text-yellow-400">
-              Connection lost. Messages will be sent when reconnected.
+        {connectionState !== ConnectionState.CONNECTED && (
+          <div className={`px-4 py-2 flex items-center gap-2 border-t ${
+            connectionState === ConnectionState.RECONNECTING 
+              ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' 
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+          }`}>
+            {connectionState === ConnectionState.RECONNECTING ? (
+              <Loader2 className="h-4 w-4 animate-spin text-yellow-600 dark:text-yellow-400" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
+            )}
+            <p className={`text-xs ${
+              connectionState === ConnectionState.RECONNECTING 
+                ? 'text-yellow-600 dark:text-yellow-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {connectionState === ConnectionState.RECONNECTING 
+                ? 'Reconnecting...' 
+                : 'Connection lost. Messages will be sent when reconnected.'
+              }
             </p>
           </div>
         )}
@@ -547,28 +401,51 @@ export default function OptimizedPrivateChatPage() {
           <div className="flex gap-2">
             <Input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={isOnline ? "Type your message..." : "Reconnecting..."}
-              onKeyPress={(e) => {
+              onChange={handleInputChange}
+              placeholder={
+                connectionState === ConnectionState.CONNECTED 
+                  ? "Type your message..." 
+                  : "Reconnecting..."
+              }
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  sendMessage();
+                  handleSendMessage();
                 }
               }}
-              disabled={isSending || !isOnline}
+              disabled={isSending || connectionState !== ConnectionState.CONNECTED}
               maxLength={500}
+              className="flex-1"
             />
             <Button
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || isSending || !isOnline}
+              onClick={handleSendMessage}
+              disabled={
+                !newMessage.trim() || 
+                isSending || 
+                connectionState !== ConnectionState.CONNECTED
+              }
               size="sm"
+              className="px-3"
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {newMessage.length}/500 characters
-          </p>
+          
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-muted-foreground">
+              {newMessage.length}/500 characters
+            </p>
+            {connectionState === ConnectionState.CONNECTED && (
+              <div className="flex items-center gap-1">
+                <Wifi className="h-3 w-3 text-green-500" />
+                <span className="text-xs text-muted-foreground">Connected</span>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
     </div>

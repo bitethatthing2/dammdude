@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { z } from "zod";
 import { createNotification, createBulkNotifications } from "@/lib/actions/notification-actions";
-import { createClient } from '@/lib/supabase/server';
 
 // Schema for single notification
 const createNotificationSchema = z.object({
@@ -25,7 +24,7 @@ const createBulkNotificationsSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {

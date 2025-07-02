@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
 
 // Input validation schema
 const updateOrderStatusSchema = z.object({
@@ -83,52 +82,58 @@ export async function PATCH(
         // Get table information from table_location string
         const tableName = order.table_location;
         
-        // Create notification for the customer
+        // Create notification message
         const notificationMessage = tableName 
           ? `Your order for ${tableName} is ready for pickup!`
           : 'Your order is ready for pickup!';
         
-        // Use push_notifications table 
-        await supabase
-          .from('push_notifications')
-          .insert({
-            title: 'Order Ready!',
-            body: notificationMessage,
-            type: 'info',
-            id: null, // For anonymous orders
-            data: {
-              order_id: orderId,
-              order_status: status,
-              table_name: tableName || null,
-              customer_id: order.customer_id
-            }
-          });
-        
-        // Also send push notification if user has device tokens
+        // Get customer's active device tokens
         const { data: deviceTokens } = await supabase
           .from('device_tokens')
-          .select('token')
-          .eq('id', order.customer_id)
+          .select('id, token')
+          .eq('user_id', order.customer_id)  // Fixed: use user_id not id
           .eq('is_active', true);
         
         if (deviceTokens && deviceTokens.length > 0) {
-          // Queue push notification for sending
-          await supabase
+          // Create push notifications for each device token
+          const notifications = deviceTokens.map(device => ({
+            user_id: order.customer_id,
+            device_token_id: device.id,
+            title: 'Order Ready! 🍺',
+            body: notificationMessage,
+            type: 'order_update',
+            priority: 'high',
+            data: {
+              order_id: orderId,
+              order_status: status,
+              table_location: tableName || null,
+              action: 'view_order'
+            },
+            status: 'pending'
+          }));
+          
+          const { error: notificationError } = await supabase
             .from('push_notifications')
-            .insert({
-              id: order.customer_id,
-              title: 'Order Ready!',
-              body: notificationMessage,
-              data: {
-                type: 'order',
-                order_id: orderId,
-                action: 'view_order'
-              },
-              status: 'pending'
-            });
+            .insert(notifications);
+          
+          if (notificationError) {
+            console.error('Failed to create push notifications:', notificationError);
+          } else {
+            notificationSent = true;
+            
+            // Update the order to mark that notification was sent
+            await supabase
+              .from('bartender_orders')
+              .update({ 
+                ready_notification_sent: true,
+                ready_at: new Date().toISOString()
+              })
+              .eq('id', orderId);
+          }
+        } else {
+          console.warn(`No active device tokens found for customer ${order.customer_id}`);
         }
         
-        notificationSent = true;
       } catch (notificationError) {
         console.error('Error sending notifications:', notificationError);
         // Continue even if notification fails
@@ -140,9 +145,12 @@ export async function PATCH(
       success: true,
       order: {
         id: orderId,
-        status
+        status,
+        previousStatus: order.status,
+        tableLocation: order.table_location
       },
-      notificationSent
+      notificationSent,
+      customerHasDeviceTokens: order.customer_id ? true : false
     });
     
   } catch (err) {

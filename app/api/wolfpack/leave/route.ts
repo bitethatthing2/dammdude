@@ -1,9 +1,9 @@
 // app/api/wolfpack/leave/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getDatabaseUserId } from '@/lib/utils/user-mapping';
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -42,14 +42,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Update user status
-    await supabase
-      .from('users')
-      .update({
-        wolfpack_status: 'inactive'
-      })
-      .eq('id', databaseUserId);
-
     return NextResponse.json({
       success: true,
       message: 'Left wolfpack successfully'
@@ -65,6 +57,6 @@ export async function DELETE(request: NextRequest) {
 }
 
 // Also support POST method for consistency with other endpoints
-export async function POST(request: NextRequest) {
-  return DELETE(request);
+export async function POST() {
+  return DELETE();
 }

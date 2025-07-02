@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { validateFcmToken, initializeFirebaseAdmin, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { validateFcmToken, initializeFirebaseAdmin, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
 
 // Interface for the request body containing the FCM token
 interface FcmTokenRequestBody {
@@ -61,10 +60,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Initialize Supabase client
-    const supabaseAdmin = await createServerClient();
+    const supabase = await createClient();
     
     // Check if token already exists
-    const { data: existingToken, error: checkError } = await supabaseAdmin
+    const { data: existingToken, error: checkError } = await supabase
       .from('device_tokens')
       .select('token, created_at')
       .eq('token', token)
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
       // Token exists, update the last active time and device info
       console.log('Token already exists, updating last active time');
       
-      const { error: updateError } = await supabaseAdmin
+      const { error: updateError } = await supabase
         .from('device_tokens')
         .update({
           platform: deviceInfo.platform,
@@ -112,7 +111,7 @@ export async function POST(request: NextRequest) {
       // New token, insert it
       console.log('Inserting new token');
       
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await supabase
         .from('device_tokens')
         .insert([
           {

@@ -171,7 +171,7 @@ export type TokenRegistrationState =
 // Notification categories for topic management
 export const NOTIFICATION_TOPICS = {
   ALL_DEVICES: 'all_devices',
-  wolf-pack-members: 'wolf-pack-members',
+  "wolf-pack-members": 'wolf-pack-members',
   WOLFPACK_SALEM: 'wolfpack_salem',
   WOLFPACK_PORTLAND: 'wolfpack_portland',
   BARTENDERS: 'bartenders',

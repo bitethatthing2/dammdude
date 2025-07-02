@@ -22,8 +22,10 @@ export default function UnifiedLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();  // Diagnostic function to test Supabase connectivity
-  const testSupabaseConnection = async () => {
+  const { toast } = useToast();
+
+  // Diagnostic function to test Supabase connectivity
+  const testSupabaseConnection = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.from('users').select('count').limit(1);
       console.log('Supabase connection test:', { data, error });
@@ -88,6 +90,7 @@ export default function UnifiedLoginPage() {
                 email: data.user.email || '',
                 first_name: displayName?.split(' ')[0] || '',
                 last_name: displayName?.split(' ').slice(1).join(' ') || '',
+                display_name: displayName || '',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               });
@@ -129,13 +132,25 @@ export default function UnifiedLoginPage() {
           if (error.message.includes('Invalid login credentials')) {
             errorMessage = 'Invalid email or password. Please double-check your credentials and try again.';
             
-            // Run diagnostic test when credentials are invalid
-            testSupabaseAuth().then(result => {
-              console.log('🔍 Auth diagnostic test results:', result);
-              if (!result.success) {
+            // Run diagnostic tests when credentials are invalid
+            try {
+              const [authResult, connectionResult] = await Promise.all([
+                testSupabaseAuth(),
+                testSupabaseConnection()
+              ]);
+              
+              console.log('🔍 Auth diagnostic test results:', authResult);
+              console.log('🔍 Connection test results:', connectionResult);
+              
+              if (!authResult.success) {
+                console.error('🚨 Supabase auth issues detected');
+              }
+              if (!connectionResult) {
                 console.error('🚨 Supabase connection issues detected');
               }
-            });
+            } catch (diagnosticError) {
+              console.error('Diagnostic tests failed:', diagnosticError);
+            }
             
           } else if (error.message.includes('Email not confirmed')) {
             errorMessage = 'Please check your email and confirm your account before signing in. Check your spam folder if needed.';
@@ -145,6 +160,14 @@ export default function UnifiedLoginPage() {
             errorMessage = 'No account found with this email. Please sign up first or check your email address.';
           } else if (error.message.includes('Database error') || error.message.includes('schema')) {
             errorMessage = 'Database connection issue. Please contact support if this persists.';
+            
+            // Test connection when database errors occur
+            testSupabaseConnection().then(result => {
+              if (!result) {
+                console.error('🚨 Database connection confirmed to be failing');
+              }
+            });
+            
           } else if (error.message.includes('signup disabled')) {
             errorMessage = 'New user registration is currently disabled. Please contact support.';
           }
@@ -269,6 +292,7 @@ export default function UnifiedLoginPage() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -298,6 +322,7 @@ export default function UnifiedLoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />

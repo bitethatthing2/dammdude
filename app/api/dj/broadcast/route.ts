@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
+import { WolfpackBackendService, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
 import type { User } from '@supabase/supabase-js';
+
+// =============================================================================
+// TABLE CONSTANTS
+// =============================================================================
+
+const WOLFPACK_TABLES = {
+  DJ_BROADCASTS: 'dj_broadcasts',
+  WOLFPACK_CHAT_MESSAGES: 'wolfpack_chat_messages',
+  USERS: 'users',
+  LOCATIONS: 'locations'
+} as const;
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -30,6 +41,7 @@ interface BroadcastData {
   dj_id: string;
   location_id: string;
   message: string;
+  title: string;
   broadcast_type: string;
   created_at: string;
 }
@@ -37,7 +49,7 @@ interface BroadcastData {
 interface ChatData {
   id: string;
   session_id: string;
-  id: string;
+  user_id: string;
   display_name: string;
   avatar_url: string | null;
   content: string;
@@ -113,7 +125,6 @@ function sanitizeMessage(message: string): string {
     .replace(/\s+/g, ' '); // Normalize whitespace
 }
 
-
 // =============================================================================
 // AUTHENTICATION & AUTHORIZATION
 // =============================================================================
@@ -137,7 +148,7 @@ async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createCli
 
   // Get user data with proper typing
   const { data: userData, error } = await supabase
-    .from('users')
+    .from(WOLFPACK_TABLES.USERS)
     .select('id, role, display_name, first_name, last_name, avatar_url, email')
     .eq('id', user.id)
     .single();
@@ -187,78 +198,124 @@ function generateChatMessage(message: string, broadcastType: string, djName: str
   }
 }
 
-async function createBroadcast(
-  userId: string, 
-  locationId: string, 
-  message: string, 
-  broadcastType: string
-): Promise<BroadcastData> {
-  const broadcastData = {
-    dj_id: userId,
-    location_id: locationId,
-    message: sanitizeMessage(message),
-    broadcast_type: broadcastType,
-    created_at: new Date().toISOString()
-  };
+// =============================================================================
+// ENHANCED ERROR HANDLING & LOGGING
+// =============================================================================
 
-  const result = await WolfpackBackendService.insert(
-    WOLFPACK_TABLES.DJ_BROADCASTS,
-    broadcastData,
-    '*'
-  );
-
-  if (result.error || !result.data?.[0]) {
-    throw new Error(`Failed to create broadcast: ${result.error}`);
-  }
-
-  return result.data[0] as BroadcastData;
+interface ServiceResult<T> {
+  data: T | null;
+  error: string | null;
+  code?: string;
 }
 
-async function createChatMessage(
-  userId: string,
-  locationId: string,
-  message: string,
-  broadcastType: string,
-  djName: string,
-  avatarUrl?: string
-): Promise<ChatData | null> {
-  try {
-    const chatMessage = generateChatMessage(message, broadcastType, djName);
-    
-    const chatData = {
-      session_id: `location_${locationId}`,
-      id: userId,
-      display_name: djName,
-      avatar_url: avatarUrl || null,
-      content: chatMessage,
-      message_type: 'dj_broadcast',
-      created_at: new Date().toISOString(),
-      is_flagged: false,
-      is_deleted: false
-    };
+class BroadcastService {
+  static async createBroadcastRecord(
+    userId: string, 
+    locationId: string, 
+    message: string, 
+    broadcastType: string
+  ): Promise<ServiceResult<BroadcastData>> {
+    try {
+      // Generate a title based on broadcast type
+      const typeToTitle: Record<string, string> = {
+        announcement: 'DJ Announcement',
+        howl_request: 'Howl Request',
+        contest_announcement: 'Contest Alert',
+        song_request: 'Song Request',
+        general: 'DJ Broadcast'
+      };
 
-    const result = await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.WOLF_CHAT,
-      chatData,
-      '*'
-    );
+      const broadcastData = {
+        dj_id: userId,
+        location_id: locationId,
+        message: sanitizeMessage(message),
+        title: typeToTitle[broadcastType] || 'DJ Broadcast',
+        broadcast_type: broadcastType,
+        created_at: new Date().toISOString()
+      };
 
-    if (result.error || !result.data?.[0]) {
-      console.warn('Failed to create chat message:', result.error);
-      return null;
+      const result = await WolfpackBackendService.insert(
+        WOLFPACK_TABLES.DJ_BROADCASTS,
+        broadcastData
+      );
+
+      if (result.error || !result.data?.[0]) {
+        return {
+          data: null,
+          error: `Failed to create broadcast: ${result.error}`,
+          code: 'DB_INSERT_ERROR'
+        };
+      }
+
+      return {
+        data: result.data[0] as BroadcastData,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error creating broadcast record:', error);
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        code: 'SERVICE_ERROR'
+      };
     }
+  }
 
-    return result.data[0] as ChatData;
-  } catch (error: unknown) {
-    console.warn('Error creating chat message:', error);
-    return null;
+  static async createChatRecord(
+    userId: string,
+    locationId: string,
+    message: string,
+    broadcastType: string,
+    djName: string,
+    avatarUrl?: string
+  ): Promise<ServiceResult<ChatData>> {
+    try {
+      const chatMessage = generateChatMessage(message, broadcastType, djName);
+      
+      const chatData = {
+        session_id: `location_${locationId}`,
+        user_id: userId,
+        display_name: djName,
+        avatar_url: avatarUrl || null,
+        content: chatMessage,
+        message_type: 'dj_broadcast',
+        created_at: new Date().toISOString(),
+        is_flagged: false,
+        is_deleted: false
+      };
+
+      const result = await WolfpackBackendService.insert(
+        WOLFPACK_TABLES.WOLFPACK_CHAT_MESSAGES,
+        chatData
+      );
+
+      if (result.error || !result.data?.[0]) {
+        return {
+          data: null,
+          error: `Failed to create chat message: ${result.error}`,
+          code: 'DB_INSERT_ERROR'
+        };
+      }
+
+      return {
+        data: result.data[0] as ChatData,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error creating chat record:', error);
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        code: 'SERVICE_ERROR'
+      };
+    }
   }
 }
 
 async function validateLocationAccess(supabase: Awaited<ReturnType<typeof createClient>>, locationId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('locations')
+      .from(WOLFPACK_TABLES.LOCATIONS)
       .select('id, is_active')
       .eq('id', locationId)
       .single();
@@ -392,15 +449,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
                          'DJ';
 
     // 8. Create broadcast record
-    const broadcastRecord = await createBroadcast(
+    const broadcastResult = await BroadcastService.createBroadcastRecord(
       user.id, 
       location_id, 
       message, 
       broadcast_type
     );
 
+    if (broadcastResult.error || !broadcastResult.data) {
+      throw new Error(broadcastResult.error || 'Failed to create broadcast');
+    }
+
+    const broadcastRecord = broadcastResult.data;
+
     // 9. Create chat message (non-blocking)
-    const chatRecord = await createChatMessage(
+    const chatResult = await BroadcastService.createChatRecord(
       user.id,
       location_id,
       message,
@@ -409,6 +472,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       WolfpackAuthService.getUserAvatarUrl(user) || userData.avatar_url
     );
 
+    // Log chat creation issues but don't fail the broadcast
+    if (chatResult.error) {
+      console.warn('Chat message creation failed:', chatResult.error);
+    }
+
     // 10. Record broadcast for rate limiting
     recordBroadcast(user.id);
 
@@ -416,7 +484,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
     return NextResponse.json({
       success: true,
       broadcast_id: broadcastRecord.id,
-      chat_message_id: chatRecord?.id || null,
+      chat_message_id: chatResult.data?.id || null,
       created_at: broadcastRecord.created_at,
       message: broadcastRecord.message,
       broadcast_type: broadcastRecord.broadcast_type
@@ -496,7 +564,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetBroadca
 
     // Get recent broadcasts
     const { data: broadcasts, error } = await supabase
-      .from('dj_broadcasts')
+      .from(WOLFPACK_TABLES.DJ_BROADCASTS)
       .select(`
         id,
         message,

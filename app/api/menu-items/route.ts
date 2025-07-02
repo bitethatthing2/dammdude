@@ -2,36 +2,19 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 
-interface MenuItemWithModifiers {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  is_available: boolean;
+interface MenuItem {
+  category_id: string;
   category_name: string;
-  menu_type: string;
-  category_icon: string;
-  modifiers: Array<{
-    type: string;
-    options: Array<{
-      id: string;
-      name: string;
-      price_adjustment: number;
-    }>;
-    required: boolean;
-    max_selections: number;
-  }>;
 }
+
 export async function GET(request: NextRequest) {
   try {
-    // Get the category ID from query params (optional)
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
     
     const supabase = await createClient();
     
-    // Use the function that returns menu items with modifiers (with type assertion)
-    const { data, error } = await (supabase as any).rpc('get_menu_items_with_modifiers');
+    const { data, error } = await supabase.rpc('get_menu_items_with_modifiers');
     
     if (error) {
       console.error('Error fetching menu items with modifiers:', error);
@@ -43,19 +26,15 @@ export async function GET(request: NextRequest) {
     
     let menuItems = data || [];
     
-    // If categoryId is provided, filter by it
     if (categoryId) {
-      const categoryIdNum = parseInt(categoryId, 10);
-      if (isNaN(categoryIdNum)) {
-        return NextResponse.json(
-          { error: 'Invalid category ID' },
-          { status: 400 }
-        );
-      }
-      // Filter by category name since the function returns category_name
-      menuItems = (menuItems as any[]).filter((item: any) => {
-        // You may need to adjust this based on how categories are mapped
-        return item.category_name === categoryId;
+      menuItems = menuItems.filter((item: MenuItem) => {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
+        
+        if (isUUID) {
+          return item.category_id === categoryId;
+        } else {
+          return item.category_name.toLowerCase() === categoryId.toLowerCase();
+        }
       });
     }
     

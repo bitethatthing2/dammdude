@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
-import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
 import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
@@ -106,12 +104,6 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
 }
 
 async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, user: User): Promise<UserData> {
-  // Verify user through auth service
-  const authResult = await WolfpackAuthService.verifyUser(user);
-  if (!authResult.isVerified) {
-    throw new Error('User verification failed');
-  }
-
   // Get user data with proper typing
   const { data: userData, error } = await supabase
     .from('users')
@@ -125,8 +117,7 @@ async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createCli
 
   const typedUserData = userData as UserData;
   const isDJ = typedUserData.role === 'dj' || 
-               typedUserData.role === 'admin' || 
-               authResult.isVipUser;
+               typedUserData.role === 'admin';
 
   if (!isDJ) {
     throw new Error('DJ permissions required');
@@ -259,8 +250,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
     const userData = await verifyDJPermissions(supabase, user);
 
     // 5. Get display name for DJ
-    const djDisplayName = WolfpackAuthService.getUserDisplayName(user) || 
-                         userData.display_name || 
+    const djDisplayName = userData.display_name || 
                          `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 
                          userData.email.split('@')[0] || 
                          'DJ';
@@ -286,22 +276,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
         options: options.map(opt => sanitizeString(opt, 100)),
         dj_name: djDisplayName
       },
-      options: options.length > 0 ? JSON.stringify(options.map(opt => sanitizeString(opt, 100))) : null
+      options: options.length > 0 ? options.map(opt => sanitizeString(opt, 100)) : null
     };
 
     // 7. Insert event into database
-    const result = await WolfpackBackendService.insert(
-      WOLFPACK_TABLES.EVENTS,
-      eventData,
-      '*'
-    );
+    const { data: eventRecords, error: insertError } = await supabase
+      .from('dj_events')
+      .insert(eventData)
+      .select('*');
 
-    if (result.error) {
-      console.error('Event creation failed:', result.error);
-      throw new Error(`Failed to create event: ${result.error}`);
+    if (insertError) {
+      console.error('Event creation failed:', insertError);
+      throw new Error(`Failed to create event: ${insertError.message}`);
     }
 
-    const eventRecord = result.data?.[0] as EventData | undefined;
+    const eventRecord = eventRecords?.[0] as EventData | undefined;
     if (!eventRecord) {
       throw new Error('Event was created but no data returned');
     }
@@ -310,21 +299,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
     const announcementMessage = generateChatAnnouncement(event_type, title);
 
     try {
-      await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_CHAT,
-        {
+      // Use direct Supabase client instead of service layer for chat
+      const { error: chatError } = await supabase
+        .from('wolfpack_chat_messages')
+        .insert({
           session_id: `location_${location_id}`,
-          id: user.id,
+          user_id: user.id,
           display_name: djDisplayName,
-          avatar_url: WolfpackAuthService.getUserAvatarUrl(user) || userData.avatar_url,
+          avatar_url: userData.avatar_url,
           content: announcementMessage,
           message_type: 'dj_broadcast',
-          created_at: now.toISOString(),
           is_flagged: false,
           is_deleted: false
-        },
-        'id'
-      );
+        });
+
+      if (chatError) {
+        console.warn('Failed to create chat announcement:', chatError);
+      }
     } catch (chatError: unknown) {
       // Log but don't fail the event creation
       console.warn('Failed to create chat announcement:', chatError);
@@ -369,19 +360,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateEve
       }
     }
 
-    // Create a proper error object for WolfpackErrorHandler
+    // Create a proper error object
     const errorToHandle = error instanceof Error ? error : new Error(
       typeof error === 'string' ? error : 'Unknown error occurred'
     );
 
-    // Handle Supabase errors
-    const userError = WolfpackErrorHandler.handleSupabaseError(errorToHandle, {
-      operation: 'dj_event_creation',
-      userId: 'unknown'
-    });
-
     return NextResponse.json(
-      { error: userError.message, code: 'SERVER_ERROR' },
+      { error: errorToHandle.message, code: 'SERVER_ERROR' },
       { status: 500 }
     );
   }

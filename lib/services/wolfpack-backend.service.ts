@@ -489,7 +489,7 @@ export class WolfpackErrorHandler {
 
 export const WOLFPACK_TABLES = {
   DJ_BROADCASTS: 'dj_broadcasts',
-  WOLF_CHAT: 'wolfpack_chat_messages',  // FIXED: Changed from 'wolf_chat' to match actual table name
+  WOLF_CHAT: 'wolfpack_chat_messages',
   USERS: 'users',
   LOCATIONS: 'locations',
   EVENTS: 'dj_events',
@@ -500,20 +500,23 @@ export const WOLFPACK_TABLES = {
 // TYPED INTERFACES FOR DATABASE OPERATIONS
 // =============================================================================
 
+// FIXED: Added missing title field and made all fields match database schema
 interface DJBroadcastInsert {
   dj_id: string;
   location_id: string;
   message: string;
+  title: string; // REQUIRED field - was missing
   broadcast_type: string;
   created_at: string;
 }
 
+// FIXED: Corrected field name to match database schema
 interface ChatMessageInsert {
   session_id: string;
-  id: string;
+  user_id: string; // FIXED: Changed from 'id' to 'user_id'
   display_name: string;
   avatar_url: string | null;
-  content: string; // FIXED: Use 'content' instead of 'message' to match DB schema
+  content: string;
   message_type: string;
   created_at: string;
   is_flagged: boolean;
@@ -565,10 +568,20 @@ export class WolfpackBackendService {
     broadcastType: string = 'general'
   ) {
     try {
+      // Generate title based on broadcast type
+      const typeToTitle: Record<string, string> = {
+        announcement: 'DJ Announcement',
+        howl_request: 'Howl Request',
+        contest_announcement: 'Contest Alert',
+        song_request: 'Song Request',
+        general: 'DJ Broadcast'
+      };
+
       const insertData: DJBroadcastInsert = {
         dj_id: djId,
         location_id: locationId,
         message,
+        title: typeToTitle[broadcastType] || 'DJ Broadcast', // FIXED: Added required title
         broadcast_type: broadcastType,
         created_at: new Date().toISOString()
       };
@@ -669,10 +682,10 @@ export class WolfpackBackendService {
     try {
       const insertData: ChatMessageInsert = {
         session_id: sessionId,
-        id: userId,
+        user_id: userId, // FIXED: Use user_id instead of id
         display_name: displayName,
         avatar_url: avatarUrl || null,
-        content: content, // FIXED: Use 'content' to match table schema
+        content: content,
         message_type: messageType,
         created_at: new Date().toISOString(),
         is_flagged: false,
@@ -909,10 +922,10 @@ export class WolfpackBackendService {
         );
       
       case 'wolfpack_chat_messages':
-      case WOLFPACK_TABLES.WOLF_CHAT:
+      case WOLFPACK_TABLES.WOLF_CHAT: // FIXED: Removed syntax error
         return this.createChatMessage(
           data.session_id as string,
-          data.id as string,
+          data.user_id as string, // FIXED: Use user_id
           data.display_name as string,
           (data.content as string) || (data.message as string), // Handle both field names
           data.message_type as string,
@@ -942,7 +955,7 @@ export class WolfpackBackendService {
 
   static async select(
     table: string,
-    columns?: string, // FIXED: Made optional to avoid unused parameter warning
+    columns?: string,
     filters?: Record<string, unknown>,
     options?: {
       orderBy?: { column: string; ascending?: boolean };
@@ -1041,7 +1054,7 @@ export class WolfpackSimpleService {
 
   static async createChatMessage(params: {
     session_id: string;
-    id: string;
+    user_id: string; // FIXED: Changed from 'id' to 'user_id'
     display_name: string;
     avatar_url?: string;
     content: string;
@@ -1049,7 +1062,7 @@ export class WolfpackSimpleService {
   }) {
     return WolfpackBackendService.createChatMessage(
       params.session_id,
-      params.id,
+      params.user_id, // FIXED: Use user_id
       params.display_name,
       params.content,
       params.message_type,

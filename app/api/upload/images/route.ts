@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = new Uint8Array(arrayBuffer);
 
-        // Upload to the 'images' bucket (which exists in your backend)
+        // Upload to the 'images' bucket
         const { error: uploadError } = await supabase.storage
           .from('images')
           .upload(fileName, buffer, {
@@ -81,13 +81,45 @@ export async function POST(request: NextRequest) {
           .from('images')
           .getPublicUrl(fileName);
 
+        // Create image record in database
+        const { data: imageData, error: imageRecordError } = await supabase.rpc('create_image_record', {
+          p_name: file.name,
+          p_url: publicUrl,
+          p_size: file.size,
+          p_type: 'profile'
+        });
+
+        if (imageRecordError) {
+          console.error('Error creating image record:', imageRecordError);
+          // Don't fail the whole operation, but log the error
+        }
+
+        let imageId: string | null = null;
+        if (imageData && typeof imageData === 'object' && 'id' in imageData) {
+          // Ensure imageId is a string
+          const rawId = imageData.id;
+          imageId = typeof rawId === 'string' ? rawId : String(rawId);
+        }
+
+        // Prepare update object with proper typing
+        const updateData: {
+          profile_pic_url: string;
+          profile_image_url: string;
+          custom_avatar_id?: string;
+        } = {
+          profile_pic_url: publicUrl,
+          profile_image_url: publicUrl
+        };
+
+        // Only add custom_avatar_id if we have a valid string imageId
+        if (imageId && typeof imageId === 'string') {
+          updateData.custom_avatar_id = imageId;
+        }
+
         // Update user profile with the new image URL
         const { error: updateError } = await supabase
           .from('users')
-          .update({
-            profile_pic_url: publicUrl,
-            profile_image_url: publicUrl
-          })
+          .update(updateData)
           .eq('id', user.id);
 
         if (updateError) {
@@ -97,6 +129,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
+          image_id: imageId,
           image_url: publicUrl,
           message: 'Profile image uploaded successfully'
         });
@@ -111,9 +144,9 @@ export async function POST(request: NextRequest) {
     }
 
     // For menu item images, use the existing RPC function logic
-    // Note: This function only creates a database record, doesn't upload the actual file
-    const { data: imageId, error: uploadError } = await supabase.rpc('handle_image_upload', {
-      p_id: user.id,
+    // Fixed: Use p_user_id instead of p_id
+    const { data: rawImageId, error: uploadError } = await supabase.rpc('handle_image_upload', {
+      p_user_id: user.id,  // Changed from p_id to p_user_id
       p_file_name: file.name,
       p_file_size: file.size,
       p_mime_type: file.type,
@@ -128,24 +161,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ensure imageId is a string
+    const imageId = rawImageId ? String(rawImageId) : null;
+
+    if (!imageId) {
+      return NextResponse.json(
+        { error: 'Failed to get image ID from database' },
+        { status: 500 }
+      );
+    }
+
     // Build the URL based on how the function constructs it
     const userFolder = user.id.substring(0, 8);
     const storagePath = `${imageType}/${userFolder}/${imageId}_${file.name}`;
     const publicUrl = `https://tvnpgbjypnezoasbhbwx.supabase.co/storage/v1/object/public/images/${storagePath}`;
 
     // Now we need to actually upload the file to storage
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = new Uint8Array(arrayBuffer);
 
-    const { error: storageError } = await supabase.storage
-      .from('images')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: false
-      });
+      const { error: storageError } = await supabase.storage
+        .from('images')
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: false
+        });
 
-    if (storageError) {
-      console.error('Storage upload error:', storageError);
+      if (storageError) {
+        console.error('Storage upload error:', storageError);
+        // Clean up the database record since upload failed
+        await supabase.from('images').delete().eq('id', imageId);
+        return NextResponse.json(
+          { error: `Failed to upload file to storage: ${storageError.message}` },
+          { status: 500 }
+        );
+      }
+    } catch (storageUploadError) {
+      console.error('Storage upload exception:', storageUploadError);
       // Clean up the database record since upload failed
       await supabase.from('images').delete().eq('id', imageId);
       return NextResponse.json(
@@ -156,13 +209,28 @@ export async function POST(request: NextRequest) {
 
     // If itemId is provided and this is a menu item image, update the item
     if (itemId && imageType === 'menu_item' && imageId) {
-      const { error: updateError } = await supabase.rpc('admin_update_item_image', {
-        p_item_id: itemId,
-        p_image_url: publicUrl
-      });
+      try {
+        // Validate itemId is a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(itemId)) {
+          console.error('Invalid itemId format:', itemId);
+          return NextResponse.json(
+            { error: 'Invalid item ID format' },
+            { status: 400 }
+          );
+        }
 
-      if (updateError) {
-        console.error('Error linking image to menu item:', updateError);
+        const { error: updateError } = await supabase.rpc('admin_update_item_image', {
+          p_item_id: itemId,
+          p_image_url: publicUrl
+        });
+
+        if (updateError) {
+          console.error('Error linking image to menu item:', updateError);
+          // Don't fail the upload, just log the error
+        }
+      } catch (linkError) {
+        console.error('Exception linking image to menu item:', linkError);
         // Don't fail the upload, just log the error
       }
     }
@@ -177,13 +245,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Unexpected error in image upload:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     );
   }
 }
 
-// Keep your existing GET endpoint as is
+// Keep your existing GET endpoint with minor improvements
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -202,6 +273,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (itemId) {
+      // Validate itemId is a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(itemId)) {
+        return NextResponse.json(
+          { error: 'Invalid item ID format' },
+          { status: 400 }
+        );
+      }
+
       // Get image for specific menu item
       const { data: itemData, error: itemError } = await supabase
         .from('food_drink_items')
@@ -238,7 +318,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Unexpected error in image fetch:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     );
   }

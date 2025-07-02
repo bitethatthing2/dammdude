@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       const locationResult = await WolfpackLocationService.verifyUserLocation();
       if (!locationResult.isAtLocation) {
         return NextResponse.json(
-          { 
-            error: 'Not within bar proximity', 
+          {
+            error: 'Not within bar proximity',
             code: 'LOCATION_ERROR',
             details: { distance: locationResult.distance }
           },
@@ -81,7 +81,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Join wolfpack error:', error);
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+    
+    // Type guard to ensure error is properly typed for WolfpackErrorHandler
+    const typedError = error instanceof Error 
+      ? error 
+      : new Error(typeof error === 'string' ? error : 'Unknown error occurred');
+    
+    const userError = WolfpackErrorHandler.handleSupabaseError(typedError, {
       operation: 'join_wolfpack'
     });
 

@@ -1,7 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
-import { sanitizeMessage, detectSpam, checkRateLimit } from '@/lib/utils/input-sanitization';
+
+// Simple rate limiting in-memory store (for production, use Redis or database)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitStore.set(userId, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (userLimit.count >= maxRequests) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
+function sanitizeMessage(message: string, options: { maxLength: number; allowLineBreaks: boolean; trimWhitespace: boolean }): string {
+  if (!message) return '';
+  
+  let sanitized = message;
+  
+  if (options.trimWhitespace) {
+    sanitized = sanitized.trim();
+  }
+  
+  if (!options.allowLineBreaks) {
+    sanitized = sanitized.replace(/\n/g, ' ');
+  }
+  
+  if (sanitized.length > options.maxLength) {
+    sanitized = sanitized.substring(0, options.maxLength);
+  }
+  
+  // Remove potentially harmful content
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  sanitized = sanitized.replace(/javascript:/gi, '');
+  
+  return sanitized;
+}
+
+function detectSpam(message: string): boolean {
+  const spamPatterns = [
+    /\b(viagra|cialis|casino|lottery|winner|congratulations|million dollars)\b/i,
+    /\b(click here|visit now|act now|limited time)\b/i,
+    /(.)\1{10,}/, // Repeated characters
+    /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, // Credit card pattern
+  ];
+  
+  return spamPatterns.some(pattern => pattern.test(message));
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,13 +116,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if recipient exists and is in pack
-    const recipientCheck = await WolfpackBackendService.queryOne(
-      WOLFPACK_TABLES.wolf-pack-memberships,
-      'id, id',
-      { id: receiver_id, status: 'active' }
-    );
+    const { data: recipientData, error: recipientError } = await supabase
+      .from('wolf_pack_members')
+      .select('id, user_id')
+      .eq('user_id', receiver_id)
+      .eq('status', 'active')
+      .single();
 
-    if (!recipientCheck.data) {
+    if (recipientError || !recipientData) {
       return NextResponse.json(
         { error: 'Recipient not found in pack', code: 'USER_ERROR' },
         { status: 404 }
@@ -77,17 +131,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for blocks
-    const blockCheck = await WolfpackBackendService.queryOne(
-      WOLFPACK_TABLES.WOLF_INTERACTIONS,
-      'id',
-      {
-        sender_id: receiver_id,
-        receiver_id: user.id,
-        interaction_type: 'block'
-      }
-    );
+    const { data: blockData, error: blockError } = await supabase
+      .from('wolf_pack_interactions')
+      .select('id')
+      .eq('sender_id', receiver_id)
+      .eq('receiver_id', user.id)
+      .eq('interaction_type', 'block')
+      .single();
 
-    if (blockCheck.data) {
+    if (blockData && !blockError) {
       return NextResponse.json(
         { error: 'Message blocked by recipient', code: 'BLOCKED_ERROR' },
         { status: 403 }
@@ -96,61 +148,65 @@ export async function POST(request: NextRequest) {
 
     // Create message or interaction
     if (type === 'message') {
-      const result = await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_PRIVATE_MESSAGES,
-        {
+      const { data: messageData, error: messageError } = await supabase
+        .from('wolf_private_messages')
+        .insert({
           sender_id: user.id,
           receiver_id,
           message: sanitizedMessage,
           is_read: false,
           created_at: new Date().toISOString()
-        },
-        'id, created_at'
-      );
+        })
+        .select('id, created_at')
+        .single();
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (messageError) {
+        console.error('Message insert error:', messageError);
+        return NextResponse.json(
+          { error: 'Failed to send message', code: 'DATABASE_ERROR' },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
         success: true,
-        message_id: (result.data?.[0] as any)?.id,
-        created_at: (result.data?.[0] as any)?.created_at
+        message_id: messageData.id,
+        created_at: messageData.created_at
       });
 
     } else {
       // Handle wink/hi interactions
-      const result = await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_INTERACTIONS,
-        {
+      const { data: interactionData, error: interactionError } = await supabase
+        .from('wolf_pack_interactions')
+        .insert({
           sender_id: user.id,
           receiver_id: receiver_id,
           interaction_type: type,
           created_at: new Date().toISOString()
-        },
-        'id, created_at'
-      );
+        })
+        .select('id, created_at')
+        .single();
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (interactionError) {
+        console.error('Interaction insert error:', interactionError);
+        return NextResponse.json(
+          { error: 'Failed to send interaction', code: 'DATABASE_ERROR' },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
         success: true,
-        interaction_id: (result.data?.[0] as any)?.id,
+        interaction_id: interactionData.id,
         type,
-        created_at: (result.data?.[0] as any)?.created_at
+        created_at: interactionData.created_at
       });
     }
 
   } catch (error) {
     console.error('Private message error:', error);
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-      operation: 'private_message'
-    });
-
     return NextResponse.json(
-      { error: userError.message, code: 'SERVER_ERROR' },
+      { error: 'Internal server error', code: 'SERVER_ERROR' },
       { status: 500 }
     );
   }

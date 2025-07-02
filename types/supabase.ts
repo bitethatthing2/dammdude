@@ -160,7 +160,7 @@ export type Database = {
         }
         Relationships: []
       }
-      wolf-pack-members: {
+      "wolf-pack-members": {
         Row: {
           id: string
           pack_id: string

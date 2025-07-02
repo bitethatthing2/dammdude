@@ -2,18 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
-import type { User } from '@supabase/supabase-js'; // Import Supabase User type
+import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
-// TYPE DEFINITIONS - Database types (update path as needed)
+// TYPE DEFINITIONS - Database types
 // =============================================================================
 
 // If you have generated Supabase types, uncomment and update the import path:
 // import { Database } from '@/lib/supabase/database.types';
-// OR
-// import { Database } from '@/types/supabase';
 
 // Temporary type definitions until proper database types are imported
+type Json = 
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 interface Database {
   public: {
     Tables: {
@@ -31,10 +37,10 @@ interface Database {
           started_at: string | null;
           ended_at: string | null;
           winner_id: string | null;
-          winner_data: unknown | null;
-          event_config: unknown | null;
+          winner_data: Json | null;
+          event_config: Json | null;
           voting_format: string | null;
-          options: unknown | null;
+          options: Json | null;
         };
         Insert: {
           id?: string;
@@ -49,10 +55,10 @@ interface Database {
           started_at?: string | null;
           ended_at?: string | null;
           winner_id?: string | null;
-          winner_data?: unknown | null;
-          event_config?: unknown | null;
+          winner_data?: Json | null;
+          event_config?: Json | null;
           voting_format?: string | null;
-          options?: unknown | null;
+          options?: Json | null;
         };
         Update: {
           id?: string;
@@ -67,10 +73,10 @@ interface Database {
           started_at?: string | null;
           ended_at?: string | null;
           winner_id?: string | null;
-          winner_data?: unknown | null;
-          event_config?: unknown | null;
+          winner_data?: Json | null;
+          event_config?: Json | null;
           voting_format?: string | null;
-          options?: unknown | null;
+          options?: Json | null;
         };
       };
       wolf_pack_votes: {
@@ -109,7 +115,7 @@ interface Database {
         Row: {
           id: string;
           session_id: string;
-          id: string | null;
+          user_id: string | null;
           display_name: string;
           avatar_url: string | null;
           content: string;
@@ -123,7 +129,7 @@ interface Database {
         Insert: {
           id?: string;
           session_id: string;
-          id?: string | null;
+          user_id?: string | null;
           display_name: string;
           avatar_url?: string | null;
           content: string;
@@ -137,7 +143,7 @@ interface Database {
         Update: {
           id?: string;
           session_id?: string;
-          id?: string | null;
+          user_id?: string | null;
           display_name?: string;
           avatar_url?: string | null;
           content?: string;
@@ -154,7 +160,7 @@ interface Database {
 }
 
 // =============================================================================
-// TYPE DEFINITIONS - Updated to match actual database schema
+// TYPE DEFINITIONS - Request/Response types
 // =============================================================================
 
 interface VoteRequest {
@@ -268,7 +274,7 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
 
 async function getEventDetails(eventId: string): Promise<EventData> {
   const eventResult = await WolfpackBackendService.select(
-    WOLFPACK_TABLES.EVENTS, // Ensure this maps to 'dj_events'
+    WOLFPACK_TABLES.EVENTS,
     '*',
     { id: eventId },
     { single: true }
@@ -467,12 +473,11 @@ async function sendConfirmationMessage(
 
     const chatMessage: ChatMessageInsert = {
       session_id: `location_${event.location_id}`,
-      id: user.id,
+      user_id: user.id,
       display_name: displayName,
       avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
       content: confirmationMessage,
       message_type: 'text',
-      created_at: new Date().toISOString(),
       is_flagged: false,
       is_deleted: false
     };

@@ -1,149 +1,80 @@
-/* Wolfpack Chat Styles */
+/* Add these styles to your existing wolfpack-chat.css file */
 
-/* Layout Utilities */
-.chat-fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.chat-header-fixed {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
-  height: 4rem;
-}
-
-.chat-content-area {
+/* Spatial Member Positions */
+.member-position {
   position: absolute;
-  top: 4rem;
-  left: 0;
-  right: 0;
-  bottom: 6rem;
-  overflow: hidden;
+  cursor: pointer;
+  transition: all 300ms ease-in-out;
+  transform: translate(-50%, -50%);
 }
 
-.chat-input-area {
+.member-position:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Position each member based on data-index */
+.member-position[data-index="0"] {
+  left: 50%;
+  top: 25%;
+}
+
+.member-position[data-index="1"] {
+  left: 25%;
+  top: 40%;
+}
+
+.member-position[data-index="2"] {
+  left: 75%;
+  top: 40%;
+}
+
+.member-position[data-index="3"] {
+  left: 35%;
+  top: 60%;
+}
+
+.member-position[data-index="4"] {
+  left: 65%;
+  top: 60%;
+}
+
+.member-position[data-index="5"] {
+  left: 15%;
+  top: 30%;
+}
+
+.member-position[data-index="6"] {
+  left: 85%;
+  top: 30%;
+}
+
+.member-position[data-index="7"] {
+  left: 20%;
+  top: 75%;
+}
+
+.member-position[data-index="8"] {
+  left: 80%;
+  top: 75%;
+}
+
+.member-position[data-index="9"] {
+  left: 50%;
+  top: 80%;
+}
+
+/* Interaction Popup */
+.interaction-popup {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(12px); /* Safari 9+ */
+  backdrop-filter: blur(12px);
+  border-radius: 0.5rem;
   padding: 1rem;
-  z-index: 30;
-  --bottom-nav-height: 4rem;
-  padding-bottom: calc(var(--bottom-nav-height) + 1rem);
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-10px, -5px); }
-  50% { transform: translate(5px, -10px); }
-  75% { transform: translate(-5px, 5px); }
-}
-
-@keyframes hexLineFlow {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: 20; }
-}
-
-@keyframes fade-in {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-@keyframes scale-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.8) translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes slide-up {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(50px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-.animate-float {
-  animation: float 20s ease-in-out infinite;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out forwards;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
-}
-
-/* Responsive Adjustments */
-@media (min-width: 640px) {
-  .chat-header-fixed {
-    height: 5rem;
-  }
-  
-  .chat-content-area {
-    top: 5rem;
-    bottom: 7rem;
-  }
-  
-  .floating-menu-desktop {
-    top: 1rem !important;
-  }
-  
-  .status-indicator-desktop {
-    top: 5rem !important;
-  }
-}
-
-/* Position helpers */
-.floating-menu-mobile {
-  top: calc(4.5rem + env(safe-area-inset-top, 0px) + 0.5rem);
-}
-
-.status-indicator-mobile {
-  top: calc(5.5rem + env(safe-area-inset-top, 0px));
-}
-
-.ai-button-position {
-  bottom: calc(4rem + 1.25rem);
-}
-
-.page-indicators-position {
-  bottom: calc(4rem + 6rem);
-}
-
-.toast-position {
-  bottom: calc(4rem + 8rem);
-}
-
-@media (min-width: 640px) {
-  .page-indicators-position {
-    bottom: calc(4rem + 7rem);
-  }
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  color: black;
 }

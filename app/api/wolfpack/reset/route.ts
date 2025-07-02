@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
+import { WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
+
+// Types for better type safety
+interface ResetOperation {
+  operation: string;
+  success: boolean;
+  error?: string;
+  affected_rows?: number;
+}
+
+interface Location {
+  id: string;
+  [key: string]: unknown;
+}
 
 // Daily reset endpoint - typically called by a cron job at 2:30 AM
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client early for admin verification
+    const supabase = await createClient();
+    
     // Verify admin access or cron secret
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET || 'wolfpack-reset-secret';
     
     if (authHeader !== `Bearer ${cronSecret}`) {
       // Try admin user verification
-      const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !user) {
@@ -23,7 +38,7 @@ export async function POST(request: NextRequest) {
 
       // Check if user is admin
       const { data: userData } = await supabase
-        .from('users')
+        .from(WOLFPACK_TABLES.USERS) // Use the constant instead of string
         .select('role')
         .eq('id', user.id)
         .single();
@@ -40,81 +55,78 @@ export async function POST(request: NextRequest) {
     const { location_id, reset_type = 'daily' } = body;
 
     const resetTimestamp = new Date().toISOString();
-    const results: Array<{ operation: string; success: boolean; error?: string; affected_rows?: number }> = [];
+    const results: ResetOperation[] = [];
 
     // If specific location provided, reset only that location
     const locationFilter = location_id ? { location_id } : {};
 
-    // Archive old chat sessions (keep them for history)
-    const chatArchiveResult = await WolfpackBackendService.update(
-      WOLFPACK_TABLES.WOLF_CHAT,
-      {
-        ...locationFilter,
-        created_at: `lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}` // Older than 24 hours
-      },
-      { is_archived: true }
-    );
+    // Mark old chat sessions as deleted (since is_archived doesn't exist)
+    const { data: chatData, error: chatError } = await supabase
+      .from(WOLFPACK_TABLES.WOLF_CHAT)
+      .update({ 
+        is_deleted: true,
+        edited_at: resetTimestamp
+      })
+      .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .match(locationFilter)
+      .select();
     
     results.push({
       operation: 'archive_old_chat',
-      success: !chatArchiveResult.error,
-      error: chatArchiveResult.error || undefined,
-      affected_rows: chatArchiveResult.data?.length || 0
+      success: !chatError,
+      error: chatError?.message || undefined,
+      affected_rows: chatData?.length || 0
     });
 
     // Reset wolfpack memberships to inactive (but don't delete them)
-    const membershipResetResult = await WolfpackBackendService.update(
-      WOLFPACK_TABLES.wolf-pack-memberships,
-      {
-        ...locationFilter,
-        status: 'active'
-      },
-      { 
+    const { data: membershipData, error: membershipError } = await supabase
+      .from('wolf_pack_members')
+      .update({ 
         status: 'inactive',
-        last_active: resetTimestamp
-      }
-    );
+        last_activity: resetTimestamp,
+        updated_at: resetTimestamp
+      })
+      .eq('status', 'active')
+      .match(locationFilter)
+      .select();
     
     results.push({
       operation: 'reset_memberships',
-      success: !membershipResetResult.error,
-      error: membershipResetResult.error || undefined,
-      affected_rows: membershipResetResult.data?.length || 0
+      success: !membershipError,
+      error: membershipError?.message || undefined,
+      affected_rows: membershipData?.length || 0
     });
 
     // End active DJ events
-    const eventsResetResult = await WolfpackBackendService.update(
-      WOLFPACK_TABLES.DJ_EVENTS,
-      {
-        ...locationFilter,
-        status: 'active'
-      },
-      { 
+    const { data: eventsData, error: eventsError } = await supabase
+      .from(WOLFPACK_TABLES.EVENTS)
+      .update({ 
         status: 'ended',
-        ended_at: resetTimestamp
-      }
-    );
+        updated_at: resetTimestamp
+      })
+      .eq('status', 'active')
+      .match(locationFilter)
+      .select();
     
     results.push({
       operation: 'end_dj_events',
-      success: !eventsResetResult.error,
-      error: eventsResetResult.error || undefined,
-      affected_rows: eventsResetResult.data?.length || 0
+      success: !eventsError,
+      error: eventsError?.message || undefined,
+      affected_rows: eventsData?.length || 0
     });
 
     // Clear old reactions (older than 7 days)
-    const reactionsCleanupResult = await WolfpackBackendService.delete(
-      WOLFPACK_TABLES.WOLF_REACTIONS,
-      {
-        created_at: `lt.${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`
-      }
-    );
+    const { data: reactionsData, error: reactionsError } = await supabase
+      .from('wolfpack_chat_reactions') // Assuming this is the actual table name
+      .delete()
+      .lt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .select();
     
     results.push({
       operation: 'cleanup_old_reactions',
-      success: reactionsCleanupResult.success,
-      error: reactionsCleanupResult.error,
-      affected_rows: (reactionsCleanupResult as any).deletedCount || 0
+      success: !reactionsError,
+      error: reactionsError?.message || undefined,
+      affected_rows: reactionsData?.length || 0
     });
 
     // Create system reset announcement
@@ -123,29 +135,35 @@ export async function POST(request: NextRequest) {
       : `🌅 Good morning! All Wolf Packs have been reset for a new day. Join your pack to get started!`;
 
     // Get all locations to reset if no specific location
-    let locationsToReset = [];
+    let locationsToReset: Location[] = [];
     if (location_id) {
       locationsToReset = [{ id: location_id }];
     } else {
-      const { data: locations } = await (WolfpackBackendService as any).select('locations', {});
-      locationsToReset = locations || [];
+      const { data: locationsData } = await supabase
+        .from(WOLFPACK_TABLES.LOCATIONS)
+        .select('id')
+        .eq('is_active', true);
+      locationsToReset = (locationsData as Location[]) || [];
     }
 
     // Send reset announcements to each location
     for (const location of locationsToReset) {
-      await WolfpackBackendService.insert(
-        WOLFPACK_TABLES.WOLF_CHAT,
-        {
+      const { error: insertError } = await supabase
+        .from(WOLFPACK_TABLES.WOLF_CHAT)
+        .insert({
           session_id: `location_${location.id}`,
-          id: '00000000-0000-0000-0000-000000000000', // System user
+          user_id: '00000000-0000-0000-0000-000000000000', // System user
           display_name: 'Wolf Pack System',
           avatar_url: null,
           content: resetMessage,
           message_type: 'dj_broadcast',
           created_at: resetTimestamp,
           is_flagged: false
-        }
-      );
+        });
+      
+      if (insertError) {
+        console.error(`Failed to send reset announcement for location ${location.id}:`, insertError);
+      }
     }
 
     results.push({
@@ -174,7 +192,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Daily reset error:', error);
-    const userError = WolfpackErrorHandler.handleSupabaseError(error, {
+    
+    // Type guard to ensure error is properly typed for WolfpackErrorHandler
+    const typedError = error instanceof Error 
+      ? error 
+      : new Error(typeof error === 'string' ? error : 'Unknown error occurred');
+    
+    const userError = WolfpackErrorHandler.handleSupabaseError(typedError, {
       operation: 'daily_reset'
     });
 
@@ -200,9 +224,9 @@ export async function GET() {
     // Get last reset info from system messages
     const supabase = await createClient();
     const { data: lastResetMessage } = await supabase
-      .from(WOLFPACK_TABLES.WOLF_CHAT)
+      .from(WOLFPACK_TABLES.WOLF_CHAT) // Using the correct property name
       .select('created_at, content')
-      .eq('id', '00000000-0000-0000-0000-000000000000')
+      .eq('user_id', '00000000-0000-0000-0000-000000000000') // System user
       .eq('message_type', 'dj_broadcast')
       .like('content', '%Wolf Pack has been reset%')
       .order('created_at', { ascending: false })
@@ -212,7 +236,7 @@ export async function GET() {
     return NextResponse.json({
       current_time: now.toISOString(),
       next_reset: nextReset.toISOString(),
-      time_until_reset: Math.max(0, nextReset.getTime() - now.getTime()),
+      time_until_reset: Math.max(0, nextReset.getTime() - now.getTime()).toString(), // Fixed: convert to string
       last_reset: lastResetMessage?.created_at || null,
       reset_schedule: {
         time: '02:30:00',

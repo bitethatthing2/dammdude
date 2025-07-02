@@ -27,7 +27,7 @@ export enum Permission {
   
   // Wolfpack permissions
   JOIN_WOLFPACK = 'join_wolfpack',
-  VIEW_wolf-pack-members = 'view_wolf-pack-members',
+  VIEW_WOLF_PACK_MEMBERS = 'view_wolf-pack-members',
   SEND_PRIVATE_MESSAGES = 'send_private_messages',
   PARTICIPATE_IN_EVENTS = 'participate_in_events',
   VOTE_IN_EVENTS = 'vote_in_events',
