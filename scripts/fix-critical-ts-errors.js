@@ -42,7 +42,7 @@ const filesToFix = [
   {
     path: 'components/wolfpack/WolfpackMembershipManager.tsx',
     fixes: [
-      { search: 'wolfpack_memberships', replace: 'wolf_pack_members' }
+      { search: 'wolf-pack-memberships', replace: 'wolf_pack_members' }
     ]
   }
 ];
@@ -92,9 +92,9 @@ function fixCommonTypeIssues() {
       description: 'Fix notifications table reference'
     },
     {
-      pattern: /\.from\(['"]wolfpack_memberships['"]\)/g,
+      pattern: /\.from\(['"]wolf-pack-memberships['"]\)/g,
       replacement: '.from("wolf_pack_members")',
-      description: 'Fix wolfpack_memberships table reference'
+      description: 'Fix wolf-pack-memberships table reference'
     }
   ];
   

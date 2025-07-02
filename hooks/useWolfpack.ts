@@ -702,7 +702,7 @@ export function useWolfpack(
 
     // Members subscription - watch users table
     const membersChannel = supabase
-      .channel(`wolfpack_members_${locationId}`)
+      .channel(`wolf-pack-members_${locationId}`)
       .on(
         'postgres_changes',
         {

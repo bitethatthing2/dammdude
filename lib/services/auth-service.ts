@@ -27,7 +27,7 @@ export enum Permission {
   
   // Wolfpack permissions
   JOIN_WOLFPACK = 'join_wolfpack',
-  VIEW_WOLFPACK_MEMBERS = 'view_wolfpack_members',
+  VIEW_wolf-pack-members = 'view_wolf-pack-members',
   SEND_PRIVATE_MESSAGES = 'send_private_messages',
   PARTICIPATE_IN_EVENTS = 'participate_in_events',
   VOTE_IN_EVENTS = 'vote_in_events',
@@ -124,7 +124,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_WOLFPACK_MEMBERS,
+      Permission.VIEW_wolf-pack-members,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS
@@ -134,7 +134,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_WOLFPACK_MEMBERS,
+      Permission.VIEW_wolf-pack-members,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS,
@@ -145,7 +145,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_WOLFPACK_MEMBERS,
+      Permission.VIEW_wolf-pack-members,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS,

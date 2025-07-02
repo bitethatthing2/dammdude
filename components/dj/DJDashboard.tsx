@@ -1,62 +1,84 @@
+
+
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Music, Users, MessageSquare, Trophy, Plus, Clock, MapPin, AlertCircle, RefreshCw, Zap, TrendingUp } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Music, 
+  Users, 
+  MessageSquare, 
+  Trophy, 
+  AlertCircle, 
+  RefreshCw, 
+  Zap, 
+  TrendingUp,
+  Clock,
+  MapPin,
+  BarChart3,
+  Radio,
+  Sparkles,
+  Send
+} from 'lucide-react';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { supabase } from '@/lib/supabase/client';
-import { WolfpackService } from '@/lib/services/wolfpack.service';
-import { WolfpackEnhancedService } from '@/lib/services/wolfpack-enhanced.service';
-import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service';
-import { dataService } from '@/lib/services/data-service';
-import { authService, Permission } from '@/lib/services/auth-service';
 import { toast } from 'sonner';
 
+// Import existing components
+import { BroadcastForm } from './BroadcastForm';
 import { EventCreator } from './EventCreator';
 import { MassMessageInterface } from './MassMessageInterface';
+
+// Import types from actual database
+import type { Database } from '@/lib/database.types';
+
+type RealtimeChannel = ReturnType<typeof supabase.channel>;
+
+// Define missing interfaces that the component expects
+interface BroadcastAnalytics {
+  timeframe: string;
+  start_date: string;
+  broadcasts: number;
+  broadcast_types_used: number;
+  avg_interactions: number;
+  max_participants: number;
+  total_responses: number;
+  unique_responders: number;
+  avg_response_time_seconds: number;
+  broadcasts_by_type: Record<string, number>;
+  top_broadcasts: Array<{
+    title: string;
+    type: string;
+    responses: number;
+    participants: number;
+  }>;
+}
+
+interface WolfpackLiveStats {
+  total_active: number;
+  very_active: number;
+  gender_breakdown: Record<string, number>;
+  recent_interactions: {
+    total_interactions: number;
+    active_participants: number;
+  };
+  energy_level: number;
+  top_vibers: Array<{
+    user_id: string;
+    name: string;
+    avatar: string | null;
+    vibe: string | null;
+  }>;
+}
 
 // =============================================================================
 // INTERFACES
 // =============================================================================
-
-interface ActiveEvent {
-  id: string;
-  title: string;
-  event_type: string;
-  status: string;
-  created_at: string;
-  voting_ends_at: string;
-  options: string[];
-  participantCount: number;
-  timeRemaining: number;
-  dj?: {
-    display_name?: string;
-    first_name?: string;
-    last_name?: string;
-  };
-}
-
-interface PackMember {
-  id: string;
-  displayName: string;
-  profilePicture: string;
-  vibeStatus: string;
-  isOnline: boolean;
-  lastSeen: string;
-}
-
-interface LocationStats {
-  activeEvents: number;
-  totalPackMembers: number;
-  onlineMembers: number;
-  recentBroadcasts: number;
-  energyLevel: number;
-}
 
 interface DJDashboardProps {
   location?: 'salem' | 'portland';
@@ -87,33 +109,37 @@ export function DJDashboard({ location }: DJDashboardProps) {
   const djPermissions = useDJPermissions();
   const { assignedLocation, isActiveDJ, canSendMassMessages, isLoading: permissionsLoading } = djPermissions;
   const currentLocation = location || assignedLocation || 'salem';
+  const locationConfig = LOCATION_CONFIG[currentLocation];
 
   // Core State
-  const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
-  const [packMembers, setPackMembers] = useState<PackMember[]>([]);
-  const [locationStats, setLocationStats] = useState<LocationStats>({
-    activeEvents: 0,
-    totalPackMembers: 0,
-    onlineMembers: 0,
-    recentBroadcasts: 0,
-    energyLevel: 0
-  });
+  const [activeBroadcasts, setActiveBroadcasts] = useState<Database['public']['Views']['active_broadcasts_live']['Row'][]>([]);
+  const [liveStats, setLiveStats] = useState<WolfpackLiveStats | null>(null);
+  const [analytics, setAnalytics] = useState<BroadcastAnalytics | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // UI State
+  const [activeTab, setActiveTab] = useState('broadcasts');
   const [showEventCreator, setShowEventCreator] = useState(false);
   const [showMassMessage, setShowMassMessage] = useState(false);
-  const [showQuickPoll, setShowQuickPoll] = useState(false);
-  const [isLive, setIsLive] = useState(true);
-
-  // Status State
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Refs
-  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
+  const analyticsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const locationConfig = useMemo(() => LOCATION_CONFIG[currentLocation], [currentLocation]);
+  // Get current user
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
+  }, []);
 
   // =============================================================================
   // DATA FETCHING
@@ -126,109 +152,69 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
       setError(null);
 
-      // Check permissions using DJ permissions from hook
-      console.log('🔍 DJ Permission Check:', { 
-        isActiveDJ, 
-        canSendMassMessages, 
-        permissionsLoading,
-        currentLocation,
-        djPermissions 
-      });
+      if (!currentUser?.id) return;
+
+      // Fetch or create dashboard state
+      const { data: stateData, error: stateError } = await supabase
+        .from('dj_dashboard_state')
+        .select('*')
+        .eq('dj_id', currentUser.id)
+        .single();
+
+      if (stateError && stateError.code !== 'PGRST116') {
+        throw stateError;
+      }
+
+      if (stateData) {
+        setIsLive(stateData.is_live);
+      }
+
+      // Fetch active broadcasts
+      const { data: broadcasts, error: broadcastsError } = await supabase
+        .from('active_broadcasts_live')
+        .select('*')
+        .eq('location_id', locationConfig.id)
+        .order('created_at', { ascending: false });
+
+      if (broadcastsError) throw broadcastsError;
+
+      setActiveBroadcasts(broadcasts || []);
+
+      // Fetch live stats
+      const { data: stats, error: statsError } = await supabase
+        .rpc('get_wolfpack_live_stats', {
+          p_location_id: locationConfig.id
+        });
+
+      if (statsError) throw statsError;
       
-      if (!isActiveDJ || !canSendMassMessages) {
-        throw errorService.handleBusinessLogicError(
-          'fetchDashboardData',
-          'Insufficient permissions',
-          'You need DJ permissions to view the dashboard',
-          { component: 'DJDashboard', location: currentLocation, isActiveDJ, canSendMassMessages }
-        );
-      }
+      setLiveStats(stats);
 
-      // Use Data Service for optimized, cached, parallel data fetching
-      const operations = [
-        () => dataService.getDJEvents(currentLocation, 'active'),
-        () => dataService.getWolfpackMembers(currentLocation),
-        () => WolfpackEnhancedService.getLocationStats(locationConfig.id) // Keep legacy for now
-      ];
+      // Fetch analytics
+      const { data: analyticsData, error: analyticsError } = await supabase
+        .rpc('get_dj_dashboard_analytics', {
+          p_dj_id: currentUser.id,
+          p_timeframe: 'today'
+        });
 
-      const [events, members, stats] = await dataService.batchExecute(
-        operations,
-        'djDashboardData'
-      );
-
-      // Transform events to include time remaining with error handling
-      const eventsWithTimeRemaining: ActiveEvent[] = events.map(event => {
-        try {
-          return {
-            id: event.id,
-            title: event.title || 'Untitled Event',
-            event_type: event.event_type || 'unknown',
-            status: event.status || 'active',
-            created_at: event.created_at || new Date().toISOString(),
-            voting_ends_at: event.voting_ends_at || new Date().toISOString(),
-            options: event.options ? (Array.isArray(event.options) ? event.options : []) : [],
-            participantCount: event.contestants?.length || 0,
-            timeRemaining: event.voting_ends_at ?
-              WolfpackEnhancedService.formatTimeRemaining(event.voting_ends_at) : 0,
-            dj: event.dj
-          };
-        } catch (transformError) {
-          errorService.handleUnknownError(
-            transformError as Error,
-            { 
-              component: 'DJDashboard',
-              action: 'transformEvent',
-              eventId: event.id 
-            }
-          );
-          return null;
-        }
-      }).filter(Boolean) as ActiveEvent[];
-
-      // Transform members with error handling
-      const transformedMembers: PackMember[] = members.map(member => ({
-        id: member.id,
-        displayName: member.display_name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Wolf',
-        profilePicture: member.profile_image_url || '',
-        vibeStatus: member.vibe_status || 'chillin',
-        isOnline: member.is_online || false,
-        lastSeen: member.last_seen_at || new Date().toISOString()
-      }));
-
-      setActiveEvents(eventsWithTimeRemaining);
-      setPackMembers(transformedMembers);
-      setLocationStats(stats);
-
-      // Success feedback
-      if (showLoadingState) {
-        toast.success(`Dashboard loaded for ${locationConfig.displayName}`);
-      }
+      if (analyticsError) throw analyticsError;
+      
+      setAnalytics(analyticsData);
 
     } catch (error: unknown) {
-      const appError = errorService.handleUnknownError(
-        error as Error,
-        {
-          component: 'DJDashboard',
-          action: 'fetchDashboardData',
-          location: currentLocation,
-          showLoadingState
-        }
-      );
-      
-      setError(appError.userMessage);
-      toast.error(appError.userMessage);
-      
-      // Log additional context for debugging
-      console.error('DJ Dashboard Error Details:', {
-        error: appError,
-        location: currentLocation,
-        timestamp: new Date().toISOString()
-      });
+      console.error('Dashboard data fetch error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [locationConfig.id, locationConfig.displayName, currentLocation]);
+  }, [currentUser?.id, locationConfig.id]);
 
   // =============================================================================
   // REAL-TIME SUBSCRIPTIONS
@@ -239,69 +225,159 @@ export function DJDashboard({ location }: DJDashboardProps) {
       subscriptionRef.current.unsubscribe();
     }
 
+    subscriptionRef.current = supabase
+      .channel(`dj-dashboard-${locationConfig.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dj_broadcasts',
+          filter: `location_id=eq.${locationConfig.id}`
+        },
+        (payload) => {
+          console.log('Broadcast change:', payload);
+          fetchDashboardData(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dj_broadcast_responses'
+        },
+        (payload) => {
+          console.log('New response:', payload);
+          // Update response counts in real-time
+          setActiveBroadcasts(prev => 
+            prev.map(broadcast => 
+              broadcast.id === payload.new?.broadcast_id
+                ? { 
+                    ...broadcast, 
+                    interaction_count: broadcast.interaction_count + 1,
+                    unique_participants: broadcast.unique_participants + 1
+                  }
+                : broadcast
+            )
+          );
+        }
+      )
+      .subscribe();
+
+  }, [locationConfig.id, fetchDashboardData]);
+
+  // =============================================================================
+  // DASHBOARD ACTIONS
+  // =============================================================================
+
+  const toggleLiveStatus = useCallback(async () => {
+    if (!currentUser?.id) return;
+
+    const newLiveStatus = !isLive;
+    
     try {
-      subscriptionRef.current = WolfpackEnhancedService.setupRealtimeSubscription(
-        locationConfig.id,
-        {
-          onEventUpdate: () => {
-            console.log('Event updated, refreshing dashboard...');
-            // Use debounced refresh to prevent excessive updates
-            setTimeout(() => fetchDashboardData(false), 1000);
-            setIsLive(true);
-          },
-          onBroadcast: (payload) => {
-            console.log('New broadcast received:', payload);
-            toast.info('New broadcast sent to Wolf Pack members');
-            // Invalidate relevant cache
-            dataService.invalidateCachePattern('wolfpack_members_');
-          },
-          onChatMessage: (payload) => {
-            console.log('New chat message:', payload);
-            // Update activity indicators
-            setIsLive(true);
-          },
-          onMemberUpdate: () => {
-            console.log('Member activity detected, refreshing...');
-            // Invalidate member cache and refresh
-            dataService.invalidateCachePattern('wolfpack_members_');
-            setTimeout(() => fetchDashboardData(false), 500);
-          }
-        }
-      );
+      const { error } = await supabase
+        .from('dj_dashboard_state')
+        .upsert({ 
+          dj_id: currentUser.id,
+          is_live: newLiveStatus,
+          updated_at: new Date().toISOString()
+        });
 
-      setIsLive(true);
-      console.log(`Real-time subscription active for ${locationConfig.displayName}`);
+      if (error) throw error;
 
+      setIsLive(newLiveStatus);
+      
+      toast.success(newLiveStatus ? 'You are now LIVE!' : 'You are now offline');
+      
+      // Create a system broadcast when going live
+      if (newLiveStatus) {
+        await supabase.from('dj_broadcasts').insert({
+          dj_id: currentUser.id,
+          location_id: locationConfig.id,
+          broadcast_type: 'general',
+          title: '🎵 DJ is LIVE!',
+          message: `The DJ is now live at ${locationConfig.displayName}!`,
+          priority: 'high',
+          duration_seconds: 10,
+          status: 'active',
+          auto_close: true,
+          background_color: '#ef4444',
+          text_color: '#ffffff',
+          accent_color: '#fbbf24',
+          animation_type: 'pulse',
+          emoji_burst: ['🎵', '🎶', '🎤']
+        });
+      }
     } catch (error) {
-      const appError = errorService.handleExternalServiceError(
-        'WolfpackEnhancedService',
-        error as Error,
-        {
-          component: 'DJDashboard',
-          action: 'setupRealtimeSubscription',
-          location: currentLocation
-        }
-      );
-      
-      setIsLive(false);
-      toast.error('Real-time updates unavailable');
-      console.error('Subscription setup failed:', appError);
-      
-      // Retry subscription after delay
-      setTimeout(() => {
-        console.log('Retrying real-time subscription...');
-        setupRealtimeSubscription();
-      }, 5000);
+      console.error('Error toggling live status:', error);
+      toast.error('Failed to update live status');
     }
-  }, [locationConfig.id, locationConfig.displayName, currentLocation, fetchDashboardData]);
+  }, [currentUser?.id, isLive, locationConfig.id, locationConfig.displayName]);
+
+  const handleBroadcastCreated = useCallback((broadcast: any) => {
+    // Refresh data to get the new broadcast
+    fetchDashboardData(false);
+  }, [fetchDashboardData]);
+
+  const handleEventCreated = useCallback((event: any) => {
+    setShowEventCreator(false);
+    // Could create a broadcast for the event if needed
+    toast.success('Event created successfully!');
+  }, []);
+
+  const handleQuickVibeCheck = useCallback(async () => {
+    if (!currentUser?.id) return;
+
+    try {
+      const { data, error } = await supabase.rpc('quick_vibe_check', {
+        p_dj_id: currentUser.id,
+        p_location_id: locationConfig.id
+      });
+
+      if (error) throw error;
+
+      toast.success('Vibe check sent!');
+      fetchDashboardData(false);
+    } catch (error) {
+      console.error('Vibe check error:', error);
+      toast.error('Failed to send vibe check');
+    }
+  }, [currentUser?.id, locationConfig.id, fetchDashboardData]);
+
+  const handleSingleLadiesSpotlight = useCallback(async () => {
+    if (!currentUser?.id) return;
+
+    try {
+      const { data, error } = await supabase.rpc('single_ladies_spotlight', {
+        p_dj_id: currentUser.id,
+        p_location_id: locationConfig.id,
+        p_custom_message: null
+      });
+
+      if (error) throw error;
+
+      toast.success('Single ladies spotlight activated!');
+      fetchDashboardData(false);
+    } catch (error) {
+      console.error('Single ladies spotlight error:', error);
+      toast.error('Failed to activate spotlight');
+    }
+  }, [currentUser?.id, locationConfig.id, fetchDashboardData]);
 
   // =============================================================================
   // LIFECYCLE
   // =============================================================================
 
   useEffect(() => {
-    // Don't initialize until permissions are loaded
-    if (permissionsLoading) return;
+    if (permissionsLoading || !currentUser) return;
+
+    if (!isActiveDJ || !canSendMassMessages) {
+      console.log('User does not have DJ permissions');
+      setIsLoading(false);
+      return;
+    }
 
     let mounted = true;
 
@@ -309,6 +385,11 @@ export function DJDashboard({ location }: DJDashboardProps) {
       if (mounted) {
         await fetchDashboardData(true);
         setupRealtimeSubscription();
+
+        // Setup analytics refresh interval
+        analyticsIntervalRef.current = setInterval(() => {
+          fetchDashboardData(false);
+        }, 30000); // Refresh every 30 seconds
       }
     };
 
@@ -320,99 +401,20 @@ export function DJDashboard({ location }: DJDashboardProps) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
-      // Cleanup WolfpackEnhancedService
-      WolfpackEnhancedService.cleanup();
-    };
-  }, [permissionsLoading, fetchDashboardData, setupRealtimeSubscription]);
-
-  // =============================================================================
-  // EVENT HANDLERS
-  // =============================================================================
-
-  const handleRefresh = useCallback(() => {
-    fetchDashboardData(false);
-  }, [fetchDashboardData]);
-
-  const handleEventCreated = useCallback((event: any) => {
-    // Add new event to the list optimistically
-    const newEvent: ActiveEvent = {
-      id: event.event_id || event.id,
-      title: event.title,
-      event_type: event.event_type,
-      status: event.status || 'active',
-      created_at: event.created_at || new Date().toISOString(),
-      voting_ends_at: event.voting_ends_at || new Date().toISOString(),
-      options: event.options || [],
-      participantCount: 0,
-      timeRemaining: 0
-    };
-
-    setActiveEvents(prev => [newEvent, ...prev]);
-    setShowEventCreator(false);
-
-    // Refresh data to get accurate info
-    setTimeout(() => fetchDashboardData(false), 1000);
-  }, [fetchDashboardData]);
-
-  const handleQuickPoll = useCallback(async () => {
-    try {
-      const response = await fetch('/api/dj/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'What song should I play next?',
-          event_type: 'next_song_vote',
-          location_id: locationConfig.id,
-          duration: 5,
-          options: ['Hip Hop', 'Electronic', 'Rock', 'Pop'],
-          voting_format: 'multiple_choice'
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        handleEventCreated(result);
+      if (analyticsIntervalRef.current) {
+        clearInterval(analyticsIntervalRef.current);
+        analyticsIntervalRef.current = null;
       }
-    } catch (error) {
-      console.error('Quick poll creation failed:', error);
-    }
-    setShowQuickPoll(false);
-  }, [locationConfig.id, handleEventCreated]);
-
-  // =============================================================================
-  // RENDER HELPERS
-  // =============================================================================
-
-  const getEventTypeEmoji = (eventType: string): string => {
-    const emojis: Record<string, string> = {
-      dance_battle: '💃',
-      hottest_person: '🔥',
-      best_costume: '👗',
-      name_that_tune: '🎵',
-      song_request: '🎶',
-      next_song_vote: '🎧',
-      trivia: '🧠',
-      custom: '✨'
     };
-    return emojis[eventType] || '🎉';
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'voting': return 'bg-blue-500';
-      case 'paused': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  }, [permissionsLoading, isActiveDJ, canSendMassMessages, currentUser, fetchDashboardData, setupRealtimeSubscription]);
 
   // =============================================================================
-  // LOADING STATE
+  // PERMISSION CHECK
   // =============================================================================
 
-  if (isLoading) {
+  if (permissionsLoading || isLoading) {
     return (
-      <div className="dj-dashboard h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-2 lg:p-4 flex flex-col">
+      <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-4 flex flex-col">
         <div className="space-y-4">
           <Skeleton className="h-32 w-full bg-slate-800" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -425,32 +427,40 @@ export function DJDashboard({ location }: DJDashboardProps) {
     );
   }
 
+  if (!isActiveDJ || !canSendMassMessages) {
+    return (
+      <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-4 flex items-center justify-center">
+        <Card className="max-w-md w-full bg-slate-800/50 backdrop-blur border-slate-700">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center">
+              <Music className="w-8 h-8 text-purple-400" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-white">DJ Access Required</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-gray-300">
+              You need DJ permissions to access the control center.
+            </p>
+            <Alert className="bg-slate-700/50 border-slate-600 text-left">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-gray-300">
+                If you believe you should have DJ access, please contact the venue manager.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // =============================================================================
   // MAIN RENDER
   // =============================================================================
 
   return (
-    <div className="dj-dashboard h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white p-2 lg:p-4 flex flex-col">
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive" className="mb-4 bg-red-900/50 border-red-500">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              className="ml-2 h-auto p-1 text-xs"
-            >
-              Dismiss
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-purple-900 text-white flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-4 mb-3 shadow-2xl flex-shrink-0">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 shadow-2xl flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -479,66 +489,85 @@ export function DJDashboard({ location }: DJDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRefresh}
+              onClick={() => fetchDashboardData(false)}
               disabled={isRefreshing}
-              className="border-slate-700 text-slate-900 hover:bg-slate-700 hover:text-white bg-white/80"
+              className="border-white/20 text-white hover:bg-white/10"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button
               variant={isLive ? "destructive" : "secondary"}
-              onClick={() => setIsLive(!isLive)}
+              onClick={toggleLiveStatus}
               className="px-6 py-3 text-lg font-bold"
             >
+              <Radio className="w-5 h-5 mr-2" />
               {isLive ? 'Go Offline' : 'Go Live'}
             </Button>
           </div>
         </div>
 
-        {/* Enhanced Stats Grid */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{locationStats.totalPackMembers}</div>
-            <div className="text-sm opacity-90">Pack Members</div>
-            <div className="text-xs text-white/90 mt-1">{locationStats.onlineMembers} online</div>
+            <div className="text-3xl font-bold">{liveStats?.total_active || 0}</div>
+            <div className="text-sm opacity-90">Active Pack</div>
+            <div className="text-xs opacity-70 mt-1">{liveStats?.very_active || 0} very active</div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{locationStats.activeEvents}</div>
-            <div className="text-sm opacity-90">Live Events</div>
-            <div className="text-xs opacity-70 mt-1">
-              {activeEvents.filter(e => e.status === 'active').length} active
-            </div>
+            <div className="text-3xl font-bold">{activeBroadcasts.filter(b => b.status === 'active').length}</div>
+            <div className="text-sm opacity-90">Live Broadcasts</div>
+            <div className="text-xs opacity-70 mt-1">{analytics?.total_responses || 0} responses</div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center relative">
-            <div className="text-3xl font-bold">{locationStats.energyLevel}%</div>
+            <div className="text-3xl font-bold">{Math.round(liveStats?.energy_level || 0)}%</div>
             <div className="text-sm opacity-90">Energy Level</div>
             <div className="absolute top-2 right-2">
-              {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> :
-                locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> :
-                  <div className="w-4 h-4" />}
+              {(liveStats?.energy_level || 0) > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> :
+                (liveStats?.energy_level || 0) > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> :
+                  <Sparkles className="w-4 h-4 text-gray-400" />}
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{locationStats.recentBroadcasts}</div>
-            <div className="text-sm opacity-90">Recent Broadcasts</div>
-            <div className="text-xs opacity-70 mt-1">Last 24h</div>
+            <div className="text-3xl font-bold">{analytics?.unique_responders || 0}</div>
+            <div className="text-sm opacity-90">Engaged Users</div>
+            <div className="text-xs opacity-70 mt-1">
+              {analytics?.avg_response_time_seconds ? `${analytics.avg_response_time_seconds}s avg` : 'N/A'}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="m-4 bg-red-900/50 border-red-500">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setError(null)}
+              className="ml-2 h-auto p-1 text-xs"
+            >
+              Dismiss
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3 flex-shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 flex-shrink-0">
         <Button
           size="lg"
           className="h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
           onClick={() => setShowMassMessage(true)}
-          disabled={locationStats.totalPackMembers === 0}
+          disabled={(liveStats?.total_active || 0) === 0}
         >
           <div className="text-center">
             <MessageSquare className="w-6 h-6 mx-auto mb-1" />
             <div className="font-bold text-sm">Broadcast</div>
             <div className="text-xs opacity-80">
-              {locationStats.totalPackMembers > 0 ? `Send to ${locationStats.totalPackMembers}` : 'No members'}
+              {liveStats?.total_active ? `Send to ${liveStats.total_active}` : 'No members'}
             </div>
           </div>
         </Button>
@@ -546,322 +575,199 @@ export function DJDashboard({ location }: DJDashboardProps) {
         <Button
           size="lg"
           className="h-20 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-          onClick={() => setShowQuickPoll(true)}
+          onClick={handleQuickVibeCheck}
         >
           <div className="text-center">
-            <Trophy className="w-6 h-6 mx-auto mb-1" />
-            <div className="font-bold text-sm">Quick Poll</div>
-            <div className="text-xs opacity-80">What song next?</div>
+            <Sparkles className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">Vibe Check</div>
+            <div className="text-xs opacity-80">Quick pulse</div>
           </div>
         </Button>
 
         <Button
           size="lg"
           className="h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-          onClick={() => setShowEventCreator(true)}
+          onClick={handleSingleLadiesSpotlight}
         >
           <div className="text-center">
-            <Plus className="w-6 h-6 mx-auto mb-1" />
-            <div className="font-bold text-sm">New Event</div>
-            <div className="text-xs opacity-80">Create Contest</div>
+            <Trophy className="w-6 h-6 mx-auto mb-1" />
+            <div className="font-bold text-sm">Ladies Night</div>
+            <div className="text-xs opacity-80">Spotlight</div>
           </div>
         </Button>
 
         <Button
           size="lg"
           className="h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          onClick={() => setShowEventCreator(true)}
         >
           <div className="text-center">
             <Users className="w-6 h-6 mx-auto mb-1" />
-            <div className="font-bold text-sm">Analytics</div>
-            <div className="text-xs opacity-80">View Insights</div>
+            <div className="font-bold text-sm">New Event</div>
+            <div className="text-xs opacity-80">Create Contest</div>
           </div>
         </Button>
       </div>
 
-      {/* Live Events & Pack Activity */}
-      <div className="grid lg:grid-cols-2 gap-4 mb-3 flex-1 overflow-auto">
-        <Card className="bg-slate-800 border-slate-700 text-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              Live Events
-              <Badge variant="outline" className="ml-auto">
-                {activeEvents.length} active
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeEvents.length === 0 ? (
-              <div className="text-center py-8">
-                <Trophy className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-400 mb-4">No active events</p>
-                <Button onClick={() => setShowEventCreator(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Event
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {activeEvents.map(event => (
-                  <div key={event.id} className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{getEventTypeEmoji(event.event_type)}</span>
-                        <h4 className="font-bold truncate flex-1">{event.title}</h4>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(event.status)}`} />
-                        <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                          {event.status.toUpperCase()}
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden p-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
+            <TabsTrigger value="broadcasts" className="data-[state=active]:bg-purple-600">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Broadcasts
+            </TabsTrigger>
+            <TabsTrigger value="active" className="data-[state=active]:bg-purple-600">
+              <Radio className="w-4 h-4 mr-2" />
+              Active ({activeBroadcasts.filter(b => b.status === 'active').length})
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-600">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="broadcasts" className="flex-1 overflow-auto mt-4">
+            <div className="max-w-4xl mx-auto">
+              <BroadcastForm
+                djId={currentUser?.id || ''}
+                locationId={locationConfig.id}
+                sessionId={sessionId || undefined}
+                onBroadcastCreated={handleBroadcastCreated}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="active" className="flex-1 overflow-auto mt-4">
+            <div className="space-y-4">
+              {activeBroadcasts.length === 0 ? (
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="text-center py-12">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                    <p className="text-slate-400">No active broadcasts</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      Create a new broadcast to engage with your audience
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                activeBroadcasts.map((broadcast) => (
+                  <Card key={broadcast.id} className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{broadcast.title}</CardTitle>
+                          {broadcast.subtitle && (
+                            <p className="text-sm text-slate-400 mt-1">{broadcast.subtitle}</p>
+                          )}
+                        </div>
+                        <Badge variant={broadcast.status === 'active' ? 'default' : 'secondary'}>
+                          {broadcast.status}
                         </Badge>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-300 mb-2">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {event.participantCount} participants
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm mb-4">{broadcast.message}</p>
+                      <div className="flex items-center justify-between text-sm text-slate-400">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {broadcast.unique_participants} participants
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="w-4 h-4" />
+                            {broadcast.interaction_count} responses
+                          </span>
+                        </div>
+                        {broadcast.seconds_remaining && broadcast.seconds_remaining > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {Math.floor(broadcast.seconds_remaining / 60)}m {broadcast.seconds_remaining % 60}s
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {event.timeRemaining}min left
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="flex-1 overflow-auto mt-4">
+            {analytics ? (
+              <div className="space-y-4">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Today's Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{analytics.broadcasts}</div>
+                        <div className="text-sm text-slate-400">Broadcasts</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{analytics.total_responses}</div>
+                        <div className="text-sm text-slate-400">Responses</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{analytics.unique_responders}</div>
+                        <div className="text-sm text-slate-400">Unique Users</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{analytics.avg_response_time_seconds || 0}s</div>
+                        <div className="text-sm text-slate-400">Avg Response Time</div>
                       </div>
                     </div>
-                    {event.options.length > 0 && (
-                      <div className="text-xs text-slate-400 mb-2">
-                        Options: {event.options.slice(0, 2).join(', ')}
-                        {event.options.length > 2 && '...'}
+                  </CardContent>
+                </Card>
+
+                {analytics.top_broadcasts && analytics.top_broadcasts.length > 0 && (
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle>Top Broadcasts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {analytics.top_broadcasts.map((broadcast, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-slate-700/50 rounded">
+                            <span className="font-medium">{broadcast.title}</span>
+                            <div className="flex items-center gap-4 text-sm text-slate-400">
+                              <span>{broadcast.responses} responses</span>
+                              <span>{broadcast.participants} users</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs">
-                        End Event
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
+            ) : (
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardContent className="text-center py-12">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                  <p className="text-slate-400">No analytics data available</p>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Pack Activity & Energy */}
-        <Card className="bg-slate-800 border-slate-700 text-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-400" />
-              Pack Activity
-              <Badge variant="outline" className="ml-auto">
-                {locationStats.onlineMembers}/{locationStats.totalPackMembers} online
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-slate-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">Energy Level</span>
-                <div className="flex items-center gap-1">
-                  {locationStats.energyLevel > 80 ? <Zap className="w-4 h-4 text-yellow-400" /> :
-                    locationStats.energyLevel > 50 ? <TrendingUp className="w-4 h-4 text-green-400" /> :
-                      <span className="text-2xl">🔥</span>}
-                  <span className="text-lg font-bold">{locationStats.energyLevel}%</span>
-                </div>
-              </div>
-              <div className="w-full bg-slate-600 rounded-full h-3">
-                <div
-                  className="bg-gradient-to-r from-orange-500 to-red-500 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${locationStats.energyLevel}%` }}
-                />
-              </div>
-              <div className="text-sm text-slate-400 mt-1 flex justify-between">
-                <span>{locationStats.onlineMembers} members active</span>
-                <span>{locationStats.activeEvents} events live</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">Recent Activity</span>
-                <span className="text-2xl">📊</span>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Broadcasts sent:</span>
-                  <span className="text-white">{locationStats.recentBroadcasts}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Events created:</span>
-                  <span className="text-white">{locationStats.activeEvents}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Peak energy:</span>
-                  <span className="text-white">{Math.max(locationStats.energyLevel, 85)}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions for Pack */}
-            <div className="space-y-2">
-              <Button
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                onClick={() => setShowMassMessage(true)}
-                disabled={locationStats.totalPackMembers === 0}
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Send Pack Message
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleQuickPoll()}
-                >
-                  🎵 Song Vote
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowEventCreator(true)}
-                >
-                  🏆 Contest
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Pack Members */}
-      <Card className="bg-slate-800 border-slate-700 text-white max-h-64 overflow-hidden flex flex-col">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-green-400" />
-              Pack Members ({locationStats.totalPackMembers})
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs text-white border-white/50">
-                {locationStats.onlineMembers} online
-              </Badge>
-              <Button size="sm" variant="ghost" onClick={handleRefresh}>
-                <RefreshCw className="w-3 h-3" />
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-auto flex-1">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-            {packMembers.map(member => (
-              <div key={member.id} className="bg-slate-700 rounded-lg p-3 hover:bg-slate-600 transition-colors">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="relative">
-                    <Image
-                      src={member.profilePicture}
-                      alt={member.displayName}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full bg-slate-600 object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/images/avatar-placeholder.png';
-                      }}
-                    />
-                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 border border-slate-700 rounded-full ${member.isOnline ? 'bg-green-500' : 'bg-gray-500'
-                      }`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {member.displayName}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">
-                    {member.isOnline ? 'Online' : 'Offline'}
-                  </span>
-                  <span className="text-lg">{member.vibeStatus}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {locationStats.totalPackMembers === 0 && (
-            <div className="text-center py-8 text-slate-400">
-              <Users className="w-12 h-12 mx-auto mb-4" />
-              <p>No pack members online in {locationConfig.displayName}</p>
-              <p className="text-xs mt-2">Members will appear here when they join the pack at this location</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Poll Modal */}
-      {showQuickPoll && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md bg-slate-800 border-slate-700 text-white">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                🎵 Quick Song Vote
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowQuickPoll(false)}
-                >
-                  ×
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-slate-300">
-                  Create a quick poll to let the pack choose the next song!
-                </p>
-                <div className="bg-slate-700 rounded-lg p-3">
-                  <div className="text-sm font-medium mb-2">Poll Options:</div>
-                  <div className="text-xs space-y-1 text-slate-300">
-                    <div>🎤 Hip Hop</div>
-                    <div>🎛️ Electronic</div>
-                    <div>🎸 Rock</div>
-                    <div>🎼 Pop</div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600"
-                    onClick={handleQuickPoll}
-                    disabled={locationStats.totalPackMembers === 0}
-                  >
-                    {locationStats.totalPackMembers > 0
-                      ? `Send to ${locationStats.totalPackMembers} Members`
-                      : 'No Members Online'
-                    }
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowQuickPoll(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Modals */}
+      <MassMessageInterface
+        isOpen={showMassMessage}
+        onClose={() => setShowMassMessage(false)}
+        packMemberCount={liveStats?.total_active || 0}
+        location={currentLocation}
+      />
+
       <EventCreator
         isOpen={showEventCreator}
         onClose={() => setShowEventCreator(false)}
         onEventCreated={handleEventCreated}
-        availableMembers={packMembers}
-        location={currentLocation}
-      />
-
-      <MassMessageInterface
-        isOpen={showMassMessage}
-        onClose={() => setShowMassMessage(false)}
-        packMemberCount={locationStats.totalPackMembers}
+        availableMembers={[]} // You can populate this from liveStats if needed
         location={currentLocation}
       />
     </div>

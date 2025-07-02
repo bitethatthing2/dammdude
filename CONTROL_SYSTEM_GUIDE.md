@@ -282,7 +282,7 @@ await authService.temporaryRoleElevation(
 ```typescript
 // Prefetch data for better UX
 await dataService.prefetchData([
-  'wolfpack_members_salem',
+  'wolf-pack-members_salem',
   'active_events',
   'menu_items_food'
 ]);

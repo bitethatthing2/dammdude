@@ -10,34 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Trophy, Music, Star, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service';
-import { dataService } from '@/lib/services/data-service';
-import { authService, Permission } from '@/lib/services/auth-service';
 import { toast } from 'sonner';
+import type { 
+  BroadcastType,
+  Database,
+  BroadcastOption
+} from '@/types/dj-dashboard-schema';
+
 interface Member {
   id: string;
   displayName: string;
   profilePicture?: string;
 }
 
-interface CreatedEvent {
-  id: string;
-  title: string;
-  description: string;
-  duration: number;
-  contestants: Member[];
-  voting_options: string[];
-  event_type: string;
-  voting_type: string;
-  location: string;
-  status: string;
-  created_at: string;
-}
-
 interface EventCreatorProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventCreated: (event: CreatedEvent) => void;
+  onEventCreated: (broadcast: Database['public']['Tables']['dj_broadcasts']['Row']) => void;
   availableMembers: Member[];
   location: 'salem' | 'portland';
 }
@@ -47,10 +36,16 @@ interface EventTemplate {
   name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  votingType: 'single' | 'multiple' | 'ranking';
+  broadcastType: BroadcastType;
   defaultDuration: number;
   suggestedContestants: number;
+  defaultOptions?: BroadcastOption[];
 }
+
+const LOCATION_CONFIG = {
+  salem: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
+  portland: 'ec1e8869-454a-49d2-93e5-ed05f49bb932'
+} as const;
 
 const eventTemplates: EventTemplate[] = [
   {
@@ -58,36 +53,60 @@ const eventTemplates: EventTemplate[] = [
     name: 'Freestyle Friday',
     description: 'Rap battle and freestyle competition',
     icon: Mic,
-    votingType: 'single',
-    defaultDuration: 15,
-    suggestedContestants: 4
+    broadcastType: 'contest',
+    defaultDuration: 180,
+    suggestedContestants: 4,
+    defaultOptions: [
+      { id: '1', text: 'Contestant 1', emoji: '1️⃣' },
+      { id: '2', text: 'Contestant 2', emoji: '2️⃣' },
+      { id: '3', text: 'Contestant 3', emoji: '3️⃣' },
+      { id: '4', text: 'Contestant 4', emoji: '4️⃣' }
+    ]
   },
   {
     id: 'costume-contest',
     name: 'Costume Contest',
     description: 'Best dressed competition',
     icon: Star,
-    votingType: 'single',
-    defaultDuration: 10,
-    suggestedContestants: 6
+    broadcastType: 'contest',
+    defaultDuration: 120,
+    suggestedContestants: 6,
+    defaultOptions: [
+      { id: '1', text: 'Best Overall', emoji: '👑' },
+      { id: '2', text: 'Most Creative', emoji: '🎨' },
+      { id: '3', text: 'Funniest', emoji: '😂' },
+      { id: '4', text: 'Scariest', emoji: '👻' }
+    ]
   },
   {
     id: 'dance-battle',
     name: 'Dance Battle',
     description: 'Show off your moves',
     icon: Music,
-    votingType: 'single',
-    defaultDuration: 12,
-    suggestedContestants: 4
+    broadcastType: 'contest',
+    defaultDuration: 150,
+    suggestedContestants: 4,
+    defaultOptions: [
+      { id: '1', text: 'Dancer 1', emoji: '💃' },
+      { id: '2', text: 'Dancer 2', emoji: '🕺' },
+      { id: '3', text: 'Dancer 3', emoji: '💃' },
+      { id: '4', text: 'Dancer 4', emoji: '🕺' }
+    ]
   },
   {
     id: 'trivia-night',
     name: 'Trivia Challenge',
     description: 'Test your knowledge',
     icon: Trophy,
-    votingType: 'multiple',
-    defaultDuration: 20,
-    suggestedContestants: 8
+    broadcastType: 'poll',
+    defaultDuration: 60,
+    suggestedContestants: 8,
+    defaultOptions: [
+      { id: '1', text: 'Team A', emoji: '🅰️' },
+      { id: '2', text: 'Team B', emoji: '🅱️' },
+      { id: '3', text: 'Team C', emoji: '©️' },
+      { id: '4', text: 'Team D', emoji: '🆔' }
+    ]
   }
 ];
 
@@ -95,11 +114,15 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
   const [selectedTemplate, setSelectedTemplate] = useState<EventTemplate | null>(null);
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
-  const [duration, setDuration] = useState(15);
+  const [duration, setDuration] = useState(120);
   const [selectedContestants, setSelectedContestants] = useState<string[]>([]);
-  const [votingOptions, setVotingOptions] = useState<string[]>(['Option 1', 'Option 2']);
+  const [votingOptions, setVotingOptions] = useState<BroadcastOption[]>([
+    { id: '1', text: 'Option 1', emoji: '1️⃣' },
+    { id: '2', text: 'Option 2', emoji: '2️⃣' }
+  ]);
   const [isCustomEvent, setIsCustomEvent] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [showResultsLive, setShowResultsLive] = useState(false);
 
   const handleTemplateSelect = (template: EventTemplate) => {
     setSelectedTemplate(template);
@@ -107,14 +130,21 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
     setEventDescription(template.description);
     setDuration(template.defaultDuration);
     setIsCustomEvent(false);
+    if (template.defaultOptions) {
+      setVotingOptions(template.defaultOptions);
+    }
   };
 
   const handleCustomEvent = () => {
     setSelectedTemplate(null);
     setEventTitle('');
     setEventDescription('');
-    setDuration(15);
+    setDuration(120);
     setIsCustomEvent(true);
+    setVotingOptions([
+      { id: '1', text: 'Option 1', emoji: '1️⃣' },
+      { id: '2', text: 'Option 2', emoji: '2️⃣' }
+    ]);
   };
 
   const addContestant = (memberId: string) => {
@@ -128,145 +158,116 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
   };
 
   const addVotingOption = () => {
-    setVotingOptions([...votingOptions, `Option ${votingOptions.length + 1}`]);
+    const newOption: BroadcastOption = {
+      id: Date.now().toString(),
+      text: `Option ${votingOptions.length + 1}`,
+      emoji: `${votingOptions.length + 1}️⃣`
+    };
+    setVotingOptions([...votingOptions, newOption]);
   };
 
-  const updateVotingOption = (index: number, value: string) => {
-    const newOptions = [...votingOptions];
-    newOptions[index] = value;
-    setVotingOptions(newOptions);
+  const updateVotingOption = (id: string, field: keyof BroadcastOption, value: string) => {
+    setVotingOptions(votingOptions.map(opt => 
+      opt.id === id ? { ...opt, [field]: value } : opt
+    ));
   };
 
-  const removeVotingOption = (index: number) => {
+  const removeVotingOption = (id: string) => {
     if (votingOptions.length > 2) {
-      setVotingOptions(votingOptions.filter((_, i) => i !== index));
+      setVotingOptions(votingOptions.filter(opt => opt.id !== id));
     }
   };
 
   const createEvent = async () => {
     if (!eventTitle.trim()) {
-      const validationError = errorService.handleValidationError(
-        'eventTitle',
-        eventTitle,
-        'Event title is required',
-        { component: 'EventCreator' }
-      );
-      toast.error(validationError.userMessage);
-      return;
-    }
-
-    // Check permissions
-    if (!authService.hasPermission(Permission.CREATE_EVENTS)) {
-      const permissionError = errorService.handleBusinessLogicError(
-        'createEvent',
-        'Insufficient permissions',
-        'You need DJ permissions to create events',
-        { component: 'EventCreator' }
-      );
-      toast.error(permissionError.userMessage);
+      toast.error('Event title is required');
       return;
     }
 
     setIsCreating(true);
+    
     try {
-      // Validate selected contestants exist
-      const selectedMembers: Member[] = selectedContestants
-        .map(id => availableMembers.find(m => m.id === id))
-        .filter((member): member is Member => member !== undefined);
-
-      if (selectedContestants.length > 0 && selectedMembers.length === 0) {
-        throw errorService.handleValidationError(
-          'contestants',
-          selectedContestants,
-          'Selected contestants not found',
-          { component: 'EventCreator' }
-        );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Authentication required');
+        return;
       }
 
-      // Validate voting options for voting events
-      if (selectedTemplate?.votingType && votingOptions.length < 2) {
-        throw errorService.handleValidationError(
-          'votingOptions',
-          votingOptions,
-          'At least 2 voting options required',
-          { component: 'EventCreator' }
-        );
+      const locationId = LOCATION_CONFIG[location];
+      const broadcastType = selectedTemplate?.broadcastType || 'contest';
+
+      // Build the message with contestant names if applicable
+      let message = eventDescription || `Join us for ${eventTitle}!`;
+      if (selectedContestants.length > 0 && availableMembers.length > 0) {
+        const contestantNames = selectedContestants
+          .map(id => availableMembers.find(m => m.id === id)?.displayName)
+          .filter(Boolean)
+          .join(', ');
+        if (contestantNames) {
+          message += `\n\nFeaturing: ${contestantNames}`;
+        }
       }
 
-      const eventData = {
-        title: eventTitle.trim(),
-        description: eventDescription.trim(),
-        duration: duration,
-        contestants: selectedMembers,
-        voting_options: votingOptions.filter(option => option.trim()),
-        event_type: selectedTemplate?.id || 'custom',
-        voting_type: selectedTemplate?.votingType || 'single',
-        location: location,
+      // Create broadcast for the event
+      const broadcastData: Database['public']['Tables']['dj_broadcasts']['Insert'] = {
+        dj_id: user.id,
+        location_id: locationId,
+        broadcast_type: broadcastType,
+        title: `🎉 ${eventTitle}`,
+        message: message,
+        subtitle: `${votingOptions.length} options • ${duration}s to vote`,
+        priority: 'high',
+        duration_seconds: duration,
+        auto_close: false,
         status: 'active',
-        voting_ends_at: new Date(Date.now() + duration * 60 * 1000).toISOString(),
-        created_by: authService.getCurrentUser()?.id,
-        created_at: new Date().toISOString()
+        sent_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + duration * 1000).toISOString(),
+        // Event styling
+        background_color: '#f97316',
+        text_color: '#ffffff',
+        accent_color: '#fbbf24',
+        animation_type: 'bounce',
+        emoji_burst: ['🎉', '🔥', '⭐', '🏆'],
+        // Voting configuration
+        interaction_config: {
+          response_type: 'multiple_choice',
+          options: votingOptions,
+          allow_multiple: false,
+          show_results_live: showResultsLive,
+          anonymous_responses: false,
+          show_responders: true,
+          highlight_responders: true,
+          responder_display: 'avatar_with_name',
+          animation_on_select: 'pulse',
+          show_timer: true,
+          countdown_seconds: duration
+        },
+        // Tag as event
+        tags: ['event', broadcastType],
+        category: 'event'
       };
 
-      // Create event using Data Service
-      const createdEvent = await dataService.createDJEvent(eventData);
+      const { data, error } = await supabase
+        .from('dj_broadcasts')
+        .insert(broadcastData)
+        .select()
+        .single();
 
-      // Transform for UI
-      const uiEvent: CreatedEvent = {
-        id: createdEvent.id,
-        title: createdEvent.title,
-        description: createdEvent.description,
-        duration: createdEvent.duration,
-        contestants: selectedMembers,
-        voting_options: createdEvent.voting_options || [],
-        event_type: createdEvent.event_type,
-        voting_type: createdEvent.voting_type,
-        location: createdEvent.location,
-        status: createdEvent.status,
-        created_at: createdEvent.created_at
-      };
+      if (error) throw error;
 
-      // Success feedback
+      // Send notification
+      await supabase.rpc('send_broadcast_notification', {
+        p_broadcast_id: data.id
+      });
+
       toast.success(`Event "${eventTitle}" created successfully!`);
-      
-      // Invalidate relevant caches
-      dataService.invalidateCachePattern('dj_events_');
-      
-      // Callback and cleanup
-      onEventCreated(uiEvent);
+      onEventCreated(data);
       onClose();
       resetForm();
 
-      console.log(`Event created successfully:`, {
-        id: createdEvent.id,
-        title: eventTitle,
-        location: location,
-        duration: duration
-      });
-
     } catch (error) {
-      const appError = errorService.handleUnknownError(
-        error as Error,
-        {
-          component: 'EventCreator',
-          action: 'createEvent',
-          eventTitle,
-          location,
-          selectedContestants: selectedContestants.length,
-          votingOptions: votingOptions.length
-        }
-      );
-      
-      toast.error(appError.userMessage);
-      
-      console.error('Event creation failed:', {
-        error: appError,
-        eventData: {
-          title: eventTitle,
-          location,
-          contestants: selectedContestants.length
-        }
-      });
+      console.error('Error creating event:', error);
+      toast.error('Failed to create event');
     } finally {
       setIsCreating(false);
     }
@@ -276,10 +277,14 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
     setSelectedTemplate(null);
     setEventTitle('');
     setEventDescription('');
-    setDuration(15);
+    setDuration(120);
     setSelectedContestants([]);
-    setVotingOptions(['Option 1', 'Option 2']);
+    setVotingOptions([
+      { id: '1', text: 'Option 1', emoji: '1️⃣' },
+      { id: '2', text: 'Option 2', emoji: '2️⃣' }
+    ]);
     setIsCustomEvent(false);
+    setShowResultsLive(false);
   };
 
   const handleClose = () => {
@@ -320,8 +325,8 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                           {template.description}
                         </p>
                         <div className="flex gap-2">
-                          <Badge variant="secondary">{template.votingType}</Badge>
-                          <Badge variant="outline">{template.defaultDuration}min</Badge>
+                          <Badge variant="secondary">{template.broadcastType}</Badge>
+                          <Badge variant="outline">{template.defaultDuration}s</Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -361,13 +366,13 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Duration (minutes)</label>
+                  <label className="text-sm font-medium">Duration (seconds)</label>
                   <Input 
                     type="number"
                     value={duration}
-                    onChange={(e) => setDuration(parseInt(e.target.value) || 15)}
-                    min="5"
-                    max="60"
+                    onChange={(e) => setDuration(parseInt(e.target.value) || 120)}
+                    min="30"
+                    max="600"
                   />
                 </div>
               </div>
@@ -382,53 +387,66 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                 />
               </div>
 
-              {/* Contestant Selection */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Select Contestants ({selectedContestants.length} selected)
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded p-2">
-                  {availableMembers.map(member => (
-                    <div 
-                      key={member.id}
-                      className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                        selectedContestants.includes(member.id) 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-accent'
-                      }`}
-                      onClick={() => 
-                        selectedContestants.includes(member.id) 
-                          ? removeContestant(member.id)
-                          : addContestant(member.id)
-                      }
-                    >
-                      <img 
-                        src={member.profilePicture || '/images/avatar-placeholder.png'} 
-                        alt={member.displayName}
-                        className="w-6 h-6 rounded-full bg-muted"
-                      />
-                      <span className="text-xs">{member.displayName}</span>
-                    </div>
-                  ))}
+              {/* Contestant Selection (optional) */}
+              {availableMembers.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Select Contestants (optional - {selectedContestants.length} selected)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded p-2">
+                    {availableMembers.map(member => (
+                      <div 
+                        key={member.id}
+                        className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                          selectedContestants.includes(member.id) 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'hover:bg-accent'
+                        }`}
+                        onClick={() => 
+                          selectedContestants.includes(member.id) 
+                            ? removeContestant(member.id)
+                            : addContestant(member.id)
+                        }
+                      >
+                        <img 
+                          src={member.profilePicture || '/images/avatar-placeholder.png'} 
+                          alt={member.displayName}
+                          className="w-6 h-6 rounded-full bg-muted"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/images/avatar-placeholder.png';
+                          }}
+                        />
+                        <span className="text-xs">{member.displayName}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Voting Options */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Voting Options</label>
                 <div className="space-y-2">
-                  {votingOptions.map((option, index) => (
-                    <div key={index} className="flex gap-2">
+                  {votingOptions.map((option) => (
+                    <div key={option.id} className="flex gap-2">
+                      <Input
+                        value={option.emoji || ''}
+                        onChange={(e) => updateVotingOption(option.id, 'emoji', e.target.value)}
+                        className="w-16 text-center"
+                        placeholder="🔵"
+                        maxLength={2}
+                      />
                       <Input 
-                        value={option}
-                        onChange={(e) => updateVotingOption(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
+                        value={option.text}
+                        onChange={(e) => updateVotingOption(option.id, 'text', e.target.value)}
+                        placeholder={`Option ${votingOptions.findIndex(o => o.id === option.id) + 1}`}
                       />
                       {votingOptions.length > 2 && (
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => removeVotingOption(index)}
+                          onClick={() => removeVotingOption(option.id)}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -439,11 +457,25 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                     variant="outline" 
                     size="sm"
                     onClick={addVotingOption}
+                    disabled={votingOptions.length >= 6}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Option
                   </Button>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="show-results"
+                  checked={showResultsLive}
+                  onChange={(e) => setShowResultsLive(e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="show-results" className="text-sm">
+                  Show voting results live (uncheck to reveal at the end)
+                </label>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-4">
@@ -452,7 +484,7 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                   className="flex-1"
                   disabled={!eventTitle.trim() || isCreating}
                 >
-                  {isCreating ? 'Creating Event...' : 'Create Event'}
+                  {isCreating ? 'Creating Event...' : 'Create Event & Send Broadcast'}
                 </Button>
                 <Button variant="outline" onClick={handleClose} className="sm:w-auto">
                   Cancel

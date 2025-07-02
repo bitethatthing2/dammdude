@@ -122,7 +122,7 @@ class DataService {
       'getWolfpackMembers',
       {
         useCache: true,
-        cacheKey: `wolfpack_members_${location || 'all'}`,
+        cacheKey: `wolf-pack-members_${location || 'all'}`,
         cacheTTL: 60000 // 1 minute for member data
       }
     );
@@ -140,7 +140,7 @@ class DataService {
     );
 
     // Invalidate related cache entries
-    this.invalidateCachePattern('wolfpack_members_');
+    this.invalidateCachePattern('wolf-pack-members_');
     this.invalidateCachePattern(`user_${userId}`);
 
     return result;
@@ -340,7 +340,7 @@ class DataService {
 
     // Invalidate user cache
     this.invalidateCache(`user_${userId}`);
-    this.invalidateCachePattern('wolfpack_members_');
+    this.invalidateCachePattern('wolf-pack-members_');
 
     return result;
   }

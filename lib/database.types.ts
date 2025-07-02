@@ -464,6 +464,39 @@ export type Database = {
           },
         ]
       }
+      broadcast_notification_templates: {
+        Row: {
+          action_buttons: Json | null
+          broadcast_type: string
+          created_at: string | null
+          id: string
+          sound_effect: string | null
+          template_body: string
+          template_title: string
+          vibration_pattern: number[] | null
+        }
+        Insert: {
+          action_buttons?: Json | null
+          broadcast_type: string
+          created_at?: string | null
+          id?: string
+          sound_effect?: string | null
+          template_body: string
+          template_title: string
+          vibration_pattern?: number[] | null
+        }
+        Update: {
+          action_buttons?: Json | null
+          broadcast_type?: string
+          created_at?: string | null
+          id?: string
+          sound_effect?: string | null
+          template_body?: string
+          template_title?: string
+          vibration_pattern?: number[] | null
+        }
+        Relationships: []
+      }
       content_flags: {
         Row: {
           admin_notes: string | null
@@ -798,6 +831,221 @@ export type Database = {
           },
         ]
       }
+      dj_analytics: {
+        Row: {
+          average_response_time: number | null
+          created_at: string | null
+          dj_id: string | null
+          id: string
+          most_engaged_broadcasts: Json | null
+          peak_concurrent_users: number | null
+          peak_engagement_times: Json | null
+          response_rate_by_type: Json | null
+          session_date: string | null
+          session_id: string | null
+          top_broadcast_types: Json | null
+          total_broadcasts: number | null
+          total_responses: number | null
+          unique_participants: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          average_response_time?: number | null
+          created_at?: string | null
+          dj_id?: string | null
+          id?: string
+          most_engaged_broadcasts?: Json | null
+          peak_concurrent_users?: number | null
+          peak_engagement_times?: Json | null
+          response_rate_by_type?: Json | null
+          session_date?: string | null
+          session_id?: string | null
+          top_broadcast_types?: Json | null
+          total_broadcasts?: number | null
+          total_responses?: number | null
+          unique_participants?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          average_response_time?: number | null
+          created_at?: string | null
+          dj_id?: string | null
+          id?: string
+          most_engaged_broadcasts?: Json | null
+          peak_concurrent_users?: number | null
+          peak_engagement_times?: Json | null
+          response_rate_by_type?: Json | null
+          session_date?: string | null
+          session_id?: string | null
+          top_broadcast_types?: Json | null
+          total_broadcasts?: number | null
+          total_responses?: number | null
+          unique_participants?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_analytics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dj_broadcast_responses: {
+        Row: {
+          broadcast_id: string | null
+          device_type: string | null
+          emoji: string | null
+          id: string
+          is_anonymous: boolean | null
+          is_featured: boolean | null
+          is_hidden: boolean | null
+          media_url: string | null
+          moderation_status: string | null
+          option_id: string | null
+          responded_at: string | null
+          response_metadata: Json | null
+          response_type: string
+          text_response: string | null
+          user_id: string | null
+        }
+        Insert: {
+          broadcast_id?: string | null
+          device_type?: string | null
+          emoji?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
+          media_url?: string | null
+          moderation_status?: string | null
+          option_id?: string | null
+          responded_at?: string | null
+          response_metadata?: Json | null
+          response_type: string
+          text_response?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          broadcast_id?: string | null
+          device_type?: string | null
+          emoji?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
+          media_url?: string | null
+          moderation_status?: string | null
+          option_id?: string | null
+          responded_at?: string | null
+          response_metadata?: Json | null
+          response_type?: string
+          text_response?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dj_broadcast_responses_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "active_broadcasts_live"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "dj_broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dj_broadcast_templates: {
         Row: {
           created_at: string | null
@@ -876,28 +1124,94 @@ export type Database = {
       }
       dj_broadcasts: {
         Row: {
+          accent_color: string | null
+          animation_type: string | null
+          auto_close: boolean | null
+          background_color: string | null
           broadcast_type: string | null
+          category: string | null
+          closed_at: string | null
           created_at: string | null
           dj_id: string | null
+          duration_seconds: number | null
+          emoji_burst: string[] | null
+          expires_at: string | null
           id: string
+          interaction_config: Json | null
+          interaction_count: number | null
           location_id: string | null
           message: string
+          priority: string | null
+          sent_at: string | null
+          session_id: string | null
+          status: string | null
+          subtitle: string | null
+          tags: string[] | null
+          text_color: string | null
+          title: string
+          unique_participants: number | null
+          updated_at: string | null
+          view_count: number | null
         }
         Insert: {
+          accent_color?: string | null
+          animation_type?: string | null
+          auto_close?: boolean | null
+          background_color?: string | null
           broadcast_type?: string | null
+          category?: string | null
+          closed_at?: string | null
           created_at?: string | null
           dj_id?: string | null
+          duration_seconds?: number | null
+          emoji_burst?: string[] | null
+          expires_at?: string | null
           id?: string
+          interaction_config?: Json | null
+          interaction_count?: number | null
           location_id?: string | null
           message: string
+          priority?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string | null
+          subtitle?: string | null
+          tags?: string[] | null
+          text_color?: string | null
+          title: string
+          unique_participants?: number | null
+          updated_at?: string | null
+          view_count?: number | null
         }
         Update: {
+          accent_color?: string | null
+          animation_type?: string | null
+          auto_close?: boolean | null
+          background_color?: string | null
           broadcast_type?: string | null
+          category?: string | null
+          closed_at?: string | null
           created_at?: string | null
           dj_id?: string | null
+          duration_seconds?: number | null
+          emoji_burst?: string[] | null
+          expires_at?: string | null
           id?: string
+          interaction_config?: Json | null
+          interaction_count?: number | null
           location_id?: string | null
           message?: string
+          priority?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string | null
+          subtitle?: string | null
+          tags?: string[] | null
+          text_color?: string | null
+          title?: string
+          unique_participants?: number | null
+          updated_at?: string | null
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -977,6 +1291,112 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dj_broadcasts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dj_dashboard_state: {
+        Row: {
+          active_participants: string[] | null
+          auto_queue_enabled: boolean | null
+          broadcast_queue: Json | null
+          current_broadcast_id: string | null
+          current_crowd_size: number | null
+          current_energy_level: number | null
+          dashboard_config: Json | null
+          dj_id: string | null
+          id: string
+          is_live: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_participants?: string[] | null
+          auto_queue_enabled?: boolean | null
+          broadcast_queue?: Json | null
+          current_broadcast_id?: string | null
+          current_crowd_size?: number | null
+          current_energy_level?: number | null
+          dashboard_config?: Json | null
+          dj_id?: string | null
+          id?: string
+          is_live?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_participants?: string[] | null
+          auto_queue_enabled?: boolean | null
+          broadcast_queue?: Json | null
+          current_broadcast_id?: string | null
+          current_crowd_size?: number | null
+          current_energy_level?: number | null
+          dashboard_config?: Json | null
+          dj_id?: string | null
+          id?: string
+          is_live?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dj_dashboard_state_current_broadcast_id_fkey"
+            columns: ["current_broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "active_broadcasts_live"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_current_broadcast_id_fkey"
+            columns: ["current_broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "dj_broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       dj_event_participants: {
@@ -1050,6 +1470,109 @@ export type Database = {
           {
             foreignKeyName: "dj_event_participants_participant_id_fkey"
             columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dj_event_templates: {
+        Row: {
+          broadcast_type: string
+          category: string
+          created_at: string | null
+          created_by: string | null
+          customization_config: Json | null
+          default_duration: number | null
+          default_message: string
+          default_options: Json | null
+          default_title: string
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          is_public: boolean | null
+          last_used_at: string | null
+          tags: string[] | null
+          template_name: string
+          usage_count: number | null
+        }
+        Insert: {
+          broadcast_type: string
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          customization_config?: Json | null
+          default_duration?: number | null
+          default_message: string
+          default_options?: Json | null
+          default_title: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          is_public?: boolean | null
+          last_used_at?: string | null
+          tags?: string[] | null
+          template_name: string
+          usage_count?: number | null
+        }
+        Update: {
+          broadcast_type?: string
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          customization_config?: Json | null
+          default_duration?: number | null
+          default_message?: string
+          default_options?: Json | null
+          default_title?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          is_public?: boolean | null
+          last_used_at?: string | null
+          tags?: string[] | null
+          template_name?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_event_templates_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2680,6 +3203,7 @@ export type Database = {
           last_activity: string | null
           last_login: string | null
           last_name: string | null
+          last_seen_at: string | null
           location_id: string | null
           location_permissions_granted: boolean | null
           looking_for: string | null
@@ -2740,6 +3264,7 @@ export type Database = {
           last_activity?: string | null
           last_login?: string | null
           last_name?: string | null
+          last_seen_at?: string | null
           location_id?: string | null
           location_permissions_granted?: boolean | null
           looking_for?: string | null
@@ -2800,6 +3325,7 @@ export type Database = {
           last_activity?: string | null
           last_login?: string | null
           last_name?: string | null
+          last_seen_at?: string | null
           location_id?: string | null
           location_permissions_granted?: boolean | null
           looking_for?: string | null
@@ -3752,6 +4278,107 @@ export type Database = {
           },
         ]
       }
+      wolfpack_engagement: {
+        Row: {
+          broadcasts_received: number | null
+          broadcasts_responded: number | null
+          created_at: string | null
+          favorite_broadcast_types: string[] | null
+          id: string
+          last_interaction_at: string | null
+          messages_sent: number | null
+          response_rate: number | null
+          session_id: string | null
+          total_interaction_time: number | null
+          updated_at: string | null
+          user_id: string | null
+          winks_received: number | null
+          winks_sent: number | null
+        }
+        Insert: {
+          broadcasts_received?: number | null
+          broadcasts_responded?: number | null
+          created_at?: string | null
+          favorite_broadcast_types?: string[] | null
+          id?: string
+          last_interaction_at?: string | null
+          messages_sent?: number | null
+          response_rate?: number | null
+          session_id?: string | null
+          total_interaction_time?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          winks_received?: number | null
+          winks_sent?: number | null
+        }
+        Update: {
+          broadcasts_received?: number | null
+          broadcasts_responded?: number | null
+          created_at?: string | null
+          favorite_broadcast_types?: string[] | null
+          id?: string
+          last_interaction_at?: string | null
+          messages_sent?: number | null
+          response_rate?: number | null
+          session_id?: string | null
+          total_interaction_time?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          winks_received?: number | null
+          winks_sent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_engagement_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wolfpack_sessions: {
         Row: {
           bar_location_id: string | null
@@ -3986,6 +4613,127 @@ export type Database = {
       }
     }
     Views: {
+      active_broadcasts_live: {
+        Row: {
+          accent_color: string | null
+          animation_type: string | null
+          auto_close: boolean | null
+          background_color: string | null
+          broadcast_type: string | null
+          category: string | null
+          closed_at: string | null
+          created_at: string | null
+          dj_avatar: string | null
+          dj_id: string | null
+          dj_name: string | null
+          duration_seconds: number | null
+          emoji_burst: string[] | null
+          expires_at: string | null
+          id: string | null
+          interaction_config: Json | null
+          interaction_count: number | null
+          location_id: string | null
+          message: string | null
+          priority: string | null
+          seconds_remaining: number | null
+          sent_at: string | null
+          session_id: string | null
+          status: string | null
+          subtitle: string | null
+          tags: string[] | null
+          text_color: string | null
+          title: string | null
+          unique_participants: number | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "active_orders_dashboard"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "image_usage_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location_distances"
+            referencedColumns: ["from_location_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location_distances"
+            referencedColumns: ["to_location_id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_orders_dashboard: {
         Row: {
           accepted_at: string | null
@@ -5808,6 +6556,10 @@ export type Database = {
         Args: { "": unknown } | { "": unknown }
         Returns: string
       }
+      calculate_crowd_energy: {
+        Args: { p_location_id: string }
+        Returns: number
+      }
       can_access_bar_tab: {
         Args: { user_id: string; location_id: string }
         Returns: boolean
@@ -6038,6 +6790,15 @@ export type Database = {
           p_order_type: string
           p_table_location?: string
           p_customer_notes?: string
+        }
+        Returns: string
+      }
+      create_broadcast_from_template: {
+        Args: {
+          p_template_id: string
+          p_dj_id: string
+          p_location_id: string
+          p_customizations?: Json
         }
         Returns: string
       }
@@ -6632,6 +7393,7 @@ export type Database = {
           last_activity: string | null
           last_login: string | null
           last_name: string | null
+          last_seen_at: string | null
           location_id: string | null
           location_permissions_granted: boolean | null
           looking_for: string | null
@@ -6704,6 +7466,10 @@ export type Database = {
       }
       get_blocked_users: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_broadcast_results: {
+        Args: { p_broadcast_id: string }
         Returns: Json
       }
       get_cached_data: {
@@ -6807,6 +7573,10 @@ export type Database = {
           p_filter_platform?: string
           p_filter_active?: boolean
         }
+        Returns: Json
+      }
+      get_dj_dashboard_analytics: {
+        Args: { p_dj_id: string; p_timeframe?: string }
         Returns: Json
       }
       get_env_var: {
@@ -7195,6 +7965,10 @@ export type Database = {
       }
       get_wolfpack_dashboard: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_wolfpack_live_stats: {
+        Args: { p_location_id: string }
         Returns: Json
       }
       get_wolfpack_members: {
@@ -7770,8 +8544,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      quick_vibe_check: {
+        Args: { p_dj_id: string; p_location_id: string }
+        Returns: string
+      }
       react_to_message: {
         Args: { p_message_id: string; p_emoji: string }
+        Returns: Json
+      }
+      record_broadcast_response: {
+        Args: {
+          p_broadcast_id: string
+          p_response_type: string
+          p_option_id?: string
+          p_text_response?: string
+          p_emoji?: string
+        }
         Returns: Json
       }
       refresh_admin_views: {
@@ -7847,6 +8635,14 @@ export type Database = {
           p_type?: string
           p_send_push?: boolean
         }
+        Returns: Json
+      }
+      send_broadcast: {
+        Args: { p_broadcast_id: string }
+        Returns: Json
+      }
+      send_broadcast_notification: {
+        Args: { p_broadcast_id: string }
         Returns: Json
       }
       send_chat_message: {
@@ -7954,6 +8750,14 @@ export type Database = {
       setup_item_modifiers: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      single_ladies_spotlight: {
+        Args: {
+          p_dj_id: string
+          p_location_id: string
+          p_custom_message?: string
+        }
+        Returns: string
       }
       smart_location_check: {
         Args:

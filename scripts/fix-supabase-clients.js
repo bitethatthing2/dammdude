@@ -70,15 +70,15 @@ function analyzeSupabaseQueries() {
     }
     
     // Look for the specific failing query
-    if (content.includes('wolfpack_members')) {
+    if (content.includes('wolf-pack-members')) {
       const lines = content.split('\n');
       lines.forEach((line, index) => {
-        if (line.includes('wolfpack_members')) {
+        if (line.includes('wolf-pack-members')) {
           apiCalls.push({
             file: relativePath,
             line: index + 1,
             code: line.trim(),
-            type: 'wolfpack_members query'
+            type: 'wolf-pack-members query'
           });
         }
       });
@@ -149,10 +149,10 @@ function analyzeSupabaseQueries() {
   
   console.log('📊 ANALYSIS RESULTS:\n');
   
-  console.log('🎯 wolfpack_members QUERIES:');
+  console.log('🎯 wolf-pack-members QUERIES:');
   console.log('====================================');
   if (apiCalls.length === 0) {
-    console.log('✅ No direct wolfpack_members queries found\n');
+    console.log('✅ No direct wolf-pack-members queries found\n');
   } else {
     apiCalls.forEach(call => {
       console.log(`📁 ${call.file}:${call.line}`);
@@ -209,7 +209,7 @@ function analyzeSupabaseQueries() {
   console.log('====================================');
   
   // Check for the specific failing URL pattern
-  const failingPattern = 'wolfpack_members?select=id%2Clocation_id%2Cjoined_at%2Cstatus%2Cis_active&id=eq.';
+  const failingPattern = 'wolf-pack-members?select=id%2Clocation_id%2Cjoined_at%2Cstatus%2Cis_active&id=eq.';
   console.log('Looking for queries matching the failing pattern...\n');
   
   let foundMatchingQueries = false;
@@ -220,7 +220,7 @@ function analyzeSupabaseQueries() {
     const relativePath = path.relative(PROJECT_ROOT, filePath);
     
     // Look for the specific query structure
-    if (content.includes('wolfpack_members') && 
+    if (content.includes('wolf-pack-members') && 
         content.includes('.select(') && 
         content.includes('id') &&
         content.includes('.eq(')) {
@@ -231,7 +231,7 @@ function analyzeSupabaseQueries() {
       let queryContext = [];
       
       lines.forEach((line, index) => {
-        if (line.includes('wolfpack_members') || 
+        if (line.includes('wolf-pack-members') || 
             (queryContext.length > 0 && line.includes('.eq(')) ||
             (queryContext.length > 0 && line.includes('.select('))) {
           queryContext.push(`  ${index + 1}: ${line.trim()}`);
@@ -258,7 +258,7 @@ function analyzeSupabaseQueries() {
   console.log('\n💡 RECOMMENDATIONS:');
   console.log('===================');
   console.log('1. Check the Supabase dashboard logs for the 500 error details');
-  console.log('2. Verify RLS policies on wolfpack_members table');
+  console.log('2. Verify RLS policies on wolf-pack-members table');
   console.log('3. Check if the id being passed is valid');
   console.log('4. Ensure all required columns exist in the table');
   console.log('5. Check for any database triggers that might be failing');

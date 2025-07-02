@@ -78,7 +78,7 @@ export const debugWolfPackMembership = async (userId: string, locationId?: strin
     console.log('Auth User:', user ? '✅ Found' : '❌ Not found');
     if (authError) console.error('Auth Error:', authError);
     
-    // Test 2: Check wolfpack_memberships table
+    // Test 2: Check wolf-pack-memberships table
     const { error: tableError } = await supabase
       .from("wolf_pack_members")
       .select('*')
@@ -268,9 +268,9 @@ export async function checkWolfPackStatus(userId: string) {  try {
       console.error('Error checking user wolfpack status:', userError);
     }
 
-    // Query wolfpack_memberships with correct columns
+    // Query wolf-pack-memberships with correct columns
     const { data: memberData, error: memberError } = await supabase
-      .from('wolfpack_members')
+      .from('wolf-pack-members')
       .select(`
         id,
         id,

@@ -281,7 +281,17 @@ export function WolfpackProfileManager() {
 
   // Save profile with proper typing
   const saveProfile = async (data: FormData = formData, showToast = true) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error('Cannot save profile: No user ID available');
+      toast.error('Please log in to save your profile');
+      return;
+    }
+
+    // Validate required fields
+    if (!data.display_name?.trim()) {
+      toast.error('Display name is required');
+      return;
+    }
 
     setSaving(true);
 
@@ -337,14 +347,75 @@ export function WolfpackProfileManager() {
 
       setProfile(typedSavedData);
       
-      // Update completed - wolfpack_members table has been consolidated into users
+      // Update completed - wolf-pack-members table has been consolidated into users
 
       if (showToast) {
         toast.success('Profile saved successfully!');
       }
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      toast.error('Failed to save profile');
+    } catch (error: any) {
+      // Enhanced error logging for debugging
+      console.error('Error saving profile - Full details:', {
+        error,
+        errorType: typeof error,
+        errorConstructorName: error?.constructor?.name,
+        errorMessage: error?.message || 'No message',
+        errorCode: error?.code,
+        errorDetails: error?.details,
+        errorHint: error?.hint,
+        errorStatus: error?.status,
+        errorStatusText: error?.statusText,
+        isPostgrestError: error?.code?.startsWith('PGRST'),
+        errorKeys: error && typeof error === 'object' ? Object.keys(error) : [],
+        errorStringified: JSON.stringify(error, null, 2),
+        profileData,
+        userId: user.id
+      });
+      
+      // Handle Supabase/Postgrest specific errors
+      let userMessage = 'Failed to save profile';
+      
+      // Check for Supabase error structure
+      if (error?.code) {
+        // Handle PGRST errors (PostgREST errors from Supabase)
+        if (error.code === 'PGRST301') {
+          userMessage = 'No rows were updated - please try again';
+        } else if (error.code === '23505' || error.details?.includes('duplicate')) {
+          userMessage = 'That display name is already taken';
+        } else if (error.code === '42501' || error.message?.includes('permission')) {
+          userMessage = 'You do not have permission to update this profile';
+        } else if (error.code === '23503') {
+          userMessage = 'Invalid reference - please check your input';
+        } else if (error.code === '22P02') {
+          userMessage = 'Invalid input format - please check your data';
+        } else if (error.code.startsWith('PGRST')) {
+          userMessage = `Database error: ${error.message || error.code}`;
+        }
+      } 
+      // Handle standard Error objects
+      else if (error instanceof Error) {
+        if (error.message.includes('duplicate')) {
+          userMessage = 'That display name is already taken';
+        } else if (error.message.includes('permission') || error.message.includes('policy')) {
+          userMessage = 'You do not have permission to update this profile';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          userMessage = 'Network error - please check your connection';
+        } else if (error.message.includes('constraint') || error.message.includes('violates')) {
+          userMessage = 'Invalid data - please check your input';
+        } else {
+          userMessage = `Failed to save profile: ${error.message}`;
+        }
+      }
+      // Handle non-standard error objects
+      else if (error?.message) {
+        userMessage = `Failed to save profile: ${error.message}`;
+      }
+      
+      // If we have a hint from Postgres, append it
+      if (error?.hint) {
+        userMessage += ` (Hint: ${error.hint})`;
+      }
+      
+      toast.error(userMessage);
     } finally {
       setSaving(false);
     }

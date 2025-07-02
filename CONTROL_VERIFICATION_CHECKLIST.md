@@ -21,13 +21,13 @@ const appError = errorService.handleUnknownError(
 const members = await dataService.getWolfpackMembers(locationKey || undefined);
 
 // Cache invalidation on updates
-dataService.invalidateCachePattern('wolfpack_members_');
+dataService.invalidateCachePattern('wolf-pack-members_');
 ```
 
 ### Auth Service Security ✅
 ```typescript
 // Permission-based access control
-if (!authService.hasPermission(Permission.VIEW_WOLFPACK_MEMBERS)) {
+if (!authService.hasPermission(Permission.VIEW_wolf-pack-members)) {
   throw errorService.handleBusinessLogicError(/*...*/);
 }
 

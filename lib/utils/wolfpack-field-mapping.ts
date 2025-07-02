@@ -2,14 +2,14 @@
 // Maps database fields to component interface fields
 
 export const WOLFPACK_FIELD_MAPPING = {
-  // wolfpack_members table mappings
+  // wolf-pack-members table mappings
   database: {
     emoji: 'wolf_emoji',           // emoji -> wolf_emoji
     current_vibe: 'vibe_status',   // current_vibe -> vibe_status
     last_active: 'last_seen_at',   // last_active -> last_seen_at
   },
   
-  // Fields that don't exist in wolfpack_members
+  // Fields that don't exist in wolf-pack-members
   missing_fields: [
     'bio',               // Use wolf_profiles table
     'is_profile_visible',        // Use status field
@@ -18,7 +18,7 @@ export const WOLFPACK_FIELD_MAPPING = {
   ],
   
   // Recommended approach: Use wolf_profiles for detailed profile data
-  // Use wolfpack_members for membership/location data
+  // Use wolf-pack-members for membership/location data
 };
 
 export function transformDatabaseToInterface(dbRow: any) {
@@ -28,7 +28,7 @@ export function transformDatabaseToInterface(dbRow: any) {
     display_name: dbRow.display_name,
     wolf_emoji: dbRow.emoji,
     vibe_status: dbRow.current_vibe,
-    bio: null, // Not in wolfpack_members
+    bio: null, // Not in wolf-pack-members
     is_profile_visible: dbRow.status === 'active',
     allow_messages: true, // Default value
     location_permissions_granted: true,

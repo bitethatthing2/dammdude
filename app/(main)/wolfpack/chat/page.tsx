@@ -297,7 +297,7 @@ export default function WolfpackChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden pb-16">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900" />
       
@@ -314,7 +314,7 @@ export default function WolfpackChatPage() {
       </div>
 
       {/* Spatial View */}
-      <div className="relative z-10 h-[calc(100vh-200px)] p-6" ref={spatialViewRef}>
+      <div className="relative z-10 h-[calc(100vh-13rem)] p-6" ref={spatialViewRef}>
         {spatialMembers.map((member, index) => (
           <div
             key={member.id}
@@ -383,7 +383,7 @@ export default function WolfpackChatPage() {
       </div>
 
       {/* Chat Input */}
-      <div className="relative z-10 p-4 bg-white/10 backdrop-blur-md">
+      <div className="fixed bottom-16 left-0 right-0 z-10 p-4 bg-white/10 backdrop-blur-md">
         <div className="flex gap-2">
           <input 
             type="text" 

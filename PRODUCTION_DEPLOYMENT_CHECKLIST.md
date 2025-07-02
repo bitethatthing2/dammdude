@@ -39,7 +39,7 @@
 ## ✅ **Backend Alignment**
 
 ### 🗄️ **Database Integration**
-- ✅ Using `wolfpack_members` table (not view)
+- ✅ Using `wolf-pack-members` table (not view)
 - ✅ Type adapters for schema compatibility
 - ✅ Proper foreign key relationships
 - ✅ Performance indexes implemented
@@ -102,8 +102,8 @@ echo $WOLFPACK_VIP_USERS
 ### 2. **Database Preparation**
 ```sql
 -- Create performance indexes (during maintenance window)
-CREATE INDEX CONCURRENTLY idx_wolfpack_members_location_status 
-ON wolfpack_members(location_id, status) WHERE status = 'active';
+CREATE INDEX CONCURRENTLY idx_wolf-pack-members_location_status 
+ON wolf-pack-members(location_id, status) WHERE status = 'active';
 
 CREATE INDEX CONCURRENTLY idx_wolf_chat_session_created 
 ON wolf_chat(session_id, created_at DESC);
@@ -111,7 +111,7 @@ ON wolf_chat(session_id, created_at DESC);
 -- Verify tables exist
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('wolfpack_members', 'wolf_chat', 'dj_events');
+AND table_name IN ('wolf-pack-members', 'wolf_chat', 'dj_events');
 ```
 
 ### 3. **Deploy Frontend**

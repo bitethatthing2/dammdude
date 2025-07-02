@@ -11,6 +11,8 @@ interface DJAuthGuardProps {
   requiredLocation?: 'salem' | 'portland';
 }
 
+// This component is already compatible with the new schema!
+// It only checks permissions, not the database structure
 export function DJAuthGuard({ children, requiredLocation }: DJAuthGuardProps) {
   const { isActiveDJ, assignedLocation, isLoading } = useDJPermissions();
   const router = useRouter();

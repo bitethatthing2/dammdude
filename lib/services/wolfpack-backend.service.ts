@@ -861,12 +861,12 @@ export class WolfpackBackendService {
 
       if (error) {
         const userError = WolfpackErrorHandler.handleSupabaseError(error, {
-          operation: 'get_wolfpack_members'
+          operation: 'get_wolf-pack-members'
         });
         
         errorTracker.logError(error, {
           feature: 'database',
-          action: 'get_wolfpack_members',
+          action: 'get_wolf-pack-members',
           component: 'WolfpackBackendService'
         });
         
@@ -879,7 +879,7 @@ export class WolfpackBackendService {
       
       errorTracker.logError(error as Error, {
         feature: 'database',
-        action: 'get_wolfpack_members',
+        action: 'get_wolf-pack-members',
         component: 'WolfpackBackendService'
       });
 

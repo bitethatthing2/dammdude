@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Check if recipient exists and is in pack
     const recipientCheck = await WolfpackBackendService.queryOne(
-      WOLFPACK_TABLES.wolfpack_memberships,
+      WOLFPACK_TABLES.wolf-pack-memberships,
       'id, id',
       { id: receiver_id, status: 'active' }
     );

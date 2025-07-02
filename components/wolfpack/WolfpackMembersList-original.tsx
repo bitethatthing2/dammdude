@@ -276,7 +276,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
     // Set up real-time subscription for member changes
     const channel = supabase
-      .channel('wolfpack_members_realtime')
+      .channel('wolf-pack-members_realtime')
       .on(
         'postgres_changes',
         {

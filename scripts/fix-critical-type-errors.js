@@ -6,7 +6,7 @@ const path = require('path');
 // More comprehensive table and function fixes
 const additionalTableFixes = {
   'wolfpack_sessions': 'active_sessions',
-  'wolfpack_members': 'wolf_pack_members', 
+  'wolf-pack-members': 'wolf_pack_members', 
   'wolfpack_winks': 'wolf_pack_interactions',
   'user_profiles': 'users'
 };

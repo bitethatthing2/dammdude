@@ -333,7 +333,7 @@ class WolfpackRealtimeClient {
         return null
       }
 
-      // Subscribe to wolfpack_members changes
+      // Subscribe to wolf-pack-members changes
       const channel = this.supabase
         .channel(`wolfpack_${locationId}`)
         .on(
@@ -341,7 +341,7 @@ class WolfpackRealtimeClient {
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'wolfpack_members',
+            table: 'wolf-pack-members',
             filter: `location_id=eq.${locationId}`
           },
           async (payload) => {
@@ -360,7 +360,7 @@ class WolfpackRealtimeClient {
           {
             event: 'UPDATE',
             schema: 'public',
-            table: 'wolfpack_members',
+            table: 'wolf-pack-members',
             filter: `location_id=eq.${locationId}`
           },
           async (payload) => {
@@ -384,7 +384,7 @@ class WolfpackRealtimeClient {
           {
             event: 'DELETE',
             schema: 'public',
-            table: 'wolfpack_members',
+            table: 'wolf-pack-members',
             filter: `location_id=eq.${locationId}`
           },
           (payload) => {
@@ -427,7 +427,7 @@ class WolfpackRealtimeClient {
         .select(`
           *,
           wolf_profile:wolf_profiles(*),
-          wolfpack_member:wolfpack_members(*)
+          wolfpack_member:wolf-pack-members(*)
         `)
         .eq('id', user.id)
         .single()
@@ -484,7 +484,7 @@ class WolfpackRealtimeClient {
         }
       }
 
-      // Update wolfpack_members table for current active memberships
+      // Update wolf-pack-members table for current active memberships
       const memberUpdates: Record<string, unknown> = {}
       if (updates.displayName !== undefined) memberUpdates.display_name = updates.displayName
       if (updates.emoji !== undefined) memberUpdates.emoji = updates.emoji
@@ -497,7 +497,7 @@ class WolfpackRealtimeClient {
         memberUpdates.updated_at = new Date().toISOString()
         
         const { error: memberError } = await this.supabase
-          .from('wolfpack_members')
+          .from('wolf-pack-members')
           .update(memberUpdates)
           .eq('id', user.id)
           .eq('is_active', true)

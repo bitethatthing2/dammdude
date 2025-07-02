@@ -127,7 +127,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
     try {
       // Check permissions first
-      if (!authService.hasPermission(Permission.VIEW_WOLFPACK_MEMBERS)) {
+      if (!authService.hasPermission(Permission.VIEW_wolf-pack-members)) {
         throw errorService.handleBusinessLogicError(
           'checkMembership',
           'Insufficient permissions',
@@ -242,7 +242,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
       
       // Refresh membership and invalidate caches
       await checkMembership()
-      dataService.invalidateCachePattern('wolfpack_members_')
+      dataService.invalidateCachePattern('wolf-pack-members_')
       
       return { data: updatedUser as WolfPackMember }
     } catch (err) {
@@ -292,7 +292,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
       setPackMembers([])
       
       // Invalidate caches
-      dataService.invalidateCachePattern('wolfpack_members_')
+      dataService.invalidateCachePattern('wolf-pack-members_')
       dataService.invalidateCache(`user_${user.id}`)
 
     } catch (err) {
@@ -391,7 +391,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         }
 
         const channel = dataService.supabase
-          .channel('wolfpack_members_optimized')
+          .channel('wolf-pack-members_optimized')
           .on(
             'postgres_changes',
             {
@@ -405,7 +405,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
                 console.log('Wolfpack member change detected:', payload.eventType)
                 
                 // Invalidate cache and refresh with debouncing
-                dataService.invalidateCachePattern('wolfpack_members_')
+                dataService.invalidateCachePattern('wolf-pack-members_')
                 debouncedRefresh()
                 
                 setConnectionStatus('connected')
