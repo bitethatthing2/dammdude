@@ -1307,7 +1307,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
-                    Tonight's Top Crowd Members
+                    Tonight&apos;s Top Crowd Members
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1317,12 +1317,12 @@ export function DJDashboard({ location }: DJDashboardProps) {
                         <div className="text-lg font-bold w-8 text-center">
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                         </div>
-                        <img 
-                          src={viper.avatar || '/images/avatar-placeholder.png'} 
+                        <img
+                          src={viper.avatar || '/images/product-placeholder.jpg'} 
                           alt={viper.name}
-                          className="w-10 h-10 rounded-full"
+                          className="w-10 h-10 rounded-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/avatar-placeholder.png';
+                            (e.target as HTMLImageElement).src = '/images/product-placeholder.jpg';
                           }}
                         />
                         <div className="flex-1">
@@ -1481,7 +1481,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
               <>
                 <Card>
                   <CardHeader>
-                    <CardTitle>Today's Performance</CardTitle>
+                    <CardTitle>Today&apos;s Performance</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">

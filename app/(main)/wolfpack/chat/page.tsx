@@ -380,7 +380,7 @@ export default function SimpleWolfpackChatPage() {
       </div>
 
       {/* Spatial View */}
-      <div className="relative z-10 h-[calc(100vh-12rem)] p-6" ref={spatialViewRef}>
+      <div className="relative z-10 h-[calc(100vh-16rem)] p-6" ref={spatialViewRef}>
         {spatialMembers.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-gray-400">
@@ -480,7 +480,7 @@ export default function SimpleWolfpackChatPage() {
       )}
 
       {/* Chat Input */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 p-4 bg-white/10 backdrop-blur-md">
+      <div className="fixed bottom-16 left-0 right-0 z-10 p-4 bg-white/10 backdrop-blur-md border-t border-white/20">
         <div className="flex gap-2">
           <input 
             type="text" 
