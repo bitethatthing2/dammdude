@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/lib/database.types';
 interface DJPermissions {
   canCreateEvents: boolean;
   canSendMassMessages: boolean;
@@ -96,6 +96,7 @@ export function useDJPermissions() {
         // For development, allow VIP users to be DJs even if table doesn't exist
         const vipUsers = ['mkahler599@gmail.com'];
         const isVipUser = user?.email && vipUsers.includes(user.email);
+        const tempAllowAnyUser = true;
         
         if (isVipUser || tempAllowAnyUser) {
           console.log('🎯 Setting DJ permissions (catch block) for user:', { isVipUser, tempAllowAnyUser, userEmail: user?.email });

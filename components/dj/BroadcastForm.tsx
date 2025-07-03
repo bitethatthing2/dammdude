@@ -29,9 +29,9 @@ import type {
   BroadcastType, 
   BroadcastPriority,
   InteractionConfig,
-  BroadcastOption,
-  Database
-} from '@/types/dj-dashboard-schema';
+  BroadcastOption
+} from '@/lib/types/dj-dashboard-types';
+import type { Database } from '@/lib/database.types';
 
 interface BroadcastFormProps {
   djId: string;
