@@ -1,23 +1,42 @@
-"use client";
+'use client';
 
 import { Suspense } from 'react';
 import { Calendar } from 'lucide-react';
+import { EventCard } from '@/components/shared/EventCard';
+
+// Mock data - replace with your actual data fetching
+const mockEvents = [
+  {
+    id: '1',
+    title: 'Freestyle Friday',
+    description: 'Weekly rap battle competition',
+    date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    image: '/images/events/freestyle-friday.jpg',
+    featured: true
+  },
+  {
+    id: '2',
+    title: 'Ladies Night',
+    description: 'Special drinks and DJ spotlight',
+    date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    image: '/images/events/ladies-night.jpg',
+    featured: false
+  }
+];
 
 export default function EventsPage() {
   return (
-    <div className="container py-8">
-      <div className="flex items-center mb-8">
-        <Calendar className="h-6 w-6 mr-2 text-primary" />
-        <h1 className="text-3xl font-bold">Upcoming Events</h1>
+    <div className="container py-6 sm:py-8">
+      <div className="flex items-center mb-6 sm:mb-8">
+        <Calendar className="h-5 w-5 sm:h-6 sm:w-6 mr-2 text-primary" />
+        <h1 className="text-2xl sm:text-3xl font-bold">Upcoming Events</h1>
       </div>
       
       <Suspense fallback={<EventsPageSkeleton />}>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold mb-4">Coming Soon!</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Our events calendar is currently being updated. Check back soon for upcoming games, 
-            live music, and special events at both our Salem and Portland locations.
-          </p>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {mockEvents.map(event => (
+            <EventCard key={event.id} event={event} />
+          ))}
         </div>
       </Suspense>
     </div>
@@ -26,7 +45,7 @@ export default function EventsPage() {
 
 function EventsPageSkeleton() {
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {Array(6).fill(0).map((_, i) => (
         <div key={i} className="rounded-lg border bg-card p-4 h-64 animate-pulse">
           <div className="h-32 rounded-md bg-muted mb-4" />

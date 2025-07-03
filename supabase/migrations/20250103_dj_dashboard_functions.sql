@@ -25,7 +25,7 @@ BEGIN
                 ELSE false
             END as is_very_active
         FROM users u
-        JOIN wolf-pack-members wm ON u.id = wm.user_id
+        JOIN wolfpack_members wm ON u.id = wm.user_id
         WHERE wm.location_id = p_location_id
         AND wm.status = 'active'
         AND u.last_seen_at > NOW() - INTERVAL '30 minutes'
@@ -324,7 +324,7 @@ BEGIN
     -- Count active users
     SELECT COUNT(*) INTO v_active_users
     FROM users u
-    JOIN wolf-pack-members wm ON u.id = wm.user_id
+    JOIN wolfpack_members wm ON u.id = wm.user_id
     WHERE wm.location_id = p_location_id
     AND wm.status = 'active'
     AND u.last_seen_at > NOW() - INTERVAL '15 minutes';

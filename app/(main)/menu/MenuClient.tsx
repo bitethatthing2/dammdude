@@ -245,16 +245,7 @@ export default function MenuClient({
     );
   }
 
-  // Debug info
-  console.log('🔍 MenuClient State:', {
-    categoriesTotal: categories.length,
-    foodCategories: foodCategories.length,
-    drinkCategories: drinkCategories.length,
-    activeTab,
-    activeCategory,
-    itemsCount: items.length,
-    loading
-  });
+  // Debug info removed to reduce console noise
 
   return (
     <div className="min-h-screen bg-background">

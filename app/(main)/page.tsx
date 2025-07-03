@@ -62,8 +62,8 @@ export default function Page() {
         {/* Original Home Page Content */}
         <div className="flex flex-col items-center pt-16 relative">
 
-          {/* Side Hustle Font Logo - Fixed positioning with better desktop constraints */}
-          <div className="fixed top-0 left-0 z-50 bg-background/95 backdrop-blur-sm p-2 shadow-sm"> 
+          {/* Side Hustle Font Logo - Scrolls with page */}
+          <div className="absolute top-0 left-0 p-2"> 
             {mounted ? (
               <Image 
                 src={sideHustleFontSrc} 

@@ -3,20 +3,27 @@ importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.5.2/firebase-messaging-compat.js');
 importScripts('/sw-cache.js');
 
-// Service worker version
-const SW_VERSION = '1.0.9';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Firebase configuration (PUBLIC Client-Side Values)
-// Note: These values are injected at build time and are safe to be public
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "",             // Replace with value from .env.local
-  authDomain: "",       // Replace with value from .env.local
-  projectId: "",        // Replace with value from .env.local
-  storageBucket: "",  // Replace with value from .env.local
-  messagingSenderId: "", // Replace with value from .env.local
-  appId: "",              // Replace with value from .env.local
-  measurementId: "" // Optional, replace if you use it
+  apiKey: "AIzaSyAUWCAf5xHLMitmAgI5gfy8d2o48pnjXeo",
+  authDomain: "sidehustle-22a6a.firebaseapp.com",
+  projectId: "sidehustle-22a6a",
+  storageBucket: "sidehustle-22a6a.firebasestorage.app",
+  messagingSenderId: "993911155207",
+  appId: "1:993911155207:web:610f19ac354d69540bd8a2",
+  measurementId: "G-RHT2310KWW"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // Check if Firebase configuration is complete
 function isFirebaseConfigValid() {
@@ -25,6 +32,11 @@ function isFirebaseConfigValid() {
          firebaseConfig.projectId && 
          firebaseConfig.messagingSenderId && 
          firebaseConfig.appId;
+}
+
+// Validate configuration on load
+if (!isFirebaseConfigValid()) {
+  console.warn('[firebase-messaging-sw.js] Firebase configuration is incomplete. Some features may not work.');
 }
 
 // Service Worker Lifecycle Events
@@ -262,7 +274,7 @@ self.addEventListener('sync', event => {
 });
 
 // Initialize Firebase only if all required config values are present
-if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId) {
+if (isFirebaseConfigValid()) {
   try {
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
