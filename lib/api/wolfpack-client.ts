@@ -1,9 +1,9 @@
 // lib/supabase/enhanced-wolfpack-client.ts
 // Enhanced realtime client that integrates with DJ Dashboard and handles RLS, relationships, and user ID issues
 
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/types/database.types'
-import { LOCATION_CONFIG, handleSupabaseError } from '@/lib/supabase-client'
+import { Database } from '@/lib/database.types'
+import { LOCATION_CONFIG } from '@/lib/types/dj-dashboard-types'
+import { handleSupabaseError, createClient } from '@/lib/supabase/client'
 
 type Tables = Database['public']['Tables']
 type UserRow = Tables['users']['Row']
@@ -799,6 +799,9 @@ class EnhancedWolfpackRealtimeClient {
 
 // Export singleton instance
 export const enhancedWolfpackClient = new EnhancedWolfpackRealtimeClient()
+
+// Export as wolfpackAPI for backward compatibility
+export const wolfpackAPI = enhancedWolfpackClient
 
 // Helper function to convert enhanced member to basic user format
 export function enhancedMemberToUser(member: EnhancedWolfpackMember): UserRow {
