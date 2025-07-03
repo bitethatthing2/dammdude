@@ -12,13 +12,13 @@ import { getAnalytics } from "firebase/analytics";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAUWCAf5xHLMitmAgI5gfy8d2o48pnjXeo",
-  authDomain: "sidehustle-22a6a.firebaseapp.com",
-  projectId: "sidehustle-22a6a",
-  storageBucket: "sidehustle-22a6a.firebasestorage.app",
-  messagingSenderId: "993911155207",
-  appId: "1:993911155207:web:610f19ac354d69540bd8a2",
-  measurementId: "G-RHT2310KWW"
+  apiKey: "",             // Replace with value from .env.local
+  authDomain: "",       // Replace with value from .env.local
+  projectId: "",        // Replace with value from .env.local
+  storageBucket: "",  // Replace with value from .env.local
+  messagingSenderId: "", // Replace with value from .env.local
+  appId: "",              // Replace with value from .env.local
+  measurementId: "" // Optional, replace if you use it
 };
 
 // Initialize Firebase

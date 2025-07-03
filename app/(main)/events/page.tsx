@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { Calendar } from 'lucide-react';
-import { EventCard } from '@/components/shared/EventCard';
+import { EventCard } from '@/components/events/EventCard';
 
 // Mock data - replace with your actual data fetching
 const mockEvents = [
