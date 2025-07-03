@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CenteredModal } from '@/components/shared/CenteredModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,8 @@ interface BroadcastFormProps {
   djId: string;
   locationId: string;
   sessionId?: string;
+  isOpen: boolean;
+  onClose: () => void;
   onBroadcastCreated?: (broadcast: Database['public']['Tables']['dj_broadcasts']['Row']) => void;
 }
 
@@ -68,7 +71,7 @@ const ANIMATION_TYPES = [
 
 const EMOJI_BURSTS = ['🎉', '🔥', '💃', '🎵', '⭐', '🎊', '✨', '🎶', '🏆', '💯'];
 
-export function BroadcastForm({ djId, locationId, sessionId, onBroadcastCreated }: BroadcastFormProps) {
+export function BroadcastForm({ djId, locationId, sessionId, isOpen, onClose, onBroadcastCreated }: BroadcastFormProps) {
   // Form state
   const [broadcastType, setBroadcastType] = useState<BroadcastType>('general');
   const [title, setTitle] = useState('');
@@ -195,7 +198,8 @@ export function BroadcastForm({ djId, locationId, sessionId, onBroadcastCreated 
         onBroadcastCreated(data);
       }
 
-      // Reset form
+      // Close modal and reset form
+      onClose();
       setTitle('');
       setMessage('');
       setSubtitle('');
@@ -217,7 +221,14 @@ export function BroadcastForm({ djId, locationId, sessionId, onBroadcastCreated 
   const Icon = config.icon;
 
   return (
-    <Card className="w-full bg-slate-800/50 border-slate-700">
+    <CenteredModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create New Broadcast"
+      maxWidth="3xl"
+    >
+      <div className="p-4">
+        <Card className="w-full bg-slate-800/50 border-slate-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
           <Icon className="w-5 h-5" />
@@ -550,7 +561,9 @@ export function BroadcastForm({ djId, locationId, sessionId, onBroadcastCreated 
             </>
           )}
         </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      </div>
+    </CenteredModal>
   );
 }

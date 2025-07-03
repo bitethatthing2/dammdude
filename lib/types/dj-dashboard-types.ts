@@ -321,3 +321,30 @@ export interface MessageTemplate {
   duration: number
   emoji_burst?: string[]
 }
+
+// ===== Form Data Types =====
+
+export interface BroadcastFormData {
+  title: string
+  message: string
+  subtitle?: string
+  broadcast_type: BroadcastType
+  priority: BroadcastPriority
+  duration_seconds: number
+  background_color: string
+  text_color: string
+  accent_color: string
+  animation_type: AnimationType
+  emoji_burst?: string[]
+  interaction_config: InteractionConfig
+  tags?: string[]
+  category?: string
+}
+
+export interface EventFormData {
+  title: string
+  description?: string
+  event_type?: string
+  duration_seconds?: number
+  options?: BroadcastOption[]
+}

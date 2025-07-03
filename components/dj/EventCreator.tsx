@@ -459,198 +459,194 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
     <CenteredModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={modalTitle}
+      title="🎉 Event Creator"
       maxWidth="4xl"
     >
-      <div className="p-0">
-        {/* Modal Header with badges */}
-        <div className="flex items-center gap-2 mb-6 p-4 border-b">
-          <Sparkles className="w-5 h-5 text-yellow-500" />
-          <h2 className="text-lg font-semibold">Event Creator</h2>
-          <Badge variant="secondary" className="ml-2">
-            <Zap className="w-3 h-3 mr-1" />
+      <div className="flex flex-col h-full">
+        {/* Compact header */}
+        <div className="flex items-center gap-2 p-4 border-b flex-shrink-0">
+          <Badge variant="secondary" className="gap-1">
+            <Zap className="w-3 h-3" />
             Magical
           </Badge>
         </div>
 
-        <div className="px-4">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
-              <TabsTrigger value="templates" className="gap-2 py-3">
-                <Wand2 className="w-4 h-4" />
-                Templates
-              </TabsTrigger>
-              <TabsTrigger value="custom" className="gap-2 py-3">
-                <Palette className="w-4 h-4" />
-                Customize
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="gap-2 py-3">
-                <Eye className="w-4 h-4" />
-                Preview
-              </TabsTrigger>
-            </TabsList>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="templates" className="gap-2 text-xs">
+                  <Wand2 className="w-3 h-3" />
+                  Templates
+                </TabsTrigger>
+                <TabsTrigger value="custom" className="gap-2 text-xs">
+                  <Palette className="w-3 h-3" />
+                  Customize
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="gap-2 text-xs">
+                  <Eye className="w-3 h-3" />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Tab Contents */}
-            <TabsContent value="templates" className="mt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {eventTemplates.map((template) => {
-                  const IconComponent = template.icon;
-                  return (
-                    <Card 
-                      key={template.id}
-                      className={`cursor-pointer transition-all hover:shadow-lg bg-gradient-to-br ${template.bgGradient} text-white border-0`}
-                      onClick={() => handleTemplateSelect(template)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-3">
-                          <IconComponent className="w-8 h-8" />
-                          <Badge variant="secondary" className="text-black">
-                            {ENERGY_LEVELS[template.energy].icon} {ENERGY_LEVELS[template.energy].label}
-                          </Badge>
-                        </div>
-                        <h3 className="font-bold text-lg mb-2">{template.emoji} {template.name}</h3>
-                        <p className="text-sm opacity-90 mb-4">{template.description}</p>
-                        <div className="flex items-center justify-between text-xs opacity-75">
-                          <span>{template.defaultDuration}s duration</span>
-                          <span>{template.suggestedContestants} contestants</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="custom" className="mt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="event-title" className="text-sm font-medium mb-2 block">
-                      Event Title
-                    </Label>
-                    <Input
-                      id="event-title"
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      placeholder="Enter event name..."
-                      maxLength={100}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="event-description" className="text-sm font-medium mb-2 block">
-                      Description
-                    </Label>
-                    <Textarea
-                      id="event-description"
-                      value={eventDescription}
-                      onChange={(e) => setEventDescription(e.target.value)}
-                      placeholder="Describe your event..."
-                      rows={3}
-                      maxLength={250}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="duration-slider" className="text-sm font-medium mb-2 block">
-                      Duration: {duration} seconds
-                    </Label>
-                    <input
-                      id="duration-slider"
-                      type="range"
-                      min="30"
-                      max="300"
-                      step="15"
-                      value={duration}
-                      onChange={(e) => setDuration(parseInt(e.target.value))}
-                      className="w-full"
-                      aria-label={`Event duration: ${duration} seconds`}
-                      title={`Event duration: ${duration} seconds`}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>30s</span>
-                      <span>5 min</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">Voting Options</Label>
-                    <div className="space-y-2">
-                      {votingOptions.map((option, index) => (
-                        <div key={option.id} className="flex gap-2">
-                          <Input
-                            value={option.emoji}
-                            onChange={(e) => updateVotingOption(option.id, 'emoji', e.target.value)}
-                            className="w-16"
-                            maxLength={2}
-                            aria-label={`Emoji for option ${index + 1}`}
-                          />
-                          <Input
-                            value={option.text}
-                            onChange={(e) => updateVotingOption(option.id, 'text', e.target.value)}
-                            className="flex-1"
-                            placeholder={`Option ${index + 1}`}
-                            aria-label={`Text for option ${index + 1}`}
-                          />
-                          {votingOptions.length > 2 && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeVotingOption(option.id)}
-                              aria-label={`Remove option ${index + 1}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        onClick={addVotingOption}
-                        className="w-full"
-                        disabled={votingOptions.length >= 6}
+              {/* Tab Contents */}
+              <TabsContent value="templates" className="mt-0 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {eventTemplates.map((template) => {
+                    const IconComponent = template.icon;
+                    return (
+                      <Card 
+                        key={template.id}
+                        className={`cursor-pointer transition-all hover:shadow-lg bg-gradient-to-br ${template.bgGradient} text-white border-0`}
+                        onClick={() => handleTemplateSelect(template)}
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Option
-                      </Button>
-                    </div>
-                  </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <IconComponent className="w-6 h-6" />
+                            <Badge variant="secondary" className="text-black text-xs">
+                              {ENERGY_LEVELS[template.energy].icon}
+                            </Badge>
+                          </div>
+                          <h3 className="font-bold text-sm mb-1">{template.emoji} {template.name}</h3>
+                          <p className="text-xs opacity-90 mb-3">{template.description}</p>
+                          <div className="flex items-center justify-between text-xs opacity-75">
+                            <span>{template.defaultDuration}s</span>
+                            <span>{template.suggestedContestants} contestants</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="show-results"
-                      checked={showResultsLive}
-                      onCheckedChange={setShowResultsLive}
-                    />
-                    <Label htmlFor="show-results">Show results live</Label>
+            <TabsContent value="custom" className="mt-0 space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="event-title" className="text-sm font-medium mb-2 block">
+                    Event Title
+                  </Label>
+                  <Input
+                    id="event-title"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                    placeholder="Enter event name..."
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="event-description" className="text-sm font-medium mb-2 block">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="event-description"
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    placeholder="Describe your event..."
+                    rows={2}
+                    maxLength={250}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="duration-slider" className="text-sm font-medium mb-2 block">
+                    Duration: {duration} seconds
+                  </Label>
+                  <input
+                    id="duration-slider"
+                    type="range"
+                    min="30"
+                    max="300"
+                    step="15"
+                    value={duration}
+                    onChange={(e) => setDuration(parseInt(e.target.value))}
+                    className="w-full"
+                    aria-label={`Event duration: ${duration} seconds`}
+                    title={`Event duration: ${duration} seconds`}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>30s</span>
+                    <span>5 min</span>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Voting Options</Label>
+                  <div className="space-y-2">
+                    {votingOptions.map((option, index) => (
+                      <div key={option.id} className="flex gap-2">
+                        <Input
+                          value={option.emoji}
+                          onChange={(e) => updateVotingOption(option.id, 'emoji', e.target.value)}
+                          className="w-16"
+                          maxLength={2}
+                          aria-label={`Emoji for option ${index + 1}`}
+                        />
+                        <Input
+                          value={option.text}
+                          onChange={(e) => updateVotingOption(option.id, 'text', e.target.value)}
+                          className="flex-1"
+                          placeholder={`Option ${index + 1}`}
+                          aria-label={`Text for option ${index + 1}`}
+                        />
+                        {votingOptions.length > 2 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeVotingOption(option.id)}
+                            aria-label={`Remove option ${index + 1}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      onClick={addVotingOption}
+                      className="w-full"
+                      disabled={votingOptions.length >= 6}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Option
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="show-results"
+                    checked={showResultsLive}
+                    onCheckedChange={setShowResultsLive}
+                  />
+                  <Label htmlFor="show-results">Show results live</Label>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="preview" className="mt-6">
+            <TabsContent value="preview" className="mt-0">
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="text-center">
                     <h3 className="text-lg font-bold mb-2">
                       {selectedTemplate?.emoji || '🎉'} {eventTitle || 'Event Preview'}
                     </h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-muted-foreground mb-4 text-sm">
                       {eventDescription || 'Your event description will appear here'}
                     </p>
                     
                     <div className="grid gap-2 max-w-md mx-auto">
                       {votingOptions.map((option) => (
-                        <Button key={option.id} variant="outline" className="justify-start">
+                        <Button key={option.id} variant="outline" className="justify-start text-sm">
                           <span className="mr-2">{option.emoji}</span>
                           {option.text}
                         </Button>
                       ))}
                     </div>
 
-                    <div className="mt-4 text-sm text-muted-foreground">
+                    <div className="mt-4 text-xs text-muted-foreground">
                       Duration: {duration} seconds • Live results: {showResultsLive ? 'On' : 'Off'}
                     </div>
                   </div>
@@ -658,28 +654,28 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
               </Card>
             </TabsContent>
           </Tabs>
-
-          {/* Footer Actions */}
-          <div className="flex gap-3 mt-6 pt-4 border-t">
-            <Button
-              onClick={createEvent}
-              disabled={!eventTitle.trim() || isCreating}
-              className="flex-1"
-              size="lg"
-            >
-              {isCreating ? (
-                'Creating Event...'
-              ) : (
-                <>
-                  <Trophy className="w-4 h-4 mr-2" />
-                  Create Event
-                </>
-              )}
-            </Button>
-            <Button variant="outline" onClick={handleClose} size="lg">
-              Cancel
-            </Button>
           </div>
+        </div>
+
+        {/* Fixed footer */}
+        <div className="flex gap-3 p-4 border-t flex-shrink-0">
+          <Button
+            onClick={createEvent}
+            disabled={!eventTitle.trim() || isCreating}
+            className="flex-1"
+          >
+            {isCreating ? (
+              'Creating Event...'
+            ) : (
+              <>
+                <Trophy className="w-4 h-4 mr-2" />
+                Create Event
+              </>
+            )}
+          </Button>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
         </div>
       </div>
     </CenteredModal>

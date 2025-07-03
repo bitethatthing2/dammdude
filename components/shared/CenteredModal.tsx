@@ -70,7 +70,7 @@ export function CenteredModal({
         className={`
           relative w-full mx-4 ${maxWidthClasses[maxWidth]} 
           bg-background border border-border rounded-lg shadow-lg
-          max-h-[90vh] overflow-hidden
+          max-h-[calc(100vh-120px)] overflow-hidden
           animate-in fade-in-0 zoom-in-95 duration-200
           ${className}
         `}
@@ -93,7 +93,7 @@ export function CenteredModal({
         </div>
         
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
           {children}
         </div>
       </div>

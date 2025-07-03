@@ -9,6 +9,7 @@ interface DJPermissions {
   canManageVoting: boolean;
   assignedLocation: 'salem' | 'portland' | null;
   isActiveDJ: boolean;
+  djId: string | null;
 }
 
 export function useDJPermissions() {
@@ -19,11 +20,14 @@ export function useDJPermissions() {
     canSelectContestants: false,
     canManageVoting: false,
     assignedLocation: null,
-    isActiveDJ: false
+    isActiveDJ: false,
+    djId: null
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     if (!user) {
       setPermissions({
         canCreateEvents: false,
@@ -31,13 +35,15 @@ export function useDJPermissions() {
         canSelectContestants: false,
         canManageVoting: false,
         assignedLocation: null,
-        isActiveDJ: false
+        isActiveDJ: false,
+        djId: null
       });
       setIsLoading(false);
       return;
     }
 
     const checkDJPermissions = async () => {
+      if (!isMounted) return;
       try {        
         // Debug logging to see what user data we have
         console.log('🔍 DJ Permissions Check:', {
@@ -63,13 +69,15 @@ export function useDJPermissions() {
 
         if (isVipUser || tempAllowAnyUser) {
           console.log('🎯 Setting DJ permissions for user:', { isVipUser, tempAllowAnyUser, userEmail: user?.email });
+          if (!isMounted) return;
           setPermissions({
             canCreateEvents: true,
             canSendMassMessages: true,
             canSelectContestants: true,
             canManageVoting: true,
             assignedLocation: 'salem', // Default to Salem for now
-            isActiveDJ: true
+            isActiveDJ: true,
+            djId: user?.id || null
           });
         } else {
           // Try to check for DJ assignment in database
@@ -81,13 +89,15 @@ export function useDJPermissions() {
             .single();
 
           if (djData && 'location' in djData) {
+            if (!isMounted) return;
             setPermissions({
               canCreateEvents: true,
               canSendMassMessages: true,
               canSelectContestants: true,
               canManageVoting: true,
               assignedLocation: djData.location as 'salem' | 'portland',
-              isActiveDJ: true
+              isActiveDJ: true,
+              djId: user?.id || null
             });
           }
         }
@@ -100,21 +110,29 @@ export function useDJPermissions() {
         
         if (isVipUser || tempAllowAnyUser) {
           console.log('🎯 Setting DJ permissions (catch block) for user:', { isVipUser, tempAllowAnyUser, userEmail: user?.email });
+          if (!isMounted) return;
           setPermissions({
             canCreateEvents: true,
             canSendMassMessages: true,
             canSelectContestants: true,
             canManageVoting: true,
             assignedLocation: 'salem',
-            isActiveDJ: true
+            isActiveDJ: true,
+            djId: user?.id || null
           });
         }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkDJPermissions();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   return { ...permissions, isLoading };
