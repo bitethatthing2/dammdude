@@ -1,7 +1,7 @@
 // hooks/useDJDashboard.ts
 // Simplified DJ dashboard hook that works with existing Supabase client
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { LOCATION_CONFIG } from '@/lib/types/dj-dashboard-types'
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'

@@ -50,7 +50,6 @@ interface DatabaseLocation {
 
 interface DatabaseWolfPackMember {
   id: string;
-  id: string;
   location_id: string;
   status: 'active' | 'inactive' | 'suspended';
   last_activity: string | null;

@@ -3,7 +3,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
-import { LOCATION_CONFIG, handleSupabaseError } from '@/lib/supabase-client'
+import { LOCATION_CONFIG } from '@/lib/types/dj-dashboard-types'
+import { handleSupabaseError } from '@/lib/supabase/client'
 
 type Tables = Database['public']['Tables']
 type UserRow = Tables['users']['Row']
