@@ -76,13 +76,13 @@ export default function EnhancedWolfpackChatPage() {
     isActive: false
   };
   
-  // Use wolfpack hook
+  // Use wolfpack hook - only connect when we have valid session
   const { state, actions } = useWolfpack(
     sessionId || 'general', 
     locationId || '', 
     {
-      enableDebugLogging: true,
-      autoConnect: Boolean(isActive && user && sessionId)
+      enableDebugLogging: false, // Disable debug logs for performance
+      autoConnect: Boolean(isActive && user && sessionId && !authLoading && !packLoading)
     }
   );
   
@@ -100,7 +100,7 @@ export default function EnhancedWolfpackChatPage() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const bubbleTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // Convert members to spatial format
+  // Convert members to spatial format - optimized
   useEffect(() => {
     if (state.members && Array.isArray(state.members)) {
       const spatial: SpatialMember[] = state.members.map((member: WolfpackMember, index: number) => {
@@ -118,7 +118,7 @@ export default function EnhancedWolfpackChatPage() {
       });
       setSpatialMembers(spatial);
     }
-  }, [state.members, user?.id, messageBubbles]);
+  }, [state.members, user?.id]); // Removed messageBubbles dependency for performance
 
   // Listen for new messages and create bubbles
   useEffect(() => {
@@ -126,22 +126,12 @@ export default function EnhancedWolfpackChatPage() {
       // Get the most recent messages (last 10)
       const recentMessages = state.messages.slice(-10);
       
-      // Debug: Log message structure
-      console.log('🔍 Processing messages for bubbles:', recentMessages.map(msg => ({
-        id: msg.id,
-        user_id: msg.user_id,
-        content: msg.content,
-        display_name: msg.display_name
-      })));
-      
       recentMessages.forEach((msg: ChatMessage) => {
         // Update bubbles using functional update to avoid stale closures
         setMessageBubbles(prev => {
           // Check if we already have this message bubble
           const existingBubble = prev.get(msg.user_id);
           if (!existingBubble || existingBubble.id !== msg.id) {
-            // Debug: Log bubble creation
-            console.log('💬 Creating bubble for user:', msg.user_id, 'with message:', msg.content);
             
             // Create new bubble
             const newBubble: MessageBubble = {
@@ -281,8 +271,8 @@ export default function EnhancedWolfpackChatPage() {
     };
   }, []);
 
-  // Loading state
-  if (authLoading || packLoading || state.isLoading) {
+  // Simplified loading state - only block on essential loading
+  if (authLoading || packLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -385,9 +375,9 @@ export default function EnhancedWolfpackChatPage() {
             data-index={index}
           >
             {/* Message Bubble */}
-            {member.recentMessage && (
+            {messageBubbles.get(member.id) && (
               <div className={`message-bubble ${member.role === 'current' ? 'own-message' : ''}`}>
-                {member.recentMessage.message}
+                {messageBubbles.get(member.id)?.message}
               </div>
             )}
             
