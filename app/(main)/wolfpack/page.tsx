@@ -170,6 +170,60 @@ export default function WolfpackMainPage() {
             </CardContent>
           </Card>
 
+          {/* Public Chat Channels */}
+          <Card className="border-green-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                Public Chat Channels
+                <Badge variant="secondary">NEW</Badge>
+              </CardTitle>
+              <CardDescription>
+                Join public conversations with all Wolfpack members
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🌐</span>
+                    <div>
+                      <p className="font-medium">General Chat</p>
+                      <p className="text-sm text-muted-foreground">All locations • Always active</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline">Join</Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <p className="font-medium">Salem Wolfpack</p>
+                      <p className="text-sm text-muted-foreground">Salem location • 5 active</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline">Join</Button>
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push('/wolfpack/channels');
+                    }}
+                  >
+                    View All Channels →
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Profile Management */}

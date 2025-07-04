@@ -4,7 +4,7 @@ import MenuClient from './MenuClient';
 import { MenuErrorFallback } from 'components/menu/MenuErrorFallback';
 import type { Database } from '@/lib/database.types'; // Still needed for MenuCategory type
 import type { MenuCategoryWithCount } from '@/lib/types/menu'; // Still needed
-import { getCategoriesByTypePublic } from '@/lib/menu-data-public'; // This is your category fetching utility
+import { getCategoriesByTypePublic } from '@/lib/menu-data-public-fixed'; // Fixed version with better error handling
 
 // Define the type for a single row from the 'food_drink_categories' table
 type FoodDrinkCategoryRow = Database['public']['Tables']['food_drink_categories']['Row'];

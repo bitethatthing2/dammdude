@@ -12,7 +12,7 @@ import { Settings, Shield, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import '@/styles/wolfpack-chat.css';
 
-// Type definitions
+// Type definitions for the component
 interface WolfpackMember {
   id: string;
   display_name: string;
@@ -20,22 +20,46 @@ interface WolfpackMember {
   is_online: boolean;
 }
 
-interface ChatMessage {
+// Create a type that extends Record to have index signature
+type UserWithIndexSignature = Record<string, unknown> & {
   id: string;
-  user_id: string;
-  display_name: string;
-  content: string;
-  created_at: string;
-  message_type: string;
+  email: string;
+  display_name?: string | null;
+  first_name?: string | null;
+  [key: string]: unknown;
 }
 
-interface MessageBubble {
-  userId: string;
-  message: string;
-  timestamp: number;
-  id: string;
+interface WolfpackState {
+  members: WolfpackMember[];
+  isLoading: boolean;
+  isConnected: boolean;
+  error: Error | null;
+  stats: {
+    onlineMembers: number;
+  };
 }
 
+interface WolfpackActions {
+  sendMessage: (message: string) => Promise<{ success: boolean; error?: string }>;
+}
+
+interface WolfpackData {
+  state: WolfpackState;
+  actions: WolfpackActions;
+}
+
+interface WolfpackSessionData {
+  sessionId: string | null;
+  locationId: string | null;
+  isActive: boolean;
+}
+
+interface TypingIndicatorsData {
+  typingUsers: string[];
+  sendTyping: (userId: string, userName: string, isTyping: boolean) => void;
+}
+
+// Simple types
 interface SpatialMember {
   id: string;
   display_name: string;
@@ -43,7 +67,12 @@ interface SpatialMember {
   role: 'user' | 'dj' | 'bartender' | 'current';
   is_online: boolean;
   position: { x: string; y: string };
-  recentMessage?: MessageBubble;
+}
+
+interface InteractionPopup {
+  member: SpatialMember;
+  position: { left: string; top: string };
+  show: boolean;
 }
 
 // Fixed spatial positions
@@ -55,50 +84,67 @@ const SPATIAL_POSITIONS = [
   { x: '65%', y: '60%' },
   { x: '15%', y: '30%' },
   { x: '85%', y: '30%' },
-  { x: '20%', y: '65%' },
-  { x: '80%', y: '65%' },
-  { x: '50%', y: '70%' }
+  { x: '20%', y: '75%' },
+  { x: '80%', y: '75%' },
+  { x: '50%', y: '80%' }
 ];
 
-export default function EnhancedWolfpackChatPage() {
+export default function SimpleWolfpackChatPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useUser();
   const { isMember: isInPack, isLoading: packLoading, locationName } = useConsistentWolfpackAccess();
   
-  // Handle user type properly
-  const userWithIndex = user ? Object.assign({}, user) : null;
+  // Convert user to a type with index signature
+  const userWithIndex: UserWithIndexSignature | null = user ? 
+    Object.assign({} as UserWithIndexSignature, user) : null;
   
-  // Get session info
+  // Handle the user type properly - useWolfpackSession expects a user with index signature
   const wolfpackSession = useWolfpackSession(userWithIndex, locationName);
-  const { sessionId, locationId, isActive } = wolfpackSession || {
+  const { sessionId, locationId, isActive } = (wolfpackSession || {
     sessionId: null,
     locationId: null,
     isActive: false
-  };
+  }) as WolfpackSessionData;
   
-  // Use wolfpack hook
-  const { state, actions } = useWolfpack(
-    sessionId || 'general', 
+  // Use wolfpack hook with proper typing
+  const wolfpackData = useWolfpack(
+    sessionId || '', 
     locationId || '', 
     {
-      enableDebugLogging: true,
+      enableDebugLogging: false,
       autoConnect: Boolean(isActive && user && sessionId)
     }
-  );
+  ) as WolfpackData | null;
   
-  // Typing indicators
-  const { typingUsers, sendTyping } = useTypingIndicators(sessionId || '');
+  // Safe destructuring with fallbacks
+  const state = wolfpackData?.state || { 
+    members: [], 
+    isLoading: false, 
+    isConnected: false, 
+    error: null, 
+    stats: { onlineMembers: 0 },
+    messages: [] // Add messages to state
+  };
+  const actions = wolfpackData?.actions || { 
+    sendMessage: async () => ({ success: false, error: 'Not connected' }) 
+  };
   
-  // State
+  // Typing indicators with proper typing
+  const typingData = useTypingIndicators(sessionId || '') as TypingIndicatorsData | null;
+  const typingUsers = typingData?.typingUsers || [];
+  const sendTyping = typingData?.sendTyping || (() => {});
+  
+  // Simple state
   const [spatialMembers, setSpatialMembers] = useState<SpatialMember[]>([]);
   const [chatMessage, setChatMessage] = useState('');
-  const [messageBubbles, setMessageBubbles] = useState<Map<string, MessageBubble>>(new Map());
+  const [popup, setPopup] = useState<InteractionPopup | null>(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '' });
   
-  // Refs
+  // Simple refs
+  const spatialViewRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const bubbleTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Convert members to spatial format
   useEffect(() => {
@@ -112,76 +158,71 @@ export default function EnhancedWolfpackChatPage() {
           avatar_url: member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`,
           role: member.id === user?.id ? 'current' : 'user',
           is_online: member.is_online || false,
-          position,
-          recentMessage: messageBubbles.get(member.id)
+          position
         };
       });
       setSpatialMembers(spatial);
     }
-  }, [state.members, user?.id, messageBubbles]);
+  }, [state.members, user?.id]);
 
-  // Listen for new messages and create bubbles
+  // Handle member click
+  const handleMemberClick = (member: SpatialMember) => {
+    if (member.role === 'current') return;
+
+    setPopup({
+      member,
+      position: { left: '50%', top: '30%' }, // Simple fixed position
+      show: true
+    });
+  };
+
+  // Hide popup when clicking outside
   useEffect(() => {
-    if (state.messages && Array.isArray(state.messages)) {
-      // Get the most recent messages (last 10)
-      const recentMessages = state.messages.slice(-10);
-      
-      // Debug: Log message structure
-      console.log('🔍 Processing messages for bubbles:', recentMessages.map(msg => ({
-        id: msg.id,
-        user_id: msg.user_id,
-        content: msg.content,
-        display_name: msg.display_name
-      })));
-      
-      recentMessages.forEach((msg: ChatMessage) => {
-        // Update bubbles using functional update to avoid stale closures
-        setMessageBubbles(prev => {
-          // Check if we already have this message bubble
-          const existingBubble = prev.get(msg.user_id);
-          if (!existingBubble || existingBubble.id !== msg.id) {
-            // Debug: Log bubble creation
-            console.log('💬 Creating bubble for user:', msg.user_id, 'with message:', msg.content);
-            
-            // Create new bubble
-            const newBubble: MessageBubble = {
-              userId: msg.user_id,
-              message: msg.content,
-              timestamp: Date.now(),
-              id: msg.id
-            };
-            
-            const newMap = new Map(prev);
-            newMap.set(msg.user_id, newBubble);
-            
-            // Clear existing timeout for this user
-            const existingTimeout = bubbleTimeoutsRef.current.get(msg.user_id);
-            if (existingTimeout) {
-              clearTimeout(existingTimeout);
-            }
-            
-            // Set timeout to remove bubble after 5 seconds
-            const timeout = setTimeout(() => {
-              setMessageBubbles(currentBubbles => {
-                const updatedMap = new Map(currentBubbles);
-                // Only delete if it's still the same message
-                if (updatedMap.get(msg.user_id)?.id === newBubble.id) {
-                  updatedMap.delete(msg.user_id);
-                }
-                return updatedMap;
-              });
-              bubbleTimeoutsRef.current.delete(msg.user_id);
-            }, 5000);
-            
-            bubbleTimeoutsRef.current.set(msg.user_id, timeout);
-            
-            return newMap;
-          }
-          return prev;
-        });
-      });
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        setPopup(null);
+      }
+    };
+
+    if (popup?.show) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [state.messages]);
+  }, [popup?.show]);
+
+  // Handle popup actions
+  const handleAction = async (actionType: string) => {
+    if (!popup?.member || !user) return;
+
+    setPopup(null);
+
+    try {
+      if (actionType === 'profile') {
+        router.push(`/profile/${popup.member.id}`);
+      } else if (actionType === 'message') {
+        router.push(`/wolfpack/chat/private/${popup.member.id}?name=${encodeURIComponent(popup.member.display_name)}`);
+      } else if (actionType === 'wink') {
+        const { error } = await supabase
+          .from('wolf_pack_interactions')
+          .insert({
+            sender_id: user.id,
+            receiver_id: popup.member.id,
+            interaction_type: 'wink',
+            location_id: locationId || null,
+            status: 'active'
+          });
+
+        if (error) {
+          showToast('Failed to send wink');
+        } else {
+          showToast(`Wink sent to ${popup.member.display_name}! 😉`);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling action:', error);
+      showToast('Something went wrong');
+    }
+  };
 
   // Send message
   const sendMessage = async () => {
@@ -202,31 +243,6 @@ export default function EnhancedWolfpackChatPage() {
       if (result.success) {
         setChatMessage('');
         showToast('Message sent!');
-        
-        // Immediately add our own message bubble
-        const myBubble: MessageBubble = {
-          userId: user.id,
-          message: chatMessage.trim(),
-          timestamp: Date.now(),
-          id: `temp-${Date.now()}`
-        };
-        
-        setMessageBubbles(prev => {
-          const newMap = new Map(prev);
-          newMap.set(user.id, myBubble);
-          return newMap;
-        });
-        
-        // Remove after 5 seconds
-        setTimeout(() => {
-          setMessageBubbles(prev => {
-            const newMap = new Map(prev);
-            if (newMap.get(user.id)?.id === myBubble.id) {
-              newMap.delete(user.id);
-            }
-            return newMap;
-          });
-        }, 5000);
       } else {
         showToast('Failed to send message');
       }
@@ -275,9 +291,6 @@ export default function EnhancedWolfpackChatPage() {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      // Clear all bubble timeouts
-      bubbleTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-      bubbleTimeoutsRef.current.clear();
     };
   }, []);
 
@@ -354,7 +367,7 @@ export default function EnhancedWolfpackChatPage() {
             <p className="text-sm text-gray-300">{locationName || 'Side Hustle Bar'}</p>
             <div className="flex items-center justify-center gap-1 text-xs">
               <div className={`w-2 h-2 rounded-full ${state.isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span>{spatialMembers.length} online • {state.messages?.length || 0} messages</span>
+              <span>{spatialMembers.length} online</span>
             </div>
           </div>
           <button 
@@ -368,7 +381,7 @@ export default function EnhancedWolfpackChatPage() {
       </div>
 
       {/* Spatial View */}
-      <div className="relative z-10 h-[calc(100vh-18rem)] p-6 pb-32">
+      <div className="relative z-10 h-[calc(100vh-16rem)] p-6" ref={spatialViewRef}>
         {spatialMembers.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-gray-400">
@@ -383,15 +396,8 @@ export default function EnhancedWolfpackChatPage() {
             key={member.id}
             className="member-position"
             data-index={index}
+            onClick={() => handleMemberClick(member)}
           >
-            {/* Message Bubble */}
-            {member.recentMessage && (
-              <div className={`message-bubble ${member.role === 'current' ? 'own-message' : ''}`}>
-                {member.recentMessage.message}
-              </div>
-            )}
-            
-            {/* Avatar */}
             <div className={`relative w-16 h-16 rounded-full border-2 overflow-hidden ${
               member.role === 'current' ? 'border-blue-400' : 'border-white'
             }`}>
@@ -420,6 +426,51 @@ export default function EnhancedWolfpackChatPage() {
             </div>
           </div>
         ))}
+        
+        {/* Popup */}
+        {popup?.show && (
+          <div 
+            ref={popupRef}
+            className="interaction-popup animate-fade-in"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full overflow-hidden">
+                <Image 
+                  src={popup.member.avatar_url} 
+                  alt={popup.member.display_name}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                  unoptimized={popup.member.avatar_url.includes('dicebear.com')}
+                />
+              </div>
+              <span className="font-semibold">{popup.member.display_name}</span>
+            </div>
+            <div className="space-y-2">
+              <button 
+                onClick={() => handleAction('profile')}
+                className="w-full p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm"
+                type="button"
+              >
+                👤 View Profile
+              </button>
+              <button 
+                onClick={() => handleAction('message')}
+                className="w-full p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm"
+                type="button"
+              >
+                💬 Send Message
+              </button>
+              <button 
+                onClick={() => handleAction('wink')}
+                className="w-full p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm"
+                type="button"
+              >
+                😉 Send Wink
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Connection Status */}
@@ -460,16 +511,6 @@ export default function EnhancedWolfpackChatPage() {
       {toast.show && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-full">
           {toast.message}
-        </div>
-      )}
-
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-20 left-4 text-xs text-gray-400 bg-black/80 p-2 rounded">
-          <p>Session: {sessionId}</p>
-          <p>Messages: {state.messages?.length || 0}</p>
-          <p>Bubbles: {messageBubbles.size}</p>
-          <p>Connected: {state.isConnected ? 'Yes' : 'No'}</p>
         </div>
       )}
     </div>
