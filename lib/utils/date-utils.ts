@@ -1,4 +1,5 @@
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { format } from 'date-fns/format';
 
 /**
  * Formats a date string as a relative time (e.g., "5 minutes ago")

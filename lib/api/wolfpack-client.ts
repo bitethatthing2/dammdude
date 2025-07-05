@@ -2,7 +2,7 @@
 // Enhanced realtime client that integrates with DJ Dashboard and handles RLS, relationships, and user ID issues
 
 import { Database } from '@/lib/database.types'
-import { LOCATION_CONFIG } from '@/lib/types/dj-dashboard-types'
+import { LOCATION_CONFIG } from '@/types/features/dj-dashboard-types'
 import { handleSupabaseError, createClient } from '@/lib/supabase/client'
 
 type Tables = Database['public']['Tables']
@@ -82,7 +82,7 @@ export interface RealtimeUser extends UserRow {
 }
 
 class EnhancedWolfpackRealtimeClient {
-  private supabase = createClient<Database>()
+  private supabase = createClient()
   private currentUser: UserRow | null = null
   
   constructor() {
@@ -201,7 +201,7 @@ class EnhancedWolfpackRealtimeClient {
 
       if (error) {
         console.error('❌ Error fetching wolfpack members:', error)
-        return { data: [], error: handleSupabaseError(error) }
+        return { data: [], error: handleSupabaseError(error).message }
       }
 
       // Transform and enhance the data
@@ -213,7 +213,7 @@ class EnhancedWolfpackRealtimeClient {
           user_id: member.user_id || '',
           location_id: member.location_id,
           status: member.status,
-          tier: member.tier,
+          tier: 'basic', // Default tier since field doesn't exist in schema
           display_name: userData?.display_name || userData?.first_name || 'Pack Member',
           emoji: userData?.wolf_emoji || '🐺',
           current_vibe: userData?.vibe_status || null,
@@ -223,7 +223,7 @@ class EnhancedWolfpackRealtimeClient {
           joined_at: member.created_at || '',
           last_active: userData?.last_activity || userData?.last_seen_at || null,
           is_active: member.status === 'active',
-          membership_ends_at: member.membership_ends_at,
+          membership_ends_at: null, // Field doesn't exist in schema
           
           // User data
           user_email: userData?.email || null,
@@ -246,7 +246,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in getWolfpackMembers:', error)
-      return { data: [], error: handleSupabaseError(error) }
+      return { data: [], error: handleSupabaseError(error).message }
     }
   }
 
@@ -270,15 +270,16 @@ class EnhancedWolfpackRealtimeClient {
           })
 
         if (!rpcError && rpcData) {
-          // Convert RPC response to our WolfpackStats format
+          // Convert RPC response to our WolfpackStats format with proper type checking
+          const data = rpcData && typeof rpcData === 'object' && rpcData !== null ? rpcData as any : {}
           const stats: WolfpackStats = {
-            total_members: rpcData.total_active || 0,
-            active_members: rpcData.very_active || 0,
+            total_members: data.total_active || 0,
+            active_members: data.very_active || 0,
             new_members_today: 0, // Not available in RPC
-            gender_breakdown: rpcData.gender_breakdown || {},
+            gender_breakdown: data.gender_breakdown || {},
             tier_breakdown: {}, // Not available in RPC
             average_session_duration: 0, // Not available in RPC
-            top_vibes: rpcData.top_vibers?.map((viper: any) => ({
+            top_vibes: data.top_vibers?.map((viper: any) => ({
               vibe: viper.vibe || 'Unknown',
               count: 1
             })) || []
@@ -341,7 +342,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Error getting wolfpack stats:', error)
-      return { data: null, error: handleSupabaseError(error) }
+      return { data: null, error: handleSupabaseError(error).message }
     }
   }
 
@@ -372,16 +373,16 @@ class EnhancedWolfpackRealtimeClient {
 
       if (error) {
         console.error('❌ Error checking membership:', error)
-        return { data: null, error: handleSupabaseError(error) }
+        return { data: null, error: handleSupabaseError(error).message }
       }
 
       const result: WolfpackMembershipCheck = {
         is_member: !!data,
         membership_id: data?.id || null,
         status: data?.status || null,
-        tier: data?.tier || null,
+        tier: 'basic', // Default tier since field doesn't exist in schema
         joined_at: data?.created_at || null,
-        membership_ends_at: data?.membership_ends_at || null
+        membership_ends_at: null // Field doesn't exist in schema
       }
 
       console.log('✅ Membership check result:', result)
@@ -389,7 +390,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in checkMembership:', error)
-      return { data: null, error: handleSupabaseError(error) }
+      return { data: null, error: handleSupabaseError(error).message }
     }
   }
 
@@ -437,7 +438,7 @@ class EnhancedWolfpackRealtimeClient {
         user_id: user.id,
         location_id: data.locationId,
         status: 'active',
-        tier: data.tier || 'basic',
+        // tier field doesn't exist in schema
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -450,7 +451,7 @@ class EnhancedWolfpackRealtimeClient {
 
       if (membershipError) {
         console.error('❌ Error creating membership:', membershipError)
-        return { data: null, error: handleSupabaseError(membershipError) }
+        return { data: null, error: handleSupabaseError(membershipError).message }
       }
 
       // Update user profile if provided
@@ -481,7 +482,7 @@ class EnhancedWolfpackRealtimeClient {
         success: true,
         membership_id: newMembership.id,
         message: 'Successfully joined the wolfpack!',
-        tier: newMembership.tier || 'basic'
+        tier: 'basic' // Default tier since field doesn't exist in schema
       }
 
       console.log('✅ Join wolfpack result:', result)
@@ -489,7 +490,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in joinWolfpack:', error)
-      return { data: null, error: handleSupabaseError(error) }
+      return { data: null, error: handleSupabaseError(error).message }
     }
   }
 
@@ -522,7 +523,7 @@ class EnhancedWolfpackRealtimeClient {
 
       if (error) {
         console.error('❌ Error leaving wolfpack:', error)
-        return { data: null, error: handleSupabaseError(error) }
+        return { data: null, error: handleSupabaseError(error).message }
       }
 
       const result: LeaveWolfpackResult = {
@@ -535,7 +536,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in leaveWolfpack:', error)
-      return { data: null, error: handleSupabaseError(error) }
+      return { data: null, error: handleSupabaseError(error).message }
     }
   }
 
@@ -654,7 +655,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Error setting up realtime subscription:', error)
-      callbacks.onError?.(handleSupabaseError(error))
+      callbacks.onError?.(handleSupabaseError(error).message)
       return null
     }
   }
@@ -679,7 +680,7 @@ class EnhancedWolfpackRealtimeClient {
 
       if (membershipError) {
         console.error('❌ Error fetching memberships:', membershipError)
-        return { data: null, error: handleSupabaseError(membershipError) }
+        return { data: null, error: handleSupabaseError(membershipError).message }
       }
 
       const realtimeUser: RealtimeUser = {
@@ -693,7 +694,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in getCurrentUserProfile:', error)
-      return { data: null, error: handleSupabaseError(error) }
+      return { data: null, error: handleSupabaseError(error).message }
     }
   }
 
@@ -756,7 +757,7 @@ class EnhancedWolfpackRealtimeClient {
 
     } catch (error) {
       console.error('❌ Unexpected error in updateProfile:', error)
-      return { success: false, error: handleSupabaseError(error) }
+      return { success: false, error: handleSupabaseError(error).message }
     }
   }
 

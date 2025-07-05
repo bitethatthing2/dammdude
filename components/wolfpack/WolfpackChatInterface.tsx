@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useWolfpack } from '@/hooks/useWolfpack';
 import { useUser } from '@/hooks/useUser';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,16 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Send, ArrowLeft, Users, MessageCircle, X } from 'lucide-react';
 import WolfpackChatChannels from './WolfpackChatChannels';
 
-interface ChatMessage {
-  id: string;
-  user_id: string;
-  display_name: string;
-  avatar_url?: string;
-  content: string;
-  message_type: 'text' | 'image' | 'system';
-  created_at: string;
-  is_flagged: boolean;
-}
 
 interface WolfpackChatInterfaceProps {
   className?: string;
@@ -31,7 +20,7 @@ export default function WolfpackChatInterface({
   className = '',
   defaultSessionId
 }: WolfpackChatInterfaceProps) {
-  const { user, profile } = useUser();
+  const { user } = useUser();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(defaultSessionId || null);
   const [currentSessionName, setCurrentSessionName] = useState<string>('');
   const [messageInput, setMessageInput] = useState('');
@@ -44,7 +33,7 @@ export default function WolfpackChatInterface({
   // Use the wolfpack hook for current session
   const { state, actions } = useWolfpack(
     currentSessionId,
-    profile?.location_id || null,
+    user?.location_id || null,
     { enableDebugLogging: true }
   );
 
@@ -134,7 +123,7 @@ export default function WolfpackChatInterface({
       <div className={`flex flex-col h-full ${className}`}>
         <WolfpackChatChannels
           currentUserId={user?.id || null}
-          userLocationId={profile?.location_id || null}
+          userLocationId={user?.location_id || null}
           onJoinChat={handleJoinChat}
           className="flex-1"
         />

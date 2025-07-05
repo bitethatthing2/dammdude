@@ -13,7 +13,6 @@ export interface WolfpackApiResponse<T = any> {
 
 export interface WolfpackMember {
   id: string;
-  id: string;
   location_id: string;
   display_name: string;
   emoji: string;

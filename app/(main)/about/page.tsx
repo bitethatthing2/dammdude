@@ -43,20 +43,18 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "BarOrPub",
   "name": "Side Hustle",
-  "description": "Premier sports bar and Wolf Pack community in Salem and Portland, Oregon",
+  "description": "High-energy sports bar and entertainment venue specializing in Mexican cuisine in Salem and Portland, Oregon",
   "url": "https://sidehustlelounge.com",
-  "telephone": "+15035550123",
   "priceRange": "$$",
-  "servesCuisine": "American",
+  "servesCuisine": "Mexican",
   "hasMenu": "https://sidehustlelounge.com/menu",
-  "acceptsReservations": "true",
   "location": [
     {
       "@type": "Place",
       "name": "Side Hustle Salem",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "123 Liberty St SE",
+        "streetAddress": "145 Liberty St NE Suite #101",
         "addressLocality": "Salem",
         "addressRegion": "OR",
         "postalCode": "97301",
@@ -73,7 +71,7 @@ const structuredData = {
       "name": "Side Hustle Portland",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "456 Burnside St",
+        "streetAddress": "327 SW Morrison St",
         "addressLocality": "Portland",
         "addressRegion": "OR",
         "postalCode": "97204",
@@ -175,7 +173,9 @@ export default function AboutPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+        <section className="py-16 text-white" style={{
+          background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 100%)'
+        }}>
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to Join the Pack?</h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
@@ -185,7 +185,8 @@ export default function AboutPage() {
             <div className="flex flex-wrap gap-4 justify-center">
               <a
                 href="/wolfpack"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-white text-purple-900 hover:bg-purple-100 h-11 px-8"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-white h-11 px-8"
+                style={{ color: 'hsl(var(--primary))' }}
               >
                 Join Wolf Pack
               </a>

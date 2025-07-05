@@ -31,7 +31,7 @@ export function AboutHero() {
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <Phone className="h-5 w-5" />
-              <span>503-555-0123</span>
+              <span>503-585-7827</span>
             </div>
           </div>
 

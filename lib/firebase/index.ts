@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { FirebaseConfig, FcmMessagePayload } from '@/lib/types/firebase';
+import { FirebaseConfig, FcmMessagePayload } from '@/types/features/firebase';
 
 // Add fallback values to ensure Firebase works even if environment variables are missing
 const firebaseConfig: FirebaseConfig = {

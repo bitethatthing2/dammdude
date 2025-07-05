@@ -26,13 +26,13 @@ import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
 import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
+import { createCartItem, ItemCustomization } from '@/types/features/wolfpack-unified';
 import type {
   MenuCategoryWithCount,
   MenuItemWithModifiers,
   CartOrderData,
   APIModifierGroup
-} from '@/lib/types/menu';
+} from '@/types/features/menu';
 
 // Enhanced types for better error handling
 interface MenuState {

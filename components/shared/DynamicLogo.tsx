@@ -41,11 +41,11 @@ export function DynamicLogo({
   
   const logoSources = {
     brand: {
-      light: '/icons/wolf-icon.png',
-      dark: '/icons/wolf-icon.png'
+      light: '/icons/sidehustle-light-screen.png',
+      dark: '/icons/sidehustle.png'
     },
     wolf: {
-      light: '/icons/wolf-icon.png',
+      light: '/icons/wolf-icon-light-screen.png',
       dark: '/icons/wolf-icon.png'
     }
   };
@@ -62,10 +62,8 @@ export function DynamicLogo({
       className={`transition-opacity duration-300 ${className}`}
       priority={type === 'brand'} // Prioritize brand logo loading
       style={{
-        width: 'auto',
-        height: 'auto',
-        maxWidth: width,
-        maxHeight: height
+        maxWidth: '100%',
+        height: 'auto'
       }}
     />
   );
@@ -76,10 +74,10 @@ export function preloadLogos() {
   if (typeof window === 'undefined') return;
 
   const imagesToPreload = [
-    '/icons/wolf-icon.png',
     '/icons/sidehustle.png',
+    '/icons/sidehustle-light-screen.png',
     '/icons/wolf-icon.png',
-    '/icons/wolf-icon.png'
+    '/icons/wolf-icon-light-screen.png'
   ];
 
   imagesToPreload.forEach(src => {

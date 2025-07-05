@@ -95,25 +95,28 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className={`gap-2 ${className}`}>
-          <MapPin className="h-4 w-4" />
-          <span>{currentLocation.displayName}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {LOCATIONS.map((loc) => (
-          <DropdownMenuItem
-            key={loc.key}
-            onClick={() => handleLocationSelect(loc)}
-            className={currentLocation.key === loc.key ? 'bg-accent' : ''}
-          >
-            {loc.displayName}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className={`inline-flex items-center bg-muted rounded-full p-1 ${className}`}>
+      <button
+        onClick={() => handleLocationSelect(LOCATIONS[0])}
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+          currentLocation.key === 'salem' 
+            ? 'bg-background text-foreground shadow-sm' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        Salem
+      </button>
+      <button
+        onClick={() => handleLocationSelect(LOCATIONS[1])}
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+          currentLocation.key === 'portland' 
+            ? 'bg-background text-foreground shadow-sm' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        Portland
+      </button>
+    </div>
   );
 }
 

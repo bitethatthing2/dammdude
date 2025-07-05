@@ -36,7 +36,9 @@
       "Bash(npm --version)",
       "Bash(kill:*)",
       "Bash(PORT=3001 npm run dev)",
-      "Bash(timeout 15 npx tsc --noEmit --pretty)"
+      "Bash(timeout 15 npx tsc --noEmit --pretty)",
+      "Bash(mkdir:*)",
+      "Bash(printenv)"
     ]
   },
   "enableAllProjectMcpServers": false

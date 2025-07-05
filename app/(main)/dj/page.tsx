@@ -45,7 +45,7 @@ export const metadata: Metadata = {
 export default function DJPage() {
   return (
     <DJAuthGuard>
-      <div className="dj-page min-h-screen">
+      <div className="dj-page main-content">
         {/* Main Content - Full Screen DJ Dashboard */}
         <DJDashboard />
       </div>

@@ -30,6 +30,21 @@ export interface ErrorContext {
   sessionId?: string;
   userAgent?: string;
   url?: string;
+  // Auth specific fields
+  email?: string;
+  targetUserId?: string;
+  newRole?: string;
+  // API specific fields
+  operation?: string;
+  endpoint?: string;
+  // Validation specific fields
+  field?: string;
+  value?: any;
+  rule?: string;
+  reason?: string;
+  // Service specific fields
+  service?: string;
+  attempt?: number;
 }
 
 export interface AppError {

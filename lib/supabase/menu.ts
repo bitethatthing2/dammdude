@@ -6,7 +6,7 @@ import {
   APIModifierGroup,
   APIModifierOption,
   MenuItemModifier 
-} from '../types/menu';
+} from '@/types/features/menu';
 
 // =============================================================================
 // SUPABASE DATABASE TYPES - EXACT FROM GENERATED TYPES

@@ -23,29 +23,29 @@ interface Location {
 const locations: Location[] = [
   {
     name: "Side Hustle Salem",
-    address: "1849 Lancaster Dr NE",
+    address: "145 Liberty St NE Suite #101",
     city: "Salem",
     state: "OR",
-    zip: "97305",
-    phone: "(503) 555-0123",
+    zip: "97301",
+    phone: "Contact for current hours",
     hours: {
-      weekdays: "11:00 AM - 12:00 AM",
-      weekends: "10:00 AM - 2:00 AM"
+      weekdays: "Contact for current hours",
+      weekends: "Contact for current hours"
     },
-    mapUrl: "https://maps.google.com/?q=44.94049607107024,-123.0413951237716"
+    mapUrl: "https://maps.google.com/?q=44.9429,-123.0351"
   },
   {
     name: "Side Hustle Portland",
-    address: "318 NW 11th Ave",
+    address: "327 SW Morrison St",
     city: "Portland",
     state: "OR",
-    zip: "97209",
-    phone: "(503) 555-0456",
+    zip: "97204",
+    phone: "Contact for current hours",
     hours: {
-      weekdays: "11:00 AM - 12:00 AM",
-      weekends: "10:00 AM - 2:00 AM"
+      weekdays: "10:00 AM - 11:00 PM (Mon-Wed), 10:00 AM - 1:00 AM (Thu)",
+      weekends: "10:00 AM - 2:30 AM (Fri-Sat), 10:00 AM - 12:00 AM (Sun)"
     },
-    mapUrl: "https://maps.google.com/?q=45.51853717107486,-122.67878942374"
+    mapUrl: "https://maps.google.com/?q=45.5152,-122.6784"
   }
 ];
 
@@ -61,17 +61,8 @@ export function LocationsSection() {
           </p>
         </div>
 
-        {/* Dynamic Google Maps Section */}
-        <div className="mb-12">
-          <DynamicGoogleMaps 
-            className="max-w-4xl mx-auto" 
-            height="450px" 
-            showLocationSwitcher={true}
-          />
-        </div>
-
-        {/* Location Details Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+        {/* Location Details Cards - removed maps and instagram, will move to front page */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {locations.map((location) => (
             <Card key={location.name} className="overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
@@ -94,20 +85,20 @@ export function LocationsSection() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">Phone</p>
-                      <p className="text-sm text-muted-foreground">{location.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="font-medium">Hours</p>
                       <p className="text-sm text-muted-foreground">
-                        Mon-Fri: {location.hours.weekdays}<br />
-                        Sat-Sun: {location.hours.weekends}
+                        {location.city === "Portland" ? (
+                          <>
+                            Mon-Wed: 10:00 AM - 11:00 PM<br />
+                            Thu: 10:00 AM - 1:00 AM<br />
+                            Fri-Sat: 10:00 AM - 2:30 AM<br />
+                            Sun: 10:00 AM - 12:00 AM
+                          </>
+                        ) : (
+                          "Contact for current hours"
+                        )}
                       </p>
                     </div>
                   </div>
@@ -124,25 +115,6 @@ export function LocationsSection() {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* Instagram Embed Section */}
-        <div className="mb-12">
-          <InstagramEmbed className="max-w-2xl mx-auto" />
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="text-muted-foreground mb-4">
-            Can&apos;t decide which location to visit? Both offer the same great experience!
-          </p>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => window.open('tel:5035550123')}
-          >
-            <Phone className="mr-2 h-4 w-4" />
-            Call Us for Reservations
-          </Button>
         </div>
       </div>
     </section>

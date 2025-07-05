@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useOrderManagement } from '@/lib/hooks/useUnifiedOrders';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { StatusBadge } from './ui/StatusBadge';
 import { toast } from '@/components/ui/use-toast';
 import type { OrderStatus, UnifiedOrder as Order, OrderItem } from '@/lib/hooks/useUnifiedOrders';
@@ -207,7 +207,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="pending" className="relative">
                   Pending
                   {pendingOrders.length > 0 && (
-                    <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-white" style={{
+                      backgroundColor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {pendingOrders.length}
                     </Badge>
                   )}
@@ -215,7 +218,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="preparing" className="relative">
                   Preparing
                   {preparingOrders.length > 0 && (
-                    <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0" style={{
+                      backgroundColor: 'hsl(var(--inactive))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {preparingOrders.length}
                     </Badge>
                   )}
@@ -223,7 +229,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="ready" className="relative">
                   Ready
                   {readyOrders.length > 0 && (
-                    <Badge variant="default" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0" style={{
+                      backgroundColor: 'hsl(var(--active))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {readyOrders.length}
                     </Badge>
                   )}

@@ -124,8 +124,8 @@ export function useOffline(options: UseOfflineOptions = {}): UseOfflineReturn {
     // For now, initialize as empty array
     if (Array.isArray((orderData as any).items)) {
       transformedItems = (orderData as any).items
-        .filter((item) => item !== null && typeof item === 'object')
-        .map((item) => {
+        .filter((item: any) => item !== null && typeof item === 'object')
+        .map((item: any) => {
           const itemObj = item as Record<string, unknown>;
           return {
             productId: (itemObj.productId as string) || (itemObj.product_id as string) || '',

@@ -117,7 +117,7 @@ class DataService {
           query = query.eq('preferred_location', location);
         }
 
-        return query;
+        return await query;
       },
       'getWolfpackMembers',
       {
@@ -130,7 +130,7 @@ class DataService {
 
   async updateWolfpackMember(userId: string, updates: any): Promise<any> {
     const result = await this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('users')
         .update(updates)
         .eq('id', userId)
@@ -151,7 +151,7 @@ class DataService {
    */
   async getPrivateMessages(userId1: string, userId2: string, limit: number = 100): Promise<any[]> {
     return this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('wolf_private_messages')
         .select(`
           *,
@@ -174,7 +174,7 @@ class DataService {
 
   async sendPrivateMessage(senderId: string, receiverId: string, message: string): Promise<any> {
     const result = await this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('wolf_private_messages')
         .insert({
           sender_id: senderId,
@@ -294,7 +294,7 @@ class DataService {
 
   async createDJEvent(eventData: any): Promise<any> {
     const result = await this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('dj_events')
         .insert(eventData)
         .select()
@@ -313,7 +313,7 @@ class DataService {
    */
   async getUser(userId: string): Promise<any> {
     return this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('users')
         .select('*')
         .eq('id', userId)
@@ -329,7 +329,7 @@ class DataService {
 
   async updateUser(userId: string, updates: any): Promise<any> {
     const result = await this.executeQuery(
-      () => this.supabase
+      async () => await this.supabase
         .from('users')
         .update(updates)
         .eq('id', userId)

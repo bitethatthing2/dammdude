@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { LOCATION_CONFIG } from '@/lib/types/dj-dashboard-types'
+import { LOCATION_CONFIG } from '@/types/features/dj-dashboard-types'
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
 import type { 
   LocationKey,
   BroadcastFormData,
   EventFormData
-} from '@/lib/types/dj-dashboard-types'
+} from '@/types/features/dj-dashboard-types'
 import { toast } from 'sonner'
 
 export interface DJDashboardData {
@@ -113,10 +113,11 @@ export function useDJDashboard(location?: LocationKey) {
         }
       }
 
-      // Calculate dashboard metrics
-      const crowdSize = analytics?.broadcasts_count ? analytics.broadcasts_count * 3 + 8 : 15
-      const energyLevel = analytics?.engagement_rate || 75.5
-      const totalResponses = analytics?.responses_count || 42
+      // Calculate dashboard metrics with proper type checking
+      const analyticsData = analytics && typeof analytics === 'object' && analytics !== null ? analytics as any : null
+      const crowdSize = analyticsData?.broadcasts_count ? analyticsData.broadcasts_count * 3 + 8 : 15
+      const energyLevel = analyticsData?.engagement_rate || 75.5
+      const totalResponses = analyticsData?.responses_count || 42
 
       setDashboardData(prev => ({
         ...prev,
@@ -191,7 +192,7 @@ export function useDJDashboard(location?: LocationKey) {
           accent_color: data.accent_color,
           animation_type: data.animation_type,
           emoji_burst: data.emoji_burst,
-          interaction_config: data.interaction_config,
+          interaction_config: data.interaction_config as Json,
           tags: data.tags,
           category: data.category,
           status: 'active',

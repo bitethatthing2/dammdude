@@ -33,10 +33,11 @@ export function DynamicGoogleMaps({
 
   const selectedLocation = LOCATIONS.find(loc => loc.key === selectedLocationKey) || LOCATIONS[0];
 
-  // Generate Google Maps embed URL
+  // Generate Google Maps embed URL (no API key needed for iframe embeds)
   const generateMapEmbedUrl = (location: typeof selectedLocation) => {
     const query = encodeURIComponent(location.address);
-    return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY'}&q=${query}&zoom=15&maptype=roadmap`;
+    // Using the free iframe embed that doesn't require API key
+    return `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
   };
 
   // Generate directions URL
@@ -158,7 +159,7 @@ export function InstagramEmbed({ className = '' }: { className?: string }) {
             height="400"
             frameBorder="0"
             scrolling="no"
-            allowTransparency={true}
+            allowtransparency="true"
             title="Side Hustle Bar Instagram"
             style={{ border: 0 }}
           />

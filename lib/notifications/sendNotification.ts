@@ -4,7 +4,7 @@
  * This file exists only for backward compatibility.
  */
 
-import { SendNotificationRequest, SendNotificationResponse } from '@/lib/types/api';
+import { SendNotificationRequest, SendNotificationResponse } from '@/types/features/api';
 
 export interface SendNotificationParams {
   title: string;

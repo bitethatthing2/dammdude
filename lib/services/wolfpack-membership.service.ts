@@ -35,7 +35,6 @@ export interface JoinResult {
 
 export interface MemberProfile {
   id: string;
-  id: string;
   display_name: string | null;
   wolf_emoji: string | null;
   favorite_drink: string | null;
@@ -295,7 +294,6 @@ export class WolfpackMembershipService {
 
       // Convert to MemberProfile format
       return memberData ? {
-        id: memberData.id || '',
         id: memberData.id || '',
         display_name: memberData.display_name || null,
         wolf_emoji: null,

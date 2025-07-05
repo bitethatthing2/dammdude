@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useLocationState } from '@/lib/hooks/useLocationState';
-import { LocationToggle } from '@/components/shared/LocationToggle';
+import { LocationSwitcher } from '@/components/shared/LocationSwitcher';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Utensils, Download, Bell, Star, Users, MapPin, Truck } from "lucide-react";
+import { Utensils, Download, Bell, Star, Users, MapPin, Truck, ExternalLink } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
+import { DynamicLogo } from '@/components/shared/DynamicLogo';
+import { DynamicGoogleMaps, InstagramEmbed } from '@/components/shared/DynamicGoogleMaps';
 import React, { Suspense } from 'react';
 
 // Dynamically import components that use browser APIs
@@ -27,21 +29,6 @@ const NotificationIndicatorFallback = () => (
   </Button>
 );
 
-// Safe component without direct icon references
-const QuickLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => {
-  return (
-    <Card className="bg-transparent border border-primary shadow-none">
-      <CardContent className="p-6 flex flex-col items-center justify-center">
-        <Link href={href} className="flex flex-col items-center justify-center no-underline">
-          <div className="h-10 w-10 mb-3 flex items-center justify-center">
-            {icon}
-          </div>
-          <span className="text-base font-medium text-foreground">{label}</span>
-        </Link>
-      </CardContent>
-    </Card>
-  );
-};
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
@@ -52,52 +39,33 @@ export default function Page() {
     setMounted(true);
   }, []);
 
-  // Use light mode images only
-  const wolfIconSrc = '/icons/wolf-icon.png';
-  const sideHustleFontSrc = '/icons/sidehustle.png';
+  // Theme-based images are handled by DynamicLogo component
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 py-6 space-y-6 bottom-nav-safe">
+    <div className="main-content bg-gradient-to-br from-background to-muted">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Original Home Page Content */}
-        <div className="flex flex-col items-center pt-16 relative">
+        <div className="flex flex-col items-center relative">
 
-          {/* Side Hustle Font Logo - Scrolls with page */}
-          <div className="absolute top-0 left-0 p-2"> 
+
+          {/* Wolf Icon - Much bigger (3x+), centered, and responsive */}
+          <div className="w-full flex justify-center items-center px-4 mt-16"> 
             {mounted ? (
-              <Image 
-                src={sideHustleFontSrc} 
-                alt="Side Hustle" 
-                width={200}
-                height={40}
-                className="h-6 sm:h-8 md:h-10 max-w-[150px] sm:max-w-[180px] md:max-w-[200px]" 
-                priority
-                style={{ width: 'auto' }}
+              <DynamicLogo 
+                type="wolf"
+                width={800}
+                height={800}
+                className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] xl:w-[36rem] xl:h-[36rem] object-contain"
+                alt="Side Hustle Wolf Icon"
               />
             ) : (
-              <div className="h-6 w-20 sm:h-8 sm:w-24 bg-muted animate-pulse rounded" />
-            )}
-          </div>
-
-          {/* Wolf Icon - Takes full width with minimal side padding */}
-          <div className="mb-0 w-full px-2"> 
-            {mounted ? (
-              <Image 
-                src={wolfIconSrc} 
-                alt="Side Hustle Wolf Icon" 
-                width={512} // Adjust based on your image dimensions
-                height={512} // Adjust based on your image dimensions
-                className="mx-auto h-auto w-full md:max-w-lg" 
-                priority
-              />
-            ) : (
-              <div className="mx-auto h-64 w-full md:max-w-lg bg-muted animate-pulse" />
+              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-muted animate-pulse rounded-full" />
             )}
           </div>
           
-          {/* Centered Location Toggle - Constrained width */}
+          {/* Centered Location Switcher - Constrained width */}
           <div className="flex justify-center mt-0 mb-1 w-full max-w-md px-4"> 
-            <LocationToggle />
+            <LocationSwitcher />
           </div>
           
           {/* Enhanced Bar Description Card - Wrapped for padding */}
@@ -176,69 +144,109 @@ export default function Page() {
             </Card>
           </div>
 
-          {/* Quick Links Section */}
+          {/* Order Online Section */}
           <div className="w-full max-w-md px-4 mt-6 mb-32">
-            <h2 className="text-lg font-semibold mb-4 text-center">Quick Links</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <QuickLink 
-                href="/menu" 
-                icon={<Utensils className="h-6 w-6 text-primary" />} 
-                label="Food & Drink Menu" 
-              />
-              <div onClick={() => {
-                const salemCoords = "44.9429,-123.0351";
-                window.open(`https://maps.google.com/?q=${salemCoords}`, '_blank');
-              }}>
-                <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardContent className="p-6 flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 mb-3 flex items-center justify-center">
-                      <MapPin className="h-6 w-6 text-primary" />
-                    </div>
-                    <span className="text-base font-medium text-foreground">Directions</span>
-                  </CardContent>
-                </Card>
-              </div>
-              <div onClick={() => {
-                // Create a simple modal or alert for delivery options
-                const deliveryOptions = [
-                  { name: 'DoorDash', url: 'https://www.doordash.com/store/side-hustle-lounge-salem-23456789/' },
-                  { name: 'Uber Eats', url: 'https://www.ubereats.com/store/side-hustle-lounge/abcdef123456' },
-                  { name: 'Postmates', url: 'https://postmates.com/merchant/side-hustle-lounge-salem' }
-                ];
-                
-                const choice = window.confirm(
-                  'Choose delivery service:\n\n' +
-                  '• DoorDash (Click OK)\n' +
-                  '• Uber Eats (Click Cancel, then OK on next prompt)\n' +
-                  '• Postmates (Click Cancel twice)'
-                );
-                
-                if (choice) {
-                  window.open(deliveryOptions[0].url, '_blank');
-                } else {
-                  const secondChoice = window.confirm('Open Uber Eats? (Cancel opens Postmates)');
-                  if (secondChoice) {
-                    window.open(deliveryOptions[1].url, '_blank');
-                  } else {
-                    window.open(deliveryOptions[2].url, '_blank');
-                  }
-                }
-              }}>
-                <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardContent className="p-6 flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 mb-3 flex items-center justify-center">
-                      <Truck className="h-6 w-6 text-primary" />
-                    </div>
-                    <span className="text-base font-medium text-foreground">Order Online</span>
-                  </CardContent>
-                </Card>
-              </div>
-              <QuickLink 
-                href="/wolfpack" 
-                icon={<Users className="h-6 w-6 text-primary" />} 
-                label="Join Wolf Pack" 
-              />
+            <h2 className="text-lg font-semibold mb-4 text-center">Order Online</h2>
+            <div className="space-y-3">
+              {/* DoorDash Button */}
+              <button
+                onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/?rwg_token=ACgRB3exS_UE0v2-5IhbmqYOfovUT1i9W1wAY2C48dJqakkaWX27DmNOgUyGwJNV1F7TdH9ezS8mhE5LxjaxGq-Evp9grjMhmA==&utm_campaign=gpa', '_blank', 'noopener,noreferrer')}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
+                aria-label="Order food on DoorDash"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
+                    <Image 
+                      src="/icons/doordash_icon.png" 
+                      alt="DoorDash" 
+                      width={32} 
+                      height={32} 
+                      className="w-8 h-8 object-contain"
+                    />
+                  </div>
+                  <span className="text-base">Order on DoorDash</span>
+                </div>
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              {/* Uber Eats Button */}
+              <button
+                onClick={() => window.open('https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw?utm_campaign=CM2508147-search-free-nonbrand-google-pas_e_all_acq_Global&utm_medium=search-free-nonbrand&utm_source=google-pas', '_blank', 'noopener,noreferrer')}
+                className="w-full bg-black hover:bg-gray-800 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
+                aria-label="Order food on Uber Eats"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
+                    <Image 
+                      src="/icons/uber-eats.png" 
+                      alt="Uber Eats" 
+                      width={32} 
+                      height={32} 
+                      className="w-8 h-8 object-contain"
+                    />
+                  </div>
+                  <span className="text-base">Order on Uber Eats</span>
+                </div>
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              {/* Postmates Button */}
+              <button
+                onClick={() => window.open('https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw?utm_campaign=CM2508147-search-free-nonbrand-google-pas_e_all_acq_Global&utm_medium=search-free-nonbrand&utm_source=google-pas', '_blank', 'noopener,noreferrer')}
+                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
+                aria-label="Order food on Postmates"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
+                    <Image 
+                      src="/icons/postmates.png" 
+                      alt="Postmates" 
+                      width={32} 
+                      height={32} 
+                      className="w-8 h-8 object-contain"
+                    />
+                  </div>
+                  <span className="text-base">Order on Postmates</span>
+                </div>
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
+
+            {/* Additional Quick Actions */}
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <Link href="/menu">
+                <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardContent className="p-4 flex flex-col items-center justify-center">
+                    <Utensils className="h-5 w-5 text-primary mb-2" />
+                    <span className="text-sm font-medium text-foreground">View Menu</span>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/wolfpack">
+                <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardContent className="p-4 flex flex-col items-center justify-center">
+                    <Users className="h-5 w-5 text-primary mb-2" />
+                    <span className="text-sm font-medium text-foreground">Join Wolf Pack</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </div>
+
+          {/* Google Maps Section */}
+          <div className="w-full max-w-4xl px-4 mt-8 mb-6">
+            <h2 className="text-xl font-semibold text-center mb-4">Find Us</h2>
+            <DynamicGoogleMaps 
+              className="w-full" 
+              height="400px" 
+              showLocationSwitcher={true}
+            />
+          </div>
+
+          {/* Instagram Section */}
+          <div className="w-full max-w-2xl px-4 mt-6 mb-8">
+            <h2 className="text-xl font-semibold text-center mb-4">Follow @sidehustle_bar</h2>
+            <InstagramEmbed className="w-full" />
           </div>
         </div>
       </div>

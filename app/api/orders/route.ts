@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { notifyStaffOfNewOrder } from '@/lib/actions/order-actions';
-import { CartItem } from '@/types/wolfpack-unified';
+import { CartItem } from '@/types/features/wolfpack-unified';
 
 interface CreateOrderRequest {
   items: CartItem[];

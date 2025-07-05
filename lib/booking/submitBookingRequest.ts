@@ -1,4 +1,4 @@
-import { BookingRequest } from '../types/booking';
+import { BookingRequest } from '@/types/features/booking';
 
 /**
  * Submits a booking request to the Supabase Edge Function

@@ -24,7 +24,6 @@ export const WOLFPACK_FIELD_MAPPING = {
 export function transformDatabaseToInterface(dbRow: any) {
   return {
     id: dbRow.id,
-    id: dbRow.id,
     display_name: dbRow.display_name,
     wolf_emoji: dbRow.emoji,
     vibe_status: dbRow.current_vibe,

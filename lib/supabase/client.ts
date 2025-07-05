@@ -1,7 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/lib/database.types'
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
-import { checkAndCleanCorruptedCookies } from '@/utils/cookieCleanup'
 
 // Define proper error types
 interface SupabaseError {
@@ -60,7 +59,7 @@ export function createClient() {
     try {
       // Use both cleanup methods for maximum effectiveness
       checkAndClearCorruptedCookies()
-      checkAndCleanCorruptedCookies()
+      checkAndClearCorruptedCookies()
     } catch (error) {
       console.warn('Error checking cookies:', error)
     }
@@ -93,7 +92,7 @@ export function createClient() {
     // Clear cookies and try again
     if (typeof window !== 'undefined') {
       checkAndClearCorruptedCookies()
-      checkAndCleanCorruptedCookies()
+      checkAndClearCorruptedCookies()
     }
     
     // Retry with minimal config

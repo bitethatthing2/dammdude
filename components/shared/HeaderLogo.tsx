@@ -1,21 +1,16 @@
 'use client';
 
-import Image from 'next/image';
+import { DynamicLogo } from './DynamicLogo';
 
 export default function HeaderLogo() {
-  // Use light mode logo only
-  const logoSrc = '/icons/wolf-icon.png';
-    
   return (
     <div className="flex items-center">
-      {/* Use Next.js Image component with correct aspect ratio handling */}
-      <Image 
-        src={logoSrc}
-        alt="Side Hustle Logo"
+      <DynamicLogo 
+        type="wolf"
         width={150}
         height={24}
         className="w-auto h-auto max-w-[150px]"
-        priority // Prioritize loading the logo
+        alt="Side Hustle Logo"
       />
     </div>
   );

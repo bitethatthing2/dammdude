@@ -5,7 +5,6 @@ type NotificationType = 'info' | 'warning' | 'error' | 'order_new' | 'order_read
 
 interface NotificationRow {
   id: string;
-  id: string;
   type: string;
   title: string;
   message: string;

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Calendar, Clock, Ticket, ExternalLink } from "lucide-react";
-import type { Event } from '@/lib/types/event';
+import type { Event } from '@/types/features/event';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

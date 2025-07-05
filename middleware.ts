@@ -81,14 +81,22 @@ export async function middleware(request: NextRequest) {
     // Create Supabase client
     const supabase = createSupabaseMiddlewareClient(request, response)
 
-    // Refresh session if expired - required for Server Components
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Try to refresh session with timeout - required for Server Components
+    const userPromise = supabase.auth.getUser()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Supabase request timeout')), 2000)
+    )
 
-    // Optional: Add user info to response headers for debugging
-    if (user) {
-      response.headers.set('x-user-id', user.id)
+    try {
+      const { data: { user } } = await Promise.race([userPromise, timeoutPromise]) as any
+      
+      // Optional: Add user info to response headers for debugging
+      if (user) {
+        response.headers.set('x-user-id', user.id)
+      }
+    } catch (authError) {
+      console.warn('Supabase auth check failed (likely paused project):', authError)
+      // Continue without authentication on auth error
     }
 
     return response

@@ -9,25 +9,24 @@ import { TeamMemberCard } from "./TeamMemberCard";
 const TEAM_MEMBERS: TeamMember[] = [
   {
     id: "member1",
-    name: "Alex Rodriguez",
-    role: "Founder & Owner",
-    bio: "A former college athlete with a passion for creating the ultimate sports viewing experience. Alex founded the first location in Salem and has been the driving force behind our expansion and success.",
-    image_url: "/images/about/team-alex.jpg",
+    name: "James Mullins",
+    role: "Owner & Founder",
+    bio: "James founded Side Hustle Bar with a vision to create Salem's premier sports viewing destination. His passion for high-energy entertainment and exceptional hospitality drives our commitment to providing an unforgettable experience.",
+    image_url: "/images/about/team-james.jpg",
     location_id: "both",
     social_links: {
-      twitter: "https://twitter.com",
-      linkedin: "https://linkedin.com",
+      instagram: "https://instagram.com/sidehustle_bar",
     },
   },
   {
     id: "member2",
-    name: "Maria Chen",
+    name: "Rebecca Sanchez",
     role: "Executive Chef",
-    bio: "With 15 years of culinary experience, Maria has revolutionized our menu with her innovative approach to elevated sports bar cuisine, focusing on locally-sourced ingredients and unexpected flavor combinations.",
-    image_url: "/images/about/team-maria.jpg",
+    bio: "Rebecca Sanchez is the culinary mastermind behind our award-winning Mexican cuisine. Her expertise and passion for authentic flavors have made Side Hustle Bar famous for serving the best tacos in Salem.",
+    image_url: "/images/about/team-rebecca.jpg",
     location_id: "both",
     social_links: {
-      instagram: "https://instagram.com",
+      instagram: "https://instagram.com/sidehustle_bar",
     },
   },
   {

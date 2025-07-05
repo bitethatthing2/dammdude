@@ -1,97 +1,62 @@
 'use client';
 
-import Image from "next/image";
-import { HeartHandshake } from "lucide-react";
-import { useLocationState } from "@/lib/hooks/useLocationState";
+import { Music, Tv, UtensilsCrossed } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Community involvement data
-interface CommunityInitiative {
+// Accurate business offerings
+interface BusinessOffering {
   id: string;
   title: string;
   description: string;
-  image: string;
-  location_id: 'salem' | 'portland' | 'both';
+  icon: React.ElementType;
 }
 
-const COMMUNITY_INITIATIVES: CommunityInitiative[] = [
+const BUSINESS_OFFERINGS: BusinessOffering[] = [
   {
-    id: "youth-sports",
-    title: "Youth Sports Sponsorship",
-    description: "We proudly sponsor local youth sports teams, providing uniforms, equipment, and facilities for practices and team events.",
-    image: "/images/about/community-youth-sports.jpg",
-    location_id: "both",
+    id: "sports-entertainment",
+    title: "Sports Viewing & UFC Events",
+    description: "High-energy sports bar with multiple screens for watching live games, UFC fights, and major sporting events.",
+    icon: Tv,
   },
   {
-    id: "fundraisers",
-    title: "Charity Game Nights",
-    description: "Monthly charity events where a percentage of all sales goes to support local organizations and causes.",
-    image: "/images/about/community-charity.jpg",
-    location_id: "both",
+    id: "nightlife",
+    title: "Nightclub & Live Entertainment",
+    description: "DJ performances, live music events, and high-energy nightlife atmosphere in a 21+ environment.",
+    icon: Music,
   },
   {
-    id: "food-drive",
-    title: "Annual Food Drive",
-    description: "Our season-long food drive collects thousands of pounds of food for local food banks and shelters.",
-    image: "/images/about/community-food-drive.jpg",
-    location_id: "salem",
-  },
-  {
-    id: "cleanup",
-    title: "Portland Cleanup Initiative",
-    description: "Quarterly neighborhood cleanup events where our staff and customers work together to beautify our community.",
-    image: "/images/about/community-cleanup.jpg",
-    location_id: "portland",
+    id: "mexican-cuisine",
+    title: "Authentic Mexican Cuisine",
+    description: "Specializing in Baja fish tacos, birria, loaded nachos, loaded fries, and craft cocktails.",
+    icon: UtensilsCrossed,
   },
 ];
 
 export function CommunityInvolvement() {
-  const { location } = useLocationState();
-  
-  // Filter initiatives based on location
-  const filteredInitiatives = COMMUNITY_INITIATIVES.filter(initiative => 
-    initiative.location_id === location || initiative.location_id === "both"
-  );
-  
-  if (filteredInitiatives.length === 0) {
-    return null;
-  }
-  
   return (
     <div className="py-12">
       <div className="text-center mb-12">
-        <HeartHandshake className="h-10 w-10 text-primary mx-auto mb-4" />
-        <h2 className="text-3xl font-bold mb-2">Community Involvement</h2>
+        <h2 className="text-3xl font-bold mb-2">What We Offer</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-           {location === "portland" ? "Portland" : "Salem"}
+          Experience the ultimate sports bar and entertainment destination
         </p>
         <Separator className="w-24 h-1 bg-primary mx-auto mt-6" />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {filteredInitiatives.map((initiative) => (
-          <Card key={initiative.id} className="overflow-hidden border-none shadow-md">
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-0">
-              {/* Image section */}
-              <div className="relative h-60 sm:h-full sm:col-span-2">
-                <Image 
-                  src={initiative.image} 
-                  alt={initiative.title}
-                  fill
-                  className="object-cover object-center"
-                  sizes="(max-width: 640px) 100vw, 40vw"
-                />
-              </div>
-              
-              {/* Content section */}
-              <CardContent className="p-6 sm:col-span-3 flex flex-col justify-center">
-                <h3 className="text-xl font-bold mb-3">{initiative.title}</h3>
-                <p className="text-muted-foreground">{initiative.description}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {BUSINESS_OFFERINGS.map((offering) => {
+          const IconComponent = offering.icon;
+          return (
+            <Card key={offering.id} className="text-center border-none shadow-md">
+              <CardContent className="p-8">
+                <IconComponent className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-bold mb-3">{offering.title}</h3>
+                <p className="text-muted-foreground">{offering.description}</p>
               </CardContent>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

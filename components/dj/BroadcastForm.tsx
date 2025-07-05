@@ -30,8 +30,9 @@ import type {
   BroadcastType, 
   BroadcastPriority,
   InteractionConfig,
-  BroadcastOption
-} from '@/lib/types/dj-dashboard-types';
+  BroadcastOption,
+  Json
+} from '@/types/features/dj-dashboard-types';
 import type { Database } from '@/lib/database.types';
 
 interface BroadcastFormProps {
@@ -173,7 +174,7 @@ export function BroadcastForm({ djId, locationId, sessionId, isOpen, onClose, on
         accent_color: accentColor,
         animation_type: animationType,
         emoji_burst: selectedEmojis.length > 0 ? selectedEmojis : null,
-        interaction_config: interactionConfig,
+        interaction_config: interactionConfig as Json,
         status: 'active',
         sent_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + duration * 1000).toISOString()

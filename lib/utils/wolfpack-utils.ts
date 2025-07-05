@@ -8,7 +8,7 @@ import {
   WolfpackMembership, 
   DebugResult, 
   createDefaultWolfProfile 
-} from '@/types/wolfpack-interfaces';
+} from '@/types/features/wolfpack-interfaces';
 
 // Special VIP users who should always be wolfpack members
 const VIP_USERS = ['mkahler599@gmail.com'];
@@ -213,11 +213,11 @@ export const joinWolfPackFromLocation = async (
     // Step 5: Create or update pack membership
     if (!existingMember) {
       const memberData = {
-        id: user.id,
+        user_id: user.id,
         location_id: locationId,
         status: 'active',
-        joined_at: new Date().toISOString(),
-        last_active: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        last_activity: new Date().toISOString()
       };
 
       const { data: memberEntry, error: memberError } = await supabase
@@ -270,14 +270,14 @@ export async function checkWolfPackStatus(userId: string) {  try {
 
     // Query wolf-pack-memberships with correct columns
     const { data: memberData, error: memberError } = await supabase
-      .from('wolf-pack-members')
+      .from('wolf_pack_members')
       .select(`
         id,
-        id,
+        user_id,
         location_id,
         status,
-        joined_at,
-        last_active
+        created_at,
+        last_activity
       `)
       .eq('id', userId)
       .eq('status', 'active');

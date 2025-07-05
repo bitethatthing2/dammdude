@@ -10,7 +10,7 @@ import {
   isPromptAvailable, // Re-added this import as it was present in the original problem statement
   onBeforeInstallPrompt,
   onAppInstalled
-} from '../../lib/pwa/pwaEventHandler'; // <--- CORRECTED IMPORT PATH
+} from '@/lib/pwa/pwaEventHandler';
 
 interface PwaInstallGuideProps {
   className?: string;

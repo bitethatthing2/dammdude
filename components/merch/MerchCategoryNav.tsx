@@ -5,7 +5,7 @@ import {
   ShoppingBag,
   ChevronLeft, ChevronRight
 } from "lucide-react";
-import type { MerchCategory } from '@/lib/types/merch';
+import type { MerchCategory } from '@/types/features/merch';
 
 // Map of category IDs to icons
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {

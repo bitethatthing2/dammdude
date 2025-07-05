@@ -1,4 +1,4 @@
-import { getMenuItemsByCategoryPublic } from '@/lib/menu-data-public';
+import { getMenuItemsByCategoryPublic } from '@/lib/menu-data-public-fixed';
 import { NextResponse } from 'next/server';
 
 export async function GET(

@@ -63,8 +63,8 @@ export class WolfpackService {
         id: event.id,
         title: event.title,
         event_type: event.event_type,
-        status: event.status,
-        created_at: event.created_at,
+        status: event.status || 'pending',
+        created_at: event.created_at || new Date().toISOString(),
         voting_ends_at: event.voting_ends_at,
         options: Array.isArray(event.options) ? event.options : [],
         dj_id: event.dj_id,
@@ -115,10 +115,10 @@ export class WolfpackService {
           id: data.id,
           title: data.title,
           event_type: data.event_type,
-          status: data.status,
-          created_at: data.created_at,
+          status: data.status || 'pending',
+          created_at: data.created_at || new Date().toISOString(),
           voting_ends_at: data.voting_ends_at,
-          options: data.options || [],
+          options: (Array.isArray(data.options) ? data.options : []) as string[],
           dj_id: data.dj_id,
           location_id: data.location_id,
           description: data.description
@@ -176,6 +176,7 @@ export class WolfpackService {
       const { error } = await supabase
         .from('dj_broadcasts')
         .insert({
+          title: 'DJ Broadcast',
           dj_id: user.id,
           location_id: locationId,
           message: message,

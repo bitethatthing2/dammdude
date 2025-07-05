@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield } from 'lucide-react';
+import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { ThemeControl } from './ThemeControl';
+import { DynamicLogo } from './DynamicLogo';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -64,7 +66,7 @@ export const BottomNav = () => {
         { id: 'menu', href: '/menu', icon: UtensilsCrossed, label: 'Order', requiresWolfPack: true },
         { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch' },
         { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
-        { id: 'blog', href: '/blog', icon: BookOpen, label: 'Blog' }
+        { id: 'about', href: '/about', icon: Info, label: 'About' }
       );
 
       return items;
@@ -90,7 +92,7 @@ export const BottomNav = () => {
     basicItems.push(
       { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch' },
       { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
-      { id: 'blog', href: '/blog', icon: BookOpen, label: 'Blog' }
+      { id: 'about', href: '/about', icon: Info, label: 'About' }
     );
 
     return basicItems;
@@ -109,8 +111,8 @@ export const BottomNav = () => {
       isJoinPack
         ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
         : isActive 
-          ? "text-purple-400 bg-purple-500/10" 
-          : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
+          ? "text-primary bg-primary/10" 
+          : "text-inactive hover:text-foreground hover:bg-primary/5"
     );
 
     return (
@@ -147,18 +149,48 @@ export const BottomNav = () => {
     );
   }
 
+  // Check if we're on the DJ dashboard page
+  const isDJDashboard = pathname === '/dj';
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom">
-      <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
-        {navigationItems.map((item) => renderNavItem(item))}
-      </div>
-      
-      {/* Wolf Pack Status Indicator */}
-      {canCheckout && (
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="h-1 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/25 animate-pulse" />
+    <>
+      {/* Fixed Side Hustle Logo - positioned at top-left (hidden on DJ dashboard) */}
+      {!isDJDashboard && (
+        <div className="fixed top-2 left-2 z-50">
+          <DynamicLogo 
+            type="brand"
+            width={200}
+            height={50}
+            className="w-32 sm:w-40 md:w-48 h-auto" 
+          />
         </div>
       )}
-    </nav>
+
+      {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard) */}
+      {!isDJDashboard && (
+        <div className="fixed top-2 right-2 z-50">
+          <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-2">
+            <ThemeControl />
+          </div>
+        </div>
+      )}
+      
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom">
+        <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
+          {navigationItems.map((item) => renderNavItem(item))}
+        </div>
+        
+        {/* Wolf Pack Status Indicator */}
+        {canCheckout && (
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="h-1 w-12 rounded-full bg-gradient-to-r from-primary to-primary-light shadow-lg animate-pulse" style={{
+              backgroundColor: 'hsl(var(--primary))',
+              boxShadow: '0 0 15px hsl(var(--primary) / 0.25)'
+            }} />
+          </div>
+        )}
+      </nav>
+    </>
   );
 };

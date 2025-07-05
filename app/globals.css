@@ -99,8 +99,8 @@
     --radius: 0.5rem;
     
     /* Navigation heights for responsive layout */
-    --top-nav-height: 80px;
-    --bottom-nav-height: 64px;
+    --top-nav-height: 0px; /* No top navigation - using bottom nav only */
+    --bottom-nav-height: 64px; /* matches h-16 (64px) */
     --chat-header-height: 88px;
     
     /* Wolfpack specific variables */
@@ -138,59 +138,121 @@
     --wolfpack-current-user: 221.2 83.2% 63.3%;
   }
 
-  /* Theme color variations */
+  /* Theme color variations - Enhanced with comprehensive variables */
   .slate {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --primary: 222.2 47.4% 11.2%;
+    --primary-light: 222.2 47.4% 21.2%;
+    --primary-dark: 222.2 47.4% 8.2%;
     --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --tertiary: 214.3 31.8% 91.4%;
+    --surface: 0 0% 98%;
     --border: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+    --active: 222.2 47.4% 11.2%;
+    --inactive: 210 40% 60%;
+    --hover: 222.2 47.4% 15.2%;
+    --pressed: 222.2 47.4% 8.2%;
+    --disabled: 210 40% 85%;
   }
 
   .dark.slate {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --primary: 210 40% 98%;
+    --primary-light: 210 40% 90%;
+    --primary-dark: 210 40% 85%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --tertiary: 215 27.9% 16.9%;
+    --surface: 222.2 84% 6.9%;
     --border: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    --active: 210 40% 98%;
+    --inactive: 210 40% 50%;
+    --hover: 210 40% 85%;
+    --pressed: 210 40% 80%;
+    --disabled: 215 27.9% 25%;
   }
 
   .red {
     --primary: 0 72.2% 50.6%;
+    --primary-light: 0 72.2% 60.6%;
+    --primary-dark: 0 72.2% 40.6%;
     --primary-foreground: 0 85.7% 97.3%;
     --ring: 0 72.2% 50.6%;
+    --active: 0 72.2% 50.6%;
+    --inactive: 0 20% 60%;
+    --hover: 0 72.2% 55.6%;
+    --pressed: 0 72.2% 45.6%;
+    --disabled: 0 20% 85%;
   }
 
   .rose {
     --primary: 346.8 77.2% 49.8%;
+    --primary-light: 346.8 77.2% 59.8%;
+    --primary-dark: 346.8 77.2% 39.8%;
     --primary-foreground: 355.7 100% 97.3%;
     --ring: 346.8 77.2% 49.8%;
+    --active: 346.8 77.2% 49.8%;
+    --inactive: 346.8 20% 60%;
+    --hover: 346.8 77.2% 54.8%;
+    --pressed: 346.8 77.2% 44.8%;
+    --disabled: 346.8 20% 85%;
   }
 
   .orange {
     --primary: 24.6 95% 53.1%;
+    --primary-light: 24.6 95% 63.1%;
+    --primary-dark: 24.6 95% 43.1%;
     --primary-foreground: 60 9.1% 97.8%;
     --ring: 24.6 95% 53.1%;
+    --active: 24.6 95% 53.1%;
+    --inactive: 24.6 20% 60%;
+    --hover: 24.6 95% 58.1%;
+    --pressed: 24.6 95% 48.1%;
+    --disabled: 24.6 20% 85%;
   }
 
   .green {
     --primary: 142.1 76.2% 36.3%;
+    --primary-light: 142.1 76.2% 46.3%;
+    --primary-dark: 142.1 76.2% 26.3%;
     --primary-foreground: 355.7 100% 97.3%;
     --ring: 142.1 76.2% 36.3%;
+    --active: 142.1 76.2% 36.3%;
+    --inactive: 142.1 20% 60%;
+    --hover: 142.1 76.2% 41.3%;
+    --pressed: 142.1 76.2% 31.3%;
+    --disabled: 142.1 20% 85%;
   }
 
   .blue {
     --primary: 221.2 83.2% 53.3%;
+    --primary-light: 221.2 83.2% 63.3%;
+    --primary-dark: 221.2 83.2% 43.3%;
     --primary-foreground: 210 40% 98%;
     --ring: 221.2 83.2% 53.3%;
+    --active: 221.2 83.2% 53.3%;
+    --inactive: 221.2 20% 60%;
+    --hover: 221.2 83.2% 58.3%;
+    --pressed: 221.2 83.2% 48.3%;
+    --disabled: 221.2 20% 85%;
   }
 
   .violet {
     --primary: 262.1 83.3% 57.8%;
+    --primary-light: 262.1 83.3% 67.8%;
+    --primary-dark: 262.1 83.3% 47.8%;
     --primary-foreground: 210 20% 98%;
     --ring: 262.1 83.3% 57.8%;
+    --active: 262.1 83.3% 57.8%;
+    --inactive: 262.1 20% 60%;
+    --hover: 262.1 83.3% 62.8%;
+    --pressed: 262.1 83.3% 52.8%;
+    --disabled: 262.1 20% 85%;
   }
 }
 
@@ -207,6 +269,32 @@
   .safe-both {
     padding-top: var(--top-nav-height);
     padding-bottom: var(--bottom-nav-height);
+  }
+  
+  /* Main page content container with proper nav spacing */
+  .main-content {
+    min-height: 100vh;
+    padding-top: var(--top-nav-height);
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  }
+  
+  /* Container with proper bottom nav spacing */
+  .content-container {
+    padding-bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Mobile-friendly touch targets */
+  @media (max-width: 768px) {
+    .main-content {
+      /* Ensure content doesn't go behind notch on mobile */
+      padding-top: max(var(--top-nav-height), env(safe-area-inset-top, 0px) + 56px);
+    }
+    
+    /* Improve touch targets on mobile */
+    button, .clickable {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
   
   /* iOS safe area utilities */

@@ -8,14 +8,14 @@ import {
   OrderStatus,
   WolfPackOrder,
   WolfPackOrderItem
-} from '@/types/wolfpack-unified';
+} from '@/types/features/wolfpack-unified';
 
 // Type aliases for this hook
 export type UnifiedOrder = WolfPackOrder;
 export type OrderItem = WolfPackOrderItem;
 
 // Re-export types that components need
-export type { OrderStatus } from '@/types/wolfpack-unified';
+export type { OrderStatus } from '@/types/features/wolfpack-unified';
 
 interface UseUnifiedOrdersOptions {
   status?: OrderStatus[];

@@ -5,7 +5,8 @@ import { ShoppingBag } from 'lucide-react';
 
 export default function MerchPage() {
   return (
-    <div className="container py-8">
+    <div className="main-content">
+      <div className="container py-8">
       <div className="flex items-center mb-8">
         <ShoppingBag className="h-6 w-6 mr-2 text-primary" />
         <h1 className="text-3xl font-bold">Merchandise</h1>
@@ -20,6 +21,7 @@ export default function MerchPage() {
           </p>
         </div>
       </Suspense>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useUser } from '@/hooks/useUser';
 import Image from 'next/image';
 
-import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
+import type { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu';
 
 interface MenuItemCardProps {
   item: MenuItemWithModifiers;

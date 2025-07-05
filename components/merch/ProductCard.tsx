@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
-import type { MerchItem } from '@/lib/types/merch';
+import type { MerchItem } from '@/types/features/merch';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

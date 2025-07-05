@@ -124,7 +124,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_wolf-pack-members,
+      Permission.VIEW_WOLF_PACK_MEMBERS,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS
@@ -134,7 +134,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_wolf-pack-members,
+      Permission.VIEW_WOLF_PACK_MEMBERS,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS,
@@ -145,7 +145,7 @@ class AuthService {
       Permission.PLACE_ORDER,
       Permission.VIEW_PROFILE,
       Permission.EDIT_PROFILE,
-      Permission.VIEW_wolf-pack-members,
+      Permission.VIEW_WOLF_PACK_MEMBERS,
       Permission.SEND_PRIVATE_MESSAGES,
       Permission.PARTICIPATE_IN_EVENTS,
       Permission.VOTE_IN_EVENTS,
@@ -549,8 +549,8 @@ class AuthService {
         () => this.supabase
           .from('users')
           .update({
-            last_login_at: new Date().toISOString(),
-            login_count: this.supabase.rpc('increment_login_count', { user_id: userId })
+            last_login: new Date().toISOString()
+            // login_count field not available in schema
           })
           .eq('id', userId),
         'updateLoginMetadata'

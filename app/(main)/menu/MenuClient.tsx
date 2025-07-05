@@ -20,12 +20,12 @@ import MenuItemCard, { CompactMenuItemCard } from '@/components/menu/MenuItemCar
 import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { createCartItem, ItemCustomization } from '@/types/wolfpack-unified';
+import { createCartItem, ItemCustomization } from '@/types/features/wolfpack-unified';
 import type {
   MenuCategoryWithCount,
   MenuItemWithModifiers,
   CartOrderData
-} from '@/lib/types/menu';
+} from '@/types/features/menu';
 
 interface MenuClientProps {
   initialCategories: MenuCategoryWithCount[];

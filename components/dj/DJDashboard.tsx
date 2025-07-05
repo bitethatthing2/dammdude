@@ -681,6 +681,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
   // UI State
   const [activeTab, setActiveTab] = useState('overview');
+  const [isBroadcastFormOpen, setIsBroadcastFormOpen] = useState(false);
   const [showEventCreator, setShowEventCreator] = useState(false);
   const [showMassMessage, setShowMassMessage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

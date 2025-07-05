@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import MenuItemCard from './MenuItemCard';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import type { MenuItemWithModifiers, CartOrderData } from '@/lib/types/menu';
+import type { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu';
 
 // Local type definitions
 interface Category {

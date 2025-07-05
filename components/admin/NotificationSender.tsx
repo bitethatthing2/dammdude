@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { SendNotificationRequest, SendNotificationResponse } from '@/lib/types/api';
+import { SendNotificationRequest, SendNotificationResponse } from '@/types/features/api';
 import { Loader2, Send, Bell, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 

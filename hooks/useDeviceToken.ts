@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { supabase } from '@/lib/supabase/client';
-import type { DeviceToken, FCMTokenData, DeviceInfo } from '@/types/notifications';
+import type { DeviceToken, FCMTokenData, DeviceInfo } from '@/types/global/notifications';
 
 /**
  * Detect device information for token registration

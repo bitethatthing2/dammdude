@@ -62,7 +62,7 @@ export default function BookingPage() {
 
   return (
     <div className="container py-8">
-      <header className="flex items-center mb-8">
+      <header className="flex items-center mb-8 ml-16 sm:ml-20">
         <Calendar className="h-6 w-6 mr-2 text-primary" />
         <h1 className="text-3xl font-bold">Book a Table</h1>
       </header>

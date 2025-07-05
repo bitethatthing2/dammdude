@@ -62,7 +62,11 @@ export function QuickActionButtons() {
 
       <Button 
         onClick={handleJoinWolfpack}
-        className="h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg"
+        className="h-20 text-white border-0 shadow-lg"
+        style={{
+          background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 100%)`,
+          color: 'hsl(var(--primary-foreground))'
+        }}
       >
         <div className="text-center">
           <Users className="w-6 h-6 mx-auto mb-1" />

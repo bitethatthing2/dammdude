@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 import type { 
   BroadcastType,
   BroadcastPriority
-} from '@/lib/types/dj-dashboard-types';
+} from '@/types/features/dj-dashboard-types';
 import type { Database } from '@/lib/database.types';
 
 interface MassMessageInterfaceProps {

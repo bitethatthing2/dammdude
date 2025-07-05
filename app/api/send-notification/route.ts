@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { initializeFirebaseAdmin, getAdminMessaging, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
-import { NOTIFICATION_TOPICS } from '@/lib/types/firebase';
-import type { NotificationTopicKey, FcmResponse, BulkNotificationResult } from '@/lib/types/firebase';
+import { NOTIFICATION_TOPICS } from '@/types/features/firebase';
+import type { NotificationTopicKey, FcmResponse, BulkNotificationResult } from '@/types/features/firebase';
 import type { TopicMessage, MulticastMessage } from 'firebase-admin/messaging';
 
 // Define the structure for notification requests

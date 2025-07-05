@@ -305,18 +305,18 @@ function adaptRPCChatMessage(rpcMessage: RPCChatMessageResponse, sessionId: stri
 }
 
 // Adapter for direct database rows (for realtime subscriptions) - ACTUAL DB SCHEMA
-function adaptDatabaseChatMessage(dbMessage: Partial<DatabaseChatMessage> & { id: string; session_id: string; content: string; }): WolfChatMessage {
+function adaptDatabaseChatMessage(dbMessage: any): WolfChatMessage {
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
-    user_id: dbMessage.user_id || '',           // ACTUAL DB: user_id field exists
-    display_name: dbMessage.display_name || 'Unknown User',  // ACTUAL DB: display_name field exists
-    avatar_url: dbMessage.avatar_url || undefined,           // ACTUAL DB: avatar_url field exists
-    content: dbMessage.content,                 // ACTUAL DB: content field (correct!)
+    user_id: dbMessage.user_id || '',           // CORRECTED: DB uses 'user_id'
+    display_name: dbMessage.display_name || 'Unknown User',
+    avatar_url: dbMessage.avatar_url || undefined,
+    content: dbMessage.content || '',           // CORRECTED: DB uses 'content' field
     message_type: (dbMessage.message_type as 'text' | 'image' | 'dj_broadcast') || 'text',
     image_url: dbMessage.image_url || undefined,
     created_at: dbMessage.created_at || new Date().toISOString(),
-    is_flagged: dbMessage.is_flagged ?? false,  // ACTUAL DB: is_flagged field (correct!)
+    is_flagged: dbMessage.is_flagged ?? false,  // CORRECTED: DB uses 'is_flagged'
     reactions: []
   };
 }
@@ -516,16 +516,78 @@ export function useWolfpack(
       }
       resolvedSessionIdRef.current = resolvedSession.id;
 
-      // Load messages using direct query since RPC might not match actual schema
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('wolfpack_chat_messages')
-        .select('*')
+      // First ensure the chat session exists
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('wolfpack_chat_sessions')
+        .select('id')
         .eq('session_id', sessionId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .single();
+      
+      if (sessionError && sessionError.code === 'PGRST116') {
+        // Session doesn't exist, create it
+        const { error: createError } = await supabase
+          .from('wolfpack_chat_sessions')
+          .insert({
+            session_id: sessionId,
+            display_name: `${sessionId.charAt(0).toUpperCase() + sessionId.slice(1)} Chat`,
+            description: `Chat session for ${sessionId}`,
+            location_id: locationId,
+            is_active: true
+          });
+        
+        if (createError) {
+          console.warn('Could not create chat session:', createError);
+        }
+      }
 
-      if (messagesError) throw messagesError;
+      // Skip RPC and use direct table access (RPC functions may not exist)
+      console.log('📨 [DEBUG] Loading messages directly from table...');
+      let messagesData = [];
+      
+      try {
+        console.log('🔍 [DEBUG] WOLFPACK HOOK v2.2 - Loading messages with CORRECT FIELDS for session:', sessionId);
+        console.log('🔍 [DEBUG] Current user auth state...');
+        
+        // Check authentication first
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        console.log('🔍 [DEBUG] Auth user:', user?.id, 'Error:', authError);
+        
+        // Load messages without deleted_at filter (column doesn't exist)
+        const { data: directData, error: directError } = await supabase
+          .from('wolfpack_chat_messages')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: false })
+          .limit(100);
+          
+        if (directError) {
+          console.error('❌ [DEBUG] Direct table access failed:', {
+            error: directError,
+            code: directError.code,
+            message: directError.message,
+            details: directError.details,
+            hint: directError.hint
+          });
+          messagesData = [];
+        } else {
+          // Filter out any deleted messages in JavaScript (in case there are different delete columns)
+          const rawData = directData || [];
+          messagesData = rawData.filter(msg => 
+            !msg.deleted_at && !msg.is_deleted && !msg.deleted
+          );
+          
+          console.log('✅ [DEBUG] Raw messages loaded:', rawData.length);
+          console.log('✅ [DEBUG] Filtered messages:', messagesData.length);
+          if (messagesData.length > 0) {
+            console.log('📨 [DEBUG] Sample message structure:', messagesData[0]);
+            console.log('📨 [DEBUG] Message keys:', Object.keys(messagesData[0]));
+            console.log('📨 [DEBUG] Sender ID field:', messagesData[0].sender_id);
+          }
+        }
+      } catch (tableError) {
+        console.error('❌ [DEBUG] Table access threw exception:', tableError);
+        messagesData = [];
+      }
 
       // Load reactions for messages
       const messageIds = messagesData?.map(m => m.id) || [];
@@ -565,8 +627,7 @@ export function useWolfpack(
         .eq('location_id', locationId)
         .eq('is_wolfpack_member', true)
         .eq('wolfpack_status', 'active')
-        .eq('status', 'active')
-        .is('deleted_at', null);
+        .eq('status', 'active');
 
       if (membersError) throw membersError;
 
@@ -580,14 +641,49 @@ export function useWolfpack(
 
       if (eventsError) throw eventsError;
 
-      // Process messages with reactions - Using database adapter for actual schema
-      const messagesWithReactions = (messagesData || []).map(message => {
+      // Get unique sender IDs to fetch user data
+      console.log('🔍 [DEBUG] Extracting sender IDs from messages...');
+      console.log('🔍 [DEBUG] Messages array length:', messagesData?.length);
+      console.log('🔍 [DEBUG] First message sender_id:', messagesData?.[0]?.sender_id);
+      
+      const senderIds = [...new Set((messagesData || []).map(m => {
+        console.log('🔍 [DEBUG] Message user_id:', m.user_id);
+        return m.user_id;
+      }).filter(Boolean))];
+      
+      console.log('👥 [DEBUG] Loading user data for sender IDs:', senderIds);
+      
+      // Load user data for all message senders
+      const { data: usersData, error: usersError } = senderIds.length > 0 ? await supabase
+        .from('users')
+        .select('id, display_name, first_name, last_name, avatar_url, profile_image_url')
+        .in('id', senderIds) : { data: [], error: null };
+        
+      if (usersError) {
+        console.warn('⚠️ [DEBUG] Error loading user data:', usersError);
+      } else {
+        console.log('👥 [DEBUG] Loaded user data for', usersData?.length || 0, 'users');
+      }
+      
+      // Create a lookup map for user data
+      const usersMap = new Map((usersData || []).map(user => [user.id, user]));
+      
+      // Process messages with reactions and user data
+      const messagesWithReactions = (messagesData || []).map((message: any) => {
         const messageReactions = (reactionsData || [])
           .filter(r => typeof r === 'object' && r !== null && 'message_id' in r && (r as DatabaseChatReaction).message_id === message.id)
           .map(r => adaptDatabaseReaction(r as DatabaseChatReaction));
         
+        // Get user info from lookup map or use embedded data
+        const userData = usersMap.get(message.user_id);
+        const messageWithUser = {
+          ...message,
+          display_name: message.display_name || userData?.display_name || userData?.first_name || 'Wolf Member',
+          avatar_url: message.avatar_url || userData?.profile_image_url || userData?.avatar_url
+        };
+        
         return {
-          ...adaptDatabaseChatMessage(message as DatabaseChatMessage),
+          ...adaptDatabaseChatMessage(messageWithUser),
           reactions: messageReactions
         };
       });
@@ -600,7 +696,7 @@ export function useWolfpack(
 
       setState(prev => ({
         ...prev,
-        messages: messagesWithReactions,
+        messages: messagesWithReactions.reverse(), // Reverse to show oldest first
         members: processedMembers,
         events: (eventsData || []).map(adaptDatabaseEvent),
         isLoading: false,
@@ -619,6 +715,27 @@ export function useWolfpack(
 
     } catch (error) {
       console.error('Error loading initial data:', error);
+      console.error('Session ID:', sessionId);
+      console.error('Location ID:', locationId);
+      
+      // Log specific error details
+      if (error && typeof error === 'object') {
+        console.error('Error details:', {
+          message: (error as any).message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          stack: (error as any).stack,
+          name: (error as any).name
+        });
+      }
+      
+      // Special handling for JSON parse errors
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.error('🚨 JSON Parse Error - this suggests RPC response format issue');
+        console.error('Try using direct table access instead of RPC functions');
+      }
+      
       handleError(SecurityValidator.createError(
         'LOAD_ERROR', 
         error instanceof Error ? error.message : 'Failed to load data'
@@ -645,8 +762,11 @@ export function useWolfpack(
           table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
-        (payload) => {
-          const newMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; content: string; });
+        async (payload) => {
+          console.log('📨 [REALTIME] New message received:', payload.new);
+          
+          // Message already has display_name and avatar_url embedded
+          const newMessage = adaptDatabaseChatMessage(payload.new);
           setState(prev => ({
             ...prev,
             messages: [newMessage, ...prev.messages]
@@ -662,8 +782,11 @@ export function useWolfpack(
           table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
-        (payload) => {
-          const updatedMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; content: string; });
+        async (payload) => {
+          console.log('📨 [REALTIME] Message updated:', payload.new);
+          
+          // Message already has display_name and avatar_url embedded
+          const updatedMessage = adaptDatabaseChatMessage(payload.new);
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -796,6 +919,7 @@ export function useWolfpack(
   // =============================================================================
 
   const sendMessage = useCallback(async (content: string, imageUrl?: string): Promise<{ success: boolean; error?: string }> => {
+    console.log('🚀 [DEBUG] sendMessage called with content:', content);
     if (!sessionId) return { success: false, error: 'No session ID provided' };
 
     try {
@@ -809,6 +933,7 @@ export function useWolfpack(
       }
 
       const sanitizedContent = SecurityValidator.sanitizeMessage(content);
+      console.log('🧼 [DEBUG] sanitized content:', sanitizedContent);
       if (!sanitizedContent.trim()) {
         return { success: false, error: 'Message cannot be empty' };
       }
@@ -840,23 +965,37 @@ export function useWolfpack(
         return { success: false, error: 'User profile not found' };
       }
 
+      const insertData = {
+        session_id: sessionId,
+        user_id: userData.id,         // CORRECTED: DB uses 'user_id'
+        display_name: displayName,    // Include display name
+        avatar_url: avatarUrl,        // Include avatar URL  
+        content: sanitizedContent,    // CORRECTED: DB uses 'content'
+        message_type: imageUrl ? 'image' : 'text',
+        image_url: imageUrl || null,
+        is_flagged: false,
+        is_deleted: false
+      };
+      console.log('📥 [DEBUG] Inserting message data:', insertData);
+      
+      // Use direct table insert (skip RPC since it may not exist)
+      console.log('📤 [DEBUG] Inserting message directly to table...');
       const { data: result, error } = await supabase
         .from('wolfpack_chat_messages')
-        .insert({
-          session_id: sessionId,
-          user_id: userData.id,  // Use internal user ID, not auth ID
-          display_name: displayName,
-          avatar_url: avatarUrl,
-          content: sanitizedContent,
-          message_type: imageUrl ? 'image' : 'text',
-          image_url: imageUrl || null,
-          is_flagged: false,
-          is_deleted: false
-        })
+        .insert(insertData)
         .select()
         .single();
+        
+      console.log('📤 [DEBUG] Insert result:', result, 'Error:', error);
 
       if (error) {
+        console.error('❌ Database insert error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          insertData
+        });
         return { success: false, error: error.message };
       }
 

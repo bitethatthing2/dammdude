@@ -68,7 +68,7 @@ export default function WolfpackWelcomePage() {
         vibe_status: 'Ready to party!'
       };
       
-      const result = await wolfpackAPI.joinPack(joinParams);
+      const result = await wolfpackAPI.joinWolfpack(joinParams);
       
       if (result.success) {
         router.push('/wolfpack');

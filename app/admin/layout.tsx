@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { createServerClient } from '@/lib/supabase/server';
 import { NotificationProvider } from '@/components/unified';
 import { Home, ShoppingBag, Users, BarChart3, BookOpen, Table2 } from 'lucide-react';
 
@@ -8,35 +7,14 @@ import { Home, ShoppingBag, Users, BarChart3, BookOpen, Table2 } from 'lucide-re
  * Main admin layout
  * Provides navigation and notification context for all admin pages
  */
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Get user session and role
-  let userId = null;
-  let userRole = 'user';
-  
-  try {
-    const supabase = await createServerClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    userId = sessionData?.session?.user?.id;
-    
-    if (userId) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      userRole = userData?.role || 'user';
-    }
-  } catch {
-    console.log('Admin layout: Unable to get session data');
-  }
-  
+  // Auth will be handled client-side to avoid build errors
   return (
-    <NotificationProvider recipientId={userId || undefined}>
+    <NotificationProvider>
       <div className="flex min-h-screen flex-col">
         {/* Header */}
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -115,7 +93,7 @@ export default async function AdminLayout({
               Side Hustle Admin
             </p>
             <p className="text-sm text-muted-foreground">
-              {userRole === 'admin' ? 'Administrator' : userRole === 'bartender' ? 'Bartender' : 'Staff'} Access
+              Staff Access
             </p>
           </div>
         </footer>
