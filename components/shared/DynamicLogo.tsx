@@ -15,8 +15,8 @@ interface DynamicLogoProps {
 export function DynamicLogo({ 
   type = 'brand', 
   className = '', 
-  width = 150, 
-  height = 40,
+  width = 800, 
+  height = 200,
   alt 
 }: DynamicLogoProps) {
   const { resolvedTheme } = useTheme();

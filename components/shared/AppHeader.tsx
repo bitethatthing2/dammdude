@@ -50,7 +50,7 @@ export function AppHeader({
   return (
     <header className={`sticky top-0 z-50 w-full max-w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-x-hidden ${className}`}>
       <div className="container mx-auto px-4 w-full max-w-full box-border">
-        <div className="flex h-14 items-center justify-between min-w-0">
+        <div className="flex h-24 items-center justify-between min-w-0">
           {/* Left side - Logo and Back Button */}
           <div className="flex items-center gap-4 min-w-0 flex-shrink-0">
             {showBackButton && <BackButton />}
@@ -58,9 +58,9 @@ export function AppHeader({
             <Link href="/" className="flex items-center">
               <DynamicLogo 
                 type="brand" 
-                width={120} 
-                height={32} 
-                className="hover:opacity-80 transition-opacity"
+                width={400} 
+                height={100} 
+                className="hover:opacity-80 transition-opacity w-96 h-24"
               />
             </Link>
           </div>

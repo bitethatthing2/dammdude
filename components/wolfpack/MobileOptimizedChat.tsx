@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronUp, ChevronDown, Send, Smile, Plus, MessageCircle, Users, Maximize2, Minimize2, Mail, MessageSquare, ArrowLeft } from 'lucide-react';
+import { ChevronUp, ChevronDown, Send, Smile, Plus, MessageCircle, Users, Maximize2, Minimize2, Mail, MessageSquare, ArrowLeft, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { EmojiPicker } from '@/components/chat/EmojiPicker';
 
 interface Message {
   id: string;
@@ -72,6 +73,7 @@ export default function MobileOptimizedChat({
   const [messageInput, setMessageInput] = useState('');
   const [isMessagesExpanded, setIsMessagesExpanded] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMediaOptions, setShowMediaOptions] = useState(false);
   const [messagesHeight, setMessagesHeight] = useState(40); // 40% of screen
   
   const messageContainerRef = useRef<HTMLDivElement>(null);
@@ -114,6 +116,35 @@ export default function MobileOptimizedChat({
   const toggleMessagesExpanded = () => {
     setIsMessagesExpanded(!isMessagesExpanded);
     setMessagesHeight(isMessagesExpanded ? 40 : 70);
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
+    setShowMediaOptions(false);
+  };
+
+  const toggleMediaOptions = () => {
+    setShowMediaOptions(!showMediaOptions);
+    setShowEmojiPicker(false);
+  };
+
+  const triggerImageUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Handle image upload - for now just alert, would need to implement upload logic
+        alert('Image upload would be implemented here');
+      }
+    };
+    input.click();
   };
 
   const renderMessage = (msg: Message) => {
@@ -409,11 +440,56 @@ export default function MobileOptimizedChat({
 
       </div>
 
+      {/* Media Options */}
+      {showMediaOptions && (
+        <div className="fixed bottom-24 left-4 right-4 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-lg shadow-lg p-3 z-50">
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                setShowMediaOptions(false);
+                triggerImageUpload();
+              }}
+              className="flex items-center gap-3 w-full p-3 text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[44px]"
+              title="Upload an image"
+            >
+              <ImageIcon className="w-5 h-5 text-blue-400" />
+              <span>Upload Image</span>
+            </button>
+            <button
+              onClick={() => {
+                handleEmojiSelect('🔥');
+                setShowMediaOptions(false);
+              }}
+              className="flex items-center gap-3 w-full p-3 text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[44px]"
+              title="Add fire emoji"
+            >
+              <span className="text-lg">🔥</span>
+              <span>Fire Reaction</span>
+            </button>
+            <button
+              onClick={() => {
+                handleEmojiSelect('🐺');
+                setShowMediaOptions(false);
+              }}
+              className="flex items-center gap-3 w-full p-3 text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[44px]"
+              title="Add wolf emoji"
+            >
+              <span className="text-lg">🐺</span>
+              <span>Wolf Howl</span>
+            </button>
+          </div>
+          <div 
+            className="fixed inset-0 -z-10" 
+            onClick={() => setShowMediaOptions(false)}
+          />
+        </div>
+      )}
+
       {/* Input Area - Always visible */}
-      <div className="flex-none p-4 bg-gray-800 border-t border-gray-700 safe-area-inset-bottom">
+      <div className="flex-none p-4 bg-gray-800 border-t border-gray-700 safe-area-inset-bottom relative">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            onClick={toggleMediaOptions}
             className="p-3 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Plus className="w-5 h-5" />
@@ -432,7 +508,7 @@ export default function MobileOptimizedChat({
           </div>
           
           <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            onClick={toggleEmojiPicker}
             className="p-3 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Smile className="w-5 h-5" />
@@ -446,6 +522,13 @@ export default function MobileOptimizedChat({
             <Send className="w-5 h-5" />
           </button>
         </div>
+        
+        {/* Emoji Picker */}
+        <EmojiPicker
+          isOpen={showEmojiPicker}
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+        />
       </div>
     </div>
   );

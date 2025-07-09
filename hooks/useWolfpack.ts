@@ -812,19 +812,11 @@ export function useWolfpack(
         `${authUser.profile?.first_name || ''} ${authUser.profile?.last_name || ''}`.trim() || 
         authUser.email.split('@')[0] || 'Anonymous';
 
-      const { error } = await supabase
-        .from('wolfpack_chat_messages')
-        .insert({
-          session_id: sessionId,
-          user_id: authUser.id,
-          display_name: SecurityValidator.sanitizeDisplayName(displayName),
-          avatar_url: authUser.profile?.avatar_url,
-          content: sanitizedContent,
-          image_url: imageUrl,
-          message_type: imageUrl ? 'image' : 'text',
-          is_flagged: false,
-          is_deleted: false
-        });
+      const { error } = await supabase.rpc('send_wolfpack_chat_message', {
+        p_content: sanitizedContent,
+        p_image_url: imageUrl || null,
+        p_session_id: sessionId
+      });
 
       if (!error) {
         rateLimiterRef.current.recordMessage();

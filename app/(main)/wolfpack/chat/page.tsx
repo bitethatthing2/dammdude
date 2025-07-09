@@ -196,10 +196,10 @@ export default function EnhancedWolfpackChatPage() {
       return { sessionMessages: [], recentMessages: [] };
     }
     
-    console.log('💬 [DEBUG] Processing messages:', state.messages.slice(-10));
+    console.log('💬 [DEBUG] Processing messages:', state.messages.slice(0, 10));
     return {
-      sessionMessages: state.messages.slice(-50),
-      recentMessages: state.messages.slice(-15)
+      sessionMessages: state.messages.slice(0, 50),
+      recentMessages: state.messages.slice(0, 15)
     };
   }, [state.messages]);
   

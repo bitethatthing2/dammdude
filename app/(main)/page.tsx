@@ -55,11 +55,11 @@ export default function Page() {
                 type="wolf"
                 width={800}
                 height={800}
-                className="w-48 h-48 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 xl:w-[30rem] xl:h-[30rem] object-contain"
+                className="w-96 h-96 sm:w-[28rem] sm:h-[28rem] md:w-[32rem] md:h-[32rem] lg:w-[36rem] lg:h-[36rem] xl:w-[40rem] xl:h-[40rem] object-contain"
                 alt="Side Hustle Wolf Icon"
               />
             ) : (
-              <div className="w-48 h-48 sm:w-72 sm:h-72 md:w-80 md:h-80 bg-muted animate-pulse rounded-full" />
+              <div className="w-96 h-96 sm:w-[28rem] sm:h-[28rem] md:w-[32rem] md:h-[32rem] bg-muted animate-pulse rounded-full" />
             )}
           </div>
           
