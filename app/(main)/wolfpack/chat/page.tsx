@@ -912,6 +912,9 @@ export default function EnhancedWolfpackChatPage() {
           // Navigate directly to private chat with the user
           router.push(`/wolfpack/chat/private/${userId}`);
         }}
+        onBack={() => {
+          router.push('/wolfpack');
+        }}
       />
     );
   }
@@ -1112,7 +1115,7 @@ export default function EnhancedWolfpackChatPage() {
                 : 'h-32 sm:h-40' // Normal scrollable area
             }`}
           >
-          {sessionMessages.slice().reverse().map((msg) => {
+          {sessionMessages.map((msg) => {
             // Use avatar from message first, then try to find from members, then fallback
             const member = spatialMembers.find(m => m.id === msg.user_id);
             const avatarUrl = resolveChatAvatarUrl(msg.avatar_url, member?.avatar_url);

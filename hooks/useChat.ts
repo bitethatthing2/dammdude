@@ -93,7 +93,7 @@ export function useChat(options: UseChatOptions = {}) {
     otherUserId,
     enableTypingIndicator = true,
     enableOptimisticUpdates = true,
-    messageLimit = 50,
+    messageLimit = 100,
     reconnectDelay = 5000
   } = options;
 
@@ -155,7 +155,7 @@ export function useChat(options: UseChatOptions = {}) {
         `)
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
         .order('created_at', { ascending: false })
-        .limit(messageLimit || 50);
+        .limit(messageLimit || 100);
 
       const { data: otherUserData, error: userError } = await supabase
         .from('users')

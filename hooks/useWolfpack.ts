@@ -509,7 +509,7 @@ export function useWolfpack(
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(100);
       
       console.log('📨 Messages query result:', { messagesData, messagesError });
@@ -638,7 +638,7 @@ export function useWolfpack(
           const newMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
-            messages: [...prev.messages, newMessage]
+            messages: [newMessage, ...prev.messages.slice(0, 99)]
           }));
           log('New message received', newMessage);
         }

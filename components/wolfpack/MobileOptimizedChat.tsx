@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronUp, ChevronDown, Send, Smile, Plus, MessageCircle, Users, Maximize2, Minimize2, Mail, MessageSquare } from 'lucide-react';
+import { ChevronUp, ChevronDown, Send, Smile, Plus, MessageCircle, Users, Maximize2, Minimize2, Mail, MessageSquare, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 
 interface Message {
@@ -47,6 +47,7 @@ interface MobileOptimizedChatProps {
   typingUsers: string[];
   onShowMessages?: () => void;
   onStartPrivateChat?: (userId: string, userName: string) => void;
+  onBack?: () => void;
 }
 
 type ViewMode = 'spatial' | 'messages' | 'members';
@@ -64,7 +65,8 @@ export default function MobileOptimizedChat({
   isTyping,
   typingUsers,
   onShowMessages,
-  onStartPrivateChat
+  onStartPrivateChat,
+  onBack
 }: MobileOptimizedChatProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('spatial');
   const [messageInput, setMessageInput] = useState('');
@@ -118,7 +120,7 @@ export default function MobileOptimizedChat({
     const isPrivate = msg.content.includes('[PRIVATE]:');
     
     return (
-      <div key={msg.id} className={`message-item group flex gap-3 py-2 px-3 rounded-lg transition-colors ${
+      <div key={msg.id} className={`message-item group flex gap-3 py-3 px-4 rounded-xl transition-colors w-full max-w-full box-border ${
         isPrivate ? 'bg-purple-900/20 border-l-2 border-purple-500' : 'bg-white/5 hover:bg-white/10'
       }`}>
         {/* Avatar */}
@@ -126,9 +128,9 @@ export default function MobileOptimizedChat({
           <Image 
             src={msg.avatar_url || '/default-avatar.png'}
             alt={msg.display_name}
-            width={32}
-            height={32}
-            className="w-8 h-8 rounded-full object-cover"
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-600"
             unoptimized={msg.avatar_url?.includes('dicebear.com')}
           />
         </div>
@@ -205,52 +207,65 @@ export default function MobileOptimizedChat({
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gray-900 overflow-hidden w-full max-w-full box-border">
       {/* Top Navigation */}
-      <div className="flex-none h-14 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4">
-        <div className="flex bg-gray-700 rounded-full p-1">
-          <button
-            onClick={() => setViewMode('spatial')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              viewMode === 'spatial' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <div className="w-3 h-3 bg-gradient-to-br from-blue-400 to-green-400 rounded-full" />
-            Spatial
-          </button>
-          <button
-            onClick={() => {
-              if (onShowMessages) {
-                onShowMessages();
-              } else {
-                setViewMode('messages');
-              }
-            }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              viewMode === 'messages' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <MessageCircle className="w-3 h-3" />
-            Messages
-          </button>
-          <button
-            onClick={() => setViewMode('members')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              viewMode === 'members' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <Users className="w-3 h-3" />
-            Members
-          </button>
+      <div className="flex-none h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 w-full max-w-full box-border">
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-3 bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-full text-white transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center touch-manipulation shadow-lg"
+              title="Exit Chat"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div className="flex bg-gray-700 rounded-full p-1 shadow-sm">
+            <button
+              onClick={() => setViewMode('spatial')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                viewMode === 'spatial' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-300 hover:text-white hover:bg-gray-600'
+              }`}
+            >
+              <div className="w-3 h-3 bg-gradient-to-br from-blue-400 to-green-400 rounded-full" />
+              <span className="hidden sm:inline">Spatial</span>
+            </button>
+            <button
+              onClick={() => {
+                if (onShowMessages) {
+                  onShowMessages();
+                } else {
+                  setViewMode('messages');
+                }
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                viewMode === 'messages' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-300 hover:text-white hover:bg-gray-600'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Messages</span>
+            </button>
+            <button
+              onClick={() => setViewMode('members')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                viewMode === 'members' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-300 hover:text-white hover:bg-gray-600'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Members</span>
+            </button>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2 text-sm">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-gray-400">{messages.length} messages</span>
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 bg-gray-700 rounded-full px-3 py-1">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-gray-300 font-medium">{messages.length}</span>
+          </div>
           {onShowMessages && (
             <button
               onClick={onShowMessages}
-              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition-colors"
+              className="p-2 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
               title="View private messages"
             >
               <Mail className="w-4 h-4" />
@@ -291,7 +306,7 @@ export default function MobileOptimizedChat({
               {/* Messages List */}
               <div 
                 ref={messageContainerRef}
-                className="flex-1 overflow-y-auto p-2 space-y-2 h-full"
+                className="flex-1 overflow-y-auto p-4 space-y-4 h-full w-full max-w-full box-border"
                 style={{ maxHeight: `${messagesHeight - 8}vh` }}
               >
                 {messages.map(renderMessage)}
@@ -310,7 +325,7 @@ export default function MobileOptimizedChat({
           <div className="h-full flex flex-col">
             <div 
               ref={messageContainerRef}
-              className="flex-1 overflow-y-auto p-4 space-y-3"
+              className="flex-1 overflow-y-auto p-4 space-y-4 w-full max-w-full box-border"
             >
               {messages.map(renderMessage)}
             </div>
@@ -379,10 +394,10 @@ export default function MobileOptimizedChat({
                     {onStartPrivateChat && member.id !== currentUser?.id && (
                       <button
                         onClick={() => onStartPrivateChat(member.id, member.display_name)}
-                        className="p-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-full text-white transition-colors"
+                        className="p-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-full text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
                         title={`Message ${member.display_name}`}
                       >
-                        <MessageSquare className="w-4 h-4" />
+                        <MessageSquare className="w-6 h-6" />
                       </button>
                     )}
                   </div>
@@ -395,11 +410,11 @@ export default function MobileOptimizedChat({
       </div>
 
       {/* Input Area - Always visible */}
-      <div className="flex-none p-3 bg-gray-800 border-t border-gray-700 safe-area-inset-bottom">
-        <div className="flex items-center gap-2">
+      <div className="flex-none p-4 bg-gray-800 border-t border-gray-700 safe-area-inset-bottom">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors"
+            className="p-3 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -408,7 +423,7 @@ export default function MobileOptimizedChat({
             <input 
               ref={inputRef}
               type="text"
-              className="w-full bg-gray-700 border border-gray-600 rounded-full px-4 py-2 text-white placeholder-gray-400 text-base focus:outline-none focus:border-blue-500"
+              className="w-full bg-gray-700 border border-gray-600 rounded-full px-4 py-3 text-white placeholder-gray-400 text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               placeholder={typingUsers.length > 0 ? `${typingUsers.join(', ')} typing...` : "Type a message..."}
               value={messageInput}
               onChange={handleInputChange}
@@ -418,7 +433,7 @@ export default function MobileOptimizedChat({
           
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors"
+            className="p-3 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Smile className="w-5 h-5" />
           </button>
@@ -426,7 +441,7 @@ export default function MobileOptimizedChat({
           <button
             onClick={handleSendMessage}
             disabled={!messageInput.trim()}
-            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full text-white transition-colors"
+            className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg"
           >
             <Send className="w-5 h-5" />
           </button>

@@ -65,7 +65,7 @@ export default function OptimizedPrivateChatPage() {
     otherUserId,
     enableTypingIndicator: true,
     enableOptimisticUpdates: true,
-    messageLimit: 50
+    messageLimit: 100
   });
 
   // Memoized display name

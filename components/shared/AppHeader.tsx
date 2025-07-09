@@ -48,11 +48,11 @@ export function AppHeader({
   }, [pathname]);
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ${className}`}>
-      <div className="container mx-auto px-4">
-        <div className="flex h-14 items-center justify-between">
+    <header className={`sticky top-0 z-50 w-full max-w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-x-hidden ${className}`}>
+      <div className="container mx-auto px-4 w-full max-w-full box-border">
+        <div className="flex h-14 items-center justify-between min-w-0">
           {/* Left side - Logo and Back Button */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0 flex-shrink-0">
             {showBackButton && <BackButton />}
             
             <Link href="/" className="flex items-center">
@@ -67,7 +67,7 @@ export function AppHeader({
 
           {/* Center - Navigation (Desktop) */}
           {showNavigation && (
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden md:flex items-center space-x-1 flex-1 justify-center min-w-0">
               {navigationItems.map((item) => (
                 <Link
                   key={item.href}
@@ -85,7 +85,7 @@ export function AppHeader({
           )}
 
           {/* Right side - Location Switcher, Theme Control, Mobile Menu */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
             {showLocationSwitcher && (
               <div className="hidden sm:block">
                 <LocationSwitcher />
