@@ -166,9 +166,9 @@ export const BottomNav = () => {
         <div className={`fixed top-2 left-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <DynamicLogo 
             type="brand"
-            width={200}
-            height={50}
-            className="w-24 sm:w-32 md:w-40 h-auto" 
+            width={400}
+            height={100}
+            className="w-48 sm:w-64 md:w-80 h-auto" 
           />
         </div>
       )}

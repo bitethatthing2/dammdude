@@ -58,9 +58,10 @@ export function AppHeader({
             <Link href="/" className="flex items-center">
               <DynamicLogo 
                 type="brand" 
-                width={400} 
-                height={100} 
-                className="hover:opacity-80 transition-opacity w-96 h-24"
+                width={1600} 
+                height={400} 
+                className="hover:opacity-80 transition-opacity"
+                style={{ width: '1600px', height: '400px' }}
               />
             </Link>
           </div>

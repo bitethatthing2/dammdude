@@ -47,7 +47,8 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)",
       "Bash(tail:*)",
       "Bash(awk:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(magick:*)"
     ]
   },
   "enableAllProjectMcpServers": false
