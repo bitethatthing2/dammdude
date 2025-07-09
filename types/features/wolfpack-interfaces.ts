@@ -1,6 +1,6 @@
 // types/wolfpack-interfaces.ts
 // Consolidated interfaces from all wolfpack components and hooks
-import { Database } from '@/lib/database.types';
+import { Database } from '@/types/database.types';
 
 export interface AuthUser {
   id: string;

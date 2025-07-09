@@ -33,7 +33,7 @@ import type {
   BroadcastOption,
   Json
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 interface BroadcastFormProps {
   djId: string;
@@ -174,7 +174,7 @@ export function BroadcastForm({ djId, locationId, sessionId, isOpen, onClose, on
         accent_color: accentColor,
         animation_type: animationType,
         emoji_burst: selectedEmojis.length > 0 ? selectedEmojis : null,
-        interaction_config: interactionConfig as Json,
+        interaction_config: interactionConfig as unknown as Json,
         status: 'active',
         sent_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + duration * 1000).toISOString()
@@ -227,8 +227,9 @@ export function BroadcastForm({ djId, locationId, sessionId, isOpen, onClose, on
       onClose={onClose}
       title="Create New Broadcast"
       maxWidth="3xl"
+      className="broadcast-modal"
     >
-      <div className="p-4">
+      <div className="p-4 broadcast-modal-content">
         <Card className="w-full bg-slate-800/50 border-slate-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">

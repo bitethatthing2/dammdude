@@ -1,3 +1,3 @@
 // Main types barrel export
 export * from './features';
-export * from './global/notifications';
+export { NotificationRow, NotificationInsert, NotificationUpdate } from './global/notifications';

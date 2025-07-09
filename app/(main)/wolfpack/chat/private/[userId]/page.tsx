@@ -37,6 +37,7 @@ export default function OptimizedPrivateChatPage() {
   const otherUserName = searchParams.get('name') || 'Wolf';
   
   const [newMessage, setNewMessage] = useState('');
+  const [replyingTo, setReplyingTo] = useState<any>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +45,7 @@ export default function OptimizedPrivateChatPage() {
   const {
     messages,
     otherUser,
+    currentUser,
     isLoading,
     isSending,
     isBlocked,
@@ -54,6 +56,8 @@ export default function OptimizedPrivateChatPage() {
     sendMessage,
     blockUser,
     reportMessage,
+    toggleReaction,
+    updateTypingIndicator,
     setTypingStatus,
     formatMessageTime,
     groupMessages
@@ -97,14 +101,16 @@ export default function OptimizedPrivateChatPage() {
     const messageText = newMessage.trim();
     setNewMessage(''); // Clear input immediately for better UX
     
-    const success = await sendMessage(messageText);
+    const success = await sendMessage(messageText, replyingTo?.id);
     
-    if (!success) {
+    if (success) {
+      setReplyingTo(null); // Clear reply state on success
+    } else {
       setNewMessage(messageText); // Restore message on failure
     }
   };
 
-  // Handle typing indicator
+  // Handle typing indicator with debouncing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setNewMessage(value);
@@ -112,6 +118,7 @@ export default function OptimizedPrivateChatPage() {
     // Trigger typing indicator
     if (value.length > 0) {
       setTypingStatus(true);
+      updateTypingIndicator(); // Send real-time typing indicator
     } else {
       setTypingStatus(false);
     }
@@ -331,20 +338,76 @@ export default function OptimizedPrivateChatPage() {
                             ) : ''
                           }`}
                         >
+                          {/* Reply Context */}
+                          {message.reply_to_message_id !== null && message.reply_to_message_id !== undefined && (
+                            <div className="mb-2 p-2 bg-background/50 rounded border-l-2 border-primary/30">
+                              <div className="text-xs text-muted-foreground">
+                                Replying to:
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {/* This would be populated from the actual reply message */}
+                                Previous message content...
+                              </div>
+                            </div>
+                          )}
+                          
                           <p className="text-sm whitespace-pre-wrap break-words">
-                            {message.content}
+                            {message.message}
                           </p>
                           
                           <div className="flex items-center justify-between mt-1 gap-2">
                             <span className={`text-xs opacity-70`}>
-                              {formatMessageTime(message.timestamp)}
+                              {formatMessageTime(message.created_at || '')}
                             </span>
                             
                             {group.senderId !== otherUserId && (
                               <span className={`text-xs opacity-70`}>
-                                {message.isRead ? '✓✓' : '✓'}
+                                {message.is_read ? '✓✓' : '✓'}
                               </span>
                             )}
+                          </div>
+
+                          {/* Message Reactions */}
+                          {message.reactions && message.reactions.length > 0 && (
+                            <div className="flex gap-1 mt-2 flex-wrap">
+                              {message.reactions.map((reaction) => {
+                                const userReacted = currentUser && reaction.user_ids.includes(currentUser.id);
+                                return (
+                                  <button
+                                    key={reaction.emoji}
+                                    onClick={() => toggleReaction(message.id, reaction.emoji)}
+                                    className={`text-xs rounded-full px-2 py-1 transition-colors touch-manipulation ${
+                                      userReacted
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
+                                        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                                    }`}
+                                  >
+                                    {reaction.emoji} {reaction.reaction_count}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Quick Reaction Buttons */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex gap-1">
+                            {['❤️', '👍', '😄', '😮', '😢'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => toggleReaction(message.id, emoji)}
+                                className="text-xs bg-muted/50 hover:bg-muted active:bg-muted/80 rounded-full px-2 py-1 transition-colors touch-manipulation"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                            
+                            {/* Reply Button */}
+                            <button
+                              onClick={() => setReplyingTo(message)}
+                              className="text-xs bg-muted/50 hover:bg-muted active:bg-muted/80 rounded-full px-2 py-1 transition-colors touch-manipulation"
+                            >
+                              ↩️ Reply
+                            </button>
                           </div>
 
                           {/* Simple report button for other user's messages */}
@@ -393,6 +456,28 @@ export default function OptimizedPrivateChatPage() {
                 : 'Connection lost. Messages will be sent when reconnected.'
               }
             </p>
+          </div>
+        )}
+
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="px-4 py-2 bg-muted/30 border-t flex justify-between items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground mb-1">
+                Replying to {replyingTo.sender_id === otherUserId ? displayName : 'You'}:
+              </div>
+              <div className="text-sm text-muted-foreground truncate">
+                {replyingTo.content}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setReplyingTo(null)}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </Button>
           </div>
         )}
 

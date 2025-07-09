@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -87,7 +87,7 @@ interface DatabaseEvent {
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_DISPLAY_NAME_LENGTH = 50;
 const RATE_LIMIT_DELAY = 1000;
-const ALLOWED_EMOJI = ['👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉', '🎵'];
+const ALLOWED_EMOJI = ['👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉', '🎵', '🐺', '⭐', '💫', '🌙'];
 const SESSION_CODE_REGEX = /^[a-zA-Z0-9]{6,12}$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -396,10 +396,8 @@ async function resolveSessionId(sessionIdOrCode: string): Promise<{ id: string |
       return { id: session.id };
     }
 
-    return { 
-      id: null, 
-      error: SecurityValidator.createError('INVALID_SESSION_CODE', 'Invalid session code format') 
-    };
+    // For simple session names like 'general', 'salem', 'portland', just return them directly
+    return { id: sessionIdOrCode };
   } catch (error) {
     console.error('❌ Error resolving session ID:', error);
     return { 
@@ -446,11 +444,15 @@ export function useWolfpack(
   const rateLimiterRef = useRef(new RateLimiter());
   const authUserRef = useRef<AuthenticatedUser | null>(null);
 
+  // Stable log function that doesn't cause re-subscriptions
+  const logRef = useRef<typeof enableDebugLogging>(enableDebugLogging);
+  logRef.current = enableDebugLogging;
+  
   const log = useCallback((message: string, ...args: unknown[]) => {
-    if (enableDebugLogging) {
+    if (logRef.current) {
       console.log(`🐺 [useWolfpack] ${message}`, ...args);
     }
-  }, [enableDebugLogging]);
+  }, []);
 
   const handleError = useCallback((error: WolfpackError) => {
     console.error('❌ Wolfpack error:', error);
@@ -477,6 +479,13 @@ export function useWolfpack(
     return () => { mounted = false; };
   }, []);
 
+  // Stabilize dependencies to prevent useEffect array size changes
+  const stableDependencies = useMemo(() => ({
+    sessionId,
+    locationId,
+    autoConnect
+  }), [sessionId, locationId, autoConnect]);
+
   // Load initial data with perfect database queries
   const loadInitialData = useCallback(async () => {
     if (!sessionId || !locationId) return;
@@ -494,13 +503,16 @@ export function useWolfpack(
       resolvedSessionIdRef.current = resolvedSession.id;
 
       // Load messages with proper session handling
+      console.log('🔍 Loading messages from wolfpack_chat_messages table...');
       const { data: messagesData, error: messagesError } = await supabase
         .from('wolfpack_chat_messages')
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(100);
+      
+      console.log('📨 Messages query result:', { messagesData, messagesError });
 
       if (messagesError) throw messagesError;
 
@@ -601,11 +613,11 @@ export function useWolfpack(
         error instanceof Error ? error.message : 'Failed to load data'
       ));
     }
-  }, [sessionId, locationId, handleError, log]);
+  }, [stableDependencies.sessionId, stableDependencies.locationId, handleError]);
 
   // Realtime subscriptions with perfect channel management
   useEffect(() => {
-    if (!sessionId || !locationId || !autoConnect) return;
+    if (!stableDependencies.sessionId || !stableDependencies.locationId || !stableDependencies.autoConnect) return;
 
     // Clean up existing channels
     channelsRef.current.forEach(channel => channel.unsubscribe());
@@ -613,20 +625,20 @@ export function useWolfpack(
 
     // Chat messages subscription
     const chatChannel = supabase
-      .channel(`wolfpack_chat_${sessionId}`)
+      .channel(`wolfpack_chat_${stableDependencies.sessionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'wolfpack_chat_messages',
-          filter: `session_id=eq.${sessionId}`
+          filter: `session_id=eq.${stableDependencies.sessionId}`
         },
         (payload) => {
           const newMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
-            messages: [newMessage, ...prev.messages]
+            messages: [...prev.messages, newMessage]
           }));
           log('New message received', newMessage);
         }
@@ -637,7 +649,7 @@ export function useWolfpack(
           event: 'UPDATE',
           schema: 'public',
           table: 'wolfpack_chat_messages',
-          filter: `session_id=eq.${sessionId}`
+          filter: `session_id=eq.${stableDependencies.sessionId}`
         },
         (payload) => {
           const updatedMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
@@ -656,7 +668,7 @@ export function useWolfpack(
 
     // Reactions subscription
     const reactionsChannel = supabase
-      .channel(`wolfpack_reactions_${sessionId}`)
+      .channel(`wolfpack_reactions_${stableDependencies.sessionId}`)
       .on(
         'postgres_changes',
         {
@@ -709,7 +721,7 @@ export function useWolfpack(
           event: '*',
           schema: 'public',
           table: 'users',
-          filter: `location_id=eq.${locationId}`
+          filter: `location_id=eq.${stableDependencies.locationId}`
         },
         () => {
           // Reload members data when membership changes
@@ -727,7 +739,7 @@ export function useWolfpack(
           event: '*',
           schema: 'public',
           table: 'dj_events',
-          filter: `location_id=eq.${locationId}`
+          filter: `location_id=eq.${stableDependencies.locationId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -758,7 +770,13 @@ export function useWolfpack(
     channelsRef.current = [chatChannel, reactionsChannel, membersChannel, eventsChannel];
     loadInitialData();
 
-  }, [sessionId, locationId, autoConnect, loadInitialData, log]);
+    // Cleanup function for when dependencies change
+    return () => {
+      channelsRef.current.forEach(channel => channel.unsubscribe());
+      channelsRef.current = [];
+    };
+
+  }, [stableDependencies.sessionId, stableDependencies.locationId, stableDependencies.autoConnect, loadInitialData]);
 
   // Cleanup on unmount
   useEffect(() => {

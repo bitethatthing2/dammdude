@@ -23,7 +23,7 @@ export async function ensureUserExists(
     const { data: existingUser, error: selectError } = await supabase
       .from('users')
       .select('id')
-      .eq('id', authUser.id)
+      .eq('auth_id', authUser.id)
       .maybeSingle();
     
     if (selectError && selectError.code !== 'PGRST116') {
@@ -39,13 +39,12 @@ export async function ensureUserExists(
     const { error: createError } = await supabase
       .from('users')
       .upsert({
-        id: authUser.id,
         email: authUser.email || '',
         auth_id: authUser.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
-        onConflict: 'id',
+        onConflict: 'auth_id',
         ignoreDuplicates: true
       });
     

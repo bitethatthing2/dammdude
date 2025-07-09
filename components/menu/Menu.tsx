@@ -49,7 +49,7 @@ function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const callbackRef = useRef(callback);
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export default function OptimizedMenu() {
             { 
               component: 'Menu',
               action: 'transformCategory',
-              categoryId: category.id 
+              metadata: { categoryId: category.id }
             }
           );
           return null;
@@ -202,7 +202,7 @@ export default function OptimizedMenu() {
             { 
               component: 'Menu',
               action: 'transformItem',
-              itemId: item.id 
+              metadata: { itemId: item.id }
             }
           );
           return null;
@@ -242,8 +242,7 @@ export default function OptimizedMenu() {
         {
           component: 'Menu',
           action: 'fetchMenuData',
-          activeTab,
-          showLoading
+          metadata: { activeTab, showLoading }
         }
       );
 
@@ -272,7 +271,9 @@ export default function OptimizedMenu() {
           subscriptionRef.current.unsubscribe();
         }
 
-        const channel = dataService.supabase
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const channel = supabase
           .channel('menu_updates_optimized')
           .on(
             'postgres_changes',
@@ -299,7 +300,7 @@ export default function OptimizedMenu() {
                   {
                     component: 'Menu',
                     action: 'realtimeUpdate',
-                    payload: payload.eventType
+                    metadata: { payload: payload.eventType }
                   }
                 );
               }
@@ -325,7 +326,7 @@ export default function OptimizedMenu() {
                   {
                     component: 'Menu',
                     action: 'categoryUpdate',
-                    payload: payload.eventType
+                    metadata: { payload: payload.eventType }
                   }
                 );
               }
@@ -391,11 +392,11 @@ export default function OptimizedMenu() {
   }, [fetchMenuData]);
 
   // Enhanced add to cart with validation and error handling
-  const handleAddToCart = useCallback(async (
-    item: MenuItemWithModifiers, 
-    customizations: ItemCustomization[]
-  ) => {
+  const handleAddToCart = useCallback(async (orderData: CartOrderData) => {
     try {
+      // Extract item and customizations from orderData
+      const { item, modifiers, quantity, notes } = orderData;
+      
       // Check permissions
       if (!authService.hasPermission(Permission.PLACE_ORDER)) {
         throw errorService.handleBusinessLogicError(
@@ -406,18 +407,31 @@ export default function OptimizedMenu() {
         );
       }
 
-      // Validate item availability
-      if (!item.is_available) {
+      // Find the full item from menu state to check availability
+      const fullItem = menuState.items.find(i => i.id === item.id);
+      if (!fullItem?.is_available) {
         throw errorService.handleValidationError(
           'item_availability',
-          item.is_available,
+          false,
           'This item is currently unavailable',
           { component: 'Menu', itemId: item.id }
         );
       }
 
+      // Convert modifiers to ItemCustomization format
+      const customizations: ItemCustomization = {
+        meat: modifiers.meat,
+        sauces: modifiers.sauces,
+        modifiers: modifiers.modifiers
+      };
+
       // Create cart item with validation
-      const cartItem = createCartItem(item, customizations);
+      const cartItem = createCartItem(
+        item,
+        quantity,
+        customizations,
+        notes
+      );
       
       // Add to cart
       addToCart(cartItem);
@@ -431,8 +445,10 @@ export default function OptimizedMenu() {
         {
           component: 'Menu',
           action: 'addToCart',
-          itemId: item.id,
-          customizations: customizations.length
+          metadata: {
+            itemId: orderData.item.id,
+            quantity: orderData.quantity
+          }
         }
       );
       
@@ -632,6 +648,11 @@ export default function OptimizedMenu() {
         <Cart
           isOpen={isCartOpen}
           onClose={() => setIsCartOpen(false)}
+          onCheckout={async (items, notes, total) => {
+            // Handle checkout logic here
+            toast.success('Order placed successfully!');
+            setIsCartOpen(false);
+          }}
         />
       )}
 

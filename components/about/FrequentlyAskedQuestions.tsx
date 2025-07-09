@@ -1,6 +1,6 @@
 'use client';
 
-import { FaqItem } from "@/lib/types/about";
+import { FaqItem } from "@/types/features/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";
 import {
   Accordion,

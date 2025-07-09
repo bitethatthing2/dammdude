@@ -83,6 +83,7 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
       }
 
       // Get user profile data
+      console.log('🔍 [WOLFPACK ACCESS] Fetching user profile for auth_id:', authUser.id);
       const { data: userProfile, error: userError } = await supabase
         .from('users')
         .select(`
@@ -100,7 +101,16 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
         .eq('auth_id', authUser.id)
         .single();
 
+      console.log('👤 [WOLFPACK ACCESS] User profile result:', { userProfile, userError });
+      console.log('🎯 [WOLFPACK ACCESS] Wolfpack status check:', {
+        is_wolfpack_member: userProfile?.is_wolfpack_member,
+        wolfpack_status: userProfile?.wolfpack_status,
+        location_id: userProfile?.location_id,
+        email: userProfile?.email
+      });
+
       if (userError) {
+        console.error('❌ [WOLFPACK ACCESS] User profile error:', userError);
         setState(prev => ({
           ...prev,
           isLoading: false,

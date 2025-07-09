@@ -156,7 +156,7 @@ const AuthDebugDashboard = () => {
               <div className="pl-7 space-y-2 text-sm">
                 <div>Auth ID: <code className="bg-gray-100 px-2 py-1 rounded">{authStatus.authId}</code></div>
                 <div>Email: <code className="bg-gray-100 px-2 py-1 rounded">{authStatus.email}</code></div>
-                <div>Last Sign In: {new Date(authStatus.lastSignIn).toLocaleString()}</div>
+                <div>Last Sign In: {authStatus.lastSignIn ? new Date(authStatus.lastSignIn).toLocaleString() : 'Never'}</div>
               </div>
             </>
           )}

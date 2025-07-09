@@ -8,7 +8,7 @@ import {
   Users, 
   ThumbsUp
 } from "lucide-react";
-import { CoreValue } from "@/lib/types/about";
+import { CoreValue } from "@/types/features/about";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Map of icon names to components

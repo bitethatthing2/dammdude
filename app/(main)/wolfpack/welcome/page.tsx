@@ -28,10 +28,10 @@ interface DetectedLocation {
 }
 
 interface JoinPackParams {
-  location_id: string;
-  display_name: string;
-  wolf_emoji?: string;
-  vibe_status?: string;
+  locationId: string;
+  displayName: string;
+  emoji?: string;
+  currentVibe?: string;
 }
 
 export default function WolfpackWelcomePage() {
@@ -62,15 +62,15 @@ export default function WolfpackWelcomePage() {
       const displayName = user.first_name || user.email?.split('@')[0] || 'Wolf';
       
       const joinParams: JoinPackParams = {
-        location_id: detectedLocation.id,
-        display_name: displayName,
-        wolf_emoji: '🐺',
-        vibe_status: 'Ready to party!'
+        locationId: detectedLocation.id,
+        displayName: displayName,
+        emoji: '🐺',
+        currentVibe: 'Ready to party!'
       };
       
       const result = await wolfpackAPI.joinWolfpack(joinParams);
       
-      if (result.success) {
+      if (result.data?.success) {
         router.push('/wolfpack');
       } else {
         console.error('Failed to join pack:', result.error);

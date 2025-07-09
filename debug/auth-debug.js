@@ -262,7 +262,7 @@ window.testAuthWorkflow = async function() {
     if (profile) {
       console.log('Step 4: Testing chat message table access...');
       const { data: chatAccess, error: chatError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .select('id, content, display_name')
         .limit(1);
       

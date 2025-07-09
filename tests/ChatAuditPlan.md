@@ -84,7 +84,7 @@ SELECT
     is_nullable,
     column_default
 FROM information_schema.columns 
-WHERE table_name = 'wolfpack_chat_messages'
+WHERE table_name = wolfpack_chat_messages'
 ORDER BY ordinal_position;
 ```
 
@@ -362,7 +362,7 @@ async function testFallbackMethods() {
       .single();
     
     const { error } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .insert({
         session_id: 'test',
         user_id: profile.id,
@@ -398,7 +398,7 @@ async function testRealtimeUpdates() {
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'wolfpack_chat_messages',
+        table: wolfpack_chat_messages',
         filter: 'session_id=eq.realtime-test'
       },
       (payload) => {
@@ -440,7 +440,7 @@ async function testConnectionStability() {
     .on('postgres_changes', { 
       event: '*', 
       schema: 'public', 
-      table: 'wolfpack_chat_messages' 
+      table: wolfpack_chat_messages' 
     }, () => {})
     .subscribe((status) => {
       console.log('Connection status:', status);
@@ -614,7 +614,7 @@ async function testSQLInjection() {
 async function testAccessControl() {
   // Test accessing other users' messages
   const { data: allMessages } = await supabase
-    .from('wolfpack_chat_messages')
+    .from(wolfpack_chat_messages')
     .select('*')
     .limit(5);
   

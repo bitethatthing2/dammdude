@@ -155,7 +155,7 @@ window.verifyDatabaseSchema = async function() {
     // Check if wolfpack_chat_messages table exists and get its structure
     console.log('Checking wolfpack_chat_messages table...');
     const { data: messages, error: messagesError } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .select('*')
       .limit(1);
     
@@ -213,7 +213,7 @@ window.verifyDatabaseSchema = async function() {
 window.checkTablePermissions = async function() {
   console.group('🔐 TABLE PERMISSIONS CHECK');
   
-  const tables = ['wolfpack_chat_messages', 'wolfpack_chat_sessions'];
+  const tables = [wolfpack_chat_messages', 'wolfpack_chat_sessions'];
   const operations = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
   
   for (const table of tables) {

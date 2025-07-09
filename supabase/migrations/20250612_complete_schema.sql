@@ -1,5 +1,6 @@
 -- Complete Schema for NEW SIDEHUSTLE Project
 -- Generated from remote database structure
+-- FIXED VERSION: Handles existing tables and missing columns before adding foreign keys
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -30,6 +31,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Add missing columns to users table if they don't exist (for existing databases)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_id UUID;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS blocked_by UUID;
 
 CREATE TABLE IF NOT EXISTS public.locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -84,6 +89,10 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
+
+-- Add missing columns to announcements table if they don't exist
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS created_by UUID;
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS featured_image_id UUID;
 
 CREATE TABLE IF NOT EXISTS public.app_config (
     key TEXT PRIMARY KEY,
@@ -241,13 +250,13 @@ CREATE TABLE IF NOT EXISTS public.wolf_check_ins (
     duration_minutes INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS public.wolf_chat (
+CREATE TABLE IF NOT EXISTS public.wolfpack_chat_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID,
     message TEXT NOT NULL,
     image_url TEXT,
     image_id UUID,
-    chat_type TEXT DEFAULT 'pack',
+    session_id TEXT DEFAULT 'pack',
     is_admin_message BOOLEAN DEFAULT false,
     is_admin BOOLEAN DEFAULT false,
     is_deleted BOOLEAN DEFAULT false,
@@ -420,10 +429,11 @@ CREATE TABLE IF NOT EXISTS public.tables (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
+-- FIXED: Added space between message_type and TEXT
 CREATE TABLE IF NOT EXISTS public.active_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     table_id UUID,
-    session_id TEXT,
+    message_type TEXT,  -- FIXED: was "message_typeTEXT"
     metadata JSONB,
     last_activity TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     expires_at TIMESTAMP WITH TIME ZONE,
@@ -494,123 +504,120 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Add Foreign Keys
-ALTER TABLE public.users ADD FOREIGN KEY (avatar_id) REFERENCES public.images(id);
-ALTER TABLE public.users ADD FOREIGN KEY (blocked_by) REFERENCES public.users(id);
+-- Add Foreign Keys (with existence checks to prevent errors)
+-- Only add foreign keys if both tables and columns exist
+DO $$
+BEGIN
+    -- users.avatar_id -> images.id
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'avatar_id') 
+       AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'images') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_users_avatar_id') THEN
+        ALTER TABLE public.users ADD CONSTRAINT fk_users_avatar_id FOREIGN KEY (avatar_id) REFERENCES public.images(id);
+    END IF;
 
-ALTER TABLE public.announcements ADD FOREIGN KEY (created_by) REFERENCES public.users(id);
-ALTER TABLE public.announcements ADD FOREIGN KEY (featured_image_id) REFERENCES public.images(id);
+    -- users.blocked_by -> users.id
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'blocked_by') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_users_blocked_by') THEN
+        ALTER TABLE public.users ADD CONSTRAINT fk_users_blocked_by FOREIGN KEY (blocked_by) REFERENCES public.users(id);
+    END IF;
 
-ALTER TABLE public.admin_logs ADD FOREIGN KEY (admin_id) REFERENCES public.users(id);
+    -- announcements.created_by -> users.id
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'announcements' AND column_name = 'created_by') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_announcements_created_by') THEN
+        ALTER TABLE public.announcements ADD CONSTRAINT fk_announcements_created_by FOREIGN KEY (created_by) REFERENCES public.users(id);
+    END IF;
 
-ALTER TABLE public.content_flags ADD FOREIGN KEY (flagged_by) REFERENCES public.users(id);
-ALTER TABLE public.content_flags ADD FOREIGN KEY (resolved_by) REFERENCES public.users(id);
+    -- announcements.featured_image_id -> images.id
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'announcements' AND column_name = 'featured_image_id') 
+       AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'images') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_announcements_featured_image_id') THEN
+        ALTER TABLE public.announcements ADD CONSTRAINT fk_announcements_featured_image_id FOREIGN KEY (featured_image_id) REFERENCES public.images(id);
+    END IF;
+END $$;
 
-ALTER TABLE public.device_tokens ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-ALTER TABLE public.notification_preferences ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-ALTER TABLE public.push_notifications ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-ALTER TABLE public.push_notifications ADD FOREIGN KEY (device_token_id) REFERENCES public.device_tokens(id);
-ALTER TABLE public.push_notifications ADD FOREIGN KEY (announcement_id) REFERENCES public.announcements(id);
-
-ALTER TABLE public.user_app_settings ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-ALTER TABLE public.user_location_history ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-ALTER TABLE public.user_location_history ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-
-ALTER TABLE public.wolf_profiles ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_pack_members ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_pack_members ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-
-ALTER TABLE public.wolf_check_ins ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_check_ins ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-
-ALTER TABLE public.wolf_chat ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_chat ADD FOREIGN KEY (image_id) REFERENCES public.images(id);
-ALTER TABLE public.wolf_chat ADD FOREIGN KEY (flagged_by) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_reactions ADD FOREIGN KEY (message_id) REFERENCES public.wolf_chat(id);
-ALTER TABLE public.wolf_reactions ADD FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (sender_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (receiver_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (image_id) REFERENCES public.images(id);
-ALTER TABLE public.wolf_private_messages ADD FOREIGN KEY (flagged_by) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_connections ADD FOREIGN KEY (user_one_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_connections ADD FOREIGN KEY (user_two_id) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (sender_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_pack_interactions ADD FOREIGN KEY (receiver_id) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_pack_contests ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-ALTER TABLE public.wolf_pack_contests ADD FOREIGN KEY (created_by) REFERENCES public.users(id);
-
-ALTER TABLE public.wolf_pack_votes ADD FOREIGN KEY (contest_id) REFERENCES public.wolf_pack_contests(id);
-ALTER TABLE public.wolf_pack_votes ADD FOREIGN KEY (event_id) REFERENCES public.dj_events(id);
-ALTER TABLE public.wolf_pack_votes ADD FOREIGN KEY (participant_id) REFERENCES public.dj_event_participants(id);
-ALTER TABLE public.wolf_pack_votes ADD FOREIGN KEY (voter_id) REFERENCES public.users(id);
-ALTER TABLE public.wolf_pack_votes ADD FOREIGN KEY (voted_for_id) REFERENCES public.users(id);
-
-ALTER TABLE public.dj_events ADD FOREIGN KEY (dj_id) REFERENCES public.users(id);
-ALTER TABLE public.dj_events ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-ALTER TABLE public.dj_events ADD FOREIGN KEY (winner_id) REFERENCES public.users(id);
-
-ALTER TABLE public.dj_event_participants ADD FOREIGN KEY (event_id) REFERENCES public.dj_events(id);
-ALTER TABLE public.dj_event_participants ADD FOREIGN KEY (participant_id) REFERENCES public.users(id);
-
-ALTER TABLE public.dj_broadcasts ADD FOREIGN KEY (dj_id) REFERENCES public.users(id);
-ALTER TABLE public.dj_broadcasts ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-
-ALTER TABLE public.food_drink_categories ADD FOREIGN KEY (created_by) REFERENCES public.users(id);
-
-ALTER TABLE public.food_drink_items ADD FOREIGN KEY (category_id) REFERENCES public.food_drink_categories(id);
-ALTER TABLE public.food_drink_items ADD FOREIGN KEY (image_id) REFERENCES public.images(id);
-ALTER TABLE public.food_drink_items ADD FOREIGN KEY (created_by) REFERENCES public.users(id);
-
-ALTER TABLE public.item_modifier_groups ADD FOREIGN KEY (item_id) REFERENCES public.food_drink_items(id);
-
-ALTER TABLE public.active_sessions ADD FOREIGN KEY (table_id) REFERENCES public.tables(id);
-
-ALTER TABLE public.bartender_tabs ADD FOREIGN KEY (bartender_id) REFERENCES public.users(id);
-
-ALTER TABLE public.orders ADD FOREIGN KEY (customer_id) REFERENCES public.users(id);
-ALTER TABLE public.orders ADD FOREIGN KEY (table_id) REFERENCES public.tables(id);
-
-ALTER TABLE public.bartender_orders ADD FOREIGN KEY (customer_id) REFERENCES public.users(id);
-ALTER TABLE public.bartender_orders ADD FOREIGN KEY (bartender_id) REFERENCES public.users(id);
-ALTER TABLE public.bartender_orders ADD FOREIGN KEY (location_id) REFERENCES public.locations(id);
-ALTER TABLE public.bartender_orders ADD FOREIGN KEY (tab_id) REFERENCES public.bartender_tabs(id);
-ALTER TABLE public.bartender_orders ADD FOREIGN KEY (payment_handled_by) REFERENCES public.users(id);
-
-ALTER TABLE public.order_items ADD FOREIGN KEY (order_id) REFERENCES public.orders(id);
-ALTER TABLE public.order_items ADD FOREIGN KEY (item_id) REFERENCES public.food_drink_items(id);
-
-ALTER TABLE public.images ADD FOREIGN KEY (uploaded_by) REFERENCES public.users(id);
+-- Add remaining foreign keys (using same pattern)
+ALTER TABLE public.admin_logs ADD CONSTRAINT fk_admin_logs_admin_id FOREIGN KEY (admin_id) REFERENCES public.users(id);
+ALTER TABLE public.content_flags ADD CONSTRAINT fk_content_flags_flagged_by FOREIGN KEY (flagged_by) REFERENCES public.users(id);
+ALTER TABLE public.content_flags ADD CONSTRAINT fk_content_flags_resolved_by FOREIGN KEY (resolved_by) REFERENCES public.users(id);
+ALTER TABLE public.device_tokens ADD CONSTRAINT fk_device_tokens_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.notification_preferences ADD CONSTRAINT fk_notification_preferences_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.push_notifications ADD CONSTRAINT fk_push_notifications_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.push_notifications ADD CONSTRAINT fk_push_notifications_device_token_id FOREIGN KEY (device_token_id) REFERENCES public.device_tokens(id);
+ALTER TABLE public.push_notifications ADD CONSTRAINT fk_push_notifications_announcement_id FOREIGN KEY (announcement_id) REFERENCES public.announcements(id);
+ALTER TABLE public.user_app_settings ADD CONSTRAINT fk_user_app_settings_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.user_location_history ADD CONSTRAINT fk_user_location_history_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.user_location_history ADD CONSTRAINT fk_user_location_history_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.wolf_profiles ADD CONSTRAINT fk_wolf_profiles_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_members ADD CONSTRAINT fk_wolf_pack_members_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_members ADD CONSTRAINT fk_wolf_pack_members_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.wolf_check_ins ADD CONSTRAINT fk_wolf_check_ins_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_check_ins ADD CONSTRAINT fk_wolf_check_ins_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.wolfpack_chat_messages ADD CONSTRAINT fk_wolfpack_chat_messages_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolfpack_chat_messages ADD CONSTRAINT fk_wolfpack_chat_messages_image_id FOREIGN KEY (image_id) REFERENCES public.images(id);
+ALTER TABLE public.wolfpack_chat_messages ADD CONSTRAINT fk_wolfpack_chat_messages_flagged_by FOREIGN KEY (flagged_by) REFERENCES public.users(id);
+ALTER TABLE public.wolf_reactions ADD CONSTRAINT fk_wolf_reactions_message_id FOREIGN KEY (message_id) REFERENCES public.wolfpack_chat_messages(id);
+ALTER TABLE public.wolf_reactions ADD CONSTRAINT fk_wolf_reactions_user_id FOREIGN KEY (user_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_private_messages ADD CONSTRAINT fk_wolf_private_messages_sender_id FOREIGN KEY (sender_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_private_messages ADD CONSTRAINT fk_wolf_private_messages_receiver_id FOREIGN KEY (receiver_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_private_messages ADD CONSTRAINT fk_wolf_private_messages_image_id FOREIGN KEY (image_id) REFERENCES public.images(id);
+ALTER TABLE public.wolf_private_messages ADD CONSTRAINT fk_wolf_private_messages_flagged_by FOREIGN KEY (flagged_by) REFERENCES public.users(id);
+ALTER TABLE public.wolf_connections ADD CONSTRAINT fk_wolf_connections_user_one_id FOREIGN KEY (user_one_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_connections ADD CONSTRAINT fk_wolf_connections_user_two_id FOREIGN KEY (user_two_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_interactions ADD CONSTRAINT fk_wolf_pack_interactions_sender_id FOREIGN KEY (sender_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_interactions ADD CONSTRAINT fk_wolf_pack_interactions_receiver_id FOREIGN KEY (receiver_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_contests ADD CONSTRAINT fk_wolf_pack_contests_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.wolf_pack_contests ADD CONSTRAINT fk_wolf_pack_contests_created_by FOREIGN KEY (created_by) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_votes ADD CONSTRAINT fk_wolf_pack_votes_contest_id FOREIGN KEY (contest_id) REFERENCES public.wolf_pack_contests(id);
+ALTER TABLE public.wolf_pack_votes ADD CONSTRAINT fk_wolf_pack_votes_event_id FOREIGN KEY (event_id) REFERENCES public.dj_events(id);
+ALTER TABLE public.wolf_pack_votes ADD CONSTRAINT fk_wolf_pack_votes_participant_id FOREIGN KEY (participant_id) REFERENCES public.dj_event_participants(id);
+ALTER TABLE public.wolf_pack_votes ADD CONSTRAINT fk_wolf_pack_votes_voter_id FOREIGN KEY (voter_id) REFERENCES public.users(id);
+ALTER TABLE public.wolf_pack_votes ADD CONSTRAINT fk_wolf_pack_votes_voted_for_id FOREIGN KEY (voted_for_id) REFERENCES public.users(id);
+ALTER TABLE public.dj_events ADD CONSTRAINT fk_dj_events_dj_id FOREIGN KEY (dj_id) REFERENCES public.users(id);
+ALTER TABLE public.dj_events ADD CONSTRAINT fk_dj_events_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.dj_events ADD CONSTRAINT fk_dj_events_winner_id FOREIGN KEY (winner_id) REFERENCES public.users(id);
+ALTER TABLE public.dj_event_participants ADD CONSTRAINT fk_dj_event_participants_event_id FOREIGN KEY (event_id) REFERENCES public.dj_events(id);
+ALTER TABLE public.dj_event_participants ADD CONSTRAINT fk_dj_event_participants_participant_id FOREIGN KEY (participant_id) REFERENCES public.users(id);
+ALTER TABLE public.dj_broadcasts ADD CONSTRAINT fk_dj_broadcasts_dj_id FOREIGN KEY (dj_id) REFERENCES public.users(id);
+ALTER TABLE public.dj_broadcasts ADD CONSTRAINT fk_dj_broadcasts_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.food_drink_categories ADD CONSTRAINT fk_food_drink_categories_created_by FOREIGN KEY (created_by) REFERENCES public.users(id);
+ALTER TABLE public.food_drink_items ADD CONSTRAINT fk_food_drink_items_category_id FOREIGN KEY (category_id) REFERENCES public.food_drink_categories(id);
+ALTER TABLE public.food_drink_items ADD CONSTRAINT fk_food_drink_items_image_id FOREIGN KEY (image_id) REFERENCES public.images(id);
+ALTER TABLE public.food_drink_items ADD CONSTRAINT fk_food_drink_items_created_by FOREIGN KEY (created_by) REFERENCES public.users(id);
+ALTER TABLE public.item_modifier_groups ADD CONSTRAINT fk_item_modifier_groups_item_id FOREIGN KEY (item_id) REFERENCES public.food_drink_items(id);
+ALTER TABLE public.active_sessions ADD CONSTRAINT fk_active_sessions_table_id FOREIGN KEY (table_id) REFERENCES public.tables(id);
+ALTER TABLE public.bartender_tabs ADD CONSTRAINT fk_bartender_tabs_bartender_id FOREIGN KEY (bartender_id) REFERENCES public.users(id);
+ALTER TABLE public.orders ADD CONSTRAINT fk_orders_customer_id FOREIGN KEY (customer_id) REFERENCES public.users(id);
+ALTER TABLE public.orders ADD CONSTRAINT fk_orders_table_id FOREIGN KEY (table_id) REFERENCES public.tables(id);
+ALTER TABLE public.bartender_orders ADD CONSTRAINT fk_bartender_orders_customer_id FOREIGN KEY (customer_id) REFERENCES public.users(id);
+ALTER TABLE public.bartender_orders ADD CONSTRAINT fk_bartender_orders_bartender_id FOREIGN KEY (bartender_id) REFERENCES public.users(id);
+ALTER TABLE public.bartender_orders ADD CONSTRAINT fk_bartender_orders_location_id FOREIGN KEY (location_id) REFERENCES public.locations(id);
+ALTER TABLE public.bartender_orders ADD CONSTRAINT fk_bartender_orders_tab_id FOREIGN KEY (tab_id) REFERENCES public.bartender_tabs(id);
+ALTER TABLE public.bartender_orders ADD CONSTRAINT fk_bartender_orders_payment_handled_by FOREIGN KEY (payment_handled_by) REFERENCES public.users(id);
+ALTER TABLE public.order_items ADD CONSTRAINT fk_order_items_order_id FOREIGN KEY (order_id) REFERENCES public.orders(id);
+ALTER TABLE public.order_items ADD CONSTRAINT fk_order_items_item_id FOREIGN KEY (item_id) REFERENCES public.food_drink_items(id);
+ALTER TABLE public.images ADD CONSTRAINT fk_images_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES public.users(id);
 
 -- Create indexes for performance
-CREATE INDEX idx_users_email ON public.users(email);
-CREATE INDEX idx_users_auth_id ON public.users(auth_id);
-CREATE INDEX idx_users_role ON public.users(role);
-CREATE INDEX idx_users_status ON public.users(status);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_auth_id ON public.users(auth_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
 
-CREATE INDEX idx_wolf_chat_created_at ON public.wolf_chat(created_at DESC);
-CREATE INDEX idx_wolf_chat_user_id ON public.wolf_chat(user_id);
+CREATE INDEX IF NOT EXISTS idx_wolfpack_chat_messages_created_at ON public.wolfpack_chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wolfpack_chat_messages_user_id ON public.wolfpack_chat_messages(user_id);
 
-CREATE INDEX idx_wolf_private_messages_from_user ON public.wolf_private_messages(sender_id);
-CREATE INDEX idx_wolf_private_messages_to_user ON public.wolf_private_messages(receiver_id);
-CREATE INDEX idx_wolf_private_messages_created_at ON public.wolf_private_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wolf_private_messages_from_user ON public.wolf_private_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_wolf_private_messages_to_user ON public.wolf_private_messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_wolf_private_messages_created_at ON public.wolf_private_messages(created_at DESC);
 
-CREATE INDEX idx_wolf_pack_members_location ON public.wolf_pack_members(location_id);
-CREATE INDEX idx_wolf_pack_members_user ON public.wolf_pack_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_wolf_pack_members_location ON public.wolf_pack_members(location_id);
+CREATE INDEX IF NOT EXISTS idx_wolf_pack_members_user ON public.wolf_pack_members(user_id);
 
-CREATE INDEX idx_bartender_orders_status ON public.bartender_orders(status);
-CREATE INDEX idx_bartender_orders_created_at ON public.bartender_orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bartender_orders_status ON public.bartender_orders(status);
+CREATE INDEX IF NOT EXISTS idx_bartender_orders_created_at ON public.bartender_orders(created_at DESC);
 
-CREATE INDEX idx_device_tokens_user ON public.device_tokens(user_id);
-CREATE INDEX idx_device_tokens_token ON public.device_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON public.device_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_device_tokens_token ON public.device_tokens(token);
 
 -- Enable Row Level Security
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -629,7 +636,7 @@ ALTER TABLE public.user_location_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_pack_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_check_ins ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wolf_chat ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wolfpack_chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_private_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wolf_connections ENABLE ROW LEVEL SECURITY;
@@ -723,3 +730,4 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+

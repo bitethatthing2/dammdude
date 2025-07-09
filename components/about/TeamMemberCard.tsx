@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Instagram, Twitter, Linkedin } from "lucide-react";
-import { TeamMember } from "@/lib/types/about";
+import { TeamMember } from "@/types/features/about";
 import { 
   Card, 
   CardContent, 

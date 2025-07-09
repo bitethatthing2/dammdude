@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getZIndexClass } from '@/lib/constants/z-index';
 
 interface CenteredModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export function CenteredModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className={`fixed inset-0 ${getZIndexClass('USER_PROFILE_MODAL_OVERRIDE')} flex items-center justify-center p-4`}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -68,11 +69,11 @@ export function CenteredModal({
       {/* Modal */}
       <div 
         className={`
-          relative w-full mx-4 ${maxWidthClasses[maxWidth]} 
+          relative w-full ${maxWidthClasses[maxWidth]} 
           bg-background border border-border rounded-lg shadow-lg
-          max-h-[calc(100vh-120px)] overflow-hidden
+          max-h-full overflow-hidden
           animate-in fade-in-0 zoom-in-95 duration-200
-          ${className}
+          ${className} ${getZIndexClass('USER_PROFILE_MODAL_OVERRIDE')}
         `}
         onClick={(e) => e.stopPropagation()}
       >
@@ -93,7 +94,7 @@ export function CenteredModal({
         </div>
         
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+        <div className="overflow-y-auto max-h-[calc(100vh-200px)] p-4">
           {children}
         </div>
       </div>

@@ -113,7 +113,7 @@ window.debugChatFlow = async function(sessionId = 'general', testMessage = 'Debu
     console.log('Message data to insert:', messageData);
     
     const { data: insertResult, error: insertError } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .insert(messageData)
       .select()
       .single();
@@ -149,7 +149,7 @@ window.debugChatFlow = async function(sessionId = 'general', testMessage = 'Debu
     // Step 5: Message Retrieval Test
     console.log('5️⃣ Testing message retrieval...');
     const { data: messages, error: retrieveError } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .select('*')
       .eq('session_id', sessionId)
       .eq('is_deleted', false)
@@ -178,7 +178,7 @@ window.debugChatFlow = async function(sessionId = 'general', testMessage = 'Debu
     if (insertResult && insertResult.id) {
       console.log('6️⃣ Cleaning up test message...');
       const { error: deleteError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .update({ is_deleted: true })
         .eq('id', insertResult.id);
       
@@ -344,7 +344,7 @@ window.simulateMessageSend = async function(content = 'Test message', sessionId 
     console.log('Step 5: Database insert...');
     const insertStart = Date.now();
     const { data: insertResult, error: insertError } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .insert(messagePayload)
       .select()
       .single();
@@ -396,7 +396,7 @@ window.testMessageRetrieval = async function(sessionId = 'general', limit = 10) 
     {
       name: 'Direct table query',
       query: () => supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)
@@ -406,7 +406,7 @@ window.testMessageRetrieval = async function(sessionId = 'general', limit = 10) 
     {
       name: 'With user join',
       query: () => supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .select(`
           *,
           users:user_id (
@@ -503,7 +503,7 @@ window.testRealtimeSubscription = function(sessionId = 'general', duration = 300
         {
           event: '*',
           schema: 'public',
-          table: 'wolfpack_chat_messages',
+          table: wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {

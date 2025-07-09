@@ -33,7 +33,7 @@ import type {
   BroadcastType,
   BroadcastOption
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 interface Member {
   id: string;
@@ -71,6 +71,15 @@ const LOCATION_CONFIG = {
   portland: 'ec1e8869-454a-49d2-93e5-ed05f49bb932'
 } as const;
 
+// Unified Side Hustle Bar theme gradients with high contrast
+// These colors provide consistent branding while ensuring excellent text readability
+const UNIFIED_GRADIENTS = {
+  explosive: 'from-orange-500 via-red-500 to-pink-500', // High energy events (dance-offs, shots, etc.)
+  hype: 'from-blue-500 via-purple-500 to-pink-500',     // Exciting events (contests, showcases)
+  medium: 'from-teal-500 via-blue-500 to-indigo-500',   // Standard events (moderate energy)
+  chill: 'from-green-500 via-teal-500 to-blue-500'      // Relaxed events (low key activities)
+};
+
 const eventTemplates: EventTemplate[] = [
   {
     id: 'dance-off',
@@ -87,7 +96,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Energy Bomb 💥', emoji: '💥' }
     ],
     energy: 'explosive',
-    bgGradient: 'from-purple-600 to-pink-600',
+    bgGradient: UNIFIED_GRADIENTS.explosive,
     emoji: '💃'
   },
   {
@@ -105,7 +114,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Club Royalty 👑', emoji: '👑' }
     ],
     energy: 'hype',
-    bgGradient: 'from-black to-gold',
+    bgGradient: UNIFIED_GRADIENTS.hype,
     emoji: '✨'
   },
   {
@@ -123,7 +132,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Last One Standing 🏆', emoji: '🏆' }
     ],
     energy: 'explosive',
-    bgGradient: 'from-amber-600 to-red-600',
+    bgGradient: UNIFIED_GRADIENTS.explosive,
     emoji: '🥃'
   },
   {
@@ -141,7 +150,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Crowd Favorite ❤️', emoji: '❤️' }
     ],
     energy: 'hype',
-    bgGradient: 'from-red-600 to-pink-600',
+    bgGradient: UNIFIED_GRADIENTS.hype,
     emoji: '💕'
   },
   {
@@ -159,7 +168,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Championship Worthy 🏆', emoji: '🏆' }
     ],
     energy: 'explosive',
-    bgGradient: 'from-purple-600 to-red-600',
+    bgGradient: UNIFIED_GRADIENTS.explosive,
     emoji: '🍑'
   },
   {
@@ -177,7 +186,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Table 4 - The Legends 👑', emoji: '👑' }
     ],
     energy: 'hype',
-    bgGradient: 'from-gold to-black',
+    bgGradient: UNIFIED_GRADIENTS.hype,
     emoji: '🍾'
   },
   {
@@ -195,7 +204,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Wild Card 😈', emoji: '😈' }
     ],
     energy: 'explosive',
-    bgGradient: 'from-red-600 to-purple-600',
+    bgGradient: UNIFIED_GRADIENTS.explosive,
     emoji: '💋'
   },
   {
@@ -213,7 +222,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Lyrical Genius 🧠', emoji: '🧠' }
     ],
     energy: 'hype',
-    bgGradient: 'from-black to-red',
+    bgGradient: UNIFIED_GRADIENTS.hype,
     emoji: '🎤'
   },
   {
@@ -231,7 +240,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'VIP Energy 👑', emoji: '👑' }
     ],
     energy: 'explosive',
-    bgGradient: 'from-gold to-black',
+    bgGradient: UNIFIED_GRADIENTS.explosive,
     emoji: '🍾'
   },
   {
@@ -249,7 +258,7 @@ const eventTemplates: EventTemplate[] = [
       { id: '4', text: 'Crowd Favorites 💕', emoji: '💕' }
     ],
     energy: 'hype',
-    bgGradient: 'from-pink-600 to-red-600',
+    bgGradient: UNIFIED_GRADIENTS.hype,
     emoji: '💑'
   }
 ];
@@ -498,21 +507,32 @@ export function EventCreator({ isOpen, onClose, onEventCreated, availableMembers
                     return (
                       <Card 
                         key={template.id}
-                        className={`cursor-pointer transition-all hover:shadow-lg bg-gradient-to-br ${template.bgGradient} text-white border-0`}
+                        className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] bg-gradient-to-br ${template.bgGradient} text-white border-0 relative overflow-hidden`}
                         onClick={() => handleTemplateSelect(template)}
                       >
-                        <CardContent className="p-4">
+                        {/* Background overlay for better text contrast */}
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
+                        
+                        <CardContent className="p-4 relative z-10">
                           <div className="flex items-start justify-between mb-2">
-                            <IconComponent className="w-6 h-6" />
-                            <Badge variant="secondary" className="text-black text-xs">
+                            <IconComponent className="w-6 h-6 text-white drop-shadow-lg" />
+                            <Badge variant="secondary" className="text-black text-xs bg-white/90 border-white/50">
                               {ENERGY_LEVELS[template.energy].icon}
                             </Badge>
                           </div>
-                          <h3 className="font-bold text-sm mb-1">{template.emoji} {template.name}</h3>
-                          <p className="text-xs opacity-90 mb-3">{template.description}</p>
-                          <div className="flex items-center justify-between text-xs opacity-75">
-                            <span>{template.defaultDuration}s</span>
-                            <span>{template.suggestedContestants} contestants</span>
+                          <h3 className="font-bold text-sm mb-1 text-white drop-shadow-lg">
+                            {template.emoji} {template.name}
+                          </h3>
+                          <p className="text-xs text-white/95 mb-3 drop-shadow-sm">
+                            {template.description}
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-white/90 drop-shadow-sm">
+                            <span className="bg-black/30 px-2 py-1 rounded-full">
+                              {template.defaultDuration}s
+                            </span>
+                            <span className="bg-black/30 px-2 py-1 rounded-full">
+                              {template.suggestedContestants} contestants
+                            </span>
                           </div>
                         </CardContent>
                       </Card>

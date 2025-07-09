@@ -1,6 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from '@/lib/database.types'
+import type { Database } from '@/types/database.types'
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
+import { supabaseConfig } from '@/config/app.config'
 
 // Define proper error types
 interface SupabaseError {
@@ -65,8 +66,22 @@ export function createClient() {
     }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  // Use environment variables directly to avoid config layer issues
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Debug: Log configuration status in development
+  if (process.env.NODE_ENV === 'development' && (!supabaseUrl || !supabaseAnonKey)) {
+    console.error('Supabase Configuration Error:', {
+      url: supabaseUrl ? 'OK' : 'MISSING',
+      anonKey: supabaseAnonKey ? 'OK' : 'MISSING'
+    })
+  }
+
+  // Validate required configuration
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(`Missing Supabase configuration: URL=${!!supabaseUrl}, AnonKey=${!!supabaseAnonKey}`)
+  }
 
   // Create new instance with better error handling
   try {
@@ -197,5 +212,5 @@ export function handleSupabaseError(error: unknown): {
 }
 
 // Export types
-export type { Database } from '@/lib/database.types'
+export type { Database } from '@/types/database.types'
 export type { SupabaseError, PostgrestError, AuthError }

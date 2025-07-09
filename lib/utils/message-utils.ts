@@ -212,7 +212,11 @@ export function validateMessage(
     checkSpam?: boolean;
     userId?: string;
     checkRateLimit?: boolean;
-  } = {}
+  } = {
+    maxLength: 500,
+    allowLineBreaks: true,
+    trimWhitespace: true
+  }
 ): MessageValidationResult {
   const errors: string[] = [];
 
@@ -350,6 +354,15 @@ export interface MessageGroup {
     content: string;
     timestamp: string;
     isRead?: boolean;
+    message: string;
+    created_at: string;
+    is_read: boolean | null;
+    reply_to_message_id?: string | null;
+    reactions?: Array<{
+      emoji: string;
+      reaction_count: number;
+      user_ids: string[];
+    }>;
   }>;
   timestamp: string;
 }
@@ -382,7 +395,12 @@ export function groupMessages(messages: any[], currentUserId: string): MessageGr
       id: message.id,
       content: message.message,
       timestamp: message.created_at,
-      isRead: message.is_read
+      isRead: message.is_read,
+      message: message.message,
+      created_at: message.created_at,
+      is_read: message.is_read,
+      reply_to_message_id: message.reply_to_message_id,
+      reactions: message.reactions
     });
   }
   

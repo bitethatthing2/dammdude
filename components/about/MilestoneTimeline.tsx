@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import { Milestone } from "@/lib/types/about";
+import { Milestone } from "@/types/features/about";
 import { 
   Card, 
   CardContent, 

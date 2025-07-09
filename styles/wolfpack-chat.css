@@ -1,4 +1,29 @@
 /* Add these styles to your existing wolfpack-chat.css file */
+/* Import centralized z-index values as CSS custom properties */
+:root {
+  --z-base: 0;
+  --z-content: 1;
+  --z-dropdown: 10;
+  --z-tooltip: 15;
+  --z-bottom-nav: 20;
+  --z-header: 25;
+  --z-sticky-element: 30;
+  --z-chat-input: 35;
+  --z-chat-toast: 40;
+  --z-member-position: 45;
+  --z-member-position-hover: 46;
+  --z-member-position-active: 47;
+  --z-modal-backdrop: 50;
+  --z-modal-content: 51;
+  --z-profile-popup: 55;
+  --z-notification: 60;
+  --z-toast: 65;
+  --z-alert: 70;
+  --z-debug: 80;
+  --z-message-bubble: 90;
+  --z-critical-overlay: 95;
+  --z-emergency: 99;
+}
 
 /* Spatial Member Positions */
 .member-position {
@@ -6,12 +31,7 @@
   cursor: pointer;
   transition: all 300ms ease-in-out;
   transform: translate(-50%, -50%);
-  z-index: 50; /* Ensure members are above background but below bubbles */
-}
-
-.member-position:hover {
-  transform: translate(-50%, -50%) scale(1.1);
-  z-index: 60; /* Slightly higher on hover */
+  z-index: var(--z-member-position);
 }
 
 /* Message Bubbles */
@@ -20,19 +40,31 @@
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.95);
   color: #000;
-  padding: 8px 12px;
-  border-radius: 18px;
-  font-size: 14px;
-  max-width: 200px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  max-width: 150px;
   word-wrap: break-word;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: bubble-appear 0.3s ease-out;
   white-space: normal;
-  z-index: 100; /* High z-index to appear above navigation */
+  z-index: var(--z-message-bubble);
   backdrop-filter: blur(8px);
+  line-height: 1.3;
+}
+
+/* Larger bubbles on larger screens */
+@media (min-width: 640px) {
+  .message-bubble {
+    padding: 8px 12px;
+    font-size: 14px;
+    max-width: 200px;
+    margin-bottom: 10px;
+    border-radius: 18px;
+  }
 }
 
 .message-bubble::after {
@@ -98,39 +130,132 @@
 .member-position:active {
   cursor: grabbing !important;
   transform: translate(-50%, -50%) scale(1.05);
-  z-index: 70;
+  z-index: var(--z-member-position-active);
+}
+
+/* Hide member positions when profile modal is open */
+body.profile-modal-open .member-position {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  z-index: -1 !important;
+}
+
+/* Also hide message bubbles when profile modal is open */
+body.profile-modal-open .message-bubble {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  z-index: -1 !important;
 }
 
 .member-position:hover {
   transform: translate(-50%, -50%) scale(1.1);
-  z-index: 60;
+  z-index: var(--z-member-position-hover);
 }
 
 /* Custom scrollbar styling for webkit browsers */
-.h-80::-webkit-scrollbar {
+.h-80::-webkit-scrollbar,
+.h-32::-webkit-scrollbar,
+.h-52::-webkit-scrollbar {
   width: 12px; /* Increased from 8px for better touch targets */
 }
 
-.h-80::-webkit-scrollbar-track {
+.h-80::-webkit-scrollbar-track,
+.h-32::-webkit-scrollbar-track,
+.h-52::-webkit-scrollbar-track {
   background: rgba(31, 41, 55, 0.5);
   border-radius: 4px;
 }
 
-.h-80::-webkit-scrollbar-thumb {
+.h-80::-webkit-scrollbar-thumb,
+.h-32::-webkit-scrollbar-thumb,
+.h-52::-webkit-scrollbar-thumb {
   background: rgba(75, 85, 99, 0.8);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.h-80::-webkit-scrollbar-thumb:hover {
+.h-80::-webkit-scrollbar-thumb:hover,
+.h-32::-webkit-scrollbar-thumb:hover,
+.h-52::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 1);
 }
 
 /* Ensure scrollable areas work on touch devices */
-.h-80 {
+.h-80, .h-32, .h-52 {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 640px) {
+  /* Background image optimization for mobile */
+  .min-h-screen {
+    background-attachment: scroll; /* Better performance on mobile */
+  }
+  
+  /* Responsive background image handling */
+  .absolute.inset-0 img {
+    object-position: center center;
+    min-height: 100vh;
+    min-width: 100vw;
+  }
+  
+  /* Larger touch targets for avatars */
+  .member-position {
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Improved touch interaction */
+  .member-position:active {
+    transform: translate(-50%, -50%) scale(0.95);
+    transition: transform 0.1s ease-out;
+  }
+  
+  /* Better message bubble positioning on mobile */
+  .message-bubble {
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  
+  /* Ensure input doesn't trigger zoom on iOS */
+  input[type="text"] {
+    font-size: 16px;
+  }
+  
+  /* Better scrollable area on mobile */
+  .h-20, .h-32 {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 950px) and (orientation: landscape) {
+  /* Background adjustments for landscape */
+  .absolute.inset-0 img {
+    object-fit: cover;
+    object-position: center top;
+    width: 100%;
+    height: 100vh;
+  }
+  
+  /* Adjust spatial view for landscape */
+  .relative.z-10 {
+    height: calc(100vh - 120px) !important;
+    padding-bottom: 60px !important;
+  }
 }
 
 /* Profile popup animation */
@@ -155,7 +280,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 50;
+  z-index: var(--z-modal-backdrop);
   background: rgba(255, 255, 255, 0.95);
   -webkit-backdrop-filter: blur(12px); /* Safari 9+ */
   backdrop-filter: blur(12px);

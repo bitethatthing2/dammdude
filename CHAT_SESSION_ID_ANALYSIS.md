@@ -10,8 +10,8 @@ There is a **fundamental mismatch** between how chat session IDs are handled in 
 
 **Two Different Chat Systems Exist:**
 
-1. **Original System** (`wolf_chat` table):
-   - Uses simple `wolf_chat` table without session_id concept
+1. **Original System** (`wolfpack_chat_messages` table):
+   - Uses simple `wolfpack_chat_messages` table without message_typeconcept
    - Direct user-to-user messaging in group chat format
    - No session ID field in the table
 
@@ -34,7 +34,7 @@ There is a **fundamental mismatch** between how chat session IDs are handled in 
 
 **File**: `/hooks/useWolfpack.ts`
 - **Lines 497-503**: Queries `wolfpack_chat_messages` table expecting session_id
-- **Lines 799-809**: Inserts messages using the UUID session_id from useWolfpackSession
+- **Lines 799-809**: Inserts messages using the UUID message_typefrom useWolfpackSession
 - **Problem**: The hook expects to work with the new chat system but receives UUID session IDs
 
 ### 4. Chat Page Implementation
@@ -69,12 +69,12 @@ There is a **fundamental mismatch** between how chat session IDs are handled in 
 ### New Chat System (Expected):
 ```sql
 -- wolfpack_chat_sessions
-session_id TEXT PRIMARY KEY -- 'general', 'salem', 'portland'
+message_typeTEXT PRIMARY KEY -- 'general', 'salem', 'portland'
 location_id UUID
 display_name TEXT
 
 -- wolfpack_chat_messages  
-session_id TEXT REFERENCES wolfpack_chat_sessions(session_id)
+message_typeTEXT REFERENCES wolfpack_chat_sessions(session_id)
 ```
 
 ### Current Implementation (Problematic):

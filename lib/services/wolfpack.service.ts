@@ -66,7 +66,7 @@ export class WolfpackService {
         status: event.status || 'pending',
         created_at: event.created_at || new Date().toISOString(),
         voting_ends_at: event.voting_ends_at,
-        options: Array.isArray(event.options) ? event.options : [],
+        options: Array.isArray(event.options) ? event.options.map(o => String(o)) : [],
         dj_id: event.dj_id,
         location_id: event.location_id,
         description: event.description,

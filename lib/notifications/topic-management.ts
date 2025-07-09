@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import type { Json, Database } from '@/lib/database.types';
+import type { Json, Database } from '@/types/database.types';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Type aliases using the Database schema

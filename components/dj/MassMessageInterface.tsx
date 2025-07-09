@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CenteredModal } from '@/components/shared/CenteredModal';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ import type {
   BroadcastType,
   BroadcastPriority
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 interface MassMessageInterfaceProps {
   isOpen: boolean;
@@ -348,38 +348,39 @@ export function MassMessageInterface({ isOpen, onClose, packMemberCount, locatio
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Megaphone className="w-5 h-5" />
-              Broadcast Center
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1">
-                <Users className="w-3 h-3" />
-                {packMemberCount} online
-              </Badge>
-              <Badge variant="outline">
-                <MapPin className="w-3 h-3 mr-1" />
-                {location.toUpperCase()}
-              </Badge>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
+    <CenteredModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="🎙️ Broadcast Center"
+      maxWidth="3xl"
+      className="max-h-[calc(100vh-120px)] min-h-[400px]"
+    >
+      <div className="flex flex-col h-full">
+        {/* Header Info */}
+        <div className="flex items-center justify-between mb-4 p-2 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <Users className="w-3 h-3" />
+              {packMemberCount} online
+            </Badge>
+            <Badge variant="outline">
+              <MapPin className="w-3 h-3 mr-1" />
+              {location.toUpperCase()}
+            </Badge>
+          </div>
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="templates" className="gap-2">
+            <TabsTrigger value="templates" className="gap-2 justify-center">
               <Wand2 className="w-4 h-4" />
               Templates
             </TabsTrigger>
-            <TabsTrigger value="compose" className="gap-2">
+            <TabsTrigger value="compose" className="gap-2 justify-center">
               <MessageSquare className="w-4 h-4" />
               Compose
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
+            <TabsTrigger value="history" className="gap-2 justify-center">
               <History className="w-4 h-4" />
               History
             </TabsTrigger>
@@ -695,7 +696,7 @@ export function MassMessageInterface({ isOpen, onClose, packMemberCount, locatio
             </p>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </CenteredModal>
   );
 }

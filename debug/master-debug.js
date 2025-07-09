@@ -151,7 +151,7 @@ window.runFullDiagnostic = async function() {
     
     // Test basic table access
     const { data: testMessages, error: testError } = await supabase
-      .from('wolfpack_chat_messages')
+      .from(wolfpack_chat_messages')
       .select('id')
       .limit(1);
     

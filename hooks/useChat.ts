@@ -11,6 +11,12 @@ import {
   groupMessages
 } from '@/lib/utils/message-utils';
 
+export interface MessageReaction {
+  emoji: string;
+  reaction_count: number;
+  user_ids: string[];
+}
+
 export interface PrivateMessage {
   id: string;
   sender_id: string;
@@ -26,6 +32,9 @@ export interface PrivateMessage {
   flagged_by?: string | null;
   flagged_at?: string | null;
   image_id?: string | null;
+  thread_id?: string | null;
+  reply_to_message_id?: string | null;
+  reactions?: MessageReaction[];
   sender_user?: {
     display_name: string | null;
     wolf_emoji: string | null;
@@ -102,7 +111,7 @@ export function useChat(options: UseChatOptions = {}) {
 
   // Refs for cleanup and management
   const channelRef = useRef<any>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const retryTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const typingIndicatorRef = useRef(new TypingIndicator());
 
   // Cleanup function
@@ -126,15 +135,41 @@ export function useChat(options: UseChatOptions = {}) {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase.rpc('get_chat_data', {
-        p_current_user_id: user.id,
-        p_other_user_id: otherUserId
-      });
+      // Load messages with reactions using optimized query
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('wolf_private_messages')
+        .select(`
+          *,
+          sender_user:sender_id(id, display_name, wolf_emoji, profile_image_url),
+          reply_to_message:reply_to_message_id(
+            id,
+            message,
+            sender_id,
+            sender_user:sender_id(display_name)
+          ),
+          reactions:wolf_private_message_reaction_counts(
+            emoji,
+            reaction_count,
+            user_ids
+          )
+        `)
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true })
+        .limit(messageLimit || 50);
 
-      if (error) {
-        console.error('Error loading chat data:', error);
-        throw error;
-      }
+      const { data: otherUserData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', otherUserId)
+        .single();
+
+      if (messagesError) throw messagesError;
+      if (userError) throw userError;
+
+      const data = {
+        messages: messagesData || [],
+        other_user: otherUserData
+      };
 
       if (!data) {
         throw new Error('Chat data not found');
@@ -296,6 +331,18 @@ export function useChat(options: UseChatOptions = {}) {
           ));
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wolf_private_message_reactions'
+        },
+        async (payload) => {
+          // Reload messages to get updated reaction counts
+          await loadChatData();
+        }
+      )
       .subscribe((status) => {
         console.log('Subscription status:', status);
         
@@ -330,8 +377,8 @@ export function useChat(options: UseChatOptions = {}) {
     }, reconnectDelay);
   }, [setupRealtimeSubscription, reconnectDelay]);
 
-  // Send message function
-  const sendMessage = useCallback(async (messageText: string) => {
+  // Send message function (enhanced with reply support)
+  const sendMessage = useCallback(async (messageText: string, replyToMessageId?: string) => {
     if (!user || !otherUserId || isSending) return false;
 
     const validation = validateMessage(messageText, {
@@ -375,18 +422,29 @@ export function useChat(options: UseChatOptions = {}) {
         setMessages(prev => [...prev, tempMessage!]);
       }
 
+      // Prepare message data
+      const messageData: any = {
+        sender_id: user.id,
+        receiver_id: otherUserId,
+        message: validation.sanitized!,
+        is_read: false,
+        is_deleted: false,
+        flagged: false,
+        created_at: new Date().toISOString()
+      };
+
+      // Add threading info if replying
+      if (replyToMessageId) {
+        messageData.reply_to_message_id = replyToMessageId;
+        // Find the original message to get/set thread_id
+        const originalMessage = messages.find(msg => msg.id === replyToMessageId);
+        messageData.thread_id = originalMessage?.thread_id || replyToMessageId;
+      }
+
       // Send to database
       const { data, error } = await supabase
         .from('wolf_private_messages')
-        .insert({
-          sender_id: user.id,
-          receiver_id: otherUserId,
-          message: validation.sanitized!,
-          is_read: false,
-          is_deleted: false,
-          flagged: false,
-          created_at: new Date().toISOString()
-        })
+        .insert(messageData)
         .select('id')
         .single();
 
@@ -414,7 +472,7 @@ export function useChat(options: UseChatOptions = {}) {
     } finally {
       setIsSending(false);
     }
-  }, [user, otherUserId, isSending, enableOptimisticUpdates]);
+  }, [user, otherUserId, isSending, enableOptimisticUpdates, messages]);
 
   // Block user function
   const blockUser = useCallback(async () => {
@@ -469,6 +527,91 @@ export function useChat(options: UseChatOptions = {}) {
       return false;
     }
   }, [user]);
+
+  // Toggle reaction function
+  const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
+    if (!user) {
+      toast.error('Authentication required');
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('toggle_private_message_reaction', {
+        p_message_id: messageId,
+        p_emoji: emoji
+      });
+
+      if (error) throw error;
+
+      // Refresh message reactions
+      await loadChatData();
+      
+      if (data === true) {
+        toast.success(`${emoji} reaction added!`);
+      } else {
+        toast.success('Reaction removed');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      toast.error('Failed to update reaction');
+      return false;
+    }
+  }, [user, loadChatData]);
+
+  // Get conversation ID for typing indicators
+  const getConversationId = useCallback(() => {
+    if (!user || !otherUserId) return '';
+    return [user.id, otherUserId].sort().join('_');
+  }, [user, otherUserId]);
+
+  // Update typing indicator
+  const updateTypingIndicator = useCallback(async () => {
+    if (!user || !otherUserId) return;
+
+    try {
+      await supabase.rpc('update_typing_indicator', {
+        p_conversation_type: 'private',
+        p_conversation_id: getConversationId()
+      });
+    } catch (error) {
+      console.error('Error updating typing indicator:', error);
+    }
+  }, [user, otherUserId, getConversationId]);
+
+  // Mark messages as read using the new system
+  const markConversationRead = useCallback(async (lastMessageId: string) => {
+    if (!user || !otherUserId) return;
+
+    try {
+      await supabase.rpc('mark_messages_read', {
+        p_conversation_type: 'private',
+        p_conversation_id: getConversationId(),
+        p_last_message_id: lastMessageId
+      });
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
+    }
+  }, [user, otherUserId, getConversationId]);
+
+  // Get unread count for conversation
+  const getConversationUnreadCount = useCallback(async () => {
+    if (!user || !otherUserId) return 0;
+
+    try {
+      const { data, error } = await supabase.rpc('get_unread_count', {
+        p_conversation_type: 'private',
+        p_conversation_id: getConversationId()
+      });
+
+      if (error) throw error;
+      return data || 0;
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      return 0;
+    }
+  }, [user, otherUserId, getConversationId]);
 
   // Typing indicator functions
   const setTypingStatus = useCallback((isTyping: boolean) => {
@@ -548,6 +691,7 @@ export function useChat(options: UseChatOptions = {}) {
     // State
     messages,
     otherUser,
+    currentUser: user,
     conversations,
     isLoading,
     isSending,
@@ -561,11 +705,15 @@ export function useChat(options: UseChatOptions = {}) {
     sendMessage,
     blockUser,
     reportMessage,
+    toggleReaction,
+    updateTypingIndicator,
     setTypingStatus,
     loadChatData,
     loadConversations,
     markMessagesAsRead,
+    markConversationRead,
     getUnreadCount,
+    getConversationUnreadCount,
 
     // Utilities
     formatMessageTime,

@@ -292,7 +292,7 @@ export class NotificationHelpers {
       const supabase = this.getSupabaseClient();
       
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_id: userId || undefined,
+        p_user_id: userId || undefined,
         p_limit: limit,
         p_offset: 0
       });

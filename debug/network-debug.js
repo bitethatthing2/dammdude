@@ -349,7 +349,7 @@ window.quickNetworkDiagnostic = async function() {
     },
     {
       name: 'Chat Table Access',
-      test: () => supabase.from('wolfpack_chat_messages').select('id').limit(1)
+      test: () => supabase.from(wolfpack_chat_messages').select('id').limit(1)
     }
   ];
   

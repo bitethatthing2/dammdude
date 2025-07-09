@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Send, ArrowLeft, Users, MessageCircle, X } from 'lucide-react';
 import WolfpackChatChannels from './WolfpackChatChannels';
+import { UserProfileModal } from './UserProfileModal';
 
 
 interface WolfpackChatInterfaceProps {
@@ -26,6 +27,10 @@ export default function WolfpackChatInterface({
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showChannels, setShowChannels] = useState(!defaultSessionId);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +120,23 @@ export default function WolfpackChatInterface({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleAvatarClick = (userId: string, displayName: string, avatarUrl?: string) => {
+    // Don't open profile for current user's own messages
+    if (userId === user?.id) return;
+    
+    setSelectedUserId(userId);
+    setSelectedUserName(displayName);
+    setSelectedUserAvatar(avatarUrl || '');
+    setShowProfileModal(true);
+  };
+
+  const handleCloseProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedUserId(null);
+    setSelectedUserName('');
+    setSelectedUserAvatar('');
   };
 
   // Show channel list if no session selected
@@ -244,49 +266,77 @@ export default function WolfpackChatInterface({
           </div>
         ) : (
           <>
-            {state.messages.map((message) => (
-              <div key={message.id} className="flex gap-3">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  {message.avatar_url ? (
-                    <img
-                      src={message.avatar_url}
-                      alt={message.display_name}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium">
-                      {getAvatarFallback(message.display_name)}
-                    </div>
-                  )}
-                </div>
+            {state.messages.slice(-50).map((message, index) => {
+              const isCurrentUser = message.user_id === user?.id;
+              const isNewMessage = index === 0; // Most recent message is first
+              
+              return (
+                <div 
+                  key={message.id} 
+                  className={`flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${
+                    isCurrentUser ? 'flex-row-reverse' : ''
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => handleAvatarClick(message.user_id, message.display_name, message.avatar_url)}
+                      className={`h-8 w-8 rounded-full overflow-hidden transition-all duration-200 ${
+                        isCurrentUser 
+                          ? 'cursor-default ring-2 ring-blue-500/30' 
+                          : 'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105'
+                      } ${isCurrentUser && isNewMessage ? 'animate-pulse' : ''}`}
+                      disabled={isCurrentUser}
+                    >
+                      {message.avatar_url ? (
+                        <img
+                          src={message.avatar_url}
+                          alt={message.display_name}
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className={`h-full w-full flex items-center justify-center text-white text-xs font-medium rounded-full ${
+                          isCurrentUser ? 'bg-blue-600' : 'bg-gray-600'
+                        }`}>
+                          {getAvatarFallback(message.display_name)}
+                        </div>
+                      )}
+                    </button>
+                  </div>
 
-                {/* Message Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm text-gray-900">
-                      {message.display_name}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatMessageTime(message.created_at)}
-                    </span>
-                    {message.user_id === user?.id && (
-                      <Badge variant="outline" className="text-xs px-1 py-0">
-                        You
-                      </Badge>
-                    )}
-                    {message.is_flagged && (
-                      <Badge variant="destructive" className="text-xs px-1 py-0">
-                        Flagged
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-700 break-words">
-                    {message.content}
+                  {/* Message Content */}
+                  <div className={`flex-1 min-w-0 ${isCurrentUser ? 'text-right' : ''}`}>
+                    <div className={`flex items-center gap-2 mb-1 ${isCurrentUser ? 'justify-end' : ''}`}>
+                      <span className={`font-medium text-sm ${
+                        isCurrentUser ? 'text-blue-700' : 'text-gray-900'
+                      }`}>
+                        {message.display_name}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatMessageTime(message.created_at)}
+                      </span>
+                      {isCurrentUser && (
+                        <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-50 border-blue-200 text-blue-700">
+                          You
+                        </Badge>
+                      )}
+                      {message.is_flagged && (
+                        <Badge variant="destructive" className="text-xs px-1 py-0">
+                          Flagged
+                        </Badge>
+                      )}
+                    </div>
+                    <div className={`inline-block px-3 py-2 rounded-lg text-sm break-words max-w-xs md:max-w-md lg:max-w-lg ${
+                      isCurrentUser 
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' 
+                        : 'bg-gray-100 text-gray-800'
+                    } ${isCurrentUser && isNewMessage ? 'animate-in slide-in-from-right-2 duration-300' : ''}`}>
+                      {message.content}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -332,6 +382,17 @@ export default function WolfpackChatInterface({
           </p>
         )}
       </div>
+
+      {/* User Profile Modal */}
+      {selectedUserId && (
+        <UserProfileModal
+          isOpen={showProfileModal}
+          onClose={handleCloseProfileModal}
+          userId={selectedUserId}
+          userDisplayName={selectedUserName}
+          userAvatarUrl={selectedUserAvatar}
+        />
+      )}
     </Card>
   );
 }

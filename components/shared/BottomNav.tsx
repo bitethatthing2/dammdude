@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getZIndexClass } from '@/lib/constants/z-index';
 import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { useState, useEffect } from 'react';
@@ -140,7 +141,7 @@ export const BottomNav = () => {
   if (!isMounted) {
     // Return invisible placeholder with same dimensions to prevent layout shifts
     return (
-      <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom opacity-0 pointer-events-none">
+      <nav className={`fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md ${getZIndexClass('BOTTOM_NAV')} safe-area-inset-bottom opacity-0 pointer-events-none`}>
         <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
           {/* Placeholder content */}
           <div className="flex-1" />
@@ -149,14 +150,20 @@ export const BottomNav = () => {
     );
   }
 
-  // Check if we're on the DJ dashboard page
+  // Check if we're on the DJ dashboard page or chat pages
   const isDJDashboard = pathname === '/dj';
+  const isChatPage = pathname.startsWith('/wolfpack/chat');
+
+  // Hide BottomNav on chat pages
+  if (pathname.startsWith('/wolfpack/chat')) {
+    return null;
+  }
 
   return (
     <>
-      {/* Fixed Side Hustle Logo - positioned at top-left (hidden on DJ dashboard) */}
-      {!isDJDashboard && (
-        <div className="fixed top-2 left-2 z-50">
+      {/* Fixed Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
+      {!isDJDashboard && !isChatPage && (
+        <div className={`fixed top-2 left-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <DynamicLogo 
             type="brand"
             width={200}
@@ -166,9 +173,9 @@ export const BottomNav = () => {
         </div>
       )}
 
-      {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard) */}
-      {!isDJDashboard && (
-        <div className="fixed top-2 right-2 z-50">
+      {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard and chat) */}
+      {!isDJDashboard && !isChatPage && (
+        <div className={`fixed top-2 right-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-2">
             <ThemeControl />
           </div>
@@ -176,7 +183,7 @@ export const BottomNav = () => {
       )}
       
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md z-50 safe-area-inset-bottom">
+      <nav className={`fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md ${getZIndexClass('BOTTOM_NAV')} safe-area-inset-bottom`}>
         <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
           {navigationItems.map((item) => renderNavItem(item))}
         </div>

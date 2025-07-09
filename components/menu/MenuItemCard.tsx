@@ -1,5 +1,5 @@
 // components/menu/MenuItemCard.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Plus, Flame, Leaf, Star } from 'lucide-react';
 import MenuItemModal from './MenuItemModal';
 import { toast } from '@/components/ui/use-toast';
 import { useUser } from '@/hooks/useUser';
+import { OrderRequestService } from '@/lib/services/order-request.service';
 import Image from 'next/image';
 
 import type { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu';
@@ -14,6 +15,7 @@ import type { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu
 interface MenuItemCardProps {
   item: MenuItemWithModifiers;
   onAddToCart: (orderData: CartOrderData) => void;
+  locationId?: string;
 }
 
 // Get theme color based on category
@@ -213,7 +215,58 @@ const toBase64 = (str: string) =>
     ? Buffer.from(str).toString('base64')
     : window.btoa(str);
 
-// Simple function to check if user is in wolfpack
+// User status interface for ordering system
+interface UserOrderStatus {
+  has_open_tab: boolean;
+  is_side_hustle: boolean;
+  card_on_file: boolean;
+  is_wolfpack_member: boolean;
+}
+
+// Function to get user's order status
+const getUserOrderStatus = async (userId: string): Promise<UserOrderStatus> => {
+  try {
+    const { supabase } = await import('@/lib/supabase/client');
+    
+    // Get user's membership and financial status
+    const { data: userData } = await supabase
+      .from('users')
+      .select('has_open_tab, is_side_hustle, card_on_file, is_wolfpack_member')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    return {
+      has_open_tab: userData?.has_open_tab || false,
+      is_side_hustle: userData?.is_side_hustle || false,
+      card_on_file: userData?.card_on_file || false,
+      is_wolfpack_member: userData?.is_wolfpack_member || false
+    };
+  } catch {
+    return {
+      has_open_tab: false,
+      is_side_hustle: false,
+      card_on_file: false,
+      is_wolfpack_member: false
+    };
+  }
+};
+
+// Function to determine button text based on user status
+const getOrderButtonText = (userStatus: UserOrderStatus | null, isAvailable: boolean): string => {
+  if (!isAvailable) return 'Sold Out';
+  if (!userStatus) return 'Loading...';
+  if (!userStatus.is_wolfpack_member) return 'Join Pack to Order';
+  
+  // User is wolfpack member, check if they have an open tab
+  if (userStatus.has_open_tab) {
+    return 'Request to Order';
+  }
+  
+  // No open tab - must go to bartender first
+  return 'Open Tab at Bar First';
+};
+
+// Simple function to check if user is in wolfpack (keeping for backward compatibility)
 const checkWolfPackMembership = async (userId: string): Promise<boolean> => {
   try {
     const { supabase } = await import('@/lib/supabase/client');
@@ -230,18 +283,22 @@ const checkWolfPackMembership = async (userId: string): Promise<boolean> => {
   }
 };
 
-export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
+export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isWolfPackMember, setIsWolfPackMember] = useState<boolean | null>(null);
+  const [userOrderStatus, setUserOrderStatus] = useState<UserOrderStatus | null>(null);
   const { user } = useUser();
   
-  // Check wolfpack membership on component mount
-  useState(() => {
+  // Check user status on component mount
+  useEffect(() => {
     if (user?.id) {
-      checkWolfPackMembership(user.id).then(setIsWolfPackMember);
+      getUserOrderStatus(user.id).then(status => {
+        setUserOrderStatus(status);
+        setIsWolfPackMember(status.is_wolfpack_member);
+      });
     }
-  });
+  }, [user?.id]);
   
   const themeColor = getCategoryTheme(item.category?.name);
   
@@ -256,15 +313,36 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
                        item.name.toLowerCase().includes('veggie');
   const isPopular = item.name.toLowerCase().includes('popular');
 
-  // Handler for add button - either open modal or add directly
-  const handleAddClick = () => {
-    if (!item.is_available) return;
+  // Handler for add button - either create order request or add to cart
+  const handleAddClick = async () => {
+    if (!item.is_available || !user?.id || !locationId) return;
 
-    // Check if user is in Wolf Pack before allowing cart access
-    if (isWolfPackMember === false) {
+    // Check if user is in Wolf Pack
+    if (!userOrderStatus?.is_wolfpack_member) {
       toast({
         title: "🐺 Wolf Pack Membership Required",
-        description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
+        description: "You need to be in the Wolf Pack to order items. Join the pack to start ordering!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if user needs to open a tab first
+    if (!userOrderStatus.has_open_tab) {
+      toast({
+        title: "Tab Required",
+        description: "Please open a tab with the bartender first to start ordering.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if user can make order requests
+    const canOrder = await OrderRequestService.canUserMakeOrderRequests(user.id, locationId);
+    if (!canOrder) {
+      toast({
+        title: "Request Limit Reached",
+        description: "You have too many pending requests. Please wait for bartender approval.",
         variant: "destructive"
       });
       return;
@@ -273,28 +351,28 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (needsCustomization(item)) {
       setShowModal(true);
     } else {
-      const orderData: CartOrderData = {
-        item: {
-          id: item.id,
-          name: item.name,
-          price: Number(item.price)
-        },
-        modifiers: {
-          meat: null,
-          sauces: []
-        },
-        quantity: 1,
-        unitPrice: Number(item.price),
-        totalPrice: Number(item.price),
-        specialInstructions: ''
-      };
-      
-      onAddToCart(orderData);
-      
-      toast({
-        title: "Added to Cart",
-        description: `${item.name} added to your cart`,
-      });
+      // Create order request directly
+      try {
+        await OrderRequestService.createOrderRequest({
+          menu_item_id: item.id,
+          item_name: item.name,
+          item_price: Number(item.price),
+          quantity: 1,
+          user_id: user.id,
+          location_id: locationId
+        });
+
+        toast({
+          title: "Order Request Sent",
+          description: `Request for ${item.name} sent to bartender for approval`,
+        });
+      } catch (error) {
+        toast({
+          title: "Request Failed",
+          description: "Failed to send order request. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
   
@@ -303,23 +381,29 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
       <Card>
         <CardContent className="p-3">
           <div className="md:flex gap-4">
-            {/* Image with proper sizes and lazy loading */}
+            {/* Image with mobile-first sizing constraints */}
             {foodImageUrl && !imageError ? (
-              <div className="w-32 h-24 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-18 lg:w-28 lg:h-20 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
                 <Image
                   src={foodImageUrl}
                   alt={item.name}
                   fill
-                  sizes="(max-width: 768px) 128px, 128px"
-                  className="object-cover"
+                  sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
+                  className="object-cover object-center"
                   loading="lazy"
                   placeholder="blur"
-                  blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(128, 96))}`}
+                  blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(64, 64))}`}
                   onError={() => setImageError(true)}
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%',
+                    width: '100%',
+                    height: '100%'
+                  }}
                 />
               </div>
             ) : (
-              <div className={`w-2 h-24 ${themeColor} rounded-full flex-shrink-0`} />
+              <div className={`w-1 h-16 sm:h-20 md:h-18 lg:h-20 ${themeColor} rounded-full flex-shrink-0`} />
             )}
             
             {/* Content */}
@@ -359,14 +443,12 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
               {/* Add Button - Touch-friendly size */}
               <Button
                 onClick={handleAddClick}
-                disabled={!item.is_available || isWolfPackMember === null}
+                disabled={!item.is_available || userOrderStatus === null}
                 variant="secondary"
                 className="w-full mt-3 h-10 sm:h-9 text-sm sm:text-base font-medium touch-manipulation"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
-                {!item.is_available ? 'Sold Out' : 
-                 isWolfPackMember === null ? 'Loading...' :
-                 isWolfPackMember === false ? 'Join Pack to Order' : 'Add'}
+                {getOrderButtonText(userOrderStatus, item.is_available)}
               </Button>
             </div>
           </div>
@@ -384,19 +466,23 @@ export default function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
 }
 
 // Alternative Compact List View for Mobile
-export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
+export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isWolfPackMember, setIsWolfPackMember] = useState<boolean | null>(null);
+  const [userOrderStatus, setUserOrderStatus] = useState<UserOrderStatus | null>(null);
   const { user } = useUser();
   const themeColor = getCategoryTheme(item.category?.name);
   
-  // Check wolfpack membership on component mount
-  useState(() => {
+  // Check user status on component mount
+  useEffect(() => {
     if (user?.id) {
-      checkWolfPackMembership(user.id).then(setIsWolfPackMember);
+      getUserOrderStatus(user.id).then(status => {
+        setUserOrderStatus(status);
+        setIsWolfPackMember(status.is_wolfpack_member);
+      });
     }
-  });
+  }, [user?.id]);
   
   // Get the food image URL for this item - prioritize database images
   const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
@@ -404,15 +490,36 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     ? `${baseImageUrl}?v=${Date.now()}` 
     : baseImageUrl;
   
-  // Handler for add button - either open modal or add directly
-  const handleAddClick = () => {
-    if (!item.is_available) return;
+  // Handler for add button - either create order request or add to cart
+  const handleAddClick = async () => {
+    if (!item.is_available || !user?.id || !locationId) return;
 
-    // Check if user is in Wolf Pack before allowing cart access
-    if (isWolfPackMember === false) {
+    // Check if user is in Wolf Pack
+    if (!userOrderStatus?.is_wolfpack_member) {
       toast({
         title: "🐺 Wolf Pack Membership Required",
-        description: "You need to be in the Wolf Pack to add items to cart. Join the pack to start ordering!",
+        description: "You need to be in the Wolf Pack to order items. Join the pack to start ordering!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if user needs to open a tab first
+    if (!userOrderStatus.has_open_tab) {
+      toast({
+        title: "Tab Required",
+        description: "Please open a tab with the bartender first to start ordering.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if user can make order requests
+    const canOrder = await OrderRequestService.canUserMakeOrderRequests(user.id, locationId);
+    if (!canOrder) {
+      toast({
+        title: "Request Limit Reached",
+        description: "You have too many pending requests. Please wait for bartender approval.",
         variant: "destructive"
       });
       return;
@@ -421,49 +528,55 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
     if (needsCustomization(item)) {
       setShowModal(true);
     } else {
-      const orderData: CartOrderData = {
-        item: {
-          id: item.id,
-          name: item.name,
-          price: Number(item.price)
-        },
-        modifiers: {
-          meat: null,
-          sauces: []
-        },
-        quantity: 1,
-        unitPrice: Number(item.price),
-        totalPrice: Number(item.price),
-        specialInstructions: ''
-      };
-      
-      onAddToCart(orderData);
-      
-      toast({
-        title: "Added to Cart",
-        description: `${item.name} added to your cart`,
-      });
+      // Create order request directly
+      try {
+        await OrderRequestService.createOrderRequest({
+          menu_item_id: item.id,
+          item_name: item.name,
+          item_price: Number(item.price),
+          quantity: 1,
+          user_id: user.id,
+          location_id: locationId
+        });
+
+        toast({
+          title: "Order Request Sent",
+          description: `Request for ${item.name} sent to bartender for approval`,
+        });
+      } catch (error) {
+        toast({
+          title: "Request Failed",
+          description: "Failed to send order request. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
   
   return (
     <>
       <div className="menu-item-compact flex items-center gap-3 p-2">
-        {/* Small image/color indicator with fixed dimensions */}
+        {/* Small image/color indicator with mobile-first constraints */}
         {foodImageUrl && !imageError ? (
-          <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
             <Image
               src={foodImageUrl}
               alt={item.name}
-              width={48}
-              height={48}
-              className="object-cover"
+              width={40}
+              height={40}
+              className="object-cover object-center"
               loading="lazy"
               onError={() => setImageError(true)}
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '100%',
+                width: '100%',
+                height: '100%'
+              }}
             />
           </div>
         ) : (
-          <div className={`w-2 h-12 ${themeColor} rounded-full flex-shrink-0`} />
+          <div className={`w-1 h-10 sm:h-12 ${themeColor} rounded-full flex-shrink-0`} />
         )}
         
         {/* Content */}
@@ -482,14 +595,15 @@ export function CompactMenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
         {/* Add Button */}
         <Button
           onClick={handleAddClick}
-          disabled={!item.is_available || isWolfPackMember === null}
+          disabled={!item.is_available || userOrderStatus === null}
           variant="secondary"
-          className="w-16 h-9 text-sm font-medium"
+          className="w-20 h-9 text-xs font-medium"
         >
-          <Plus className="w-4 h-4 mr-1.5" />
+          <Plus className="w-3 h-3 mr-1" />
           {!item.is_available ? 'Out' : 
-           isWolfPackMember === null ? '...' :
-           isWolfPackMember === false ? 'Join' : 'Add'}
+           userOrderStatus === null ? '...' :
+           !userOrderStatus.is_wolfpack_member ? 'Join' :
+           userOrderStatus.has_open_tab ? 'Request' : 'Tab Required'}
         </Button>
       </div>
 

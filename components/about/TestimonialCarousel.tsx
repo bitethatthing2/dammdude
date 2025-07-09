@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Testimonial } from "@/lib/types/about";
+import { Testimonial } from "@/types/features/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";
 import { Quote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";

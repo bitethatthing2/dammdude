@@ -148,7 +148,7 @@ window.debugSendMessage = async function(content = 'Debug test message', session
       // Step 4: Direct insert fallback
       console.log('Step 4: Direct insert fallback...');
       const { data: insertData, error: insertError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .insert({
           session_id: sessionId,
           user_id: profile.id,
@@ -204,7 +204,7 @@ window.debugGetMessages = async function(sessionId = 'general') {
       // Method 2: Direct query
       console.log('Method 2: Direct query...');
       const { data: directData, error: directError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)

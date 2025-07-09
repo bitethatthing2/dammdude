@@ -1,7 +1,7 @@
 // lib/supabase/enhanced-wolfpack-client.ts
 // Enhanced realtime client that integrates with DJ Dashboard and handles RLS, relationships, and user ID issues
 
-import { Database } from '@/lib/database.types'
+import { Database } from '@/types/database.types'
 import { LOCATION_CONFIG } from '@/types/features/dj-dashboard-types'
 import { handleSupabaseError, createClient } from '@/lib/supabase/client'
 

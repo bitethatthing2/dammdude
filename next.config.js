@@ -56,6 +56,11 @@ const nextConfig = {
     },
   },
   
+  // Better dev server configuration
+  devIndicators: {
+    buildActivityPosition: 'bottom-right',
+  },
+  
   // Compression
   compress: true,
   

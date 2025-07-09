@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { TeamMember } from "@/lib/types/about";
+import { TeamMember } from "@/types/features/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";
 import { TeamMemberCard } from "./TeamMemberCard";
 

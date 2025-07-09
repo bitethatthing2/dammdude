@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
+import { ProfileImageUploaderWithHistory } from '@/components/shared/ImageHistoryViewer';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
@@ -119,10 +120,10 @@ export function WolfpackProfileManager() {
   const [profile, setProfile] = useState<WolfProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   // Initialize supabase client
   const supabase = createClient();
+  
   
   // Form state with proper typing
   const [formData, setFormData] = useState<FormData>({
@@ -223,61 +224,6 @@ export function WolfpackProfileManager() {
     }
   }, [userLoading, user, loadProfile]);
 
-  // Handle avatar upload
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user?.id) return;
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-
-    setUploadingAvatar(true);
-
-    try {
-      // Create FormData for upload
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('imageType', 'profile');
-
-      // Upload through API endpoint
-      const response = await fetch('/api/upload/images', {
-        method: 'POST',
-        body: uploadFormData
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Upload failed');
-      }
-
-      if (!result.image_url) {
-        throw new Error('No image URL returned from upload');
-      }
-
-      // Save profile with new avatar URL
-      await saveProfile({
-        ...formData,
-        profile_image_url: result.image_url
-      }, false);
-
-      toast.success('Avatar uploaded successfully!');
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to upload avatar: ${errorMessage}`);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
 
   // Save profile with proper typing
   const saveProfile = async (data: FormData = formData, showToast = true) => {
@@ -295,36 +241,36 @@ export function WolfpackProfileManager() {
 
     setSaving(true);
 
+    // Prepare profile data with proper typing (moved outside try block)
+    // Note: Don't include 'id' in update data - it's used in the WHERE clause
+    const profileData = {
+      display_name: data.display_name || null,
+      bio: data.bio || null,
+      favorite_drink: data.favorite_drink || null,
+      favorite_song: data.favorite_song || null,
+      instagram_handle: data.instagram_handle ? 
+        data.instagram_handle.replace('@', '') : null,
+      vibe_status: data.vibe_status || null,
+      wolf_emoji: data.wolf_emoji,
+      looking_for: data.looking_for || null,
+      gender: data.gender || null,
+      pronouns: data.pronouns || null,
+      is_profile_visible: data.is_profile_visible,
+      allow_messages: data.allow_messages,
+      favorite_bartender: data.favorite_bartender || null,
+      // Preserve existing image URLs if they exist
+      profile_pic_url: profile?.profile_pic_url || null,
+      profile_image_url: profile?.profile_image_url || null,
+      custom_avatar_id: profile?.custom_avatar_id || null
+    };
+
+    // If data contains profile_image_url (from avatar upload), use it
+    if (data.profile_image_url) {
+      profileData.profile_image_url = data.profile_image_url;
+      profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
+    }
+
     try {
-      // Prepare profile data with proper typing
-      const profileData = {
-        id: user.id,
-        display_name: data.display_name || null,
-        bio: data.bio || null,
-        favorite_drink: data.favorite_drink || null,
-        favorite_song: data.favorite_song || null,
-        instagram_handle: data.instagram_handle ? 
-          data.instagram_handle.replace('@', '') : null,
-        vibe_status: data.vibe_status || null,
-        wolf_emoji: data.wolf_emoji,
-        looking_for: data.looking_for || null,
-        gender: data.gender || null,
-        pronouns: data.pronouns || null,
-        is_profile_visible: data.is_profile_visible,
-        allow_messages: data.allow_messages,
-        favorite_bartender: data.favorite_bartender || null,
-        // Preserve existing image URLs if they exist
-        profile_pic_url: profile?.profile_pic_url || null,
-        profile_image_url: profile?.profile_image_url || null,
-        custom_avatar_id: profile?.custom_avatar_id || null
-      };
-
-      // If data contains profile_image_url (from avatar upload), use it
-      if (data.profile_image_url) {
-        profileData.profile_image_url = data.profile_image_url;
-        profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
-      }
-
       const { data: savedData, error } = await supabase
         .from('users')
         .update(profileData)
@@ -456,35 +402,21 @@ export function WolfpackProfileManager() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            {/* Avatar Section */}
+            {/* Avatar Section with History */}
             <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <AvatarWithFallback
-                  src={avatarUrl}
-                  name={formData.display_name}
-                  emoji={formData.wolf_emoji}
-                  size="xl"
-                  className="h-24 w-24"
-                />
-                
-                <label className={cn(
-                  "absolute -bottom-2 -right-2 p-2 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors",
-                  uploadingAvatar && "opacity-50 cursor-not-allowed"
-                )}>
-                  {uploadingAvatar ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={uploadingAvatar}
-                  />
-                </label>
-              </div>
+              <ProfileImageUploaderWithHistory
+                userId={user.id}
+                currentImageUrl={avatarUrl}
+                displayName={formData.display_name}
+                emoji={formData.wolf_emoji}
+                onSuccess={(newImageUrl) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    profile_image_url: newImageUrl
+                  }));
+                  loadProfile();
+                }}
+              />
               
               <div className="text-center">
                 <p className="font-medium">{formData.display_name || 'Your Name'}</p>

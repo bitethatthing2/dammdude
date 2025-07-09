@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 // Use the generated type from Supabase
 export type DatabaseUser = Database['public']['Tables']['users']['Row'];

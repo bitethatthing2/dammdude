@@ -38,7 +38,15 @@
       "Bash(PORT=3001 npm run dev)",
       "Bash(timeout 15 npx tsc --noEmit --pretty)",
       "Bash(mkdir:*)",
-      "Bash(printenv)"
+      "Bash(printenv)",
+      "Bash(git clean:*)",
+      "Bash(timeout 5s npm run dev -- --port 3001)",
+      "Bash(timeout 8s npm run dev -- --port 3001)",
+      "Bash(git log:*)",
+      "Bash(npx next dev:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)",
+      "Bash(tail:*)",
+      "Bash(awk:*)"
     ]
   },
   "enableAllProjectMcpServers": false

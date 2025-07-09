@@ -27,11 +27,14 @@ import {
   CheckCircle,
   XCircle,
   Mic,
-  Volume2
+  Volume2,
+  StopCircle
 } from 'lucide-react';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
+import { useDJDashboard } from '@/hooks/useDJDashboard';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { EngagementScoringService } from '@/lib/services/engagement-scoring.service';
 
 // Import existing components
 import { BroadcastForm } from './BroadcastForm';
@@ -671,6 +674,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
   const { assignedLocation, isActiveDJ, canSendMassMessages, isLoading: permissionsLoading } = djPermissions;
   const currentLocation = location || assignedLocation || 'salem';
   const locationConfig = LOCATION_CONFIG[currentLocation];
+  
+  // DJ Dashboard actions
+  const { endBroadcast } = useDJDashboard(currentLocation);
 
   // Core State
   const [activeBroadcasts, setActiveBroadcasts] = useState<ActiveBroadcastLive[]>([]);
@@ -740,22 +746,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
         setActiveBroadcasts(broadcasts || []);
       }
 
-      // Set mock data for now until database is properly set up
-      setLiveStats({
-        total_active: 15,
-        very_active: 8,
-        gender_breakdown: { male: 7, female: 8 },
-        recent_interactions: {
-          total_interactions: 23,
-          active_participants: 12
-        },
-        energy_level: 75,
-        top_vibers: [
-          { user_id: '1', name: 'Sarah', avatar: null, vibe: '🔥' },
-          { user_id: '2', name: 'Mike', avatar: null, vibe: '✨' },
-          { user_id: '3', name: 'Jessica', avatar: null, vibe: '💃' }
-        ]
-      });
+      // Get real-time engagement data
+      const liveStatsData = await EngagementScoringService.getLiveStats(locationConfig.id);
+      setLiveStats(liveStatsData);
 
       setAnalytics({
         timeframe: 'today',
@@ -829,11 +822,51 @@ export function DJDashboard({ location }: DJDashboardProps) {
                 : broadcast
             )
           );
+          
+          // Refresh engagement data when new responses come in
+          refreshEngagementData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wolfpack_chat_messages'
+        },
+        () => {
+          // Refresh engagement data when new chat messages come in
+          refreshEngagementData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wolf_pack_interactions'
+        },
+        () => {
+          // Refresh engagement data when new interactions come in
+          refreshEngagementData();
         }
       )
       .subscribe();
 
   }, [locationConfig.id, fetchDashboardData]);
+
+  // =============================================================================
+  // ENGAGEMENT DATA REFRESH
+  // =============================================================================
+  
+  const refreshEngagementData = useCallback(async () => {
+    try {
+      const liveStatsData = await EngagementScoringService.getLiveStats(locationConfig.id);
+      setLiveStats(liveStatsData);
+    } catch (error) {
+      console.error('Error refreshing engagement data:', error);
+    }
+  }, [locationConfig.id]);
 
   // =============================================================================
   // DASHBOARD ACTIONS WITH ENHANCED TYPE SAFETY
@@ -993,6 +1026,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
         // Setup analytics refresh interval
         analyticsIntervalRef.current = setInterval(() => {
           fetchDashboardData(false);
+          refreshEngagementData(); // Also refresh engagement data
         }, 30000); // Refresh every 30 seconds
       }
     };
@@ -1010,7 +1044,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
         analyticsIntervalRef.current = null;
       }
     };
-  }, [permissionsLoading, isActiveDJ, canSendMassMessages, currentUser, fetchDashboardData, setupRealtimeSubscription]);
+  }, [permissionsLoading, isActiveDJ, canSendMassMessages, currentUser, fetchDashboardData, setupRealtimeSubscription, refreshEngagementData]);
 
   // =============================================================================
   // PERMISSION CHECK
@@ -1303,51 +1337,107 @@ export function DJDashboard({ location }: DJDashboardProps) {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
             {/* Top Performers */}
-            {liveStats?.top_vibers && liveStats.top_vibers.length > 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
                     Tonight&apos;s Top Crowd Members
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </div>
+                  {isLoading && (
+                    <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, index) => (
+                      <div key={index} className="flex items-center gap-3 p-2">
+                        <Skeleton className="w-8 h-8 rounded-full" />
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="w-24 h-4" />
+                          <Skeleton className="w-16 h-3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">Unable to Load Top Members</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      There was an issue loading engagement data.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Retry
+                    </Button>
+                  </div>
+                ) : liveStats?.top_vibers && liveStats.top_vibers.length > 0 ? (
                   <div className="space-y-3">
                     {liveStats.top_vibers.slice(0, 5).map((viper, index) => (
-                      <div key={viper.user_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div key={viper.user_id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
                         <div className="text-lg font-bold w-8 text-center">
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                         </div>
                         <img
                           src={viper.avatar || '/images/product-placeholder.jpg'} 
                           alt={viper.name}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-border"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/images/product-placeholder.jpg';
                           }}
                         />
                         <div className="flex-1">
-                          <p className="font-medium">{viper.name}</p>
-                          {viper.vibe && (
-                            <p className="text-xs text-muted-foreground">{viper.vibe}</p>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{viper.name}</p>
+                            {viper.vibe && (
+                              <span className="text-lg" title="Vibe">{viper.vibe}</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {index === 0 ? 'Top Performer' : index === 1 ? 'High Engagement' : index === 2 ? 'Active Member' : 'Regular Participant'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <p className="text-xs text-muted-foreground mt-1">Live</p>
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Show refresh time */}
+                    <div className="text-center pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Last updated: {new Date().toLocaleTimeString()}
+                      </p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold mb-2">No Active Participants Yet</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Start broadcasting to see your top crowd members here
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">No Active Participants Yet</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Start broadcasting to see your top crowd members here
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('broadcasts')}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Create Broadcast
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Quick Tips */}
             <Card>
@@ -1444,7 +1534,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
                     <CardContent>
                       <p className="text-sm mb-4">{broadcast.message}</p>
                       
-                      <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="grid grid-cols-3 gap-4 text-center mb-4">
                         <div>
                           <p className="text-2xl font-bold">{broadcast.unique_participants || 0}</p>
                           <p className="text-xs text-muted-foreground">Participants</p>
@@ -1469,6 +1559,31 @@ export function DJDashboard({ location }: DJDashboardProps) {
                           )}
                         </div>
                       </div>
+                      
+                      {/* End Broadcast Button - Only show for active broadcasts */}
+                      {broadcast.status === 'active' && (
+                        <div className="flex justify-end">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await endBroadcast(broadcast.id);
+                                toast.success('Broadcast ended successfully');
+                                // Refresh broadcasts to update the display
+                                window.location.reload();
+                              } catch (error) {
+                                console.error('Error ending broadcast:', error);
+                                toast.error('Failed to end broadcast');
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <StopCircle className="w-4 h-4" />
+                            End Broadcast
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

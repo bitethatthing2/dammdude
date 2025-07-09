@@ -85,8 +85,8 @@ ORDER BY p.proname;
 ```
 
 **Expected Functions:**
-- ✅ `send_wolfpack_chat_message(p_session_id text, p_content text, p_message_type text)`
-- ✅ `get_wolfpack_chat_messages(p_session_id text, p_limit integer, p_offset integer)`
+- ✅ `send_wolfpack_chat_message(p_message_typetext, p_content text, p_message_type text)`
+- ✅ `get_wolfpack_chat_messages(p_message_typetext, p_limit integer, p_offset integer)`
 
 ### Step 2.2: Function Testing
 ```javascript
@@ -246,7 +246,7 @@ async function debugSendMessage(content, sessionId = 'general') {
       // Step 4: Try fallback - direct insert
       console.log('Step 4: Trying direct insert fallback...');
       const { data: insertData, error: insertError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .insert({
           session_id: sessionId,
           user_id: profile.id,
@@ -303,7 +303,7 @@ async function debugGetMessages(sessionId = 'general') {
       // Method 2: Direct query
       console.log('Method 2: Direct table query...');
       const { data: directData, error: directError } = await supabase
-        .from('wolfpack_chat_messages')
+        .from(wolfpack_chat_messages')
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)
