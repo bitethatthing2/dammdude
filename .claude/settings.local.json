@@ -48,7 +48,8 @@
       "Bash(tail:*)",
       "Bash(awk:*)",
       "Bash(npm uninstall:*)",
-      "Bash(magick:*)"
+      "Bash(magick:*)",
+      "Bash(npm audit:*)"
     ]
   },
   "enableAllProjectMcpServers": false

@@ -48,7 +48,12 @@ self.addEventListener('install', event => {
           '/icons/android-lil-icon-white.png',
           '/icons/view-order-icon.png',
           '/icons/link-icon.png',
-          '/icons/action-icon.png'
+          '/icons/action-icon.png',
+          '/icons/icon-96x96.png',
+          '/icons/icon-128x128.png',
+          '/icons/icon-152x152.png',
+          '/icons/icon-384x384.png',
+          '/icons/quick-order-96x96.png'
         ];
         
         // Cache each file individually to prevent one failure from stopping all caching
