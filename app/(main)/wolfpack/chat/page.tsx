@@ -795,7 +795,7 @@ export default function EnhancedWolfpackChatPage() {
 
       {/* Spatial View */}
       <div 
-        className={`relative z-10 h-[calc(100vh-80px)] sm:h-[calc(100vh-80px)] p-4 sm:p-6 pb-20 overflow-hidden`}
+        className={`relative z-10 h-[calc(100vh-80px)] sm:h-[calc(100vh-80px)] p-2 sm:p-4 md:p-6 pb-24 sm:pb-20 overflow-hidden`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -832,7 +832,7 @@ export default function EnhancedWolfpackChatPage() {
             >
               {/* Avatar Container - this is what the bubble positions relative to */}
               <div 
-                className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 overflow-hidden ${
+                className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 overflow-hidden ${
                   member.role === 'current' ? 'border-blue-400' : 'border-white'
                 } ${member.role !== 'current' ? 'cursor-pointer hover:border-yellow-400' : ''}`}
                 onClick={() => member.role !== 'current' && handleAvatarClick(member)}
@@ -910,9 +910,9 @@ export default function EnhancedWolfpackChatPage() {
 
       {/* Session Area - showing chat history */}
       <div 
-        className={`fixed ${isSessionPanelCollapsed ? 'left-2' : 'left-2 right-2 sm:left-4 sm:right-auto w-auto sm:w-80'} bg-black/80 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden ${getZIndexClass('STICKY_ELEMENT')} transition-all duration-300 bottom-20 ${isSessionPanelCollapsed ? 'w-auto' : ''} ${!isSessionPanelCollapsed && !isPrivateMode ? 'h-40 sm:h-64' : ''}`}
+        className={`fixed ${isSessionPanelCollapsed ? 'left-2' : 'left-2 right-2 sm:left-4 sm:right-auto w-auto sm:w-80'} bg-black/80 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden ${getZIndexClass('STICKY_ELEMENT')} transition-all duration-300 bottom-20 ${isSessionPanelCollapsed ? 'w-auto' : ''} ${!isSessionPanelCollapsed && !isPrivateMode ? 'h-40 sm:h-48' : ''}`}
       >
-        <div className="p-3 border-b border-white/20">
+        <div className="p-2 sm:p-3 border-b border-white/20">
           <div className="flex items-center justify-between">
             {isSessionPanelCollapsed ? (
               <div className="flex items-center gap-2 text-sm">
@@ -933,7 +933,7 @@ export default function EnhancedWolfpackChatPage() {
             )}
             <button
               onClick={() => setIsSessionPanelCollapsed(!isSessionPanelCollapsed)}
-              className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+              className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label={isSessionPanelCollapsed ? 'Expand session panel' : 'Collapse session panel'}
               title={isSessionPanelCollapsed ? 'Expand session panel' : 'Collapse session panel'}
             >
@@ -953,10 +953,10 @@ export default function EnhancedWolfpackChatPage() {
           <div 
             ref={messageContainerRef}
             onScroll={handleScroll}
-            className={`h-32 sm:h-52 overflow-y-scroll overflow-x-hidden p-2 sm:p-3 space-y-2 sm:space-y-3 relative transition-all duration-300 ${
+            className={`h-32 sm:h-40 overflow-y-scroll overflow-x-hidden p-2 sm:p-3 space-y-1 sm:space-y-2 relative transition-all duration-300 ${
               isPrivateMode 
-                ? 'h-20 sm:h-32' // Height when at top
-                : 'h-32 sm:h-80' // Normal scrollable area
+                ? 'h-24 sm:h-32' // Height when at top
+                : 'h-32 sm:h-40' // Normal scrollable area
             }`}
           >
           {sessionMessages.map((msg) => {
@@ -1129,7 +1129,7 @@ export default function EnhancedWolfpackChatPage() {
 
       {/* Private Message Modal - SEPARATE FROM CHAT INPUT */}
       {isPrivateMode && privateMessageTarget && (
-        <div className="fixed left-4 right-4 bg-purple-600/90 rounded-lg p-3 border border-purple-500/50 backdrop-blur-md" style={{ bottom: '100px', zIndex: 999 }}>
+        <div className="fixed left-2 right-2 sm:left-4 sm:right-4 bg-purple-600/90 rounded-lg p-3 border border-purple-500/50 backdrop-blur-md" style={{ bottom: '100px', zIndex: 999 }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
@@ -1167,7 +1167,7 @@ export default function EnhancedWolfpackChatPage() {
       )}
 
       {/* Chat Input */}
-      <div className={`fixed left-0 right-0 bottom-0 ${getZIndexClass('CHAT_INPUT')} p-3 bg-white/10 backdrop-blur-md border-t border-white/20 safe-area-inset-bottom`}>
+      <div className={`fixed left-0 right-0 bottom-0 ${getZIndexClass('CHAT_INPUT')} p-3 sm:p-4 bg-white/10 backdrop-blur-md border-t border-white/20 safe-area-inset-bottom`}>
         
         <div className="relative">
           {/* Emoji Picker */}
@@ -1179,7 +1179,7 @@ export default function EnhancedWolfpackChatPage() {
 
           {/* Media Options */}
           {showMediaOptions && (
-            <div className="absolute bottom-full left-0 mb-2 bg-white/95 backdrop-blur-md border border-white/20 rounded-lg shadow-lg p-3 min-w-48">
+            <div className="absolute bottom-full left-0 mb-2 bg-white/95 backdrop-blur-md border border-white/20 rounded-lg shadow-lg p-3 min-w-48 w-full sm:w-auto">
               <div className="space-y-2">
                 <button
                   onClick={() => {
@@ -1187,7 +1187,7 @@ export default function EnhancedWolfpackChatPage() {
                     triggerImageUpload();
                   }}
                   disabled={isUploadingImage}
-                  className="flex items-center gap-3 w-full p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-3 w-full p-3 sm:p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                   title="Upload an image"
                 >
                   <ImageIcon className="w-5 h-5 text-blue-600" />
@@ -1202,7 +1202,7 @@ export default function EnhancedWolfpackChatPage() {
                     handleEmojiSelect('🔥');
                     setShowMediaOptions(false);
                   }}
-                  className="flex items-center gap-3 w-full p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full p-3 sm:p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px]"
                   title="Add fire emoji"
                 >
                   <span className="text-lg">🔥</span>
@@ -1213,7 +1213,7 @@ export default function EnhancedWolfpackChatPage() {
                     handleEmojiSelect('🐺');
                     setShowMediaOptions(false);
                   }}
-                  className="flex items-center gap-3 w-full p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full p-3 sm:p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px]"
                   title="Add wolf emoji"
                 >
                   <span className="text-lg">🐺</span>
@@ -1231,7 +1231,7 @@ export default function EnhancedWolfpackChatPage() {
             {/* Media/Plus Button */}
             <button
               onClick={toggleMediaOptions}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${
+              className={`w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border ${
                 showMediaOptions 
                   ? 'bg-blue-600 border-blue-500 text-white' 
                   : 'bg-white/20 border-white/30 text-white hover:bg-white/30 hover:border-white/50'
@@ -1245,7 +1245,7 @@ export default function EnhancedWolfpackChatPage() {
             {/* Input Field */}
             <input 
               type="text" 
-              className={`flex-1 ${isPrivateMode ? 'bg-purple-900/30' : 'bg-white/20'} border ${isPrivateMode ? 'border-purple-500/50' : 'border-white/30'} rounded-full px-4 py-2 text-white placeholder-gray-300`}
+              className={`flex-1 ${isPrivateMode ? 'bg-purple-900/30' : 'bg-white/20'} border ${isPrivateMode ? 'border-purple-500/50' : 'border-white/30'} rounded-full px-4 py-3 sm:py-2 text-white placeholder-gray-300 text-base sm:text-sm`}
               placeholder={
                 isPrivateMode 
                   ? `Private message to ${privateMessageTarget?.name}...` 
@@ -1260,7 +1260,7 @@ export default function EnhancedWolfpackChatPage() {
             {/* Emoji Button */}
             <button
               onClick={toggleEmojiPicker}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${
+              className={`w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border ${
                 showEmojiPicker 
                   ? 'bg-blue-600 border-blue-500 text-white' 
                   : 'bg-white/20 border-white/30 text-white hover:bg-white/30 hover:border-white/50'
@@ -1275,7 +1275,7 @@ export default function EnhancedWolfpackChatPage() {
             <button 
               onClick={sendMessage}
               disabled={!chatMessage.trim() || isSendingMessage}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${
+              className={`w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border ${
                 !chatMessage.trim() || isSendingMessage
                   ? 'bg-gray-600/50 border-gray-500/50 text-gray-400 cursor-not-allowed'
                   : isPrivateMode 
@@ -1312,11 +1312,11 @@ export default function EnhancedWolfpackChatPage() {
           />
           
           {/* Profile Card */}
-          <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-white/20 p-6 max-w-md w-full shadow-2xl animate-profile-popup">
+          <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-white/20 p-4 sm:p-6 max-w-md w-full shadow-2xl animate-profile-popup max-h-[90vh] overflow-y-auto">
             {/* Close button */}
             <button 
               onClick={closeProfile}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
               type="button"
               title="Close profile"
             >

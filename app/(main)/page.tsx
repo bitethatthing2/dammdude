@@ -43,35 +43,35 @@ export default function Page() {
 
   return (
     <div className="main-content bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="container mx-auto px-4 py-2 sm:py-3 space-y-2 sm:space-y-3">
         {/* Original Home Page Content */}
         <div className="flex flex-col items-center relative">
 
 
           {/* Wolf Icon - Much bigger (3x+), centered, and responsive */}
-          <div className="w-full flex justify-center items-center px-4 mt-16"> 
+          <div className="w-full flex justify-center items-center px-4 mt-4 sm:mt-8"> 
             {mounted ? (
               <DynamicLogo 
                 type="wolf"
                 width={800}
                 height={800}
-                className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] xl:w-[36rem] xl:h-[36rem] object-contain"
+                className="w-48 h-48 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 xl:w-[30rem] xl:h-[30rem] object-contain"
                 alt="Side Hustle Wolf Icon"
               />
             ) : (
-              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-muted animate-pulse rounded-full" />
+              <div className="w-48 h-48 sm:w-72 sm:h-72 md:w-80 md:h-80 bg-muted animate-pulse rounded-full" />
             )}
           </div>
           
           {/* Centered Location Switcher - Constrained width */}
-          <div className="flex justify-center mt-0 mb-1 w-full max-w-md px-4"> 
+          <div className="flex justify-center mt-0 mb-1 w-full max-w-md sm:max-w-lg px-4"> 
             <LocationSwitcher />
           </div>
           
           {/* Enhanced Bar Description Card - Wrapped for padding */}
-          <div className="w-full max-w-md px-4 mt-4 mb-4"> 
+          <div className="w-full max-w-md sm:max-w-lg px-4 mt-1 mb-1 sm:mt-2 sm:mb-2"> 
             <Card className="bg-transparent border border-primary shadow-none"> 
-              <CardContent className="p-4 text-center space-y-2"> 
+              <CardContent className="p-3 sm:p-4 text-center space-y-1 sm:space-y-2"> 
                 <h2 className="text-lg font-semibold tracking-tight"> 
                   High Energy Sports Bar
                 </h2>
@@ -96,7 +96,7 @@ export default function Page() {
           </div>
           
           {/* Get Full Experience Card - Wrapped for padding */}
-          <div className="w-full max-w-md px-4 mt-4 mb-2"> 
+          <div className="w-full max-w-md sm:max-w-lg px-4 mt-2 mb-1"> 
             <Card className="bg-transparent border border-primary shadow-none"> 
               <CardHeader className="pb-1 px-3 pt-3 sm:pb-2 sm:px-4 sm:pt-4">
                 <CardTitle className="text-sm sm:text-base font-semibold">Get the Full Experience</CardTitle>
@@ -145,9 +145,9 @@ export default function Page() {
           </div>
 
           {/* Order Online Section */}
-          <div className="w-full max-w-md px-4 mt-6 mb-32">
-            <h2 className="text-lg font-semibold mb-4 text-center">Order Online</h2>
-            <div className="space-y-3">
+          <div className="w-full max-w-md px-4 mt-4 mb-32">
+            <h2 className="text-lg font-semibold mb-3 text-center">Order Online</h2>
+            <div className="space-y-2">
               {/* DoorDash Button */}
               <button
                 onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/?rwg_token=ACgRB3exS_UE0v2-5IhbmqYOfovUT1i9W1wAY2C48dJqakkaWX27DmNOgUyGwJNV1F7TdH9ezS8mhE5LxjaxGq-Evp9grjMhmA==&utm_campaign=gpa', '_blank', 'noopener,noreferrer')}
@@ -213,19 +213,19 @@ export default function Page() {
             </div>
 
             {/* Additional Quick Actions */}
-            <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="grid grid-cols-2 gap-2 mt-4">
               <Link href="/menu">
                 <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <Utensils className="h-5 w-5 text-primary mb-2" />
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <Utensils className="h-5 w-5 text-primary mb-1" />
                     <span className="text-sm font-medium text-foreground">View Menu</span>
                   </CardContent>
                 </Card>
               </Link>
               <Link href="/wolfpack">
                 <Card className="bg-transparent border border-primary shadow-none cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <Users className="h-5 w-5 text-primary mb-2" />
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <Users className="h-5 w-5 text-primary mb-1" />
                     <span className="text-sm font-medium text-foreground">Join Wolf Pack</span>
                   </CardContent>
                 </Card>
@@ -234,8 +234,8 @@ export default function Page() {
           </div>
 
           {/* Google Maps Section */}
-          <div className="w-full max-w-4xl px-4 mt-8 mb-6">
-            <h2 className="text-xl font-semibold text-center mb-4">Find Us</h2>
+          <div className="w-full max-w-4xl px-4 mt-6 mb-4">
+            <h2 className="text-xl font-semibold text-center mb-3">Find Us</h2>
             <DynamicGoogleMaps 
               className="w-full" 
               height="400px" 
@@ -244,8 +244,8 @@ export default function Page() {
           </div>
 
           {/* Instagram Section */}
-          <div className="w-full max-w-2xl px-4 mt-6 mb-8">
-            <h2 className="text-xl font-semibold text-center mb-4">Follow @sidehustle_bar</h2>
+          <div className="w-full max-w-2xl px-4 mt-4 mb-6">
+            <h2 className="text-xl font-semibold text-center mb-3">Follow @sidehustle_bar</h2>
             <InstagramEmbed className="w-full" />
           </div>
         </div>

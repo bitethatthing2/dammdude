@@ -8,11 +8,11 @@ import { Palette, Monitor } from 'lucide-react';
 export default function ProfilePage() {
   return (
     <div className="main-content">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+      <div className="container mx-auto px-4 py-3 sm:py-4 max-w-4xl">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">My Profile</h1>
         
         {/* Theme Settings Card */}
-        <Card className="mb-6">
+        <Card className="mb-3 sm:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />

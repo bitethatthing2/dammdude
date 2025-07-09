@@ -168,7 +168,7 @@ export const BottomNav = () => {
             type="brand"
             width={200}
             height={50}
-            className="w-32 sm:w-40 md:w-48 h-auto" 
+            className="w-24 sm:w-32 md:w-40 h-auto" 
           />
         </div>
       )}
@@ -176,7 +176,7 @@ export const BottomNav = () => {
       {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard and chat) */}
       {!isDJDashboard && !isChatPage && (
         <div className={`fixed top-2 right-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
-          <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-2">
+          <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-1.5 sm:p-2">
             <ThemeControl />
           </div>
         </div>

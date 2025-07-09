@@ -127,9 +127,9 @@ export default function WolfpackMainPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-black dark:to-gray-900 text-gray-900 dark:text-white">
-      <div className="container mx-auto p-4 max-w-4xl pb-24">
+      <div className="container mx-auto p-3 sm:p-4 max-w-4xl pb-20 sm:pb-24">
         {/* Header */}
-        <div className="mb-8 text-center">
+        <div className="mb-4 sm:mb-6 text-center">
           <h1 className="text-3xl font-bold flex items-center justify-center gap-3 mb-2 text-white">
             🐺 Wolf Pack
             <Badge variant="outline" className="text-sm bg-gray-100 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white">
@@ -142,7 +142,7 @@ export default function WolfpackMainPage() {
         </div>
 
         {/* Main Features Grid */}
-        <div className="grid gap-6 mb-8">
+        <div className="grid gap-4 mb-6">
           {/* Chat Feature */}
           <Card 
             className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 dark:bg-white/5 border-blue-300 dark:border-blue-500/30 hover:border-blue-500 dark:hover:border-blue-400 backdrop-blur-md"
@@ -233,11 +233,11 @@ export default function WolfpackMainPage() {
               className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-purple-300 dark:border-purple-500/30 hover:border-purple-500 dark:hover:border-purple-400 backdrop-blur-md"
               onClick={() => router.push('/profile')}
             >
-              <CardContent className="p-6 text-center">
-                <div className="p-4 bg-purple-100 dark:bg-purple-500/20 rounded-lg inline-block mb-3">
+              <CardContent className="p-4 text-center">
+                <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-lg inline-block mb-2">
                   <Settings className="h-10 w-10 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Wolf Profile</h3>
+                <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">Wolf Profile</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Customize your pack persona and preferences
                 </p>
@@ -249,11 +249,11 @@ export default function WolfpackMainPage() {
               className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-green-300 dark:border-green-500/30 hover:border-green-500 dark:hover:border-green-400 backdrop-blur-md"
               onClick={() => router.push('/events')}
             >
-              <CardContent className="p-6 text-center">
-                <div className="p-4 bg-green-100 dark:bg-green-500/20 rounded-lg inline-block mb-3">
+              <CardContent className="p-4 text-center">
+                <div className="p-3 bg-green-100 dark:bg-green-500/20 rounded-lg inline-block mb-2">
                   <Calendar className="h-10 w-10 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Events & Contests</h3>
+                <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">Events & Contests</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Join DJ events, trivia, and competitions
                 </p>
@@ -265,11 +265,11 @@ export default function WolfpackMainPage() {
               className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-orange-300 dark:border-orange-500/30 hover:border-orange-500 dark:hover:border-orange-400 backdrop-blur-md"
               onClick={() => router.push('/menu')}
             >
-              <CardContent className="p-6 text-center">
-                <div className="p-4 bg-orange-100 dark:bg-orange-500/20 rounded-lg inline-block mb-3">
+              <CardContent className="p-4 text-center">
+                <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-lg inline-block mb-2">
                   <span className="text-4xl">🍽️</span>
                 </div>
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Order Food & Drinks</h3>
+                <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">Order Food & Drinks</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Browse menu and place orders
                 </p>

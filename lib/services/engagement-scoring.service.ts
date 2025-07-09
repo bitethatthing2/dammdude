@@ -3,6 +3,13 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/types/database.types';
 
+// Define types based on your database schema
+type WolfpackMember = Database['public']['Views']['active_wolfpack_members']['Row'];
+type DjBroadcastResponse = Database['public']['Tables']['dj_broadcast_responses']['Row'];
+type WolfpackChatMessage = Database['public']['Tables']['wolfpack_chat_messages']['Row'];
+type WolfPackInteraction = Database['public']['Tables']['wolf_pack_interactions']['Row'];
+type WolfpackEngagement = Database['public']['Tables']['wolfpack_engagement']['Row'];
+
 // Define the WolfpackLiveStats type if not already defined
 export interface WolfpackLiveStats {
   total_active: number;
@@ -115,27 +122,16 @@ export class EngagementScoringService {
     endOfDay.setDate(endOfDay.getDate() + 1);
 
     try {
-      // First get wolf pack members at this location
-      const { data: wolfPackMembers, error: wolfPackError } = await supabase
-        .from('wolf_pack_members')
-        .select('user_id')
-        .eq('location_id', locationId)
-        .eq('status', 'active')
-        .gte('last_activity', startOfDay.toISOString());
-
-      if (wolfPackError) throw wolfPackError;
-      if (!wolfPackMembers || wolfPackMembers.length === 0) return [];
-
-      const userIds = wolfPackMembers.map(member => member.user_id);
-
-      // Get active wolfpack members details
+      // Get active wolfpack members at this location using the view
       const { data: activeMembers, error: membersError } = await supabase
         .from('active_wolfpack_members')
-        .select('*')
-        .in('id', userIds);
+        .select('id, display_name, avatar_url, profile_pic_url, gender, wolfpack_tier')
+        .gte('last_activity', startOfDay.toISOString());
 
       if (membersError) throw membersError;
       if (!activeMembers || activeMembers.length === 0) return [];
+
+      const userIds = activeMembers.map(member => member.id);
 
       // Get broadcast responses (today)
       const { data: broadcastResponses, error: broadcastError } = await supabase
@@ -275,6 +271,7 @@ export class EngagementScoringService {
         .rpc('get_wolfpack_live_stats', { p_location_id: locationId });
 
       if (!rpcError && rpcData) {
+        console.log('✅ RPC function returned data:', rpcData);
         // If RPC returns data, use it but get real top_vibers
         const topVibers = await this.getTopCrowdMembers(locationId, 10);
         
@@ -291,11 +288,12 @@ export class EngagementScoringService {
         };
       }
 
+      console.warn('🔄 RPC function failed, using manual calculation:', rpcError);
       // Fallback to manual calculation if RPC fails
       return await this.calculateLiveStatsManually(locationId);
 
     } catch (error) {
-      console.error('Error getting live stats:', error);
+      console.error('❌ Error getting live stats:', error);
       return this.getFallbackStats();
     }
   }
@@ -308,25 +306,15 @@ export class EngagementScoringService {
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     try {
-      // Get active wolf pack members
-      const { data: wolfPackMembers, error: wolfPackError } = await supabase
-        .from('wolf_pack_members')
-        .select('user_id')
-        .eq('location_id', locationId)
-        .eq('status', 'active')
-        .gte('last_activity', startOfDay.toISOString());
-
-      if (wolfPackError) throw wolfPackError;
-      
-      const userIds = wolfPackMembers?.map(m => m.user_id) || [];
-      
-      // Get active members details for gender breakdown
+      // Get active wolfpack members at this location using the view
       const { data: activeMembers, error: membersError } = await supabase
         .from('active_wolfpack_members')
         .select('id, gender')
-        .in('id', userIds);
+        .gte('last_activity', startOfDay.toISOString());
 
       if (membersError) throw membersError;
+      
+      const userIds = activeMembers?.map(m => m.id) || [];
 
       const totalActive = activeMembers?.length || 0;
       const veryActive = Math.floor(totalActive * 0.6); // Estimate 60% as very active

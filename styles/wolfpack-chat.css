@@ -149,6 +149,48 @@ body.profile-modal-open .message-bubble {
   z-index: -1 !important;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 120px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .member-position {
+    /* Larger touch targets on mobile */
+    padding: 4px;
+  }
+  
+  /* Better spacing for mobile touches */
+  .member-position:active {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  
+  /* Improve text readability on mobile */
+  .message-bubble {
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  
+  /* Mobile-friendly session panel */
+  .session-panel-mobile {
+    max-height: 40vh;
+  }
+  
+  /* Better touch targets for reaction buttons */
+  .reaction-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve profile modal for mobile */
+  .profile-modal-mobile {
+    margin: 1rem;
+    max-height: 85vh;
+  }
+}
+
 .member-position:hover {
   transform: translate(-50%, -50%) scale(1.1);
   z-index: var(--z-member-position-hover);

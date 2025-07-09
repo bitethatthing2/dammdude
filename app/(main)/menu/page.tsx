@@ -19,7 +19,7 @@ function MenuLoading() {
         </div>
         
         {/* Menu Items Skeleton */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="p-4 border rounded-lg space-y-3">
               <Skeleton className="h-6 w-3/4" />
