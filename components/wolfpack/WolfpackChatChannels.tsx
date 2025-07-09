@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Users, MapPin, Globe } from 'lucide-react';
+import { MessageCircle, Users, MapPin, Globe, Mail } from 'lucide-react';
 
 // Types matching the actual database schema
 interface ChatSession {
@@ -24,6 +24,7 @@ interface WolfpackChatChannelsProps {
   currentUserId: string | null;
   userLocationId: string | null;
   onJoinChat: (sessionId: string, sessionName: string) => void;
+  onShowMessages?: () => void;
   className?: string;
 }
 
@@ -31,6 +32,7 @@ export default function WolfpackChatChannels({
   currentUserId,
   userLocationId,
   onJoinChat,
+  onShowMessages,
   className = ''
 }: WolfpackChatChannelsProps) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -207,13 +209,26 @@ export default function WolfpackChatChannels({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Wolfpack Chat Channels
-          <Badge variant="secondary" className="ml-auto">
-            {chatSessions.length}
-          </Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Wolfpack Chat Channels
+            <Badge variant="secondary">
+              {chatSessions.length}
+            </Badge>
+          </CardTitle>
+          {onShowMessages && (
+            <Button
+              onClick={onShowMessages}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Private Messages
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

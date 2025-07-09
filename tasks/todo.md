@@ -1618,7 +1618,78 @@ The foundation for a comprehensive engagement tracking system exists in the data
 
 ---
 
-# WOLFPACK WELCOME PAGE FIX - IN PROGRESS 2025-01-09
+# BACK BUTTON AND MESSAGES BUTTON IMPLEMENTATION - IN PROGRESS 2025-01-09
+
+## 🎯 OBJECTIVE
+Implement the requested changes to the chat interface:
+1. **Back Button**: Restore/add clearly visible back button for navigation
+2. **Messages Button**: Add button to display private messages for logged-in user
+3. **Preserve Functionality**: Maintain existing chat functionality unchanged
+
+## 📝 PLAN
+1. [ ] Create PrivateMessagesInterface component for conversation list
+2. [ ] Add Messages button to WolfpackChatInterface
+3. [ ] Enhance back button visibility across all chat views
+4. [ ] Implement navigation flow: Channels ↔ Messages → Private Chat
+5. [ ] Test complete navigation and functionality
+
+## 🔧 IMPLEMENTATION APPROACH
+
+### Available Infrastructure ✅
+- **Private Messaging API**: `/api/messages/private/route.ts` (complete)
+- **Database Schema**: `wolf_private_messages` table with full support
+- **React Hook**: `useChat.ts` with `useConversations()` hook
+- **Private Chat UI**: Complete private chat interface at `/wolfpack/chat/private/[userId]/page.tsx`
+- **Conversation Function**: `get_recent_conversations` RPC function
+- **Types**: Full TypeScript interfaces for conversations and messages
+
+### Technical Implementation
+
+#### 1. Messages List Component Structure
+```typescript
+interface PrivateMessagesInterfaceProps {
+  currentUserId: string;
+  onNavigateToPrivateChat: (userId: string, userName: string) => void;
+  onBack: () => void;
+}
+```
+
+#### 2. Chat Interface State Management
+```typescript
+type ChatView = 'channels' | 'messages' | 'private-chat';
+const [currentView, setCurrentView] = useState<ChatView>('channels');
+```
+
+#### 3. Navigation Flow
+```
+Channels ↔ Messages → Private Chat
+   ↓         ↓          ↓
+Back Button everywhere
+```
+
+## 🗂️ FILES TO MODIFY
+
+1. **New Component**: `components/wolfpack/PrivateMessagesInterface.tsx`
+2. **Update**: `components/wolfpack/WolfpackChatInterface.tsx`
+3. **Update**: `app/(main)/wolfpack/chat/private/[userId]/page.tsx` (back button)
+
+## ✅ SUCCESS CRITERIA
+- [ ] Messages button visible in chat interface
+- [ ] Messages button displays private message conversations
+- [ ] Back button consistently visible across all chat views
+- [ ] Seamless navigation between channels, messages, and private chats
+- [ ] Existing chat functionality preserved
+- [ ] Clean, simple implementation with minimal code changes
+
+## 🔄 NEXT STEPS
+1. Create the PrivateMessagesInterface component using existing useConversations hook
+2. Update WolfpackChatInterface to include Messages button and view management
+3. Enhance back button visibility and navigation flow
+4. Test complete user journey and functionality
+
+---
+
+# WOLFPACK WELCOME PAGE FIX - COMPLETED 2025-01-09
 
 ## 🎯 OBJECTIVE
 Fix the Wolfpack welcome page theme and chat channels to remove "General Chat" and ensure only Salem/Portland location-specific channels are shown.

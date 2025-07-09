@@ -368,10 +368,13 @@ export interface MessageGroup {
 }
 
 export function groupMessages(messages: any[], currentUserId: string): MessageGroup[] {
+  // Reverse messages to handle them in chronological order (oldest first) for proper grouping
+  const sortedMessages = [...messages].reverse();
+  
   const groups: MessageGroup[] = [];
   let currentGroup: MessageGroup | null = null;
   
-  for (const message of messages) {
+  for (const message of sortedMessages) {
     const isSameSender = currentGroup?.senderId === message.sender_id;
     const timeDiff = currentGroup ? 
       new Date(message.created_at).getTime() - new Date(currentGroup.timestamp).getTime() : 
@@ -404,5 +407,6 @@ export function groupMessages(messages: any[], currentUserId: string): MessageGr
     });
   }
   
-  return groups;
+  // Return groups in newest-first order for display
+  return groups.reverse();
 }

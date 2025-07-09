@@ -15,6 +15,7 @@ import { getZIndexClass } from '@/lib/constants/z-index';
 import { resolveWolfpackMemberAvatar, resolveChatAvatarUrl } from '@/lib/utils/avatar-utils';
 import { TIMEOUT_CONSTANTS } from '@/lib/utils/timeout-utils';
 import { useImageReplacement } from '@/lib/services/image-replacement.service';
+import MobileOptimizedChat from '@/components/wolfpack/MobileOptimizedChat';
 import '@/styles/wolfpack-chat.css';
 
 // Type definitions
@@ -146,15 +147,16 @@ export default function EnhancedWolfpackChatPage() {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<{ show: boolean; member: SpatialMember | null }>({ show: false, member: null });
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const [isSessionPanelCollapsed, setIsSessionPanelCollapsed] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   
   // Refs
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const bubbleTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const profilePopupTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const toastTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Convert members to spatial format - optimized with memoization
   const spatialMembersData = useMemo(() => {
@@ -210,28 +212,42 @@ export default function EnhancedWolfpackChatPage() {
   const [isUserScrollingUp, setIsUserScrollingUp] = useState(false);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   
-  // Track user scroll behavior
+  // Mobile detection effect
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent;
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      const isMobileViewport = window.innerWidth <= 768;
+      setIsMobile(isMobileDevice || isMobileViewport);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Track user scroll behavior (updated for top-down message order)
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.target as HTMLDivElement;
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const { scrollTop } = container;
     
-    // User is considered "scrolling up" if they're more than 50px from bottom
-    const isScrolledUp = distanceFromBottom > 50;
-    setIsUserScrollingUp(isScrolledUp);
+    // User is considered "scrolling down" if they're more than 50px from top
+    const isScrolledDown = scrollTop > 50;
+    setIsUserScrollingUp(isScrolledDown);
   };
 
-  // Auto-scroll to bottom when new messages arrive (only if user hasn't scrolled up)
+  // Auto-scroll to top when new messages arrive (only if user hasn't scrolled down)
   useEffect(() => {
-    if (messagesEndRef.current && !isUserScrollingUp) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messageContainerRef.current && !isUserScrollingUp) {
+      messageContainerRef.current.scrollTop = 0;
     }
   }, [sessionMessages, isUserScrollingUp]);
   
-  // Scroll to bottom when chat initially loads
+  // Scroll to top when chat initially loads
   useEffect(() => {
-    if (messagesEndRef.current && sessionMessages.length > 0) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    if (messageContainerRef.current && sessionMessages.length > 0) {
+      messageContainerRef.current.scrollTop = 0;
     }
   }, [sessionMessages.length]);
   
@@ -473,6 +489,9 @@ export default function EnhancedWolfpackChatPage() {
     if (!user || !sessionId) return;
 
     const userName = user?.first_name || user?.email?.split('@')[0] || 'Wolf Member';
+    
+    // Set typing state
+    setIsTyping(true);
     sendTyping(user.id, userName, true);
     
     if (typingTimeoutRef.current) {
@@ -480,6 +499,7 @@ export default function EnhancedWolfpackChatPage() {
     }
     
     typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
       sendTyping(user.id, userName, false);
     }, TIMEOUT_CONSTANTS.TYPING_INDICATOR_TIMEOUT);
   };
@@ -763,6 +783,139 @@ export default function EnhancedWolfpackChatPage() {
     );
   }
 
+  // Mobile-optimized render
+  if (isMobile) {
+    return (
+      <MobileOptimizedChat
+        messages={sessionMessages}
+        members={spatialMembers}
+        spatialViewContent={
+          <div className="h-full relative">
+            {/* Background */}
+            <div className="absolute inset-0">
+              <Image
+                src="/icons/wolfpack-chat.gif"
+                alt="Side Hustle Bar Interior"
+                fill
+                className="object-cover object-center opacity-30"
+                unoptimized
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70" />
+            </div>
+            
+            {/* Spatial Members */}
+            <div className="relative z-10 h-full p-4">
+              {spatialMembers.map((member) => {
+                const memberBubble = messageBubbles.get(member.id);
+                
+                return (
+                  <div
+                    key={member.id}
+                    className="member-position"
+                    data-member-id={member.id}
+                    style={{ 
+                      left: member.position.x,
+                      top: member.position.y,
+                      transform: 'translate(-50%, -50%)',
+                      position: 'absolute',
+                      zIndex: 45
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setViewingProfile({ show: true, member });
+                    }}
+                  >
+                    <div className="relative">
+                      <Image
+                        src={member.avatar_url}
+                        alt={member.display_name}
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-white/20 hover:border-white/40 transition-all duration-300"
+                        unoptimized={member.avatar_url.includes('dicebear.com')}
+                      />
+                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-gray-900 ${
+                        member.is_online ? 'bg-green-500' : 'bg-gray-500'
+                      }`} />
+                    </div>
+                    
+                    {memberBubble && (
+                      <div className="message-bubble">
+                        {memberBubble.message}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        }
+        currentUser={user}
+        onSendMessage={async (message) => {
+          if (!message.trim() || !user || isSendingMessage) return;
+          setIsSendingMessage(true);
+          
+          // Clear typing state when sending message
+          setIsTyping(false);
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          const userName = user?.first_name || user?.email?.split('@')[0] || 'Wolf Member';
+          sendTyping(user.id, userName, false);
+          
+          try {
+            const result = await actions.sendMessage(message.trim());
+            if (result.success) {
+              showToast('Message sent!');
+            } else {
+              showToast(result.error || 'Failed to send message');
+            }
+          } catch (error) {
+            console.error('Error sending message:', error);
+            showToast('Failed to send message');
+          } finally {
+            setIsSendingMessage(false);
+          }
+        }}
+        onMemberSelect={(memberId) => {
+          const member = spatialMembers.find(m => m.id === memberId);
+          if (member) {
+            setViewingProfile({ show: true, member });
+          }
+        }}
+        onReactionAdd={async (messageId, emoji) => {
+          const result = await actions.addReaction(messageId, emoji);
+          if (result.success) {
+            showToast(`${emoji} Reaction added!`);
+          } else {
+            showToast(result.error || 'Failed to add reaction');
+          }
+        }}
+        onReactionRemove={async (reactionId) => {
+          const result = await actions.removeReaction(reactionId);
+          if (result.success) {
+            showToast('Reaction removed!');
+          } else {
+            showToast(result.error || 'Failed to remove reaction');
+          }
+        }}
+        isConnected={state.isConnected}
+        isTyping={isTyping}
+        typingUsers={typingUsers}
+        onShowMessages={() => {
+          // For now, just redirect to messages view directly
+          router.push('/wolfpack/chat/messages');
+        }}
+        onStartPrivateChat={(userId, userName) => {
+          // Navigate directly to private chat with the user
+          router.push(`/wolfpack/chat/private/${userId}`);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Exit Button */}
@@ -959,7 +1112,7 @@ export default function EnhancedWolfpackChatPage() {
                 : 'h-32 sm:h-40' // Normal scrollable area
             }`}
           >
-          {sessionMessages.map((msg) => {
+          {sessionMessages.slice().reverse().map((msg) => {
             // Use avatar from message first, then try to find from members, then fallback
             const member = spatialMembers.find(m => m.id === msg.user_id);
             const avatarUrl = resolveChatAvatarUrl(msg.avatar_url, member?.avatar_url);
@@ -1115,7 +1268,6 @@ export default function EnhancedWolfpackChatPage() {
               No messages yet
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
         )}
       </div>

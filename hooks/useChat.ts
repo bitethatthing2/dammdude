@@ -154,7 +154,7 @@ export function useChat(options: UseChatOptions = {}) {
           )
         `)
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(messageLimit || 50);
 
       const { data: otherUserData, error: userError } = await supabase
@@ -163,36 +163,37 @@ export function useChat(options: UseChatOptions = {}) {
         .eq('id', otherUserId)
         .single();
 
+      // Check if either user has blocked the other
+      const { data: blockData, error: blockError } = await supabase
+        .from('wolf_pack_interactions')
+        .select('*')
+        .eq('interaction_type', 'block')
+        .eq('status', 'active')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`);
+
       if (messagesError) throw messagesError;
       if (userError) throw userError;
+      if (blockError) throw blockError;
 
-      const data = {
-        messages: messagesData || [],
-        other_user: otherUserData
-      };
-
-      if (!data) {
-        throw new Error('Chat data not found');
-      }
-
-      const { user_data, is_blocked, messages: messageData } = data;
-
-      if (!user_data) {
+      if (!otherUserData) {
         throw new Error('User not found');
       }
 
-      if (user_data.allow_messages === false) {
+      if (otherUserData.allow_messages === false) {
         throw new Error('This user has disabled private messages');
       }
 
-      setOtherUser(user_data);
-      setIsBlocked(is_blocked);
+      // Check if there's an active block between users
+      const isBlocked = blockData && blockData.length > 0;
       
-      if (messageData && Array.isArray(messageData)) {
-        setMessages(messageData);
+      setOtherUser(otherUserData);
+      setIsBlocked(isBlocked);
+      
+      if (messagesData && Array.isArray(messagesData)) {
+        setMessages(messagesData);
         
         // Mark unread messages as read
-        const unreadMessages = messageData.filter(
+        const unreadMessages = messagesData.filter(
           (msg: PrivateMessage) => msg.sender_id === otherUserId && !msg.is_read
         );
 
@@ -287,11 +288,12 @@ export function useChat(options: UseChatOptions = {}) {
             }
             
             // Add message to state (prevent duplicates)
+            // Since messages are now ordered newest first, add new messages to the beginning
             setMessages(prev => {
               if (prev.some(msg => msg.id === newMsg.id)) {
                 return prev;
               }
-              return [...prev, newMsg];
+              return [newMsg, ...prev];
             });
 
             // Handle unread count and notifications
@@ -419,7 +421,8 @@ export function useChat(options: UseChatOptions = {}) {
           }
         };
 
-        setMessages(prev => [...prev, tempMessage!]);
+        // Add optimistic message to the beginning since messages are ordered newest first
+        setMessages(prev => [tempMessage!, ...prev]);
       }
 
       // Prepare message data

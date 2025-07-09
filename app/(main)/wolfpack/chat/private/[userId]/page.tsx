@@ -80,17 +80,17 @@ export default function OptimizedPrivateChatPage() {
     return groupMessages(messages);
   }, [messages, groupMessages]);
 
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ 
-      behavior: 'smooth',
-      block: 'end'
-    });
+  // Auto-scroll to top (since newest messages are now at top)
+  const scrollToTop = () => {
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (messagesContainer) {
+      messagesContainer.scrollTop = 0;
+    }
   };
 
-  // Scroll to bottom when messages change
+  // Scroll to top when messages change (to show newest)
   useEffect(() => {
-    const timer = setTimeout(scrollToBottom, 100);
+    const timer = setTimeout(scrollToTop, 100);
     return () => clearTimeout(timer);
   }, [messages]);
 
@@ -299,6 +299,7 @@ export default function OptimizedPrivateChatPage() {
             </div>
           ) : (
             <>
+              <div ref={messagesEndRef} />
               {groupedMessages.map((group) => (
                 <div key={`${group.senderId}_${group.timestamp}`} className="space-y-2">
                   <div className={`flex items-start gap-3 ${
@@ -429,7 +430,6 @@ export default function OptimizedPrivateChatPage() {
                   </div>
                 </div>
               ))}
-              <div ref={messagesEndRef} />
             </>
           )}
         </CardContent>

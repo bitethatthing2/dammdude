@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, ArrowLeft, Users, MessageCircle, X } from 'lucide-react';
+import { Send, ArrowLeft, Users, MessageCircle, X, Mail } from 'lucide-react';
 import WolfpackChatChannels from './WolfpackChatChannels';
 import { UserProfileModal } from './UserProfileModal';
+import PrivateMessagesInterface from './PrivateMessagesInterface';
 
 
 interface WolfpackChatInterfaceProps {
@@ -31,6 +32,7 @@ export default function WolfpackChatInterface({
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>('');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'channels' | 'messages' | 'private-chat'>('channels');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,12 +60,27 @@ export default function WolfpackChatInterface({
     setCurrentSessionId(sessionId);
     setCurrentSessionName(sessionName);
     setShowChannels(false);
+    setViewMode('channels');
   };
 
   const handleLeaveChat = () => {
     setCurrentSessionId(null);
     setCurrentSessionName('');
     setShowChannels(true);
+    setViewMode('channels');
+  };
+
+  const handleShowMessages = () => {
+    setViewMode('messages');
+  };
+
+  const handleBackToChannels = () => {
+    setViewMode('channels');
+  };
+
+  const handleNavigateToPrivateChat = (userId: string, userName: string) => {
+    // Navigate to private chat page
+    window.location.href = `/wolfpack/chat/private/${userId}`;
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -139,6 +156,18 @@ export default function WolfpackChatInterface({
     setSelectedUserAvatar('');
   };
 
+  // Show messages view
+  if (viewMode === 'messages') {
+    return (
+      <div className={`flex flex-col h-full ${className}`}>
+        <PrivateMessagesInterface
+          onNavigateToPrivateChat={handleNavigateToPrivateChat}
+          onBack={handleBackToChannels}
+        />
+      </div>
+    );
+  }
+
   // Show channel list if no session selected
   if (showChannels || !currentSessionId) {
     return (
@@ -147,6 +176,7 @@ export default function WolfpackChatInterface({
           currentUserId={user?.id || null}
           userLocationId={user?.location_id || null}
           onJoinChat={handleJoinChat}
+          onShowMessages={handleShowMessages}
           className="flex-1"
         />
       </div>
