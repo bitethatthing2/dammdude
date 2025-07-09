@@ -499,7 +499,7 @@ export default function MobileOptimizedChat({
             <input 
               ref={inputRef}
               type="text"
-              className="w-full bg-gray-700 border border-gray-600 rounded-full px-4 py-3 text-white placeholder-gray-400 text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full bg-gray-700 border border-gray-600 rounded-full px-4 py-3 text-white placeholder-gray-400 text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               placeholder={typingUsers.length > 0 ? `${typingUsers.join(', ')} typing...` : "Type a message..."}
               value={messageInput}
               onChange={handleInputChange}

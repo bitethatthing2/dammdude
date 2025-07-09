@@ -59,17 +59,17 @@ export function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPickerProps
   if (!isOpen) return null;
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-2 bg-black/90 backdrop-blur-md border border-blue-500/30 rounded-xl shadow-2xl z-50 max-h-96 overflow-hidden">
+    <div className="absolute bottom-full left-0 right-0 mb-2 bg-black/90 backdrop-blur-md border border-primary/30 rounded-xl shadow-2xl z-50 max-h-96 overflow-hidden">
       {/* Category Tabs */}
-      <div className="flex overflow-x-auto border-b border-blue-500/20 bg-black/50">
+      <div className="flex overflow-x-auto border-b border-primary/20 bg-black/50">
         {Object.entries(EMOJI_CATEGORIES).map(([key, category]) => (
           <button
             key={key}
             onClick={() => setActiveCategory(key)}
             className={`flex-shrink-0 px-4 py-3 text-xs font-medium transition-all duration-200 ${
               activeCategory === key
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/20'
-                : 'text-gray-300 hover:text-blue-300 hover:bg-blue-500/10'
+                ? 'text-primary border-b-2 border-primary bg-primary/20'
+                : 'text-gray-300 hover:text-primary hover:bg-primary/10'
             }`}
           >
             {category.name.split(' ')[0]}
@@ -97,11 +97,11 @@ export function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPickerProps
       </div>
 
       {/* Quick Actions */}
-      <div className="border-t border-blue-500/20 p-3 bg-black/50">
+      <div className="border-t border-primary/20 p-3 bg-black/50">
         <div className="flex gap-2 justify-center">
           <button
             onClick={() => handleEmojiClick('👍')}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500/20 text-blue-300 rounded-full hover:bg-blue-500/30 transition-all duration-200 hover:scale-105"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary/20 text-primary rounded-full hover:bg-primary/30 transition-all duration-200 hover:scale-105"
           >
             <ThumbsUp className="w-4 h-4" />
             👍

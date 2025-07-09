@@ -201,7 +201,7 @@ export default function WolfpackChatInterface({
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto mb-2" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
             <p className="text-sm text-gray-500">Loading chat...</p>
           </div>
         </CardContent>
