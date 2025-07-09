@@ -6,37 +6,20 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 // TYPE DEFINITIONS - Perfect alignment with actual database schema
 // =============================================================================
 
-// Database row types - CORRECTED to match ACTUAL database schema from docs
+// Database row types - Updated to match actual Supabase schema
 interface DatabaseChatMessage {
   id: string;
   session_id: string;
-  user_id: string | null;      // ACTUAL DB: user_id (not sender_id)
-  display_name: string;        // ACTUAL DB: display_name
-  avatar_url: string | null;   // ACTUAL DB: avatar_url
-  content: string;             // ACTUAL DB: content (not message)
+  user_id: string | null;
+  display_name: string;
+  avatar_url: string | null;
+  content: string;
   message_type: string;
   image_url: string | null;
   created_at: string | null;
   edited_at: string | null;
-  is_flagged: boolean | null;  // ACTUAL DB: is_flagged (not flagged)
-  is_deleted: boolean | null;  // ACTUAL DB: is_deleted (not deleted_at)
-}
-
-// RPC function response type - includes joined user data
-interface RPCChatMessageResponse {
-  id: string;
-  message: string;
-  message_type: string;
-  image_url: string | null;
-  reply_to_id: string | null;
-  is_pinned: boolean | null;
-  created_at: string | null;
-  sender: {
-    id: string;
-    display_name: string;
-    wolf_emoji: string;
-    profile_image_url: string | null;
-  };
+  is_flagged: boolean | null;
+  is_deleted: boolean | null;
 }
 
 interface DatabaseChatReaction {
@@ -287,36 +270,18 @@ class RateLimiter {
 // ADAPTER FUNCTIONS - Perfect database alignment
 // =============================================================================
 
-// Adapter for RPC function responses
-function adaptRPCChatMessage(rpcMessage: RPCChatMessageResponse, sessionId: string): WolfChatMessage {
-  return {
-    id: rpcMessage.id,
-    session_id: sessionId,
-    user_id: rpcMessage.sender.id,
-    display_name: rpcMessage.sender.display_name,
-    avatar_url: rpcMessage.sender.profile_image_url || undefined,
-    content: rpcMessage.message,
-    message_type: (rpcMessage.message_type as 'text' | 'image' | 'dj_broadcast') || 'text',
-    image_url: rpcMessage.image_url || undefined,
-    created_at: rpcMessage.created_at || new Date().toISOString(),
-    is_flagged: false,  // RPC doesn't return flag status
-    reactions: []
-  };
-}
-
-// Adapter for direct database rows (for realtime subscriptions) - ACTUAL DB SCHEMA
-function adaptDatabaseChatMessage(dbMessage: any): WolfChatMessage {
+function adaptDatabaseChatMessage(dbMessage: Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; }): WolfChatMessage {
   return {
     id: dbMessage.id,
     session_id: dbMessage.session_id,
-    user_id: dbMessage.user_id || '',           // CORRECTED: DB uses 'user_id'
-    display_name: dbMessage.display_name || 'Unknown User',
+    user_id: dbMessage.user_id || '',
+    display_name: dbMessage.display_name,
     avatar_url: dbMessage.avatar_url || undefined,
-    content: dbMessage.content || '',           // CORRECTED: DB uses 'content' field
+    content: dbMessage.content,
     message_type: (dbMessage.message_type as 'text' | 'image' | 'dj_broadcast') || 'text',
     image_url: dbMessage.image_url || undefined,
     created_at: dbMessage.created_at || new Date().toISOString(),
-    is_flagged: dbMessage.is_flagged ?? false,  // CORRECTED: DB uses 'is_flagged'
+    is_flagged: dbMessage.is_flagged ?? false,
     reactions: []
   };
 }
@@ -407,22 +372,34 @@ async function resolveSessionId(sessionIdOrCode: string): Promise<{ id: string |
       };
     }
 
-    // Valid session IDs are: 'general', 'salem', 'portland', or any UUID
-    const validSessionIds = ['general', 'salem', 'portland'];
-    
-    // If it's a known session ID, return it directly
-    if (validSessionIds.includes(sessionIdOrCode)) {
-      return { id: sessionIdOrCode };
-    }
-
-    // If it's a UUID, validate and return
+    // If it's already a UUID, validate and return
     if (SecurityValidator.validateUUID(sessionIdOrCode)) {
       return { id: sessionIdOrCode };
     }
 
-    // For any other string, accept it as a valid session ID (for dynamic sessions)
-    // This allows event-specific sessions like 'event-123' or 'music-requests'
-    return { id: sessionIdOrCode };
+    // If it's a session code, look it up in wolfpack_sessions
+    if (SecurityValidator.validateSessionCode(sessionIdOrCode)) {
+      const { data: session, error } = await supabase
+        .from('wolfpack_sessions')
+        .select('id')
+        .eq('session_code', sessionIdOrCode)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !session) {
+        return { 
+          id: null, 
+          error: SecurityValidator.createError('SESSION_NOT_FOUND', 'Session not found or inactive') 
+        };
+      }
+
+      return { id: session.id };
+    }
+
+    return { 
+      id: null, 
+      error: SecurityValidator.createError('INVALID_SESSION_CODE', 'Invalid session code format') 
+    };
   } catch (error) {
     console.error('❌ Error resolving session ID:', error);
     return { 
@@ -516,78 +493,16 @@ export function useWolfpack(
       }
       resolvedSessionIdRef.current = resolvedSession.id;
 
-      // First ensure the chat session exists
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('wolfpack_chat_sessions')
-        .select('id')
+      // Load messages with proper session handling
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('wolfpack_chat_messages')
+        .select('*')
         .eq('session_id', sessionId)
-        .single();
-      
-      if (sessionError && sessionError.code === 'PGRST116') {
-        // Session doesn't exist, create it
-        const { error: createError } = await supabase
-          .from('wolfpack_chat_sessions')
-          .insert({
-            session_id: sessionId,
-            display_name: `${sessionId.charAt(0).toUpperCase() + sessionId.slice(1)} Chat`,
-            description: `Chat session for ${sessionId}`,
-            location_id: locationId,
-            is_active: true
-          });
-        
-        if (createError) {
-          console.warn('Could not create chat session:', createError);
-        }
-      }
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      // Skip RPC and use direct table access (RPC functions may not exist)
-      console.log('📨 [DEBUG] Loading messages directly from table...');
-      let messagesData = [];
-      
-      try {
-        console.log('🔍 [DEBUG] WOLFPACK HOOK v2.2 - Loading messages with CORRECT FIELDS for session:', sessionId);
-        console.log('🔍 [DEBUG] Current user auth state...');
-        
-        // Check authentication first
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        console.log('🔍 [DEBUG] Auth user:', user?.id, 'Error:', authError);
-        
-        // Load messages without deleted_at filter (column doesn't exist)
-        const { data: directData, error: directError } = await supabase
-          .from('wolfpack_chat_messages')
-          .select('*')
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: false })
-          .limit(100);
-          
-        if (directError) {
-          console.error('❌ [DEBUG] Direct table access failed:', {
-            error: directError,
-            code: directError.code,
-            message: directError.message,
-            details: directError.details,
-            hint: directError.hint
-          });
-          messagesData = [];
-        } else {
-          // Filter out any deleted messages in JavaScript (in case there are different delete columns)
-          const rawData = directData || [];
-          messagesData = rawData.filter(msg => 
-            !msg.deleted_at && !msg.is_deleted && !msg.deleted
-          );
-          
-          console.log('✅ [DEBUG] Raw messages loaded:', rawData.length);
-          console.log('✅ [DEBUG] Filtered messages:', messagesData.length);
-          if (messagesData.length > 0) {
-            console.log('📨 [DEBUG] Sample message structure:', messagesData[0]);
-            console.log('📨 [DEBUG] Message keys:', Object.keys(messagesData[0]));
-            console.log('📨 [DEBUG] Sender ID field:', messagesData[0].sender_id);
-          }
-        }
-      } catch (tableError) {
-        console.error('❌ [DEBUG] Table access threw exception:', tableError);
-        messagesData = [];
-      }
+      if (messagesError) throw messagesError;
 
       // Load reactions for messages
       const messageIds = messagesData?.map(m => m.id) || [];
@@ -627,7 +542,8 @@ export function useWolfpack(
         .eq('location_id', locationId)
         .eq('is_wolfpack_member', true)
         .eq('wolfpack_status', 'active')
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .is('deleted_at', null);
 
       if (membersError) throw membersError;
 
@@ -641,49 +557,14 @@ export function useWolfpack(
 
       if (eventsError) throw eventsError;
 
-      // Get unique sender IDs to fetch user data
-      console.log('🔍 [DEBUG] Extracting sender IDs from messages...');
-      console.log('🔍 [DEBUG] Messages array length:', messagesData?.length);
-      console.log('🔍 [DEBUG] First message sender_id:', messagesData?.[0]?.sender_id);
-      
-      const senderIds = [...new Set((messagesData || []).map(m => {
-        console.log('🔍 [DEBUG] Message user_id:', m.user_id);
-        return m.user_id;
-      }).filter(Boolean))];
-      
-      console.log('👥 [DEBUG] Loading user data for sender IDs:', senderIds);
-      
-      // Load user data for all message senders
-      const { data: usersData, error: usersError } = senderIds.length > 0 ? await supabase
-        .from('users')
-        .select('id, display_name, first_name, last_name, avatar_url, profile_image_url')
-        .in('id', senderIds) : { data: [], error: null };
-        
-      if (usersError) {
-        console.warn('⚠️ [DEBUG] Error loading user data:', usersError);
-      } else {
-        console.log('👥 [DEBUG] Loaded user data for', usersData?.length || 0, 'users');
-      }
-      
-      // Create a lookup map for user data
-      const usersMap = new Map((usersData || []).map(user => [user.id, user]));
-      
-      // Process messages with reactions and user data
-      const messagesWithReactions = (messagesData || []).map((message: any) => {
+      // Process messages with reactions
+      const messagesWithReactions = (messagesData || []).map(message => {
         const messageReactions = (reactionsData || [])
           .filter(r => typeof r === 'object' && r !== null && 'message_id' in r && (r as DatabaseChatReaction).message_id === message.id)
           .map(r => adaptDatabaseReaction(r as DatabaseChatReaction));
         
-        // Get user info from lookup map or use embedded data
-        const userData = usersMap.get(message.user_id);
-        const messageWithUser = {
-          ...message,
-          display_name: message.display_name || userData?.display_name || userData?.first_name || 'Wolf Member',
-          avatar_url: message.avatar_url || userData?.profile_image_url || userData?.avatar_url
-        };
-        
         return {
-          ...adaptDatabaseChatMessage(messageWithUser),
+          ...adaptDatabaseChatMessage(message as DatabaseChatMessage),
           reactions: messageReactions
         };
       });
@@ -696,7 +577,7 @@ export function useWolfpack(
 
       setState(prev => ({
         ...prev,
-        messages: messagesWithReactions.reverse(), // Reverse to show oldest first
+        messages: messagesWithReactions,
         members: processedMembers,
         events: (eventsData || []).map(adaptDatabaseEvent),
         isLoading: false,
@@ -715,27 +596,6 @@ export function useWolfpack(
 
     } catch (error) {
       console.error('Error loading initial data:', error);
-      console.error('Session ID:', sessionId);
-      console.error('Location ID:', locationId);
-      
-      // Log specific error details
-      if (error && typeof error === 'object') {
-        console.error('Error details:', {
-          message: (error as any).message,
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint,
-          stack: (error as any).stack,
-          name: (error as any).name
-        });
-      }
-      
-      // Special handling for JSON parse errors
-      if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        console.error('🚨 JSON Parse Error - this suggests RPC response format issue');
-        console.error('Try using direct table access instead of RPC functions');
-      }
-      
       handleError(SecurityValidator.createError(
         'LOAD_ERROR', 
         error instanceof Error ? error.message : 'Failed to load data'
@@ -762,11 +622,8 @@ export function useWolfpack(
           table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
-        async (payload) => {
-          console.log('📨 [REALTIME] New message received:', payload.new);
-          
-          // Message already has display_name and avatar_url embedded
-          const newMessage = adaptDatabaseChatMessage(payload.new);
+        (payload) => {
+          const newMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
             messages: [newMessage, ...prev.messages]
@@ -782,11 +639,8 @@ export function useWolfpack(
           table: 'wolfpack_chat_messages',
           filter: `session_id=eq.${sessionId}`
         },
-        async (payload) => {
-          console.log('📨 [REALTIME] Message updated:', payload.new);
-          
-          // Message already has display_name and avatar_url embedded
-          const updatedMessage = adaptDatabaseChatMessage(payload.new);
+        (payload) => {
+          const updatedMessage = adaptDatabaseChatMessage(payload.new as Partial<DatabaseChatMessage> & { id: string; session_id: string; display_name: string; content: string; });
           setState(prev => ({
             ...prev,
             messages: prev.messages.map(msg =>
@@ -919,7 +773,6 @@ export function useWolfpack(
   // =============================================================================
 
   const sendMessage = useCallback(async (content: string, imageUrl?: string): Promise<{ success: boolean; error?: string }> => {
-    console.log('🚀 [DEBUG] sendMessage called with content:', content);
     if (!sessionId) return { success: false, error: 'No session ID provided' };
 
     try {
@@ -933,79 +786,33 @@ export function useWolfpack(
       }
 
       const sanitizedContent = SecurityValidator.sanitizeMessage(content);
-      console.log('🧼 [DEBUG] sanitized content:', sanitizedContent);
       if (!sanitizedContent.trim()) {
         return { success: false, error: 'Message cannot be empty' };
       }
 
-      // CRITICAL: Check if we need to send display_name and avatar_url directly
-      // Since actual DB has these fields, we might need to provide them
-      
-      // Get user profile for display_name and avatar_url
-      const { data: userProfile } = await supabase
-        .from('users')
-        .select('display_name, first_name, last_name, avatar_url, profile_image_url')
-        .eq('auth_id', authUser.id)
-        .single();
-      
-      const displayName = userProfile?.display_name || 
-                         `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || 
-                         'Anonymous User';
-      const avatarUrl = userProfile?.profile_image_url || userProfile?.avatar_url;
+      const displayName = authUser.profile?.display_name || 
+        `${authUser.profile?.first_name || ''} ${authUser.profile?.last_name || ''}`.trim() || 
+        authUser.email.split('@')[0] || 'Anonymous';
 
-      // Try direct insert since actual DB schema doesn't match migration RPC functions
-      // First get the user's internal ID from their auth_id
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single();
-        
-      if (userError || !userData) {
-        return { success: false, error: 'User profile not found' };
-      }
-
-      const insertData = {
-        session_id: sessionId,
-        user_id: userData.id,         // CORRECTED: DB uses 'user_id'
-        display_name: displayName,    // Include display name
-        avatar_url: avatarUrl,        // Include avatar URL  
-        content: sanitizedContent,    // CORRECTED: DB uses 'content'
-        message_type: imageUrl ? 'image' : 'text',
-        image_url: imageUrl || null,
-        is_flagged: false,
-        is_deleted: false
-      };
-      console.log('📥 [DEBUG] Inserting message data:', insertData);
-      
-      // Use direct table insert (skip RPC since it may not exist)
-      console.log('📤 [DEBUG] Inserting message directly to table...');
-      const { data: result, error } = await supabase
+      const { error } = await supabase
         .from('wolfpack_chat_messages')
-        .insert(insertData)
-        .select()
-        .single();
-        
-      console.log('📤 [DEBUG] Insert result:', result, 'Error:', error);
-
-      if (error) {
-        console.error('❌ Database insert error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          insertData
+        .insert({
+          session_id: sessionId,
+          user_id: authUser.id,
+          display_name: SecurityValidator.sanitizeDisplayName(displayName),
+          avatar_url: authUser.profile?.avatar_url,
+          content: sanitizedContent,
+          image_url: imageUrl,
+          message_type: imageUrl ? 'image' : 'text',
+          is_flagged: false,
+          is_deleted: false
         });
-        return { success: false, error: error.message };
+
+      if (!error) {
+        rateLimiterRef.current.recordMessage();
       }
 
-      // Check if RPC returned an error in the response
-      if (result && typeof result === 'object' && 'error' in result) {
-        return { success: false, error: result.error as string };
-      }
-
-      rateLimiterRef.current.recordMessage();
-      return { success: true, data: result };
+      return { success: !error, error: error?.message };
     } catch (error) {
       console.error('Send message error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Failed to send message' };
