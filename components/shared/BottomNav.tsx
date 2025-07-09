@@ -161,9 +161,9 @@ export const BottomNav = () => {
 
   return (
     <>
-      {/* Fixed Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
+      {/* Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
       {!isDJDashboard && !isChatPage && (
-        <div className={`fixed top-2 left-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
+        <div className={`absolute top-2 left-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <DynamicLogo 
             type="brand"
             width={400}
