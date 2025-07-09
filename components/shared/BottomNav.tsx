@@ -163,19 +163,19 @@ export const BottomNav = () => {
     <>
       {/* Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
       {!isDJDashboard && !isChatPage && (
-        <div className={`absolute top-2 left-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
+        <div className={`fixed top-4 left-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <DynamicLogo 
             type="brand"
             width={400}
             height={100}
-            className="w-48 sm:w-64 md:w-80 h-auto" 
+            className="w-32 sm:w-48 md:w-64 h-auto" 
           />
         </div>
       )}
 
       {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard and chat) */}
       {!isDJDashboard && !isChatPage && (
-        <div className={`fixed top-2 right-2 ${getZIndexClass('MODAL_BACKDROP')}`}>
+        <div className={`fixed top-4 right-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-1.5 sm:p-2">
             <ThemeControl />
           </div>

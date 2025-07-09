@@ -127,12 +127,12 @@ export default function WolfpackMainPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-black dark:to-gray-900 text-gray-900 dark:text-white">
-      <div className="container mx-auto p-3 sm:p-4 max-w-4xl pb-20 sm:pb-24">
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl pb-20 sm:pb-24 pt-16 sm:pt-20">
         {/* Header */}
         <div className="mb-4 sm:mb-6 text-center">
-          <h1 className="text-3xl font-bold flex items-center justify-center gap-3 mb-2 text-white">
+          <h1 className="text-3xl font-bold flex items-center justify-center gap-3 mb-2 text-gray-900 dark:text-white">
             🐺 Wolf Pack
-            <Badge variant="outline" className="text-sm bg-gray-100 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white">
+            <Badge variant="outline" className="text-sm bg-white/90 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white">
               {packMemberCount} Active
             </Badge>
           </h1>
@@ -142,10 +142,10 @@ export default function WolfpackMainPage() {
         </div>
 
         {/* Main Features Grid */}
-        <div className="grid gap-4 mb-6">
+        <div className="grid gap-4 sm:gap-6 mb-6">
           {/* Chat Feature */}
           <Card 
-            className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 dark:bg-white/5 border-blue-300 dark:border-blue-500/30 hover:border-blue-500 dark:hover:border-blue-400 backdrop-blur-md"
+            className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 dark:bg-white/5 border-gray-200 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400 backdrop-blur-md"
             onClick={() => router.push('/wolfpack/chat')}
           >
             <CardHeader>
@@ -173,7 +173,7 @@ export default function WolfpackMainPage() {
           </Card>
 
           {/* Public Chat Channels */}
-          <Card className="bg-white/90 dark:bg-white/5 border-green-300 dark:border-green-500/30 backdrop-blur-md">
+          <Card className="bg-white/90 dark:bg-white/5 border-gray-200 dark:border-white/20 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-white">
                 <div className="p-3 bg-green-100 dark:bg-green-500/20 rounded-lg">
@@ -188,7 +188,7 @@ export default function WolfpackMainPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-white/20 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
@@ -196,10 +196,10 @@ export default function WolfpackMainPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">Salem location • 5 active</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-gray-300 dark:border-white/30 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white bg-transparent">Join</Button>
+                  <Button size="sm" variant="outline" className="border-gray-300 dark:border-white/20 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white bg-transparent">Join</Button>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-white/20 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
@@ -207,10 +207,10 @@ export default function WolfpackMainPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">Portland location • 3 active</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-gray-300 dark:border-white/30 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white bg-transparent">Join</Button>
+                  <Button size="sm" variant="outline" className="border-gray-300 dark:border-white/20 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white bg-transparent">Join</Button>
                 </div>
                 
-                <div className="pt-2 border-t border-white/10">
+                <div className="pt-2 border-t border-gray-200 dark:border-white/20">
                   <Button 
                     variant="ghost" 
                     className="w-full text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10" 
@@ -227,10 +227,10 @@ export default function WolfpackMainPage() {
           </Card>
 
           {/* Quick Actions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Profile Management */}
             <Card 
-              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-purple-300 dark:border-purple-500/30 hover:border-purple-500 dark:hover:border-purple-400 backdrop-blur-md"
+              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-gray-200 dark:border-white/20 hover:border-purple-500 dark:hover:border-purple-400 backdrop-blur-md"
               onClick={() => router.push('/profile')}
             >
               <CardContent className="p-4 text-center">
@@ -246,7 +246,7 @@ export default function WolfpackMainPage() {
 
             {/* Events */}
             <Card 
-              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-green-300 dark:border-green-500/30 hover:border-green-500 dark:hover:border-green-400 backdrop-blur-md"
+              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-gray-200 dark:border-white/20 hover:border-green-500 dark:hover:border-green-400 backdrop-blur-md"
               onClick={() => router.push('/events')}
             >
               <CardContent className="p-4 text-center">
@@ -262,7 +262,7 @@ export default function WolfpackMainPage() {
 
             {/* Menu */}
             <Card 
-              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-orange-300 dark:border-orange-500/30 hover:border-orange-500 dark:hover:border-orange-400 backdrop-blur-md"
+              className="cursor-pointer hover:shadow-md transition-shadow bg-white/90 dark:bg-white/5 border-gray-200 dark:border-white/20 hover:border-orange-500 dark:hover:border-orange-400 backdrop-blur-md"
               onClick={() => router.push('/menu')}
             >
               <CardContent className="p-4 text-center">
@@ -278,7 +278,7 @@ export default function WolfpackMainPage() {
           </div>
 
           {/* Pack Status */}
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-gray-200 dark:border-white/10 backdrop-blur-md">
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-gray-200 dark:border-white/20 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                 <Users className="h-5 w-5" />
