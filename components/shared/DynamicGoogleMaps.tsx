@@ -84,7 +84,7 @@ export function DynamicGoogleMaps({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Google Maps Embed */}
-        <div className="relative rounded-lg overflow-hidden border bg-muted">
+        <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-muted">
           <iframe
             width="100%"
             height={height}
@@ -152,7 +152,7 @@ export function InstagramEmbed({ className = '' }: { className?: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="relative rounded-lg overflow-hidden border bg-muted">
+        <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-muted">
           <iframe
             src="https://www.instagram.com/sidehustlebar/embed"
             width="100%"

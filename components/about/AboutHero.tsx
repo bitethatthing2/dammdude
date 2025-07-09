@@ -1,3 +1,4 @@
+// AboutHero.tsx
 'use client';
 
 import { MapPin, Clock, Phone } from 'lucide-react';
@@ -17,7 +18,7 @@ export function AboutHero() {
             Welcome to Side Hustle
           </h1>
           <p className="text-xl sm:text-2xl mb-8 text-purple-100">
-            Salem & Portland&apos;s Premier Sports Bar & Wolf Pack Community
+            Salem & Portland&apos;s Premier High-Energy Sports Bar & Mexican Restaurant
           </p>
           
           <div className="flex flex-wrap gap-4 justify-center mb-12">
@@ -27,27 +28,33 @@ export function AboutHero() {
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <Clock className="h-5 w-5" />
-              <span>Open Daily</span>
+              <span>Open Most Days</span> {/* Adjusted based on Salem's Thursday closure */}
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <Phone className="h-5 w-5" />
-              <span>503-585-7827</span>
+              <span>503-585-7827</span> {/* Confirmed from image */}
             </div>
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center">
             <Button
               size="lg"
-              onClick={() => router.push('/menu')}
-              className="bg-white text-purple-900 hover:bg-purple-100"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/menu');
+              }}
+              className="bg-white text-purple-900 hover:bg-purple-100 active:bg-purple-200 touch-manipulation"
             >
               View Menu
             </Button>
             <Button
               size="lg"
               variant="outline"
-              onClick={() => router.push('/wolfpack')}
-              className="border-white text-white hover:bg-white/10"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/wolfpack');
+              }}
+              className="border-white text-white hover:bg-white/10 active:bg-white/20 touch-manipulation"
             >
               Join Wolf Pack
             </Button>

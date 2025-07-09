@@ -1,26 +1,22 @@
+// AboutPage.tsx
 import { Metadata } from 'next';
 import { AboutHero } from '@/components/about/AboutHero';
 import { ValuesHighlight } from '@/components/about/ValuesHighlight';
-import { TestimonialCarousel } from '@/components/about/TestimonialCarousel';
-import { TeamSection } from '@/components/about/TeamSection';
 import { LocationsSection } from '@/components/about/LocationsSection';
-import { StoryBlock } from '@/components/about/StoryBlock';
-import { MilestoneTimeline } from '@/components/about/MilestoneTimeline';
-import { CommunityInvolvement } from '@/components/about/CommunityInvolvement';
 import { FrequentlyAskedQuestions } from '@/components/about/FrequentlyAskedQuestions';
 
 export const metadata: Metadata = {
   title: 'About Side Hustle | Salem & Portland Sports Bar',
-  description: 'Learn about Side Hustle, Salem and Portland\'s premier sports bar and Wolf Pack community. Discover our story, values, team, and commitment to creating an exceptional experience.',
-  keywords: 'Side Hustle, sports bar, Salem, Portland, Oregon, Wolf Pack, community, about us, team, locations',
+  description: 'Learn about Side Hustle, Salem and Portland\'s premier high-energy sports bar and Mexican restaurant. Discover our values and commitment to creating an exceptional experience for the Wolf Pack community.',
+  keywords: 'Side Hustle, sports bar, Salem, Portland, Oregon, Wolf Pack, community, about us, locations, Mexican food, UFC, boxing',
   openGraph: {
     title: 'About Side Hustle - Your Local Sports Bar & Community Hub',
-    description: 'Discover the story behind Side Hustle, where sports, community, and great times come together in Salem and Portland.',
+    description: 'Discover the story behind Side Hustle, where sports, Mexican cuisine, and great times come together in Salem and Portland.',
     type: 'website',
-    url: 'https://sidehustlelounge.com/about',
+    url: 'https://sidehustlelounge.com/about', // Assuming this is the intended URL
     images: [
       {
-        url: '/images/about/hero-og.jpg',
+        url: '/images/about/hero-og.jpg', // Keep placeholder, as no specific image was found
         width: 1200,
         height: 630,
         alt: 'Side Hustle Sports Bar'
@@ -30,24 +26,25 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About Side Hustle | Salem & Portland Sports Bar',
-    description: 'Learn about Salem and Portland\'s premier sports bar and Wolf Pack community.',
-    images: ['/images/about/hero-og.jpg']
+    description: 'Learn about Salem and Portland\'s premier high-energy sports bar and Mexican restaurant.',
+    images: ['/images/about/hero-og.jpg'] // Keep placeholder
   },
   alternates: {
-    canonical: 'https://sidehustlelounge.com/about'
+    canonical: 'https://sidehustlelounge.com/about' // Assuming this is the intended URL
   }
 };
 
-// Structured data for local business
+// Structured data for local business - UPDATED WITH FACTS
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "BarOrPub",
   "name": "Side Hustle",
-  "description": "High-energy sports bar and entertainment venue specializing in Mexican cuisine in Salem and Portland, Oregon",
-  "url": "https://sidehustlelounge.com",
-  "priceRange": "$$",
+  "description": "High-energy sports bar and entertainment venue specializing in Mexican cuisine in Salem and Portland, Oregon.",
+  "url": "https://sidehustlelounge.com", // Assuming this is the intended URL
+  "priceRange": "$$", // Keep as placeholder, no specific info found
   "servesCuisine": "Mexican",
-  "hasMenu": "https://sidehustlelounge.com/menu",
+  "hasMenu": "https://sidehustlelounge.com/menu", // Assuming this is the intended URL
+  "telephone": "503-585-7827", // Confirmed from image
   "location": [
     {
       "@type": "Place",
@@ -62,9 +59,35 @@ const structuredData = {
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 44.9429,
-        "longitude": -123.0351
-      }
+        "latitude": 44.9429, // Keep placeholder, no new geo data found
+        "longitude": -123.0351 // Keep placeholder, no new geo data found
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday"],
+          "opens": "10:00",
+          "closes": "23:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Friday"],
+          "opens": "10:00",
+          "closes": "00:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Saturday", "Sunday"],
+          "opens": "10:00",
+          "closes": "02:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Thursday"],
+          "opens": "00:00", // Represents closed
+          "closes": "00:00" // Represents closed
+        }
+      ]
     },
     {
       "@type": "Place",
@@ -79,28 +102,34 @@ const structuredData = {
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 45.5152,
-        "longitude": -122.6784
-      }
-    }
-  ],
-  "openingHoursSpecification": [
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      "opens": "11:00",
-      "closes": "00:00"
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Saturday", "Sunday"],
-      "opens": "10:00",
-      "closes": "02:00"
+        "latitude": 45.5152, // Keep placeholder, no new geo data found
+        "longitude": -122.6784 // Keep placeholder, no new geo data found
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Sunday"],
+          "opens": "10:00",
+          "closes": "00:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Thursday"],
+          "opens": "10:00",
+          "closes": "01:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Friday", "Saturday"],
+          "opens": "10:00",
+          "closes": "02:30"
+        }
+      ]
     }
   ]
 };
 
-export default function AboutPage() {
+export default function AboutPage( ) {
   return (
     <>
       <script
@@ -112,54 +141,22 @@ export default function AboutPage() {
         {/* Hero Section */}
         <AboutHero />
         
-        {/* Our Story */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl font-bold text-center mb-8">Our Story</h2>
-              <div className="space-y-8">
-                <StoryBlock isPortland={false} />
-                <StoryBlock isPortland={true} />
-              </div>
-            </div>
-          </div>
-        </section>
-
+        {/* Our Story - REMOVED as no factual story was found */}
         {/* Values */}
-        <ValuesHighlight />
-
-        {/* Milestones */}
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12">Our Journey</h2>
-            <MilestoneTimeline />
-          </div>
-        </section>
-
-        {/* Testimonials */}
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">What Our Customers Say</h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-              Don&apos;t just take our word for it - hear from our amazing Wolf Pack community
-            </p>
-            <TestimonialCarousel />
+            <ValuesHighlight />
           </div>
         </section>
 
-        {/* Team */}
-        <TeamSection />
+        {/* Milestones - REMOVED as no factual milestones were found */}
+        {/* Testimonials - REMOVED as no factual testimonials were found */}
+        {/* Team - REMOVED as no specific team info was found */}
 
         {/* Locations */}
         <LocationsSection />
 
-        {/* Community Involvement */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12">Giving Back</h2>
-            <CommunityInvolvement />
-          </div>
-        </section>
+        {/* Community Involvement - REMOVED as no specific community involvement was found */}
 
         {/* FAQ */}
         <section className="py-16 bg-muted/30">
@@ -172,33 +169,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-16 text-white" style={{
-          background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 100%)'
-        }}>
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to Join the Pack?</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto">
-              Experience the best sports bar atmosphere in Salem and Portland. 
-              Join our Wolf Pack community today!
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <a
-                href="/wolfpack"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-white h-11 px-8"
-                style={{ color: 'hsl(var(--primary))' }}
-              >
-                Join Wolf Pack
-              </a>
-              <a
-                href="/menu"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-white text-white hover:bg-white/10 h-11 px-8"
-              >
-                View Menu
-              </a>
-            </div>
-          </div>
-        </section>
       </main>
     </>
   );
