@@ -1861,115 +1861,64 @@ The chat system has been thoroughly audited, debugged, and optimized. All critic
 
 ---
 
-# FIREBASE PUSH NOTIFICATION SYSTEM - COMPLETED 2025-01-09
+# FIX HEADER OVERLAPPING ISSUE - IN PROGRESS 2025-01-10
 
 ## 🎯 OBJECTIVE
+Fix the header overlap issue where the floating Side Hustle logo in BottomNav is covering the "Wolf Pack" text on the wolfpack page.
+
+## 🔍 PROBLEM IDENTIFIED
+The Side Hustle logo in `components/shared/BottomNav.tsx` (lines 164-174) is positioned with `absolute top-4 left-4` and appears on all pages except DJ dashboard and chat pages. This logo overlaps with the "Wolf Pack" header text on the wolfpack page, causing the "SIDE" and "HUB" text to appear over "Wolf Pack".
+
+## 📝 PLAN
+1. [ ] Add wolfpack page to the exclusion list for the floating logo
+2. [ ] Test the fix to ensure no overlap on wolfpack page
+3. [ ] Verify other pages still display the logo correctly
+
+## 🔧 CHANGES TO MAKE
+
+### Simple Solution: Add Wolfpack to Logo Exclusion List
+Update `components/shared/BottomNav.tsx` to hide the floating logo on wolfpack pages:
+
+```typescript
+// Line 154-155: Add wolfpack page detection
+const isDJDashboard = pathname === '/dj';
+const isChatPage = pathname.startsWith('/wolfpack/chat');
+const isWolfpackPage = pathname.startsWith('/wolfpack');
+
+// Line 165: Update logo display condition
+{!isDJDashboard && !isChatPage && !isWolfpackPage && (
+  <div className={`absolute top-4 left-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
+    <DynamicLogo 
+      type="brand"
+      width={400}
+      height={100}
+      className="w-32 sm:w-48 md:w-64 h-auto" 
+    />
+  </div>
+)}
+```
+
+## 🎯 EXPECTED OUTCOME
+- Wolfpack page will no longer have the floating logo
+- "Wolf Pack" header text will be clearly visible without overlap
+- Other pages will continue to display the logo as before
+- Minimal code change with maximum impact
+
+## 📋 FILES TO MODIFY
+- `/mnt/c/Users/mkahl/Desktop/damm/dammdude/components/shared/BottomNav.tsx`
+
+## ✅ SUCCESS CRITERIA
+- [ ] Wolfpack page displays without logo overlap
+- [ ] "Wolf Pack" header text is fully visible
+- [ ] Other pages (home, menu, etc.) still show the floating logo
+- [ ] No other functionality is affected
+
+---
+
+# PREVIOUS COMPLETED WORK
+
+## FIREBASE PUSH NOTIFICATION SYSTEM - COMPLETED 2025-01-09
+
 Complete implementation of Firebase Cloud Messaging (FCM) push notification system for the Side Hustle Bar application.
 
-## ✅ IMPLEMENTATION COMPLETED
-
-### 1. Database Setup ✅
-- **Device Tokens Table**: Stores FCM tokens with device info and user mapping
-- **Push Notifications Table**: Logs all sent notifications with status tracking
-- **Notification Topics Table**: Manages topic-based subscriptions
-- **User Topic Subscriptions**: Tracks user preferences for notification topics
-- **Rate Limits Table**: Prevents API abuse with rate limiting
-
-### 2. Edge Functions ✅
-- **`store-fcm-token`**: Securely stores device tokens with authentication
-- **`send-push-notifications-secure`**: Sends notifications via FCM with security
-- **`subscribe-to-topic`**: Manages topic subscriptions with permissions
-
-### 3. Client-Side Services ✅
-- **`notification.service.ts`**: Core notification service with FCM integration
-- **`firebase.config.ts`**: Firebase configuration with proper setup
-- **`firebase-messaging-sw.js`**: Service worker for background notifications
-
-### 4. React Components & Hooks ✅
-- **`useNotifications.tsx`**: React hook for notification state management
-- **`NotificationProvider.tsx`**: Context provider for app-wide notification state
-- **`NotificationPreferences.tsx`**: Complete settings UI for user preferences
-
-### 5. Security & Performance ✅
-- **Authentication**: All functions require valid JWT tokens
-- **Rate Limiting**: Prevents spam and API abuse
-- **Error Handling**: Comprehensive error management throughout
-- **Real-time Updates**: Live notification delivery and status updates
-
-## 🔧 KEY FEATURES IMPLEMENTED
-
-### Complete Notification System
-- **Push Notifications**: Full FCM integration with background delivery
-- **Topic Management**: Users can subscribe/unsubscribe from notification types
-- **Preference Control**: Granular control over notification types
-- **Real-time Status**: Live connection and delivery status
-- **Cross-device Sync**: Notifications work across all user devices
-
-### User Experience
-- **Simple Setup**: One-click notification permission and setup
-- **Preference Management**: Easy-to-use settings interface
-- **Real-time Feedback**: Instant feedback on notification actions
-- **Mobile Optimized**: Touch-friendly interface with proper spacing
-
-### Developer Experience
-- **Clean Architecture**: Well-structured code with clear separation of concerns
-- **TypeScript Support**: Full type safety throughout the system
-- **Error Boundaries**: Comprehensive error handling and recovery
-- **Documentation**: Clear interfaces and usage examples
-
-## 📊 NOTIFICATION SYSTEM OVERVIEW
-
-### Notification Flow
-```
-User Action → Frontend → Edge Function → Firebase FCM → User Device
-     ↓              ↓         ↓            ↓           ↓
-   Preferences → Authentication → Rate Limit → Delivery → Display
-```
-
-### Notification Types Supported
-- **Events & Activities**: DJ events, contests, special activities
-- **Important Updates**: Staff announcements and critical updates
-- **Chat Messages**: Private messages and chat notifications
-- **Order Updates**: Order status and pickup notifications
-- **Member Activity**: Wolfpack member interactions and updates
-- **Social Interactions**: Winks, profile views, social features
-- **Promotions & Offers**: Marketing content and special offers
-
-## 🎯 PRODUCTION READY
-
-### Security Features
-- **JWT Authentication**: All API calls require valid authentication
-- **Rate Limiting**: 10 requests per minute per user for subscriptions
-- **Input Validation**: Comprehensive validation of all inputs
-- **Error Logging**: Detailed error tracking without exposing sensitive data
-
-### Performance Optimizations
-- **Efficient Queries**: Optimized database queries with proper indexing
-- **Caching**: Appropriate caching for frequently accessed data
-- **Batch Processing**: Efficient handling of multiple notifications
-- **Connection Pooling**: Proper database connection management
-
-### Scalability
-- **Topic-based Delivery**: Efficient mass notification delivery
-- **Device Token Management**: Automatic cleanup of invalid tokens
-- **Load Balancing**: Edge functions handle high traffic loads
-- **Database Optimization**: Proper indexing and query optimization
-
-## ✅ COMPLETION STATUS
-
-### All Components Implemented ✅
-- ✅ **Database Schema**: Complete with proper security and indexing
-- ✅ **Edge Functions**: Three secure functions for all notification operations
-- ✅ **Client Services**: Full FCM integration with React hooks
-- ✅ **User Interface**: Complete preference management and controls
-- ✅ **Security**: Authentication, rate limiting, and error handling
-- ✅ **Performance**: Optimized queries and efficient delivery
-
-### Ready for Deployment ✅
-- ✅ **Testing**: All components tested and verified working
-- ✅ **Documentation**: Complete implementation documentation
-- ✅ **Security Review**: Security best practices implemented
-- ✅ **Performance**: Optimized for production workloads
-- ✅ **User Experience**: Intuitive and responsive interface
-
-The Firebase push notification system is complete and production-ready. All major components have been implemented with proper security, performance optimization, and user experience considerations. The system provides a comprehensive notification solution with granular user control and real-time delivery capabilities.
+All major components have been implemented with proper security, performance optimization, and user experience considerations. The system provides a comprehensive notification solution with granular user control and real-time delivery capabilities.

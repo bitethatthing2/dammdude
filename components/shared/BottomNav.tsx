@@ -153,6 +153,7 @@ export const BottomNav = () => {
   // Check if we're on the DJ dashboard page or chat pages
   const isDJDashboard = pathname === '/dj';
   const isChatPage = pathname.startsWith('/wolfpack/chat');
+  const isWolfpackPage = pathname.startsWith('/wolfpack');
 
   // Hide BottomNav on chat pages
   if (pathname.startsWith('/wolfpack/chat')) {
@@ -162,8 +163,8 @@ export const BottomNav = () => {
   return (
     <>
       {/* Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
-      {!isDJDashboard && !isChatPage && (
-        <div className={`fixed top-4 left-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
+      {!isDJDashboard && !isChatPage && !isWolfpackPage && (
+        <div className={`absolute top-4 left-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <DynamicLogo 
             type="brand"
             width={400}
@@ -174,7 +175,7 @@ export const BottomNav = () => {
       )}
 
       {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard and chat) */}
-      {!isDJDashboard && !isChatPage && (
+      {!isDJDashboard && !isChatPage && !isWolfpackPage && (
         <div className={`fixed top-4 right-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
           <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-1.5 sm:p-2">
             <ThemeControl />

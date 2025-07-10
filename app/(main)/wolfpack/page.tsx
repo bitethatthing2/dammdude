@@ -127,7 +127,7 @@ export default function WolfpackMainPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-black dark:to-gray-900 text-gray-900 dark:text-white">
-      <div className="container mx-auto p-4 sm:p-6 max-w-4xl pb-20 sm:pb-24 pt-16 sm:pt-20">
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl pb-20 sm:pb-24">
         {/* Header */}
         <div className="mb-4 sm:mb-6 text-center">
           <h1 className="text-3xl font-bold flex items-center justify-center gap-3 mb-2 text-gray-900 dark:text-white">
