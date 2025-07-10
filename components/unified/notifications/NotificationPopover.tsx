@@ -20,10 +20,11 @@ import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
  */
 interface Notification {
   id: string;
-  id: string;
+  recipient_id: string;
   type: string;
   title: string;
   message: string;
+  link: string | null;
   read: boolean;
   data: Record<string, unknown> | null;
   created_at: string;

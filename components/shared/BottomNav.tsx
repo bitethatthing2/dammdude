@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info } from 'lucide-react';
+import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getZIndexClass } from '@/lib/constants/z-index';
 import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
+import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { ThemeControl } from './ThemeControl';
@@ -16,6 +17,7 @@ export const BottomNav = () => {
   const pathname = usePathname();
   const { isMember: canCheckout } = useWolfpackAccess();
   const { isActiveDJ } = useDJPermissions();
+  const { isAdmin } = useAdminAccess();
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -31,10 +33,11 @@ export const BottomNav = () => {
         user: !!user,
         userEmail: user?.email,
         isMember: canCheckout,
-        isActiveDJ
+        isActiveDJ,
+        isAdmin
       });
     }
-  }, [isMounted, user, canCheckout, isActiveDJ]);
+  }, [isMounted, user, canCheckout, isActiveDJ, isAdmin]);
 
   // Define the type for navigation items
   interface NavItem {
@@ -44,6 +47,7 @@ export const BottomNav = () => {
     label: string;
     requiresWolfPack?: boolean;
     requiresDJ?: boolean;
+    requiresAdmin?: boolean;
     hideWhenLoggedIn?: boolean;
   }
 
@@ -60,6 +64,11 @@ export const BottomNav = () => {
       // Add DJ tab if user is an active DJ
       if (isActiveDJ) {
         items.push({ id: 'dj', href: '/dj', icon: Music, label: 'DJ', requiresDJ: true });
+      }
+
+      // Add admin dashboard if user is an admin
+      if (isAdmin) {
+        items.push({ id: 'admin', href: '/admin/dashboard', icon: Settings, label: 'Admin', requiresAdmin: true });
       }
 
       // Add remaining features available to Wolf Pack members
@@ -106,14 +115,17 @@ export const BottomNav = () => {
     const isActive = pathname === item.href;
     const Icon = item.icon;
     const isJoinPack = item.id === 'join-pack';
+    const isAdminItem = item.id === 'admin';
 
     const linkClasses = cn(
       "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200 min-w-0 flex-1",
       isJoinPack
         ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
-        : isActive 
-          ? "text-primary bg-primary/10" 
-          : "text-inactive hover:text-foreground hover:bg-primary/5"
+        : isAdminItem
+          ? "text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg shadow-red-500/25"
+          : isActive 
+            ? "text-primary bg-primary/10" 
+            : "text-inactive hover:text-foreground hover:bg-primary/5"
     );
 
     return (
@@ -125,12 +137,13 @@ export const BottomNav = () => {
         <Icon className={cn(
           "h-5 w-5 transition-all duration-200",
           isActive && "drop-shadow-sm",
-          isJoinPack && "animate-pulse"
+          isJoinPack && "animate-pulse",
+          isAdminItem && "animate-pulse"
         )} />
         <span className={cn(
           "text-[10px] mt-1 font-medium",
           "truncate w-full text-center",
-          isJoinPack && "font-bold"
+          (isJoinPack || isAdminItem) && "font-bold"
         )}>
           {item.label}
         </span>
