@@ -54,19 +54,19 @@ console.log({
 });
 
 // Replace the Firebase config in the service worker
-const configRegex = /const firebaseConfig = \{[\s\S]*?\}/;
-const newConfigString = `const firebaseConfig = {
-  apiKey: "${firebaseConfig.apiKey}",             // Replace with value from .env.local
-  authDomain: "${firebaseConfig.authDomain}",       // Replace with value from .env.local
-  projectId: "${firebaseConfig.projectId}",        // Replace with value from .env.local
-  storageBucket: "${firebaseConfig.storageBucket}",  // Replace with value from .env.local
-  messagingSenderId: "${firebaseConfig.messagingSenderId}", // Replace with value from .env.local
-  appId: "${firebaseConfig.appId}",              // Replace with value from .env.local
-  measurementId: "${firebaseConfig.measurementId}" // Optional, replace if you use it
-}`;
+const configRegex = /firebase\.initializeApp\(\{[\s\S]*?\}\);/;
+const newConfigString = `firebase.initializeApp({
+  apiKey: "${firebaseConfig.apiKey}",
+  authDomain: "${firebaseConfig.authDomain}",
+  projectId: "${firebaseConfig.projectId}",
+  storageBucket: "${firebaseConfig.storageBucket}",
+  messagingSenderId: "${firebaseConfig.messagingSenderId}",
+  appId: "${firebaseConfig.appId}"
+});`;
 
 if (!configRegex.test(swContent)) {
   console.error('Error: Could not find Firebase config pattern in service worker file');
+  console.error('Looking for: firebase.initializeApp({...});');
   process.exit(1);
 }
 
