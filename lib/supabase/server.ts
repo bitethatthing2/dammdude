@@ -35,3 +35,6 @@ export async function createServerClient() {
     }
   )
 }
+
+// Alias for API routes expecting createClient
+export const createClient = createServerClient
