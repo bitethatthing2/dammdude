@@ -6,6 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocationSwitcher, LOCATIONS, type LocationKey } from './LocationSwitcher';
 
+// Type declaration for Instagram embed script
+declare global {
+  interface Window {
+    instgrm?: {
+      Embeds: {
+        process(): void;
+      };
+    };
+  }
+}
+
 interface DynamicGoogleMapsProps {
   className?: string;
   showLocationSwitcher?: boolean;
