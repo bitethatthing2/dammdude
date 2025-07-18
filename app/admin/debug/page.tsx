@@ -144,13 +144,13 @@ UPDATE users SET
   is_vip = true
 WHERE email = 'mkahler599@gmail.com';
 
--- Create override policy for DJ broadcasts
+-- Create override policy for DJ broadcasts (fixed to avoid recursion)
 DROP POLICY IF EXISTS "Supreme admin override" ON dj_broadcasts;
 CREATE POLICY "Supreme admin override" ON dj_broadcasts
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND email = 'mkahler599@gmail.com')
+    auth.uid() = '5a76f108-464b-490b-a4c8-2e6b337f895e'::uuid
     OR
-    EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('dj', 'admin'))
+    auth.jwt() ->> 'role' IN ('dj', 'admin', 'supreme_admin')
   );`}
             </pre>
           </CardContent>

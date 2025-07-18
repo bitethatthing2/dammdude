@@ -1,5 +1,5 @@
 // Import types from unified system
-import type { CartItem } from './order'; // Use new CartItem from wolfpack-unified
+import type { CartItem } from './order'; // Basic cart item type
 import type { BartenderOrder } from './order';
 
 // SIMPLIFIED CHECKOUT - Wolf Pack Orders: Pay at Bar Only

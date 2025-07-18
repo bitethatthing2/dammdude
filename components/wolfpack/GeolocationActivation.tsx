@@ -67,12 +67,11 @@ const joinWolfPackFromLocation = async (locationId: string, user: DatabaseUser) 
 
   try {
     const { data, error } = await supabase
-      .from('wolf_pack_members')
+      .from('wolfpack_whitelist')
       .insert({
-        id: user.id,
+        user_id: user.id,
         location_id: locationId,
-        status: 'active',
-        joined_at: new Date().toISOString()
+        status: 'active'
       })
       .select()
       .single();

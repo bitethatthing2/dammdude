@@ -47,23 +47,31 @@ export function NotificationPopover() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_id: undefined, // null means current user
+        p_user_id: undefined, // null means current user
         p_limit: 50,
         p_offset: 0
       });
 
       if (error) {
+        // Handle missing notifications table gracefully
+        if (error.code === '42P01' && error.message?.includes('notifications')) {
+          console.log('Notifications table not yet created - this is expected during development');
+          setNotifications([]);
+          return;
+        }
         console.error('Error fetching notifications:', error);
+        setNotifications([]);
         return;
       }
 
       setNotifications((data as any[]) || []);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {

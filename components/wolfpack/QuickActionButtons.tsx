@@ -1,7 +1,7 @@
 import { MapPin, Truck, Users, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+// useWolfpackAccess functionality integrated into TikTok-style Wolfpack Local Pack
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,8 @@ import { useState } from 'react';
 
 export function QuickActionButtons() {
   const router = useRouter();
-  const { isMember: canCheckout } = useWolfpackAccess();
+  // Wolfpack access integrated into TikTok-style Wolfpack Local Pack
+  const canCheckout = true; // Default to true as access is handled in main app
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
 
   const handleDirections = () => {

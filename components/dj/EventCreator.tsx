@@ -33,7 +33,7 @@ import type {
   BroadcastType,
   BroadcastOption
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/database.types';
 
 interface Member {
   id: string;

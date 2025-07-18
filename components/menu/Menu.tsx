@@ -264,7 +264,7 @@ export default function OptimizedMenu() {
 
   // Enhanced real-time subscription with reconnection logic
   useEffect(() => {
-    const setupRealtimeSubscription = () => {
+    const setupRealtimeSubscription = async () => {
       try {
         // Clean up existing subscription
         if (subscriptionRef.current) {
@@ -395,7 +395,7 @@ export default function OptimizedMenu() {
   const handleAddToCart = useCallback(async (orderData: CartOrderData) => {
     try {
       // Extract item and customizations from orderData
-      const { item, modifiers, quantity, notes } = orderData;
+      const { item, modifiers, quantity, specialInstructions } = orderData;
       
       // Check permissions
       if (!authService.hasPermission(Permission.PLACE_ORDER)) {
@@ -403,7 +403,7 @@ export default function OptimizedMenu() {
           'addToCart',
           'Insufficient permissions',
           'You need to be logged in to add items to cart',
-          { component: 'Menu', itemId: item.id }
+          { component: 'Menu', metadata: { itemId: item.id } }
         );
       }
 
@@ -414,15 +414,14 @@ export default function OptimizedMenu() {
           'item_availability',
           false,
           'This item is currently unavailable',
-          { component: 'Menu', itemId: item.id }
+          { component: 'Menu', metadata: { itemId: item.id } }
         );
       }
 
       // Convert modifiers to ItemCustomization format
       const customizations: ItemCustomization = {
         meat: modifiers.meat,
-        sauces: modifiers.sauces,
-        modifiers: modifiers.modifiers
+        sauces: modifiers.sauces
       };
 
       // Create cart item with validation
@@ -430,7 +429,7 @@ export default function OptimizedMenu() {
         item,
         quantity,
         customizations,
-        notes
+        specialInstructions
       );
       
       // Add to cart

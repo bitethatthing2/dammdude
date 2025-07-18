@@ -1,7 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from '@/types/database.types'
+// Database types will be generated when needed
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
-import { supabaseConfig } from '@/config/app.config'
 
 // Define proper error types
 interface SupabaseError {
@@ -46,8 +45,47 @@ function isAuthError(error: unknown): error is AuthError {
   )
 }
 
+// Retry fetch with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok && response.status >= 500 && i < maxRetries - 1) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+      
+      return response
+    } catch (error) {
+      // Check if it's a connection error to local Supabase
+      if (error instanceof Error && error.message.includes('Failed to fetch') && url.includes('127.0.0.1:54321')) {
+        console.warn('Local Supabase instance not running. Please start it with: npx supabase start')
+        if (i === maxRetries - 1) {
+          throw new Error('Local Supabase instance not running. Please start it with: npx supabase start')
+        }
+      } else if (i === maxRetries - 1) {
+        throw error
+      }
+      
+      // Exponential backoff with jitter
+      const delay = Math.min(1000 * Math.pow(2, i) + Math.random() * 1000, 10000)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw new Error('Max retries reached')
+}
+
 // Create a single shared instance
-let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null
+let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
 
 export function createClient() {
   // Return existing instance if it exists
@@ -58,8 +96,6 @@ export function createClient() {
   // Check and clear corrupted cookies before creating client
   if (typeof window !== 'undefined') {
     try {
-      // Use both cleanup methods for maximum effectiveness
-      checkAndClearCorruptedCookies()
       checkAndClearCorruptedCookies()
     } catch (error) {
       console.warn('Error checking cookies:', error)
@@ -85,7 +121,7 @@ export function createClient() {
 
   // Create new instance with better error handling
   try {
-    supabaseClient = createBrowserClient<Database>(
+    supabaseClient = createBrowserClient(
       supabaseUrl,
       supabaseAnonKey,
       {
@@ -93,11 +129,21 @@ export function createClient() {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
-          flowType: 'pkce'
+          flowType: 'pkce',
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          storageKey: 'supabase.auth.token'
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
         },
         global: {
           headers: {
             'X-Client-Info': 'supabase-ssr-js'
+          },
+          fetch: (url, options = {}) => {
+            return fetchWithRetry(url, options, 3)
           }
         }
       }
@@ -107,11 +153,10 @@ export function createClient() {
     // Clear cookies and try again
     if (typeof window !== 'undefined') {
       checkAndClearCorruptedCookies()
-      checkAndClearCorruptedCookies()
     }
     
     // Retry with minimal config
-    supabaseClient = createBrowserClient<Database>(
+    supabaseClient = createBrowserClient(
       supabaseUrl,
       supabaseAnonKey
     )
@@ -212,5 +257,4 @@ export function handleSupabaseError(error: unknown): {
 }
 
 // Export types
-export type { Database } from '@/types/database.types'
 export type { SupabaseError, PostgrestError, AuthError }

@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { DynamicLogo } from './DynamicLogo';
 import { LocationSwitcher } from './LocationSwitcher';
-import { ThemeControl } from './ThemeControl';
 import { BackButton } from './BackButton';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
@@ -58,10 +57,9 @@ export function AppHeader({
             <Link href="/" className="flex items-center">
               <DynamicLogo 
                 type="brand" 
-                width={1600} 
-                height={400} 
+                width={200} 
+                height={50} 
                 className="hover:opacity-80 transition-opacity"
-                style={{ width: '1600px', height: '400px' }}
               />
             </Link>
           </div>
@@ -92,8 +90,6 @@ export function AppHeader({
                 <LocationSwitcher />
               </div>
             )}
-            
-            <ThemeControl />
 
             {/* Mobile Menu Button */}
             {showNavigation && (

@@ -19,6 +19,7 @@ export interface ConsistentWolfpackAccess {
   wolfpackStatus?: WolfpackStatusValue | null;
   hasLocationPermission?: boolean;
   refreshData?: () => Promise<void>;
+  requestLocationAccess?: () => Promise<void>;
 }
 
 // =============================================================================
@@ -141,49 +142,8 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
         locationName = location?.name || null;
       }
 
-      // If no location set, try to find nearest location
-      if (!locationName && navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 300000
-            });
-          });
-
-          const { data: locations } = await supabase
-            .from('locations')
-            .select('id, name, latitude, longitude, radius_miles')
-            .eq('is_active', true);
-
-          if (locations && locations.length > 0) {
-            let nearestLocation = null;
-            let minDistance = Infinity;
-
-            for (const location of locations) {
-              const distance = calculateDistance(
-                position.coords.latitude,
-                position.coords.longitude,
-                location.latitude,
-                location.longitude
-              );
-
-              if (distance < minDistance) {
-                minDistance = distance;
-                nearestLocation = location;
-              }
-            }
-
-            if (nearestLocation && minDistance <= (nearestLocation.radius_miles || 0.25)) {
-              locationName = nearestLocation.name;
-              hasLocationPermission = true;
-            }
-          }
-        } catch (locationError) {
-          console.warn('Could not get location:', locationError);
-        }
-      }
+      // Skip automatic geolocation to avoid browser violations
+      // Location will need to be set manually or through user interaction
 
       // Determine canCheckout
       const canCheckout = isMember && 
@@ -214,6 +174,53 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
     await checkLocationAccess();
   }, [checkLocationAccess]);
 
+  const requestLocationAccess = useCallback(async () => {
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 300000
+        });
+      });
+
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('id, name, latitude, longitude, radius_miles')
+        .eq('is_active', true);
+
+      if (locations && locations.length > 0) {
+        let nearestLocation = null;
+        let minDistance = Infinity;
+
+        for (const location of locations) {
+          const distance = calculateDistance(
+            position.coords.latitude,
+            position.coords.longitude,
+            location.latitude,
+            location.longitude
+          );
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestLocation = location;
+          }
+        }
+
+        if (nearestLocation && minDistance <= (nearestLocation.radius_miles || 0.25)) {
+          setState(prev => ({
+            ...prev,
+            locationName: nearestLocation.name,
+            hasLocationPermission: true,
+            canCheckout: prev.isMember && prev.wolfpackStatus === 'active'
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Could not get location:', error);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     checkLocationAccess();
@@ -221,7 +228,8 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
 
   return {
     ...state,
-    refreshData
+    refreshData,
+    requestLocationAccess
   };
 }
 

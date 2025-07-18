@@ -4,7 +4,26 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import { errorService, ErrorSeverity, ErrorCategory } from './error-service';
+// Simple error handling without external dependency
+const errorService = {
+  logError: (error: Error, context: string) => {
+    console.error(`[${context}] ${error.message}`, error);
+  }
+};
+
+enum ErrorSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
+
+enum ErrorCategory {
+  DATABASE = 'database',
+  NETWORK = 'network',
+  VALIDATION = 'validation',
+  AUTH = 'auth'
+}
 
 interface QueryOptions {
   useCache?: boolean;
@@ -374,9 +393,11 @@ class DataService {
           ErrorCategory.DATABASE,
           {
             operation: operationName,
-            successfulCount: successful.length,
-            failedCount: failed.length,
-            totalCount: operations.length
+            metadata: {
+              successfulCount: successful.length,
+              failedCount: failed.length,
+              totalCount: operations.length
+            }
           }
         );
       }

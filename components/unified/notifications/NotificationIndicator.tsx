@@ -35,13 +35,20 @@ export const NotificationIndicator = forwardRef<NotificationIndicatorRef, Notifi
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_id: undefined, // null means current user
+        p_user_id: undefined, // null means current user
         p_limit: 100, // Get enough to count unread
         p_offset: 0
       });
 
       if (error) {
+        // Handle missing notifications table gracefully
+        if (error.code === '42P01' && error.message?.includes('notifications')) {
+          console.log('Notifications table not yet created - this is expected during development');
+          setUnreadCount(0);
+          return;
+        }
         console.error('Error fetching notifications:', error);
+        setUnreadCount(0);
         return;
       }
 
@@ -50,10 +57,11 @@ export const NotificationIndicator = forwardRef<NotificationIndicatorRef, Notifi
       setUnreadCount(unread);
     } catch (err) {
       console.error('Failed to fetch notification count:', err);
+      setUnreadCount(0);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   // Expose refresh method to parent components
   useImperativeHandle(ref, () => ({

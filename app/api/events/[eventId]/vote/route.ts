@@ -471,7 +471,7 @@ async function sendConfirmationMessage(
         confirmationMessage = `${displayName} participated in: ${event.title}`;
     }
 
-    const chatMessage: ChatMessageInsert = {
+    const chatMessage = {
       session_id: `location_${event.location_id}`,
       user_id: user.id,
       display_name: displayName,

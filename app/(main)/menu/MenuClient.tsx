@@ -20,12 +20,29 @@ import MenuItemCard, { CompactMenuItemCard } from '@/components/menu/MenuItemCar
 import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { createCartItem, ItemCustomization } from '@/types/features/wolfpack-unified';
 import type {
   MenuCategoryWithCount,
   MenuItemWithModifiers,
   CartOrderData
 } from '@/types/features/menu';
+
+// Basic types for cart functionality
+export interface ItemCustomization {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export function createCartItem(menuItem: MenuItemWithModifiers, customizations: ItemCustomization[] = []) {
+  return {
+    id: menuItem.id,
+    name: menuItem.name,
+    price: menuItem.price,
+    quantity: 1,
+    customizations
+  };
+}
 
 interface MenuClientProps {
   initialCategories: MenuCategoryWithCount[];

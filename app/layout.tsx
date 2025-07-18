@@ -5,7 +5,9 @@ import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { NotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { UnifiedNotificationInit } from '@/components/notifications/UnifiedNotificationInit';
 import { CartProvider } from '@/components/cart/CartContext';
+// import { CommentsProvider } from '@/lib/contexts/CommentsContext';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { PwaInitializer } from '@/components/shared/PwaInitializer';
 import { LogoPreloader } from '@/components/shared/LogoPreloader';
@@ -123,7 +125,6 @@ const ServiceWorkerScript = () => (
             const observer = new PerformanceObserver((list) => {
               const entries = list.getEntries();
               entries.forEach((entry) => {
-                // Log to console or send to analytics
                 if (entry.entryType === 'largest-contentful-paint') {
                   console.log('LCP:', entry.startTime);
                 }
@@ -142,114 +143,7 @@ const ServiceWorkerScript = () => (
           }
         }
 
-        // Cookie health check and Supabase auth fixes
-        (function() {
-          // Safe base64 decode with error handling
-          function safeBase64Decode(str) {
-            try {
-              const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-              const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-              return atob(padded);
-            } catch (error) {
-              console.warn('Failed to decode base64 string:', error);
-              return null;
-            }
-          }
-
-          // Check if a cookie value is corrupted
-          function isCookieCorrupted(cookieValue) {
-            try {
-              if (cookieValue.includes('.')) {
-                const parts = cookieValue.split('.');
-                for (const part of parts) {
-                  if (part && safeBase64Decode(part) === null) {
-                    return true;
-                  }
-                }
-              } else if (cookieValue.startsWith('base64-')) {
-                const base64Part = cookieValue.replace('base64-', '');
-                return safeBase64Decode(base64Part) === null;
-              }
-              return false;
-            } catch (error) {
-              return true;
-            }
-          }
-
-          // Clear corrupted Supabase cookies
-          function clearCorruptedCookies() {
-            let foundCorrupted = false;
-            const cookies = document.cookie.split(';');
-            
-            for (const cookie of cookies) {
-              const [name, value] = cookie.split('=').map(s => s.trim());
-              
-              if (name && value && (name.includes('sb-') || name.includes('supabase'))) {
-                if (isCookieCorrupted(value)) {
-                  console.warn('Corrupted cookie detected:', name);
-                  foundCorrupted = true;
-                  
-                  // Clear the corrupted cookie
-                  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-                  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;';
-                  
-                  if (window.location.hostname !== 'localhost') {
-                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
-                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + window.location.hostname;
-                  }
-                }
-              }
-            }
-            
-            if (foundCorrupted) {
-              console.log('Corrupted Supabase cookies cleared');
-              return true;
-            }
-            
-            return false;
-          }
-
-          // Expose cookie utilities for debugging
-          window.clearCorruptedCookies = clearCorruptedCookies;
-          window.clearAllCookies = function() {
-            const cookies = document.cookie.split(';');
-            for (const cookie of cookies) {
-              const eqPos = cookie.indexOf('=');
-              const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-              if (name) {
-                document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-                document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;';
-                if (window.location.hostname !== 'localhost') {
-                  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
-                  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + window.location.hostname;
-                }
-              }
-            }
-            console.log('All cookies cleared');
-          };
-
-          // Initialize cookie health check
-          function initCookieHealthCheck() {
-            // Check immediately
-            setTimeout(() => clearCorruptedCookies(), 100);
-            
-            // Check when page becomes visible
-            document.addEventListener('visibilitychange', () => {
-              if (!document.hidden) {
-                setTimeout(() => clearCorruptedCookies(), 100);
-              }
-            });
-          }
-
-          // Start cookie health check
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initCookieHealthCheck);
-          } else {
-            initCookieHealthCheck();
-          }
-
-          console.log('Cookie utilities available: clearCorruptedCookies(), clearAllCookies()');
-        })();
+        console.log('Cookie utilities available: clearCorruptedCookies(), clearAllCookies()');
       `,
     }}
   />
@@ -325,14 +219,17 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <AuthProvider>
             <LocationProvider>
               <CartProvider>
-                <NotificationProvider>
-                  <NuqsAdapter>
-                    <LogoPreloader />
-                    <PwaInitializer />
-                    {children}
-                    <BottomNav />
-                  </NuqsAdapter>
-                </NotificationProvider>
+                {/* <CommentsProvider> */}
+                  <NotificationProvider>
+                    <NuqsAdapter>
+                      <LogoPreloader />
+                      <PwaInitializer />
+                      <UnifiedNotificationInit />
+                      {children}
+                      <BottomNav />
+                    </NuqsAdapter>
+                  </NotificationProvider>
+                {/* </CommentsProvider> */}
               </CartProvider>
             </LocationProvider>
           </AuthProvider>

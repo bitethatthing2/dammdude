@@ -129,7 +129,7 @@ export class ProfileImageManager {
       // Delete files beyond the keep limit
       const filesToDelete = files
         .slice(keepCount)
-        .map(file => `profile/${userId}/${file.name}`);
+        .map((file: any) => `profile/${userId}/${file.name}`);
 
       if (filesToDelete.length > 0) {
         console.log(`🗑️ Deleting ${filesToDelete.length} old profile images...`);

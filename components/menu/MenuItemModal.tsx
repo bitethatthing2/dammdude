@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Minus, ArrowLeft, Check, Loader2, Sparkles, ShoppingCart, X } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpack } from '@/hooks/useWolfpack';
+// useWolfpack functionality integrated into TikTok-style Wolfpack Local Pack
 import { cn } from '@/lib/utils';
 import { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -51,7 +51,8 @@ export default function MenuItemModal({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
-  const { state } = useWolfpack(null, null); // Pass required sessionId and locationId parameters
+  // useWolfpack functionality integrated into TikTok-style Wolfpack Local Pack
+  const state = { isInSession: false, members: [] }; // Default state
   
   // Check Wolf Pack membership using only properties that actually exist in RealtimeState
   const isWolfPackMember = useMemo(() => {

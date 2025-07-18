@@ -2,7 +2,7 @@
 
 import MenuClient from './MenuClient';
 import { MenuErrorFallback } from 'components/menu/MenuErrorFallback';
-import type { Database } from '@/types/database.types'; // Still needed for MenuCategory type
+import type { Database } from '@/lib/database.types'; // Still needed for MenuCategory type
 import type { MenuCategoryWithCount } from '@/types/features/menu'; // Still needed
 import { getCategoriesByTypePublic } from '@/lib/menu-data-public-fixed'; // Fixed version with better error handling
 

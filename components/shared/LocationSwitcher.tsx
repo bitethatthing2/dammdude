@@ -95,13 +95,13 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
   };
 
   return (
-    <div className={`inline-flex items-center bg-muted rounded-full p-1 ${className}`}>
+    <div className={`inline-flex items-center bg-black/20 backdrop-blur-sm border border-white/30 rounded-full p-1 ${className}`}>
       <button
         onClick={() => handleLocationSelect(LOCATIONS[0])}
         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
           currentLocation.key === 'salem' 
-            ? 'bg-background text-foreground shadow-sm' 
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-white text-black shadow-sm font-bold' 
+            : 'text-white hover:text-gray-300 hover:bg-white/10'
         }`}
       >
         Salem
@@ -110,8 +110,8 @@ export function LocationSwitcher({ onLocationChange, className = '' }: LocationS
         onClick={() => handleLocationSelect(LOCATIONS[1])}
         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
           currentLocation.key === 'portland' 
-            ? 'bg-background text-foreground shadow-sm' 
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-white text-black shadow-sm font-bold' 
+            : 'text-white hover:text-gray-300 hover:bg-white/10'
         }`}
       >
         Portland
@@ -126,8 +126,8 @@ export function LocationDisplay() {
   const currentLocation = LOCATIONS.find(loc => loc.key === location) || LOCATIONS[0];
   
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <MapPin className="h-4 w-4" />
+    <div className="flex items-center gap-2 text-sm text-foreground/80">
+      <MapPin className="h-4 w-4 text-foreground/80" />
       <span>{currentLocation.displayName}</span>
     </div>
   );

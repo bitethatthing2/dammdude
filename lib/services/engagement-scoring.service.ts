@@ -1,14 +1,6 @@
 'use client';
 
 import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/types/database.types';
-
-// Define types based on your database schema
-type WolfpackMember = Database['public']['Views']['active_wolfpack_members']['Row'];
-type DjBroadcastResponse = Database['public']['Tables']['dj_broadcast_responses']['Row'];
-type WolfpackChatMessage = Database['public']['Tables']['wolfpack_chat_messages']['Row'];
-type WolfPackInteraction = Database['public']['Tables']['wolf_pack_interactions']['Row'];
-type WolfpackEngagement = Database['public']['Tables']['wolfpack_engagement']['Row'];
 
 // Define the WolfpackLiveStats type if not already defined
 export interface WolfpackLiveStats {
@@ -44,24 +36,30 @@ interface EngagementData {
   membership_tier: string | null;
 }
 
-interface ActiveWolfpackMember {
-  id: string;
-  display_name: string | null;
-  wolf_emoji: string | null;
-  avatar_url: string | null;
-  profile_pic_url: string | null;
-  is_online: boolean | null;
-  last_activity: string | null;
-  bio: string | null;
-  vibe_status: string | null;
-  favorite_drink: string | null;
-  favorite_song: string | null;
-  instagram_handle: string | null;
-  looking_for: string | null;
-  is_permanent_pack_member: boolean | null;
-  wolfpack_tier: string | null;
-  gender: string | null;
-  pronouns: string | null;
+
+
+// Define the structure for engagement metrics from the database
+interface EngagementMetric {
+  user_id: string;
+  total_session_time_minutes: number | null;
+  total_interactions: number | null;
+}
+
+// Define the structure for broadcast response data
+interface BroadcastResponseData {
+  user_id: string | null;
+  broadcast_id?: string | null;
+}
+
+// Define the structure for chat message data
+interface ChatMessageData {
+  user_id: string | null;
+}
+
+// Define the structure for interaction data
+interface InteractionData {
+  sender_id: string | null;
+  receiver_id: string | null;
 }
 
 /**
@@ -74,9 +72,9 @@ export class EngagementScoringService {
     chat_activity: 0.25,         // 25% - High engagement indicator
     social_interactions: 0.2,    // 20% - User-to-user engagement
     session_activity: 0.15       // 15% - Time spent and recency
-  };
+  } as const;
 
-  private static readonly VIBE_EMOJIS = ['🔥', '✨', '💃', '🎵', '⚡', '🌟', '🎯', '💯'];
+  private static readonly VIBE_EMOJIS = ['🔥', '✨', '💃', '🎵', '⚡', '🌟', '🎯', '💯'] as const;
 
   /**
    * Get top crowd members with real-time engagement scoring
@@ -122,26 +120,60 @@ export class EngagementScoringService {
     endOfDay.setDate(endOfDay.getDate() + 1);
 
     try {
-      // Get active wolfpack members at this location using the view
+      // Get active wolfpack members at this specific location with user info
       const { data: activeMembers, error: membersError } = await supabase
-        .from('active_wolfpack_members')
-        .select('id, display_name, avatar_url, profile_pic_url, gender, wolfpack_tier')
+        .from('wolf_pack_members')
+        .select(`
+          user_id,
+          users!inner(
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('location_id', locationId)
+        .eq('status', 'active')
         .gte('last_activity', startOfDay.toISOString());
 
       if (membersError) throw membersError;
       if (!activeMembers || activeMembers.length === 0) return [];
 
-      const userIds = activeMembers.map(member => member.id);
+      const userIds = activeMembers.map(member => member.user_id);
 
-      // Get broadcast responses (today)
+      // Get broadcast responses for this location (today)
       const { data: broadcastResponses, error: broadcastError } = await supabase
         .from('dj_broadcast_responses')
-        .select('user_id')
+        .select('user_id, broadcast_id')
         .in('user_id', userIds)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString());
+        .gte('responded_at', startOfDay.toISOString())
+        .lt('responded_at', endOfDay.toISOString())
+        .returns<BroadcastResponseData[]>();
 
       if (broadcastError) console.warn('Broadcast responses error:', broadcastError);
+
+      // Filter broadcast responses by location through dj_broadcasts join
+      let locationFilteredBroadcasts: BroadcastResponseData[] = [];
+      if (broadcastResponses && broadcastResponses.length > 0) {
+        // Get valid broadcast IDs (filter out null/undefined)
+        const validBroadcastIds = broadcastResponses
+          .map(br => br.broadcast_id)
+          .filter((id): id is string => id !== null && id !== undefined);
+
+        if (validBroadcastIds.length > 0) {
+          const { data: locationBroadcasts, error: locationBroadcastError } = await supabase
+            .from('dj_broadcasts')
+            .select('id')
+            .eq('location_id', locationId)
+            .in('id', validBroadcastIds)
+            .returns<{ id: string }[]>();
+
+          if (!locationBroadcastError && locationBroadcasts) {
+            const locationBroadcastIds = new Set(locationBroadcasts.map(lb => lb.id));
+            locationFilteredBroadcasts = broadcastResponses.filter(br => 
+              br.broadcast_id && locationBroadcastIds.has(br.broadcast_id)
+            );
+          }
+        }
+      }
 
       // Get chat messages (today)
       const { data: chatMessages, error: chatError } = await supabase
@@ -149,27 +181,32 @@ export class EngagementScoringService {
         .select('user_id')
         .in('user_id', userIds)
         .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString());
+        .lt('created_at', endOfDay.toISOString())
+        .returns<ChatMessageData[]>();
 
       if (chatError) console.warn('Chat messages error:', chatError);
 
-      // Get interactions sent (today) - note the column name difference
+      // Get interactions at this location (today)
       const { data: interactionsSent, error: sentError } = await supabase
         .from('wolf_pack_interactions')
         .select('sender_id')
         .in('sender_id', userIds)
+        .eq('location_id', locationId)
         .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString());
+        .lt('created_at', endOfDay.toISOString())
+        .returns<{ sender_id: string | null }[]>();
 
       if (sentError) console.warn('Interactions sent error:', sentError);
 
-      // Get interactions received (today) - note the column name difference
+      // Get interactions received at this location (today)
       const { data: interactionsReceived, error: receivedError } = await supabase
         .from('wolf_pack_interactions')
         .select('receiver_id')
         .in('receiver_id', userIds)
+        .eq('location_id', locationId)
         .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString());
+        .lt('created_at', endOfDay.toISOString())
+        .returns<{ receiver_id: string | null }[]>();
 
       if (receivedError) console.warn('Interactions received error:', receivedError);
 
@@ -179,31 +216,47 @@ export class EngagementScoringService {
         .select('user_id, total_session_time_minutes, total_interactions')
         .in('user_id', userIds)
         .gte('date', startOfDay.toISOString().split('T')[0])
-        .lt('date', endOfDay.toISOString().split('T')[0]);
+        .lt('date', endOfDay.toISOString().split('T')[0])
+        .returns<EngagementMetric[]>();
 
       if (engagementError) console.warn('Engagement metrics error:', engagementError);
 
+      // Get user tiers from users table
+      const { data: userTiers, error: tierError } = await supabase
+        .from('users')
+        .select('id, wolfpack_tier')
+        .in('id', userIds)
+        .returns<{ id: string; wolfpack_tier: string | null }[]>();
+
+      if (tierError) console.warn('User tiers error:', tierError);
+
       // Aggregate data for each user
-      return activeMembers.map(member => {
-        const broadcastCount = broadcastResponses?.filter(r => r.user_id === member.id).length || 0;
-        const chatCount = chatMessages?.filter(m => m.user_id === member.id).length || 0;
-        const sentCount = interactionsSent?.filter(i => i.sender_id === member.id).length || 0;
-        const receivedCount = interactionsReceived?.filter(i => i.receiver_id === member.id).length || 0;
-        const engagement = engagementMetrics?.find(e => e.user_id === member.id);
+      const userDataPromises = activeMembers.map(async (member) => {
+        const broadcastCount = locationFilteredBroadcasts?.filter(r => r.user_id === member.user_id).length || 0;
+        const chatCount = chatMessages?.filter(m => m.user_id === member.user_id).length || 0;
+        const sentCount = interactionsSent?.filter(i => i.sender_id === member.user_id).length || 0;
+        const receivedCount = interactionsReceived?.filter(i => i.receiver_id === member.user_id).length || 0;
+        const engagement = engagementMetrics?.find(e => e.user_id === member.user_id);
+        const userTier = userTiers?.find(u => u.id === member.user_id);
+
+        // Calculate recent activity using actual database data
+        const recentActivity = await this.calculateRecentActivity(member.user_id);
 
         return {
-          user_id: member.id,
-          display_name: member.display_name || 'Anonymous',
-          avatar_url: member.avatar_url || member.profile_pic_url,
+          user_id: member.user_id,
+          display_name: (member.users as any)?.display_name || 'Anonymous',
+          avatar_url: (member.users as any)?.avatar_url,
           broadcast_responses: broadcastCount,
           chat_messages: chatCount,
           interactions_sent: sentCount,
           interactions_received: receivedCount,
-          recent_activity: this.calculateRecentActivity(member.id),
+          recent_activity: recentActivity,
           total_session_time: engagement?.total_session_time_minutes || 0,
-          membership_tier: member.wolfpack_tier
+          membership_tier: userTier?.wolfpack_tier || null
         };
       });
+
+      return Promise.all(userDataPromises);
 
     } catch (error) {
       console.error('Error fetching engagement data:', error);
@@ -241,12 +294,50 @@ export class EngagementScoringService {
   }
 
   /**
-   * Calculate recent activity bonus (simplified - would need more complex logic)
+   * Calculate recent activity bonus based on user's last activity
    */
-  private static calculateRecentActivity(userId: string): number {
-    // This is a simplified version - in reality you'd check last activity timestamps
-    // and apply time decay factors
-    return Math.random() * 2; // 0-2 bonus for recent activity
+  private static async calculateRecentActivity(userId: string): Promise<number> {
+    try {
+      // Get user's last activity from database
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('last_activity, is_online')
+        .eq('id', userId)
+        .single()
+        .returns<{ last_activity: string | null; is_online: boolean | null }>();
+
+      if (error || !userData) {
+        return 0;
+      }
+
+      const now = new Date();
+      const lastActivity = userData.last_activity ? new Date(userData.last_activity) : null;
+      
+      // If user is currently online, give maximum bonus
+      if (userData.is_online) {
+        return 2;
+      }
+
+      // If no last activity recorded, give minimum bonus
+      if (!lastActivity) {
+        return 0;
+      }
+
+      // Calculate time since last activity in minutes
+      const minutesSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60);
+
+      // Apply time decay: full bonus within 5 minutes, linear decay to 0 over 60 minutes
+      if (minutesSinceActivity <= 5) {
+        return 2;
+      } else if (minutesSinceActivity <= 60) {
+        return 2 * (1 - (minutesSinceActivity - 5) / 55);
+      } else {
+        return 0;
+      }
+    } catch (error) {
+      console.warn('Error calculating recent activity for user:', userId, error);
+      return 0;
+    }
   }
 
   /**
@@ -266,30 +357,8 @@ export class EngagementScoringService {
    */
   static async getLiveStats(locationId: string): Promise<WolfpackLiveStats> {
     try {
-      // Try to use RPC function first
-      const { data: rpcData, error: rpcError } = await supabase
-        .rpc('get_wolfpack_live_stats', { p_location_id: locationId });
-
-      if (!rpcError && rpcData) {
-        console.log('✅ RPC function returned data:', rpcData);
-        // If RPC returns data, use it but get real top_vibers
-        const topVibers = await this.getTopCrowdMembers(locationId, 10);
-        
-        return {
-          total_active: rpcData.total_active || 0,
-          very_active: rpcData.very_active || 0,
-          gender_breakdown: rpcData.gender_breakdown || {},
-          recent_interactions: rpcData.recent_interactions || {
-            total_interactions: 0,
-            active_participants: 0
-          },
-          energy_level: rpcData.energy_level || 0,
-          top_vibers: topVibers
-        };
-      }
-
-      console.warn('🔄 RPC function failed, using manual calculation:', rpcError);
-      // Fallback to manual calculation if RPC fails
+      // The RPC function has issues, so let's use manual calculation for now
+      console.warn('🔄 Using manual calculation due to RPC function issues');
       return await this.calculateLiveStatsManually(locationId);
 
     } catch (error) {
@@ -310,27 +379,28 @@ export class EngagementScoringService {
       const { data: activeMembers, error: membersError } = await supabase
         .from('active_wolfpack_members')
         .select('id, gender')
-        .gte('last_activity', startOfDay.toISOString());
+        .gte('last_activity', startOfDay.toISOString())
+        .returns<{ id: string; gender: string | null }[]>();
 
       if (membersError) throw membersError;
       
-      const userIds = activeMembers?.map(m => m.id) || [];
-
       const totalActive = activeMembers?.length || 0;
       const veryActive = Math.floor(totalActive * 0.6); // Estimate 60% as very active
 
       // Calculate gender breakdown
-      const genderBreakdown = activeMembers?.reduce((acc, member) => {
+      const genderBreakdown = activeMembers?.reduce<Record<string, number>>((acc, member) => {
         const gender = member.gender || 'unknown';
         acc[gender] = (acc[gender] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>) || {};
+      }, {}) || {};
 
-      // Get recent interactions
+      // Get recent interactions - using correct timestamp field
       const { data: recentInteractions, error: interactionsError } = await supabase
         .from('wolf_pack_interactions')
         .select('sender_id, receiver_id')
-        .gte('created_at', startOfDay.toISOString());
+        .eq('location_id', locationId)
+        .gte('created_at', startOfDay.toISOString())
+        .returns<InteractionData[]>();
 
       if (interactionsError) console.warn('Interactions error:', interactionsError);
 

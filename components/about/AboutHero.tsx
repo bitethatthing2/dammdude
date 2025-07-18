@@ -54,9 +54,9 @@ export function AboutHero() {
                 e.preventDefault();
                 router.push('/wolfpack');
               }}
-              className="border-white text-white hover:bg-white/10 active:bg-white/20 touch-manipulation"
+              className="border-white text-white bg-transparent hover:bg-white hover:text-purple-900 active:bg-white/80 active:text-purple-900 touch-manipulation font-semibold"
             >
-              Join Wolf Pack
+              Join the Wolfpack
             </Button>
           </div>
         </div>

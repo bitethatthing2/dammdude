@@ -1,7 +1,7 @@
 // sw-cache.js - Enhanced caching strategy for Side Hustle PWA
 // This integrates with your existing Firebase service worker
 
-const CACHE_VERSION = '1.0.11';
+const CACHE_VERSION = '1.0.12';
 const CACHE_PREFIX = 'side-hustle-';
 
 // Cache names
@@ -49,7 +49,7 @@ self.sideHustleCache = {
           options: {
             request,
             cacheName: MENU_CACHE_NAME,
-            networkTimeoutSeconds: 10,
+            networkTimeoutSeconds: 3,
             maxAge: 1, // Very short cache for cache-busted images
             maxEntries: CACHE_LIMITS.menu
           }
@@ -62,7 +62,7 @@ self.sideHustleCache = {
         options: {
           request,
           cacheName: MENU_CACHE_NAME,
-          networkTimeoutSeconds: 5,
+          networkTimeoutSeconds: 2,
           maxAge: 30 * 24 * 60 * 60, // 30 days
           maxEntries: CACHE_LIMITS.menu
         }
@@ -92,7 +92,7 @@ self.sideHustleCache = {
         options: {
           request,
           cacheName: STATIC_CACHE_NAME,
-          networkTimeoutSeconds: 5,
+          networkTimeoutSeconds: 2,
           maxAge: 365 * 24 * 60 * 60, // 1 year
         }
       };
@@ -133,7 +133,7 @@ self.sideHustleCache = {
       options: {
         request,
         cacheName: DYNAMIC_CACHE_NAME,
-        networkTimeoutSeconds: 5,
+        networkTimeoutSeconds: 2,
         maxAge: 24 * 60 * 60, // 1 day
         maxEntries: CACHE_LIMITS.dynamic
       }

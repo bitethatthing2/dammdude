@@ -1,8 +1,71 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 
-// Fixed version of menu data public functions
-// This version handles missing service role keys gracefully
+// Type definitions for your data structures based on your actual database schema
+interface FoodDrinkCategory {
+  id: string;
+  name: string;
+  type: 'food' | 'drink';
+  description: string | null;
+  display_order: number | null;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  created_by: string | null;
+  icon: string | null;
+  color: string | null;
+}
+
+interface MenuItemModifier {
+  id: string;
+  name: string;
+  price: number;
+  is_required: boolean;
+  group_name: string;
+  [key: string]: unknown; // For any additional properties
+}
+
+interface MenuItemCategory {
+  id: string;
+  name: string;
+  type: 'food' | 'drink';
+  [key: string]: unknown; // For any additional properties from the jsonb field
+}
+
+interface MenuItemWithModifiers {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  is_available: boolean | null;
+  display_order: number | null;
+  category_id: string;
+  image_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  image_url: string | null;
+  category: MenuItemCategory | null;
+  modifiers: MenuItemModifier[] | null;
+}
+
+interface TransformedMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  is_available: boolean;
+  display_order: number;
+  category_id: string;
+  category?: string;
+  image_url?: string;
+  modifiers: MenuItemModifier[];
+}
+
+interface DatabaseConnectionResult {
+  success: boolean;
+  error?: string;
+  data?: unknown;
+}
 
 /**
  * Creates a Supabase client with fallback for missing service role key
@@ -46,7 +109,7 @@ function createPublicClient() {
 /**
  * Fetches all menu categories with error handling
  */
-export async function getCategoriesPublic() {
+export async function getCategoriesPublic(): Promise<FoodDrinkCategory[]> {
   noStore();
 
   try {
@@ -57,7 +120,8 @@ export async function getCategoriesPublic() {
       .select('*')
       .eq('is_active', true)
       .order('type', { ascending: true })
-      .order('display_order', { ascending: true });
+      .order('display_order', { ascending: true })
+      .returns<FoodDrinkCategory[]>();
      
     if (error) {
       console.error('❌ Error fetching categories:', error);
@@ -102,7 +166,7 @@ export async function getCategoriesPublic() {
 /**
  * Helper function to get categories by type with improved error handling
  */
-export async function getCategoriesByTypePublic(type: 'food' | 'drink') {
+export async function getCategoriesByTypePublic(type: 'food' | 'drink'): Promise<FoodDrinkCategory[]> {
   noStore();
   
   try {
@@ -113,7 +177,8 @@ export async function getCategoriesByTypePublic(type: 'food' | 'drink') {
       .select('*')
       .eq('type', type)
       .eq('is_active', true)
-      .order('display_order', { ascending: true });
+      .order('display_order', { ascending: true })
+      .returns<FoodDrinkCategory[]>();
       
     if (error) {
       console.error(`❌ Error fetching ${type} categories:`, error);
@@ -142,18 +207,19 @@ export async function getCategoriesByTypePublic(type: 'food' | 'drink') {
 /**
  * Fetches menu items for a specific category with error handling
  */
-export async function getMenuItemsByCategoryPublic(categoryId: string) {
+export async function getMenuItemsByCategoryPublic(categoryId: string): Promise<TransformedMenuItem[]> {
   noStore();
    
   try {
     const supabase = createPublicClient();
     
     const { data: items, error: itemsError } = await supabase
-      .from('menu_items_with_working_modifiers' as any)
+      .from('menu_items_with_working_modifiers')
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_available', true)
-      .order('display_order', { ascending: true });
+      .order('display_order', { ascending: true })
+      .returns<MenuItemWithModifiers[]>();
      
     if (itemsError) {
       console.error(`❌ Error fetching menu items for category ${categoryId}:`, itemsError);
@@ -164,19 +230,26 @@ export async function getMenuItemsByCategoryPublic(categoryId: string) {
       return [];
     }
 
-    // Transform the data
-    const transformedItems = items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || undefined,
-      price: item.price,
-      is_available: item.is_available || false,
-      display_order: item.display_order || 0,
-      category_id: item.category_id,
-      category: item.category || undefined,
-      image_url: item.image_url || undefined,
-      modifiers: item.modifiers || []
-    }));
+    // Transform the data with proper typing
+    const transformedItems: TransformedMenuItem[] = items.map((item) => {
+      // Handle the category field which might be a JSON object or string
+      const categoryName = typeof item.category === 'object' && item.category !== null 
+        ? (item.category as MenuItemCategory).name 
+        : undefined;
+
+      return {
+        id: item.id,
+        name: item.name,
+        description: item.description || undefined,
+        price: item.price,
+        is_available: item.is_available || false,
+        display_order: item.display_order || 0,
+        category_id: item.category_id,
+        category: categoryName,
+        image_url: item.image_url || undefined,
+        modifiers: item.modifiers || []
+      };
+    });
 
     console.log(`✅ Successfully loaded ${transformedItems.length} items for category ${categoryId}`);
     return transformedItems;
@@ -190,7 +263,7 @@ export async function getMenuItemsByCategoryPublic(categoryId: string) {
 /**
  * Check if the database connection is working
  */
-export async function testMenuConnection() {
+export async function testMenuConnection(): Promise<DatabaseConnectionResult> {
   try {
     const supabase = createPublicClient();
     

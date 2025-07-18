@@ -125,7 +125,7 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
             name: item.category.name,
             type: item.category.type
           } : undefined,
-          image_url: item.image_url || undefined
+          image_url: (item as any).image_url || undefined
         }));
         
         setMenuItems(transformedItems);

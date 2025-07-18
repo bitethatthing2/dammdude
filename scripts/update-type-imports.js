@@ -2,7 +2,7 @@
 
 /**
  * Script to update all database type imports from old location to new location
- * This updates imports from '@/lib/database.types' to '@/types/database.types'
+ * This updates imports from '@/types/database.types' to '@/lib/database.types'
  */
 
 const fs = require('fs');
@@ -13,8 +13,8 @@ const glob = require('glob');
 const filePattern = '{app,lib,components,hooks,types}/**/*.{ts,tsx}';
 
 // Old and new import paths
-const oldImportPath = '@/lib/database.types';
-const newImportPath = '@/types/database.types';
+const oldImportPath = '@/types/database.types';
+const newImportPath = '@/lib/database.types';
 
 function updateImportsInFile(filePath) {
   try {

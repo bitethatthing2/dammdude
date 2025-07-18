@@ -8,11 +8,13 @@ import { supabase } from '@/lib/supabase/client'; // Use shared instance
  */
 interface Notification {
   id: string;
+  recipient_id: string;
   type: string;
   title: string;
   message: string;
+  link: string | null;
   read: boolean;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +58,7 @@ export function NotificationProvider({ children, recipientId }: NotificationProv
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('fetch_notifications', {
-        p_user_id: undefined, // null means current user
+        p_user_id: null,
         p_limit: 50,
         p_offset: 0
       });
@@ -103,19 +105,25 @@ export function NotificationProvider({ children, recipientId }: NotificationProv
   // Mark all notifications as read
   const dismissAllNotifications = useCallback(async () => {
     try {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      // Mark all unread notifications as read one by one
+      const unreadNotifications = notifications.filter(n => !n.read);
       
-      // Mark all unread notifications as read
-      for (const id of unreadIds) {
-        await markAsRead(id);
+      for (const notification of unreadNotifications) {
+        const { error } = await supabase.rpc('mark_notification_read', {
+          p_notification_id: notification.id
+        });
+        
+        if (error) {
+          console.error('Failed to mark notification as read:', error);
+        }
       }
-      
-      // Refresh notifications to get updated state
-      await fetchNotifications();
+
+      // Update local state
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      console.error('Failed to dismiss all notifications:', err);
     }
-  }, [notifications, markAsRead, fetchNotifications]);
+  }, [notifications]);
 
   // Refresh notifications
   const refreshNotifications = useCallback(async () => {

@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { OrderManagement } from '@/components/unified';
 
 export const metadata: Metadata = {
-  title: 'Side Hustle Admin - Bartender',
+  title: 'Kitchen Display - Bartender Station',
   description: 'Manage drink orders for bartender station'
 };
 

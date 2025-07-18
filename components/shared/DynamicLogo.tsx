@@ -60,7 +60,7 @@ export function DynamicLogo({
       width={width}
       height={height}
       className={`transition-opacity duration-300 ${className}`}
-      priority={type === 'brand'} // Prioritize brand logo loading
+      priority={type === 'brand' || (type === 'wolf' && width >= 40)} // Prioritize brand and large wolf logos
       style={{
         maxWidth: '100%',
         height: 'auto'

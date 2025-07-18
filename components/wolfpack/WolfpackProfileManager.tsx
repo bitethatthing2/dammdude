@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
 import { ProfileImageUploaderWithHistory } from '@/components/shared/ImageHistoryViewer';
 import { Badge } from '@/components/ui/badge';
-import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
+import { userProfileService, WolfpackProfile, UserProfileUpdate } from '@/lib/services/user-profile.service';
 import { 
   Camera, 
   Save, 
@@ -28,30 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 
 // Type definitions based on your Supabase schema
-interface WolfProfile {
-  id: string;
-  display_name: string | null;
-  bio: string | null;
-  favorite_drink: string | null;
-  favorite_song: string | null;
-  instagram_handle: string | null;
-  vibe_status: string | null;
-  wolf_emoji: string | null;
-  looking_for: string | null;
-  gender: string | null;
-  pronouns: string | null;
-  is_profile_visible: boolean;
-  profile_pic_url: string | null;
-  profile_image_url: string | null;
-  custom_avatar_id: string | null;
-  allow_messages: boolean;
-  phone?: string | null;
-  location_permissions_granted?: boolean | null;
-  favorite_bartender?: string | null;
-  created_at?: string | null;
-  last_seen_at?: string | null;
-  daily_customization?: unknown;
-}
+// WolfProfile type now imported from user-profile.service
 
 // Form data interface
 interface FormData {
@@ -117,12 +94,11 @@ const LOOKING_FOR_OPTIONS = [
 
 export function WolfpackProfileManager() {
   const { user, loading: userLoading } = useUser();
-  const [profile, setProfile] = useState<WolfProfile | null>(null);
+  const [profile, setProfile] = useState<WolfpackProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
   
-  // Initialize supabase client
-  const supabase = createClient();
+  // No need to initialize supabase client - using service instead
   
   
   // Form state with proper typing
@@ -148,46 +124,28 @@ export function WolfpackProfileManager() {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, display_name, wolf_emoji, bio, favorite_drink, vibe_status, profile_pic_url, instagram_handle, favorite_song, looking_for, is_profile_visible, gender, pronouns, custom_avatar_id, allow_messages')
-        .eq('id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading profile:', error);
-        toast.error('Failed to load profile');
-        return;
-      }
-
-      if (data) {
-        // Transform the data to match WolfProfile interface, ensuring boolean fields are not null
-        const transformedProfile: WolfProfile = {
-          ...data,
-          id: data.id, // Add missing id field
-          is_profile_visible: data.is_profile_visible ?? true,
-          allow_messages: data.allow_messages ?? true,
-          profile_image_url: data.profile_pic_url // Map profile_pic_url to profile_image_url
-        };
-        setProfile(transformedProfile);
+      const profileData = await userProfileService.getUserProfile(user.id);
+      
+      if (profileData) {
+        setProfile(profileData);
         setFormData({
-          display_name: data.display_name || '',
-          bio: data.bio || '',
-          favorite_drink: data.favorite_drink || '',
-          favorite_song: data.favorite_song || '',
-          instagram_handle: data.instagram_handle || '',
-          vibe_status: data.vibe_status || '',
-          wolf_emoji: data.wolf_emoji || '🐺',
-          looking_for: data.looking_for || '',
-          gender: data.gender || '',
-          pronouns: data.pronouns || '',
-          is_profile_visible: data.is_profile_visible ?? true,
-          allow_messages: data.allow_messages ?? true,
+          display_name: profileData.display_name || '',
+          bio: profileData.bio || '',
+          favorite_drink: profileData.favorite_drink || '',
+          favorite_song: profileData.favorite_song || '',
+          instagram_handle: profileData.instagram_handle || '',
+          vibe_status: profileData.vibe_status || '',
+          wolf_emoji: profileData.wolf_emoji || '🐺',
+          looking_for: profileData.looking_for || '',
+          gender: profileData.gender || '',
+          pronouns: profileData.pronouns || '',
+          is_profile_visible: profileData.is_profile_visible ?? true,
+          allow_messages: profileData.allow_messages ?? true,
           favorite_bartender: '', // This field doesn't exist in users table
-          profile_image_url: data.profile_pic_url || ''
+          profile_image_url: profileData.profile_image_url || profileData.profile_pic_url || ''
         });
       } else {
-        // Set default values for new profile - fix user property access
+        // Set default values for new profile
         const defaultName: string = 
           (user.first_name && typeof user.first_name === 'string' ? user.first_name : '') ||
           (user.email ? user.email.split('@')[0] : '') ||
@@ -216,7 +174,7 @@ export function WolfpackProfileManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.first_name, user?.email, supabase]);
+  }, [user?.id, user?.first_name, user?.email]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -241,127 +199,38 @@ export function WolfpackProfileManager() {
 
     setSaving(true);
 
-    // Prepare profile data with proper typing (moved outside try block)
-    // Note: Don't include 'id' in update data - it's used in the WHERE clause
-    const profileData = {
-      display_name: data.display_name || null,
-      bio: data.bio || null,
-      favorite_drink: data.favorite_drink || null,
-      favorite_song: data.favorite_song || null,
-      instagram_handle: data.instagram_handle ? 
-        data.instagram_handle.replace('@', '') : null,
-      vibe_status: data.vibe_status || null,
-      wolf_emoji: data.wolf_emoji,
-      looking_for: data.looking_for || null,
-      gender: data.gender || null,
-      pronouns: data.pronouns || null,
-      is_profile_visible: data.is_profile_visible,
-      allow_messages: data.allow_messages,
-      favorite_bartender: data.favorite_bartender || null,
-      // Preserve existing image URLs if they exist
-      profile_pic_url: profile?.profile_pic_url || null,
-      profile_image_url: profile?.profile_image_url || null,
-      custom_avatar_id: profile?.custom_avatar_id || null
-    };
-
-    // If data contains profile_image_url (from avatar upload), use it
-    if (data.profile_image_url) {
-      profileData.profile_image_url = data.profile_image_url;
-      profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
-    }
-
     try {
-      const { data: savedData, error } = await supabase
-        .from('users')
-        .update(profileData)
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Ensure savedData has proper boolean types before setting
-      const typedSavedData: WolfProfile = {
-        ...savedData,
-        id: savedData.id, // Add missing id field
-        is_profile_visible: savedData.is_profile_visible ?? true,
-        allow_messages: savedData.allow_messages ?? true,
-        profile_image_url: savedData.profile_pic_url || savedData.profile_image_url
+      // Prepare profile data for the service
+      const profileData: UserProfileUpdate = {
+        display_name: data.display_name || null,
+        bio: data.bio || null,
+        favorite_drink: data.favorite_drink || null,
+        favorite_song: data.favorite_song || null,
+        instagram_handle: data.instagram_handle || null,
+        vibe_status: data.vibe_status || null,
+        wolf_emoji: data.wolf_emoji,
+        looking_for: data.looking_for || null,
+        gender: data.gender || null,
+        pronouns: data.pronouns || null,
+        is_profile_visible: data.is_profile_visible,
+        allow_messages: data.allow_messages,
       };
 
-      setProfile(typedSavedData);
-      
-      // Update completed - wolf-pack-members table has been consolidated into users
+      // If data contains profile_image_url (from avatar upload), use it
+      if (data.profile_image_url) {
+        profileData.profile_image_url = data.profile_image_url;
+        profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
+      }
 
+      const updatedProfile = await userProfileService.updateUserProfile(user.id, profileData);
+      setProfile(updatedProfile);
+      
       if (showToast) {
         toast.success('Profile saved successfully!');
       }
     } catch (error: any) {
-      // Enhanced error logging for debugging
-      console.error('Error saving profile - Full details:', {
-        error,
-        errorType: typeof error,
-        errorConstructorName: error?.constructor?.name,
-        errorMessage: error?.message || 'No message',
-        errorCode: error?.code,
-        errorDetails: error?.details,
-        errorHint: error?.hint,
-        errorStatus: error?.status,
-        errorStatusText: error?.statusText,
-        isPostgrestError: error?.code?.startsWith('PGRST'),
-        errorKeys: error && typeof error === 'object' ? Object.keys(error) : [],
-        errorStringified: JSON.stringify(error, null, 2),
-        profileData,
-        userId: user.id
-      });
-      
-      // Handle Supabase/Postgrest specific errors
-      let userMessage = 'Failed to save profile';
-      
-      // Check for Supabase error structure
-      if (error?.code) {
-        // Handle PGRST errors (PostgREST errors from Supabase)
-        if (error.code === 'PGRST301') {
-          userMessage = 'No rows were updated - please try again';
-        } else if (error.code === '23505' || error.details?.includes('duplicate')) {
-          userMessage = 'That display name is already taken';
-        } else if (error.code === '42501' || error.message?.includes('permission')) {
-          userMessage = 'You do not have permission to update this profile';
-        } else if (error.code === '23503') {
-          userMessage = 'Invalid reference - please check your input';
-        } else if (error.code === '22P02') {
-          userMessage = 'Invalid input format - please check your data';
-        } else if (error.code.startsWith('PGRST')) {
-          userMessage = `Database error: ${error.message || error.code}`;
-        }
-      } 
-      // Handle standard Error objects
-      else if (error instanceof Error) {
-        if (error.message.includes('duplicate')) {
-          userMessage = 'That display name is already taken';
-        } else if (error.message.includes('permission') || error.message.includes('policy')) {
-          userMessage = 'You do not have permission to update this profile';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
-          userMessage = 'Network error - please check your connection';
-        } else if (error.message.includes('constraint') || error.message.includes('violates')) {
-          userMessage = 'Invalid data - please check your input';
-        } else {
-          userMessage = `Failed to save profile: ${error.message}`;
-        }
-      }
-      // Handle non-standard error objects
-      else if (error?.message) {
-        userMessage = `Failed to save profile: ${error.message}`;
-      }
-      
-      // If we have a hint from Postgres, append it
-      if (error?.hint) {
-        userMessage += ` (Hint: ${error.hint})`;
-      }
-      
-      toast.error(userMessage);
+      console.error('Error saving profile:', error);
+      toast.error(error.message || 'Failed to save profile');
     } finally {
       setSaving(false);
     }

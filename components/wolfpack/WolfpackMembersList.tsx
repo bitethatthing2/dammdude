@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/lib/contexts/AuthContext'
-import type { Database } from '@/types/database.types'
+import type { Database } from '@/lib/database.types'
 import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service'
 import { dataService } from '@/lib/services/data-service'
 import { authService, Permission } from '@/lib/services/auth-service'
 import { AvatarWithFallback } from '@/components/shared/ImageWithFallback'
+import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 // Location IDs from database
@@ -127,12 +128,12 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
 
     try {
       // Check permissions first
-      if (!authService.hasPermission(Permission.VIEW_wolf-pack-members)) {
+      if (!authService.hasPermission('VIEW_WOLFPACK_MEMBERS')) {
         throw errorService.handleBusinessLogicError(
           'checkMembership',
           'Insufficient permissions',
           'You need to be a member to view Wolf Pack information',
-          { component: 'WolfpackMembersList', userId: user.id }
+          { component: 'WolfpackMembersList', metadata: { userId: user.id } }
         )
       }
 
@@ -252,7 +253,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
           component: 'WolfpackMembersList',
           action: 'joinPack',
           userId: user.id,
-          locationKey
+          metadata: { locationKey }
         }
       )
       
@@ -349,7 +350,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
             { 
               component: 'WolfpackMembersList',
               action: 'transformMember',
-              memberId: member.id 
+              metadata: { memberId: member.id } 
             }
           )
           return null
@@ -365,7 +366,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
         {
           component: 'WolfpackMembersList',
           action: 'fetchMembers',
-          locationKey
+          metadata: { locationKey }
         }
       )
       
@@ -390,7 +391,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
           subscriptionRef.current.unsubscribe()
         }
 
-        const channel = dataService.supabase
+        const channel = supabase
           .channel('wolf-pack-members_optimized')
           .on(
             'postgres_changes',
@@ -415,7 +416,7 @@ export function useWolfPack(locationKey: LocationKey | null): UseWolfPackReturn 
                   {
                     component: 'WolfpackMembersList',
                     action: 'realtimeUpdate',
-                    payload: payload.eventType
+                    metadata: { payload: payload.eventType }
                   }
                 )
               }

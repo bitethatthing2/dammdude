@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
           .from('wolfpack_chat_messages')
           .insert({
             session_id: `location_${location_id}`,
-            id: user.id,
+            user_id: user.id,
             display_name: displayName,
             avatar_url: userData?.avatar_url,
             content: shareMessage,

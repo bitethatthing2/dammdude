@@ -734,10 +734,9 @@ export function DJDashboard({ location }: DJDashboardProps) {
 
       // For now, just fetch broadcasts directly since the view might not exist
       const { data: broadcasts, error: broadcastsError } = await supabase
-        .from('dj_broadcasts')
+        .from('active_broadcasts_live')
         .select('*')
         .eq('location_id', locationConfig.id)
-        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (broadcastsError) {
@@ -1477,6 +1476,8 @@ export function DJDashboard({ location }: DJDashboardProps) {
                   djId={currentUser?.id || ''}
                   locationId={locationConfig.id}
                   sessionId={sessionId || undefined}
+                  isOpen={true}
+                  onClose={() => {}}
                   onBroadcastCreated={handleBroadcastCreated}
                 />
               </CardContent>
@@ -1568,7 +1569,7 @@ export function DJDashboard({ location }: DJDashboardProps) {
                             size="sm"
                             onClick={async () => {
                               try {
-                                await endBroadcast(broadcast.id);
+                                await endBroadcast(broadcast.id!);
                                 toast.success('Broadcast ended successfully');
                                 // Refresh broadcasts to update the display
                                 window.location.reload();

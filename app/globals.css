@@ -3,66 +3,57 @@
 @tailwind components;
 @tailwind utilities;
 
+/* TikTok-style feed scrollbar hiding */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* TikTok-style animations */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 /* Import consolidated menu styles - single source of truth */
 @import '../styles/consolidated-menu.css';
 
-/* Import wolfpack chat styles */
-@import '../styles/wolfpack-chat.css';
+/* REMOVED: wolfpack-chat.css import - styles moved inline where needed */
 
 /* REMOVED: @import '../styles/wolfpack.css'; - File was deleted */
 
-/* CRITICAL: Fix mobile viewport and prevent content cutoff */
+/* Basic mobile viewport fixes - simplified */
 @layer base {
   html {
-    width: 100% !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: hidden;
   }
   
   body {
-    width: 100% !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
   
   * {
-    box-sizing: border-box !important;
-  }
-  
-  .container {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* Fix header content cutoff specifically */
-  header {
-    width: 100% !important;
-    max-width: 100vw !important;
-    overflow: visible !important;
-  }
-  
-  /* Fix main content cutoff */
-  main {
-    width: 100% !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-  }
-  
-  /* Fix any flex containers that might cause overflow */
-  .flex {
-    min-width: 0 !important;
-  }
-  
-  /* Fix specific header navigation */
-  .sticky {
-    width: 100% !important;
-    max-width: 100vw !important;
+    box-sizing: border-box;
   }
 }
 
@@ -70,6 +61,15 @@
 @layer utilities {
   .animate-in {
     animation: animateIn 0.5s ease-out forwards;
+  }
+  
+  /* Hide scrollbars for TikTok-style horizontal scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Fix broadcast modal positioning */
@@ -347,47 +347,7 @@
 }
 
 @layer components {
-  /* Safe area utilities for responsive layout */
-  .safe-top {
-    padding-top: var(--top-nav-height);
-  }
-  
-  .safe-bottom {
-    padding-bottom: var(--bottom-nav-height);
-  }
-  
-  .safe-both {
-    padding-top: var(--top-nav-height);
-    padding-bottom: var(--bottom-nav-height);
-  }
-  
-  /* Main page content container with proper nav spacing */
-  .main-content {
-    min-height: 100vh;
-    padding-top: var(--top-nav-height);
-    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-  }
-  
-  /* Container with proper bottom nav spacing */
-  .content-container {
-    padding-bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom));
-  }
-  
-  /* Mobile-friendly touch targets */
-  @media (max-width: 768px) {
-    .main-content {
-      /* Ensure content doesn't go behind notch on mobile */
-      padding-top: max(var(--top-nav-height), env(safe-area-inset-top, 0px) + 56px);
-    }
-    
-    /* Improve touch targets on mobile */
-    button, .clickable {
-      min-height: 44px;
-      min-width: 44px;
-    }
-  }
-  
-  /* iOS safe area utilities */
+  /* iOS safe area utilities - simplified */
   .safe-area-inset-top {
     padding-top: env(safe-area-inset-top);
   }
@@ -396,167 +356,17 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   
-  .safe-area-inset-left {
-    padding-left: env(safe-area-inset-left);
-  }
-  
-  .safe-area-inset-right {
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  .safe-area-inset-all {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Chat-specific responsive layout */
-  .chat-container {
-    min-height: 100vh;
-    min-height: 100dvh; /* Dynamic viewport height for mobile */
-    padding-top: var(--chat-header-height);
-    padding-bottom: calc(var(--bottom-nav-height) + 1rem);
-    padding-bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom));
-    overflow-y: auto;
-    box-sizing: border-box;
-  }
-  
-  .chat-viewport {
-    position: fixed;
-    top: var(--chat-header-height);
-    bottom: var(--bottom-nav-height);
-    left: 0;
-    right: 0;
-    overflow-y: auto;
-  }
-  
-  /* Full viewport chat layout */
-  .chat-fullscreen {
-    position: relative;
-    width: 100vw;
-    width: 100dvw; /* Dynamic viewport width for mobile */
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-    overflow: hidden;
-  }
-  
-  .chat-header-fixed {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 40;
-    max-height: 5rem; /* Limit header height on mobile */
-    background: white;
-  }
-  
-  /* Mobile-specific header adjustments */
-  @media (max-width: 640px) {
-    .chat-header-fixed {
-      top: env(safe-area-inset-top, 0); /* Respect iOS notch */
-      padding-top: 0.5rem;
-      max-height: 4.5rem;
+  /* Mobile-friendly touch targets */
+  @media (max-width: 768px) {
+    button, .clickable {
+      min-height: 44px;
+      min-width: 44px;
     }
-  }
-  
-  .chat-content-area {
-    position: absolute;
-    top: 5.5rem; /* Fixed top spacing for header */
-    bottom: calc(var(--bottom-nav-height) + 6rem);
-    left: 0;
-    right: 0;
-    overflow: visible;
-  }
-  
-  /* Mobile-specific content area adjustments */
-  @media (max-width: 640px) {
-    .chat-content-area {
-      top: calc(4.5rem + env(safe-area-inset-top, 0));
-      bottom: calc(var(--bottom-nav-height) + 5rem);
-    }
-  }
-  
-  .chat-input-area {
-    position: fixed;
-    bottom: var(--bottom-nav-height);
-    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    z-index: 30;
-    padding: 1rem;
-    padding-left: calc(1rem + env(safe-area-inset-left));
-    padding-right: calc(1rem + env(safe-area-inset-right));
-  }
-  
-  /* Mobile-specific input area adjustments */
-  @media (max-width: 640px) {
-    .chat-input-area {
-      padding: 0.5rem;
-      padding-left: calc(0.5rem + env(safe-area-inset-left));
-      padding-right: calc(0.5rem + env(safe-area-inset-right));
-    }
-  }
-  
-  /* Bottom navigation spacing - ensures content never scrolls behind fixed nav */
-  .bottom-nav-safe {
-    padding-bottom: 5rem; /* 80px - enough space for 64px nav + 16px breathing room */
-  }
-  
-  /* Alternative class for minimal spacing */
-  .bottom-nav-minimal {
-    padding-bottom: 4rem; /* 64px - exact height of bottom nav */
   }
 
-  /* Wolfpack specific component styles - moved from deleted wolfpack.css */
+  /* Simplified wolfpack styles - only what's needed */
   .wolfpack-member-avatar {
     @apply relative w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white border-2 shadow-lg transition-all duration-300 hover:scale-110;
-  }
-  
-  .wolfpack-member-dj {
-    background-color: hsl(var(--wolfpack-dj));
-    border-color: hsl(var(--wolfpack-dj) / 0.8);
-    box-shadow: 0 0 20px hsl(var(--wolfpack-dj) / 0.4);
-  }
-  
-  .wolfpack-member-bartender {
-    background-color: hsl(var(--wolfpack-bartender));
-    border-color: hsl(var(--wolfpack-bartender) / 0.8);
-    box-shadow: 0 0 20px hsl(var(--wolfpack-bartender) / 0.4);
-  }
-  
-  .wolfpack-member-current {
-    background-color: hsl(var(--wolfpack-current-user));
-    border-color: hsl(var(--wolfpack-current-user) / 0.8);
-    box-shadow: 0 0 20px hsl(var(--wolfpack-current-user) / 0.4);
-  }
-  
-  .wolfpack-member-default {
-    background-color: hsl(var(--wolfpack-member));
-    border-color: hsl(var(--wolfpack-member) / 0.8);
-    box-shadow: 0 0 20px hsl(var(--wolfpack-member) / 0.4);
-  }
-  
-  /* Hexagonal platform styles */
-  .hexagonal-platform {
-    background: linear-gradient(45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%), 
-                linear-gradient(-45deg, hsl(var(--muted) / 0.3) 25%, transparent 25%);
-    background-size: 40px 40px;
-    border: 2px solid hsl(var(--border));
-    border-radius: 12px;
-  }
-  
-  /* Chat interface styles */
-  .wolfpack-chat-header {
-    @apply flex items-center justify-between p-4 bg-card/80 backdrop-blur-sm border-b border-border;
-  }
-  
-  .wolfpack-chat-container {
-    @apply min-h-screen bg-background text-foreground relative overflow-hidden;
-  }
-  
-  .wolfpack-quick-replies {
-    @apply flex-1 bg-muted/50 rounded-full px-4 py-2 text-muted-foreground;
   }
 
   /* Theme colors for base elements */

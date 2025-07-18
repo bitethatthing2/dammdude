@@ -1,331 +1,299 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
+import { supabase } from '@/lib/supabase/client';
+import { MapPin, Loader2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SimpleHeader } from '@/components/shared/AppHeader';
-import { DynamicLogo } from '@/components/shared/DynamicLogo';
-import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
-import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
-import { wolfpackAPI } from '@/lib/api/wolfpack-client';
-import { WolfpackLocationService, SIDE_HUSTLE_LOCATIONS } from '@/lib/services/wolfpack-location.service';
-import { 
-  Shield, 
-  UtensilsCrossed,
-  Loader2,
-  CheckCircle
-} from 'lucide-react';
-
-// Type definitions based on your Supabase schema
-type LocationStatus = 'checking' | 'verified' | 'denied' | 'error';
-
-interface DetectedLocation {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-}
-
-interface JoinPackParams {
-  locationId: string;
-  displayName: string;
-  emoji?: string;
-  currentVibe?: string;
-}
 
 export default function WolfpackWelcomePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useConsistentAuth();
-  const { isMember: isInPack, isLoading: packLoading } = useConsistentWolfpackAccess();
-  const [isJoining, setIsJoining] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<LocationStatus>('checking');
-  const [detectedLocation, setDetectedLocation] = useState<DetectedLocation | null>(null);
-  
-  // Combined loading state
-  const isLoading = authLoading || packLoading;
+  const { user } = useConsistentAuth();
+  const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'requesting'>('loading');
+  const [joinStatus, setJoinStatus] = useState<'idle' | 'joining' | 'success' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If already in pack, redirect immediately
-    if (isInPack && !isLoading) {
-      router.push('/wolfpack');
-    }
-  }, [isInPack, isLoading, router]);
+    checkLocationPermission();
+  }, []);
 
-  // Quick join without additional form
-  const handleQuickJoin = useCallback(async () => {
-    if (isJoining || !detectedLocation || !user) return;
-    
-    setIsJoining(true);
+  const checkLocationPermission = async () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('denied');
+      setError('Geolocation is not supported by this browser');
+      return;
+    }
+
     try {
-      // Generate display name from user data
-      const displayName = user.first_name || user.email?.split('@')[0] || 'Wolf';
+      // Check if permission is already granted
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
       
-      const joinParams: JoinPackParams = {
-        locationId: detectedLocation.id,
-        displayName: displayName,
-        emoji: '🐺',
-        currentVibe: 'Ready to party!'
-      };
-      
-      const result = await wolfpackAPI.joinWolfpack(joinParams);
-      
-      if (result.data?.success) {
-        router.push('/wolfpack');
+      if (permission.state === 'granted') {
+        setLocationStatus('granted');
+        // Automatically join the pack if location is already granted
+        await joinWolfpack();
+      } else if (permission.state === 'denied') {
+        setLocationStatus('denied');
+        setError('Location permission was denied. Please enable location access in your browser settings.');
       } else {
-        console.error('Failed to join pack:', result.error);
-        setLocationStatus('error');
+        setLocationStatus('requesting');
       }
     } catch (error) {
-      console.error('Failed to join pack:', error);
-      setLocationStatus('error');
-    } finally {
-      setIsJoining(false);
+      console.error('Error checking location permission:', error);
+      setLocationStatus('requesting');
     }
-  }, [isJoining, detectedLocation, user, router]);
+  };
 
-  // Auto location verification using the location service
-  const verifyLocation = useCallback(async () => {
-    setLocationStatus('checking');
-    
+  const requestLocationAndJoin = async () => {
+    setLocationStatus('requesting');
+    setError(null);
+
     try {
-      const result = await WolfpackLocationService.verifyUserLocation();
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+      });
+
+      console.log('Location obtained:', position.coords);
+      setLocationStatus('granted');
+      await joinWolfpack();
+    } catch (error) {
+      console.error('Location error:', error);
+      setLocationStatus('denied');
       
-      if (result.isAtLocation && result.locationId && result.locationName) {
-        const locationData = result.nearestLocation ? 
-          SIDE_HUSTLE_LOCATIONS[result.nearestLocation] : null;
-        
-        if (locationData) {
-          setDetectedLocation({
-            id: locationData.id,
-            name: locationData.name,
-            lat: locationData.lat,
-            lng: locationData.lng
-          });
-          setLocationStatus('verified');
-          // Auto-join pack after brief delay
-          setTimeout(() => {
-            handleQuickJoin();
-          }, 1500);
-        } else {
-          setLocationStatus('denied');
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setError('Location permission denied. Please enable location access and try again.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setError('Location information is unavailable. Please try again.');
+            break;
+          case error.TIMEOUT:
+            setError('Location request timed out. Please try again.');
+            break;
+          default:
+            setError('An error occurred while accessing your location.');
         }
       } else {
-        setLocationStatus('denied');
+        setError('Failed to access location. Please try again.');
+      }
+    }
+  };
+
+  const joinWolfpack = async () => {
+    if (!user) {
+      setError('Please log in to join the Wolf Pack');
+      return;
+    }
+
+    setJoinStatus('joining');
+    setError(null);
+
+    try {
+      // Call the wolfpack join API
+      const response = await fetch('/api/wolfpack/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          location: {
+            // You can add actual location data here if needed
+            latitude: 42.5195, // Salem, MA coordinates as default
+            longitude: -70.8967
+          }
+        })
+      });
+
+      if (response.ok) {
+        setJoinStatus('success');
+        // Redirect to feed after successful join
+        setTimeout(() => {
+          router.push('/wolfpack/feed');
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join Wolf Pack');
       }
     } catch (error) {
-      console.error('Location verification failed:', error);
-      setLocationStatus('error');
+      console.error('Error joining wolfpack:', error);
+      setJoinStatus('error');
+      setError(error instanceof Error ? error.message : 'Failed to join Wolf Pack');
     }
-  }, [handleQuickJoin]);
+  };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 pb-20">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Checking pack status...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getLocationIcon = () => {
+    switch (locationStatus) {
+      case 'granted':
+        return <CheckCircle className="h-8 w-8 text-green-500" />;
+      case 'denied':
+        return <AlertCircle className="h-8 w-8 text-red-500" />;
+      case 'requesting':
+        return <Loader2 className="h-8 w-8 animate-spin text-blue-500" />;
+      default:
+        return <MapPin className="h-8 w-8 text-gray-400" />;
+    }
+  };
 
-  // If already in pack, this will redirect above, but showing loading state just in case
-  if (isInPack) {
-    return (
-      <div className="container mx-auto px-4 py-8 pb-20">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <p className="text-muted-foreground">Redirecting to pack...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getStatusMessage = () => {
+    switch (locationStatus) {
+      case 'granted':
+        return 'Location access granted!';
+      case 'denied':
+        return 'Location access denied';
+      case 'requesting':
+        return 'Requesting location access...';
+      default:
+        return 'Location access required';
+    }
+  };
 
-  // Render different states based on location verification
-  if (locationStatus === 'checking') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
-        <SimpleHeader />
-        <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
-          <div className="text-center max-w-md mx-auto px-4">
-            <div className="animate-pulse mb-6">
-              <DynamicLogo type="wolf" width={64} height={64} className="mx-auto mb-4" />
-            </div>
-            <h1 className="text-2xl font-bold mb-4">🐺 Detecting Your Location</h1>
-            <p className="text-muted-foreground mb-6">
-              Checking if you&apos;re at Side Hustle Bar...
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-              <span className="text-sm text-purple-600">Verifying location...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getJoinStatusMessage = () => {
+    switch (joinStatus) {
+      case 'joining':
+        return 'Joining the Wolf Pack...';
+      case 'success':
+        return 'Welcome to the Wolf Pack! Redirecting...';
+      case 'error':
+        return 'Failed to join Wolf Pack';
+      default:
+        return '';
+    }
+  };
 
-  if (locationStatus === 'verified') {
+  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 pb-20">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 mb-4">
-              <CheckCircle className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold mb-2">🎉 Welcome to {detectedLocation?.name}!</h1>
-          <p className="text-muted-foreground mb-6">
-            Automatically joining the Wolf Pack...
-          </p>
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-green-200">
-            <div className="flex items-center justify-center gap-2 text-green-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm font-medium">Setting up your pack access...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (locationStatus === 'denied') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 pb-20">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-orange-500 to-red-500 mb-4">
-              <UtensilsCrossed className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold mb-4">📍 Location Required</h1>
-          <p className="text-muted-foreground mb-6">
-            You need to be at Side Hustle Bar to join the Wolf Pack.
-          </p>
-          <div className="space-y-4">
-            <Card className="border-orange-200">
-              <CardContent className="p-4">
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span>Salem: {SIDE_HUSTLE_LOCATIONS.salem.address}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span>Portland: {SIDE_HUSTLE_LOCATIONS.portland.address}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Button 
-              onClick={verifyLocation}
-              className="w-full"
-              variant="outline"
-            >
-              Try Again
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Card className="bg-gray-900 border-gray-700 max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
+            <p className="text-gray-400 mb-4">Please log in to join the Wolf Pack.</p>
+            <Button onClick={() => router.push('/login')} className="w-full bg-blue-600 hover:bg-blue-700">
+              Login to Continue
             </Button>
-            
-            {/* Manual location selection for development */}
-            {process.env.NODE_ENV === 'development' && (
-              <>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Development Mode
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Select a location manually:
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      onClick={() => {
-                        setDetectedLocation({
-                          id: SIDE_HUSTLE_LOCATIONS.salem.id,
-                          name: SIDE_HUSTLE_LOCATIONS.salem.name,
-                          lat: SIDE_HUSTLE_LOCATIONS.salem.lat,
-                          lng: SIDE_HUSTLE_LOCATIONS.salem.lng
-                        });
-                        setLocationStatus('verified');
-                        setTimeout(() => handleQuickJoin(), 500);
-                      }}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Salem
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setDetectedLocation({
-                          id: SIDE_HUSTLE_LOCATIONS.portland.id,
-                          name: SIDE_HUSTLE_LOCATIONS.portland.name,
-                          lat: SIDE_HUSTLE_LOCATIONS.portland.lat,
-                          lng: SIDE_HUSTLE_LOCATIONS.portland.lng
-                        });
-                        setLocationStatus('verified');
-                        setTimeout(() => handleQuickJoin(), 500);
-                      }}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Portland
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-            
-            <Button 
-              onClick={() => router.push('/')}
-              className="w-full"
-              variant="ghost"
-            >
-              Back to Menu
-            </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50 pb-20">
-      <div className="text-center max-w-md mx-auto px-4">
-        <div className="mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-red-500 to-pink-500 mb-4">
-            <Shield className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+      <Card className="bg-gray-900 border-gray-700 max-w-md w-full">
+        <CardContent className="p-6">
+          <div className="text-center mb-6">
+            <Sparkles className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Welcome to the Wolf Pack</h1>
+            <p className="text-gray-400">
+              Join the pack and access exclusive content, events, and social features at Side Hustle Bar.
+            </p>
           </div>
-        </div>
-        <h1 className="text-2xl font-bold mb-4">⚠️ Location Error</h1>
-        <p className="text-muted-foreground mb-6">
-          We couldn&apos;t access your location. Please enable location services and try again.
-        </p>
-        <div className="space-y-3">
-          <Button 
-            onClick={verifyLocation}
-            className="w-full"
-          >
-            Enable Location & Retry
-          </Button>
-          <Button 
-            onClick={() => router.push('/')}
-            variant="outline"
-            className="w-full"
-          >
-            Back to Menu
-          </Button>
-        </div>
-      </div>
+
+          {/* Location Status */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              {getLocationIcon()}
+              <span className="font-medium">{getStatusMessage()}</span>
+            </div>
+            
+            {locationStatus === 'denied' && (
+              <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-3 mb-4">
+                <p className="text-red-400 text-sm">
+                  Location access is required to verify you're at Side Hustle Bar. 
+                  Please enable location permissions in your browser settings.
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-3 mb-4">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Join Status */}
+          {joinStatus !== 'idle' && (
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                {joinStatus === 'joining' && <Loader2 className="h-6 w-6 animate-spin text-blue-500" />}
+                {joinStatus === 'success' && <CheckCircle className="h-6 w-6 text-green-500" />}
+                {joinStatus === 'error' && <AlertCircle className="h-6 w-6 text-red-500" />}
+                <span className="font-medium">{getJoinStatusMessage()}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {locationStatus === 'requesting' && (
+              <Button
+                onClick={requestLocationAndJoin}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={joinStatus === 'joining'}
+              >
+                {joinStatus === 'joining' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Joining Pack...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Allow Location & Join Pack
+                  </>
+                )}
+              </Button>
+            )}
+
+            {locationStatus === 'granted' && joinStatus === 'idle' && (
+              <Button
+                onClick={joinWolfpack}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Join the Wolf Pack
+              </Button>
+            )}
+
+            {locationStatus === 'denied' && (
+              <Button
+                onClick={requestLocationAndJoin}
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            )}
+
+            {joinStatus === 'success' && (
+              <Button
+                onClick={() => router.push('/wolfpack/feed')}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Enter Wolf Pack Feed
+              </Button>
+            )}
+
+            <Button
+              onClick={() => router.push('/wolfpack')}
+              variant="outline"
+              className="w-full border-gray-600 hover:bg-gray-800"
+            >
+              Back to Wolf Pack
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -56,7 +56,7 @@ export default function NotificationManager({
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
             storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
             messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_sender_id,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APp_user_id
           };
           
           initializeApp(firebaseConfig);

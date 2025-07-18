@@ -82,19 +82,32 @@ export function useConsistentAuth(): AuthState {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial user
+    // Get initial user and session
     const initializeAuth = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // First check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔐 Auth state changed: INITIAL_SESSION', session ? 'Found' : 'None');
         
-        if (mounted) {
-          if (authUser) {
-            const dbUser = await fetchDatabaseUser(authUser);
+        if (session?.user) {
+          const dbUser = await fetchDatabaseUser(session.user);
+          if (mounted) {
             setUser(dbUser);
-          } else {
-            setUser(null);
+            setLoading(false);
           }
-          setLoading(false);
+        } else {
+          // Fallback to getUser if no session
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          
+          if (mounted) {
+            if (authUser) {
+              const dbUser = await fetchDatabaseUser(authUser);
+              setUser(dbUser);
+            } else {
+              setUser(null);
+            }
+            setLoading(false);
+          }
         }
       } catch (err) {
         if (mounted) {
@@ -113,7 +126,9 @@ export function useConsistentAuth(): AuthState {
       async (event: AuthChangeEvent, session: Session | null) => {
         if (!mounted) return;
 
-        console.log('Auth state changed:', event);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Auth state changed:', event);
+        }
         
         if (session?.user) {
           const dbUser = await fetchDatabaseUser(session.user);

@@ -60,22 +60,22 @@ export function DisabledFeatureWrapper({
 
   // Check if feature should be disabled based on Wolfpack status
   const shouldShowDialog = () => {
-    if (wolfpackStatus === 'loading') return false;
+    if (!wolfpackStatus) return false;
     
     // Non-members need different handling based on feature type
     if (featureType === 'chat' || featureType === 'bartab') {
-      return wolfpackStatus !== 'active'; // These require membership
+      return !wolfpackStatus.isActive; // These require membership
     }
 
     if (featureType === 'cart') {
-      return !(wolfpackStatus.status === 'active' || locationStatus?.isAtLocation); // Cart requires location for non-members
+      return !(wolfpackStatus.isActive || locationStatus?.isAtLocation); // Cart requires location for non-members
     }
 
     return false;
   };
 
   const handleFeatureAccess = async () => {
-    if (wolfpackStatus === 'loading') return;
+    if (!wolfpackStatus) return;
 
     if (onFeatureClick) {
       onFeatureClick();
@@ -89,12 +89,13 @@ export function DisabledFeatureWrapper({
     }
 
     setIsChecking(true);
-    const accessResult = checkFeatureAccess(featureType);
-    setIsChecking(false);
-
-    if (accessResult) {
+    try {
+      await checkFeatureAccess();
+      setIsChecking(false);
       // Feature is accessible, proceed normally
       return;
+    } catch (error) {
+      setIsChecking(false);
     }
 
     // Show appropriate dialog based on what's needed
@@ -117,7 +118,7 @@ export function DisabledFeatureWrapper({
   };
 
   const getDialogContent = () => {
-    if (wolfpackStatus !== 'active' && (featureType === 'chat' || featureType === 'bartab')) {
+    if (!wolfpackStatus.isActive && (featureType === 'chat' || featureType === 'bartab')) {
       return (
         <>
           <DialogHeader>
@@ -161,7 +162,7 @@ export function DisabledFeatureWrapper({
       );
     }
 
-    if (featureType === 'cart' && !(wolfpackStatus.status === 'active' || locationStatus?.isAtLocation)) {
+    if (featureType === 'cart' && !(wolfpackStatus.isActive || locationStatus?.isAtLocation)) {
       return (
         <>
           <DialogHeader>
@@ -241,7 +242,7 @@ export function useFeatureAccess(featureType: 'chat' | 'bartab' | 'cart' | 'even
     if (!wolfpackStatus) return false;
     
     // Wolfpack members get full access
-    if (wolfpackStatus.status === 'active') return true;
+    if (wolfpackStatus.isActive) return true;
     
     // Non-members can access cart if location verified
     if (featureType === 'cart' && location?.isAtLocation) return true;

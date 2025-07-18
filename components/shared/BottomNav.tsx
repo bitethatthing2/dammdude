@@ -5,39 +5,56 @@ import { usePathname } from 'next/navigation';
 import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getZIndexClass } from '@/lib/constants/z-index';
-import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+// useWolfpackAccess functionality integrated into TikTok-style Wolfpack Local Pack
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { ThemeControl } from './ThemeControl';
 import { DynamicLogo } from './DynamicLogo';
+// import { useComments } from '@/lib/contexts/CommentsContext';
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const { isMember: canCheckout } = useWolfpackAccess();
+  // Wolfpack access integrated into TikTok-style Wolfpack Local Pack
+  const canCheckout = true; // Default to true as access is handled in main app
   const { isActiveDJ } = useDJPermissions();
   const { isAdmin } = useAdminAccess();
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
+  // const { isCommentsOpen } = useComments();
+  const isCommentsOpen = false; // Temporarily disabled until context is working
 
   // Set up mounted state
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Debug logging
+  // Debug state tracking
+  const lastStateRef = useRef<string>('');
+  
+  // Debug logging (only in development and on state changes)
   useEffect(() => {
-    if (isMounted) {
-      console.log('BottomNav Debug:', {
+    if (isMounted && process.env.NODE_ENV === 'development') {
+      const debugInfo = {
         user: !!user,
         userEmail: user?.email,
         isMember: canCheckout,
         isActiveDJ,
         isAdmin
-      });
+      };
+      
+      const currentState = JSON.stringify(debugInfo);
+      if (currentState !== lastStateRef.current) {
+        console.log('BottomNav State Change:', debugInfo);
+        lastStateRef.current = currentState;
+      }
     }
   }, [isMounted, user, canCheckout, isActiveDJ, isAdmin]);
+
+  // Debug pathname changes
+  useEffect(() => {
+    console.log('BottomNav pathname changed to:', pathname);
+  }, [pathname]);
 
   // Define the type for navigation items
   interface NavItem {
@@ -57,8 +74,10 @@ export const BottomNav = () => {
     if (canCheckout) {
       const items: NavItem[] = [
         { id: 'home', href: '/', icon: Home, label: 'Home' },
-        { id: 'chat', href: '/wolfpack/chat', icon: MessageCircle, label: 'Chat', requiresWolfPack: true },
-        { id: 'profile', href: '/profile', icon: User, label: 'Profile', requiresWolfPack: true },
+        { id: 'menu', href: '/menu', icon: UtensilsCrossed, label: 'Menu' },
+        { id: 'wolfpack', href: '/wolfpack', icon: Shield, label: 'WOLFPACK' },
+        { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
+        { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
       ];
 
       // Add DJ tab if user is an active DJ
@@ -70,14 +89,6 @@ export const BottomNav = () => {
       if (isAdmin) {
         items.push({ id: 'admin', href: '/admin/dashboard', icon: Settings, label: 'Admin', requiresAdmin: true });
       }
-
-      // Add remaining features available to Wolf Pack members
-      items.push(
-        { id: 'menu', href: '/menu', icon: UtensilsCrossed, label: 'Order', requiresWolfPack: true },
-        { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch' },
-        { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
-        { id: 'about', href: '/about', icon: Info, label: 'About' }
-      );
 
       return items;
     }
@@ -116,16 +127,19 @@ export const BottomNav = () => {
     const Icon = item.icon;
     const isJoinPack = item.id === 'join-pack';
     const isAdminItem = item.id === 'admin';
+    const isWolfpackItem = item.id === 'wolfpack';
 
     const linkClasses = cn(
-      "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200 min-w-0 flex-1",
-      isJoinPack
-        ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
-        : isAdminItem
-          ? "text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg shadow-red-500/25"
-          : isActive 
-            ? "text-primary bg-primary/10" 
-            : "text-inactive hover:text-foreground hover:bg-primary/5"
+      "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200 min-w-0 flex-1 relative",
+      isWolfpackItem
+        ? "text-yellow-400 bg-gradient-to-r from-yellow-400/20 to-yellow-600/20 hover:from-yellow-400/30 hover:to-yellow-600/30 shadow-lg shadow-yellow-400/25"
+        : isJoinPack
+          ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+          : isAdminItem
+            ? "text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg shadow-red-500/25"
+            : isActive 
+              ? "text-primary bg-primary/10" 
+              : "text-inactive hover:text-foreground hover:bg-primary/5"
     );
 
     return (
@@ -137,16 +151,21 @@ export const BottomNav = () => {
         <Icon className={cn(
           "h-5 w-5 transition-all duration-200",
           isActive && "drop-shadow-sm",
+          isWolfpackItem && "animate-pulse drop-shadow-lg",
           isJoinPack && "animate-pulse",
           isAdminItem && "animate-pulse"
         )} />
         <span className={cn(
           "text-[10px] mt-1 font-medium",
           "truncate w-full text-center",
+          isWolfpackItem && "font-bold text-yellow-400",
           (isJoinPack || isAdminItem) && "font-bold"
         )}>
           {item.label}
         </span>
+        {isWolfpackItem && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+        )}
       </Link>
     );
   };
@@ -168,33 +187,23 @@ export const BottomNav = () => {
   const isChatPage = pathname.startsWith('/wolfpack/chat');
   const isWolfpackPage = pathname.startsWith('/wolfpack');
 
-  // Hide BottomNav on chat pages
-  if (pathname.startsWith('/wolfpack/chat')) {
+  // Hide BottomNav on chat pages, feed page, and when comments are open
+  const shouldHideBottomNav = pathname.startsWith('/wolfpack/chat') || 
+                             pathname === '/wolfpack/feed' || 
+                             pathname.includes('/wolfpack/feed');
+  
+  if (shouldHideBottomNav) {
+    console.log('BottomNav hidden for pathname:', pathname);
     return null;
+  }
+  
+  // Debug: Log current pathname
+  if (pathname.includes('wolfpack')) {
+    console.log('BottomNav showing for pathname:', pathname);
   }
 
   return (
     <>
-      {/* Side Hustle Logo - positioned at top-left (hidden on DJ dashboard and chat) */}
-      {!isDJDashboard && !isChatPage && !isWolfpackPage && (
-        <div className={`absolute top-4 left-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
-          <DynamicLogo 
-            type="brand"
-            width={400}
-            height={100}
-            className="w-32 sm:w-48 md:w-64 h-auto" 
-          />
-        </div>
-      )}
-
-      {/* Floating Theme Control - positioned at top-right (hidden on DJ dashboard and chat) */}
-      {!isDJDashboard && !isChatPage && !isWolfpackPage && (
-        <div className={`fixed top-4 right-4 ${getZIndexClass('MODAL_BACKDROP')}`}>
-          <div className="bg-background/95 backdrop-blur-md border border-border rounded-full shadow-lg p-1.5 sm:p-2">
-            <ThemeControl />
-          </div>
-        </div>
-      )}
       
       {/* Bottom Navigation */}
       <nav className={`fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md ${getZIndexClass('BOTTOM_NAV')} safe-area-inset-bottom`}>

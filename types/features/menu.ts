@@ -133,7 +133,7 @@ export interface MenuItemFromDB {
 }
 
 export interface ModifierGroupFromDB {
-  group_id: string;
+  group_user_id: string;
   group_name: string;
   modifier_type: string;
   is_required: boolean;
@@ -164,7 +164,7 @@ export function convertAPIMenuItem(apiItem: APIMenuItem): MenuItemWithModifiers 
       // Only add groups that have modifiers
       if (group.modifiers && group.modifiers.length > 0) {
         modifierGroups.push({
-          id: group.group_id,
+          id: group.group_user_id,
           type: group.modifier_type,
           name: group.group_name,
           options: group.modifiers.map(mod => ({
@@ -205,7 +205,7 @@ export function transformMenuItemFromDB(dbItem: MenuItemFromDB): MenuItemWithMod
       // Only add groups that have modifiers
       if (group.modifiers && group.modifiers.length > 0) {
         modifierGroups.push({
-          id: group.group_id,
+          id: group.group_user_id,
           type: group.modifier_type,
           name: group.group_name,
           options: group.modifiers.map(mod => ({

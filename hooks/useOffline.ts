@@ -10,7 +10,7 @@ import {
   getPendingSyncItems,
   registerPeriodicSync
 } from '@/lib/utils/offlineManager';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/supabase/types';
 
 // Type definitions for offline data
 type OrderData = Database['public']['Tables']['bartender_orders']['Insert'];

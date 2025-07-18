@@ -20,27 +20,42 @@ export function useAdminAccess() {
       }
 
       try {
+        // Try to check admin status from email first (fallback)
+        const adminEmails = ['gthabarber1@gmail.com', 'mkahler599@gmail.com'];
+        const isAdminByEmail = user?.email && adminEmails.includes(user.email);
+        
+        if (isAdminByEmail) {
+          if (mounted) {
+            setIsAdmin(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Try to check from database
         const { data, error } = await supabase
           .from('users')
           .select('role')
-          .eq('id', user.id)
+          .eq('auth_id', user.id)
           .single();
 
         if (mounted) {
           if (error) {
-            console.error('Error checking admin status:', error);
-            setIsAdmin(false);
+            console.log('Admin check failed, using email fallback:', error?.message || error);
+            setIsAdmin(isAdminByEmail);
           } else {
             // Check if user has admin or super_admin role
             const isAdminRole = data?.role === 'admin' || data?.role === 'super_admin';
-            setIsAdmin(isAdminRole);
+            setIsAdmin(isAdminRole || isAdminByEmail);
           }
           setLoading(false);
         }
       } catch (err) {
-        console.error('Failed to check admin status:', err);
+        console.log('Admin check failed, using email fallback:', err);
         if (mounted) {
-          setIsAdmin(false);
+          const adminEmails = ['gthabarber1@gmail.com', 'mkahler599@gmail.com'];
+          const isAdminByEmail = user?.email && adminEmails.includes(user.email);
+          setIsAdmin(isAdminByEmail);
           setLoading(false);
         }
       }

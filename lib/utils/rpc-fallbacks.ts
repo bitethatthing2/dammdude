@@ -21,7 +21,7 @@ export class RPCFallbacks {
       return {
         data: {
           is_member: data.is_wolfpack_member || false,
-          membership_id: data.id,
+          membership_user_id: data.id,
           status: data.is_wolfpack_member ? 'active' : 'inactive',
           joined_at: null // Could be enhanced with actual join date
         },
@@ -54,7 +54,7 @@ export class RPCFallbacks {
       return {
         data: {
           success: true,
-          membership_id: userId,
+          membership_user_id: userId,
           message: 'Successfully joined wolfpack'
         },
         error: null

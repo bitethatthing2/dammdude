@@ -45,7 +45,9 @@ const AvatarImage = React.forwardRef<React.ElementRef<typeof Image>, AvatarImage
         alt={alt}
         fill
         className={cn("object-cover", className)}
-        sizes="40px"
+        sizes="(max-width: 768px) 80px, (max-width: 1200px) 120px, 160px"
+        quality={95}
+        priority
       />
     );
   }

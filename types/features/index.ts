@@ -14,5 +14,4 @@ export type { WolfPackOrderRequest, formatOrderNumber } from './checkout';
 export type { DatabaseOverrides } from './database-overrides';
 export type { WolfpackLiveStats } from './dj-dashboard-types';
 export type { DatabaseRecord } from './eslint-fixes';
-export type { WolfpackMemberRow, WolfpackMemberInsert, WolfpackMemberUpdate } from './wolfpack-interfaces';
-export type { BartenderOrderRow, OrderInsert, OrderUpdate } from './wolfpack-unified';
+// Wolfpack types integrated into TikTok-style Wolfpack Local Pack

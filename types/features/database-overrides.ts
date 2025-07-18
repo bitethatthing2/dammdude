@@ -26,4 +26,4 @@ export interface CleanRestaurantTable {
 }
 
 // Re-export with clean types
-export type { Database } from '@/types/database.types';
+export type { Database } from '@/lib/database.types';

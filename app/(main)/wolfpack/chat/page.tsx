@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
-import { useWolfpack } from '@/hooks/useWolfpack';
+import { useWolfpack, useWolfpackSession } from '@/hooks/useWolfpack';
 import { useTypingIndicators } from '@/hooks/useTypingIndicators';
-import { useWolfpackSession } from '@/lib/hooks/useWolfpackSession';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Shield, ArrowLeft, Send, Loader2, Smile, Image as ImageIcon, Plus } from 'lucide-react';
@@ -15,8 +14,8 @@ import { getZIndexClass } from '@/lib/constants/z-index';
 import { resolveWolfpackMemberAvatar, resolveChatAvatarUrl } from '@/lib/utils/avatar-utils';
 import { TIMEOUT_CONSTANTS } from '@/lib/utils/timeout-utils';
 import { useImageReplacement } from '@/lib/services/image-replacement.service';
-import MobileOptimizedChat from '@/components/wolfpack/MobileOptimizedChat';
-import '@/styles/wolfpack-chat.css';
+// import MobileOptimizedChat from '@/components/wolfpack/MobileOptimizedChat';
+// import '@/styles/wolfpack-chat.css';
 
 // Type definitions
 interface WolfpackMember {
@@ -783,140 +782,9 @@ export default function EnhancedWolfpackChatPage() {
     );
   }
 
-  // Mobile-optimized render
-  if (isMobile) {
-    return (
-      <MobileOptimizedChat
-        messages={sessionMessages}
-        members={spatialMembers}
-        spatialViewContent={
-          <div className="h-full relative">
-            {/* Background */}
-            <div className="absolute inset-0">
-              <Image
-                src="/icons/wolfpack-chat.gif"
-                alt="Side Hustle Bar Interior"
-                fill
-                className="object-cover object-center opacity-30"
-                unoptimized
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70" />
-            </div>
-            
-            {/* Spatial Members */}
-            <div className="relative z-10 h-full p-4">
-              {spatialMembers.map((member) => {
-                const memberBubble = messageBubbles.get(member.id);
-                
-                return (
-                  <div
-                    key={member.id}
-                    className="member-position"
-                    data-member-id={member.id}
-                    style={{ 
-                      left: member.position.x,
-                      top: member.position.y,
-                      transform: 'translate(-50%, -50%)',
-                      position: 'absolute',
-                      zIndex: 45
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setViewingProfile({ show: true, member });
-                    }}
-                  >
-                    <div className="relative">
-                      <Image
-                        src={member.avatar_url}
-                        alt={member.display_name}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-white/20 hover:border-white/40 transition-all duration-300"
-                        unoptimized={member.avatar_url.includes('dicebear.com')}
-                      />
-                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-gray-900 ${
-                        member.is_online ? 'bg-green-500' : 'bg-gray-500'
-                      }`} />
-                    </div>
-                    
-                    {memberBubble && (
-                      <div className="message-bubble">
-                        {memberBubble.message}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        }
-        currentUser={user}
-        onSendMessage={async (message) => {
-          if (!message.trim() || !user || isSendingMessage) return;
-          setIsSendingMessage(true);
-          
-          // Clear typing state when sending message
-          setIsTyping(false);
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-          }
-          const userName = user?.first_name || user?.email?.split('@')[0] || 'Wolf Member';
-          sendTyping(user.id, userName, false);
-          
-          try {
-            const result = await actions.sendMessage(message.trim());
-            if (result.success) {
-              showToast('Message sent!');
-            } else {
-              showToast(result.error || 'Failed to send message');
-            }
-          } catch (error) {
-            console.error('Error sending message:', error);
-            showToast('Failed to send message');
-          } finally {
-            setIsSendingMessage(false);
-          }
-        }}
-        onMemberSelect={(memberId) => {
-          const member = spatialMembers.find(m => m.id === memberId);
-          if (member) {
-            setViewingProfile({ show: true, member });
-          }
-        }}
-        onReactionAdd={async (messageId, emoji) => {
-          const result = await actions.addReaction(messageId, emoji);
-          if (result.success) {
-            showToast(`${emoji} Reaction added!`);
-          } else {
-            showToast(result.error || 'Failed to add reaction');
-          }
-        }}
-        onReactionRemove={async (reactionId) => {
-          const result = await actions.removeReaction(reactionId);
-          if (result.success) {
-            showToast('Reaction removed!');
-          } else {
-            showToast(result.error || 'Failed to remove reaction');
-          }
-        }}
-        isConnected={state.isConnected}
-        isTyping={isTyping}
-        typingUsers={typingUsers}
-        onShowMessages={() => {
-          // For now, just redirect to messages view directly
-          router.push('/wolfpack/chat/messages');
-        }}
-        onStartPrivateChat={(userId, userName) => {
-          // Navigate directly to private chat with the user
-          router.push(`/wolfpack/chat/private/${userId}`);
-        }}
-        onBack={() => {
-          router.push('/wolfpack');
-        }}
-      />
-    );
+  // Mobile-optimized render - DISABLED until MobileOptimizedChat exists
+  if (false && isMobile) {
+    return <div>Mobile chat disabled</div>;
   }
 
   return (

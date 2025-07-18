@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/database.types';
 
 type OrderRequest = Database['public']['Tables']['order_requests']['Row'];
 type OrderRequestInsert = Database['public']['Tables']['order_requests']['Insert'];
@@ -28,7 +28,6 @@ export class OrderRequestService {
       item_price: params.item_price,
       quantity: params.quantity || 1,
       special_instructions: params.special_instructions || null,
-      modifier_data: params.modifier_data || null,
       status: 'pending',
       request_type: 'menu_item'
     };
@@ -133,7 +132,7 @@ export class OrderRequestService {
   static async blockUserFromOrdering(userId: string, locationId: string, bartenderId: string): Promise<void> {
     // Update user's status to blocked for this location
     const { error } = await supabase
-      .from('user_location_permissions')
+      .from('user_interaction_permissions')
       .upsert({
         user_id: userId,
         location_id: locationId,
@@ -153,7 +152,7 @@ export class OrderRequestService {
    */
   static async unblockUser(userId: string, locationId: string): Promise<void> {
     const { error } = await supabase
-      .from('user_location_permissions')
+      .from('user_interaction_permissions')
       .update({
         can_order: true,
         blocked_by: null,

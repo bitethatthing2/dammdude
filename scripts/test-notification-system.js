@@ -21,7 +21,7 @@ async function testNotificationSystem() {
     // Test 1: Check if the functions exist
     console.log('\n1. Testing fetch_notifications function...');
     const { data: notifications, error: fetchError } = await supabase.rpc('fetch_notifications', {
-      p_id: null, // Current user
+      p_user_id: null, // Current user
       p_limit: 10,
       p_offset: 0
     });

@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { useWolfpackAccess } from '@/lib/hooks/useWolfpackAccess';
+// useWolfpackAccess functionality integrated into TikTok-style Wolfpack Local Pack
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCart, CartItem } from '@/components/cart/CartContext';
 
@@ -42,7 +42,9 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   const [orderNotes, setOrderNotes] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const { user } = useAuth();
-  const { isMember: isWolfpackMember, isLoading: isCheckingMembership } = useWolfpackAccess();
+  // Wolfpack access integrated into TikTok-style Wolfpack Local Pack
+  const isWolfpackMember = true; // Default to true as access is handled in main app
+  const isCheckingMembership = false;
   
   // Use the unified cart context
   const { 

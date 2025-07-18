@@ -52,9 +52,17 @@ export default function OrderManagement() {
         // Play notification sound for ready orders
         try {
           const audio = new Audio('/sounds/status-change.mp3');
-          audio.play().catch(err => console.error('Error playing sound:', err));
+          audio.volume = 0.5; // Set volume to 50%
+          audio.load(); // Preload the audio
+          
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn('Audio play prevented (likely due to user interaction requirement):', err);
+            });
+          }
         } catch (err) {
-          console.error('Error with notification sound:', err);
+          console.warn('Error with notification sound:', err);
         }
       }
     }

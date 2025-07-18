@@ -263,7 +263,7 @@ const getOrderButtonText = (userStatus: UserOrderStatus | null, isAvailable: boo
   }
   
   // No open tab - must go to bartender first
-  return 'Open Tab at Bar First';
+  return 'Visit Bar to Open Tab';
 };
 
 // Simple function to check if user is in wolfpack (keeping for backward compatibility)
@@ -271,7 +271,7 @@ const checkWolfPackMembership = async (userId: string): Promise<boolean> => {
   try {
     const { supabase } = await import('@/lib/supabase/client');
     const { data: memberData } = await supabase
-      .from('wolf-pack-members')
+      .from('wolfpack_whitelist')
       .select('id')
       .eq('id', userId)
       .eq('is_active', true)
@@ -330,9 +330,9 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
     // Check if user needs to open a tab first
     if (!userOrderStatus.has_open_tab) {
       toast({
-        title: "Tab Required",
-        description: "Please open a tab with the bartender first to start ordering.",
-        variant: "destructive"
+        title: "Tab Required for Ordering",
+        description: "To order food and drinks, please visit the bar to open a tab by leaving a payment card on file with the bartender.",
+        variant: "default"
       });
       return;
     }
@@ -342,7 +342,7 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
     if (!canOrder) {
       toast({
         title: "Request Limit Reached",
-        description: "You have too many pending requests. Please wait for bartender approval.",
+        description: "You have pending requests awaiting bartender review. Please wait for approval before placing additional orders.",
         variant: "destructive"
       });
       return;
@@ -364,7 +364,7 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
 
         toast({
           title: "Order Request Sent",
-          description: `Request for ${item.name} sent to bartender for approval`,
+          description: `Your request for ${item.name} has been sent to the bartender for review and approval.`,
         });
       } catch (error) {
         toast({
@@ -507,9 +507,9 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
     // Check if user needs to open a tab first
     if (!userOrderStatus.has_open_tab) {
       toast({
-        title: "Tab Required",
-        description: "Please open a tab with the bartender first to start ordering.",
-        variant: "destructive"
+        title: "Tab Required for Ordering",
+        description: "To order food and drinks, please visit the bar to open a tab by leaving a payment card on file with the bartender.",
+        variant: "default"
       });
       return;
     }
@@ -519,7 +519,7 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
     if (!canOrder) {
       toast({
         title: "Request Limit Reached",
-        description: "You have too many pending requests. Please wait for bartender approval.",
+        description: "You have pending requests awaiting bartender review. Please wait for approval before placing additional orders.",
         variant: "destructive"
       });
       return;
@@ -541,7 +541,7 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
 
         toast({
           title: "Order Request Sent",
-          description: `Request for ${item.name} sent to bartender for approval`,
+          description: `Your request for ${item.name} has been sent to the bartender for review and approval.`,
         });
       } catch (error) {
         toast({

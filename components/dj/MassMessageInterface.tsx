@@ -35,7 +35,7 @@ import type {
   BroadcastType,
   BroadcastPriority
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/database.types';
 
 interface MassMessageInterfaceProps {
   isOpen: boolean;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { User } from 'lucide-react';
 
 interface ImageWithFallbackProps {
@@ -67,13 +68,15 @@ export function ImageWithFallback({
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
         </div>
       )}
-      <img
+      <Image
         src={currentSrc}
         alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+        fill
+        className={`object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
         onError={handleError}
         onLoad={handleLoad}
-        loading="lazy"
+        quality={95}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
     </div>
   );
@@ -151,13 +154,13 @@ export function getOptimizedImageUrl(originalUrl: string | null | undefined, opt
     
     // Handle Unsplash URLs
     if (url.hostname.includes('unsplash.com')) {
-      const { width = 150, height = 150, quality = 80, format = 'webp' } = options || {};
+      const { width = 300, height = 300, quality = 95, format = 'webp' } = options || {};
       return `${originalUrl}?w=${width}&h=${height}&fit=crop&crop=face&q=${quality}&fm=${format}`;
     }
     
     // Handle other image services
     if (url.hostname.includes('cloudinary.com')) {
-      const { width = 150, height = 150, quality = 80 } = options || {};
+      const { width = 300, height = 300, quality = 95 } = options || {};
       return originalUrl.replace('/upload/', `/upload/w_${width},h_${height},c_fill,q_${quality}/`);
     }
     
