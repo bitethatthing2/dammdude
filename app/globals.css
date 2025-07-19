@@ -38,6 +38,28 @@
   contain: layout style paint;
 }
 
+/* Instagram embed fixes - prevent CSS interference */
+.instagram-media,
+.instagram-media * {
+  contain: none !important;
+  will-change: auto !important;
+  transform: none !important;
+  backface-visibility: visible !important;
+}
+
+.instagram-media {
+  /* Allow Instagram's script to manipulate dimensions */
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
+  /* Prevent overflow issues */
+  overflow: visible !important;
+  /* Reset any transform properties */
+  transform: none !important;
+  /* Ensure proper positioning */
+  position: relative !important;
+}
+
 /* Smooth scroll behavior */
 html {
   scroll-behavior: smooth;

@@ -127,14 +127,10 @@ const nextConfig = {
           },
         ],
       },
-      // Security headers
+      // Security headers with proper CSP for Instagram and Google Maps
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -142,6 +138,10 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com; img-src 'self' data: https: blob: http:;",
           },
         ],
       },

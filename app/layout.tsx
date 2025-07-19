@@ -262,6 +262,26 @@ export default function RootLayout({ children }: RootLayoutProps) {
             })
           }}
         />
+        
+        {/* Instagram Embed Script */}
+        <Script
+          id="instagram-embed"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const script = document.createElement('script');
+                script.src = '//www.instagram.com/embed.js';
+                script.onload = function() {
+                  if (window.instgrm) {
+                    window.instgrm.Embeds.process();
+                  }
+                };
+                document.head.appendChild(script);
+              })();
+            `
+          }}
+        />
       </body>
     </html>
   );
