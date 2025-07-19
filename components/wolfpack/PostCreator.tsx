@@ -34,33 +34,125 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize camera when component opens
+  // Auto-start camera disabled to allow manual activation
   useEffect(() => {
-    if (isOpen && mediaMode === 'camera') {
-      startCamera();
+    // Cleanup on close
+    if (!isOpen) {
+      stopCamera();
     }
     return () => {
       stopCamera();
     };
-  }, [isOpen, mediaMode]);
+  }, [isOpen]);
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' }, // Front camera
+      console.log('Starting camera activation...');
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available. Please ensure you are using HTTPS.');
+      }
+
+      // Check if we're in a secure context
+      if (!window.isSecureContext) {
+        throw new Error('Camera requires a secure context (HTTPS)');
+      }
+
+      // For iOS PWAs, try with simplified constraints first
+      const isIOSPWA = window.navigator.standalone || 
+                       (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+      
+      let constraints = {
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: true
-      });
+      };
+
+      // Simplify constraints for iOS PWAs to improve compatibility
+      if (isIOSPWA) {
+        constraints = {
+          video: { facingMode: 'user' },
+          audio: false // Some iOS PWAs have issues with audio permissions
+        };
+      }
+
+      console.log('Requesting camera access with constraints:', constraints);
+      console.log('Browser:', navigator.userAgent);
+      console.log('Is iOS PWA:', isIOSPWA);
+      console.log('Is secure context:', window.isSecureContext);
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        
+        // Wait for video metadata to load
+        await new Promise((resolve, reject) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = resolve;
+            videoRef.current.onerror = reject;
+          }
+        });
+        
+        // Attempt to play the video
+        await videoRef.current.play();
         setCameraActive(true);
+        console.log('Camera activated successfully');
+        
+        toast({
+          title: 'Camera activated',
+          description: 'Ready to record',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
+      
+      let errorMessage = 'Failed to access camera';
+      let errorDescription = 'Please check your camera permissions';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = 'Camera access denied';
+        errorDescription = 'Please allow camera access in your browser settings. For iOS, you may need to enable camera in Safari settings > Website Settings';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = 'No camera found';
+        errorDescription = 'Please ensure your device has a camera connected';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = 'Camera is busy';
+        errorDescription = 'Camera might be used by another application. Please close other apps and try again';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Camera requirements not met';
+        errorDescription = 'Trying with basic camera settings...';
+        
+        // Retry with basic constraints
+        try {
+          const basicStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (videoRef.current) {
+            videoRef.current.srcObject = basicStream;
+            streamRef.current = basicStream;
+            await videoRef.current.play();
+            setCameraActive(true);
+            toast({
+              title: 'Camera activated',
+              description: 'Using basic camera settings',
+            });
+            return;
+          }
+        } catch (retryError) {
+          console.error('Basic camera retry failed:', retryError);
+        }
+      } else if (error.message?.includes('https')) {
+        errorMessage = 'Secure connection required';
+        errorDescription = 'Camera access requires HTTPS. Please use a secure connection';
+      }
+      
       toast({
-        title: 'Camera access denied',
-        description: 'Please allow camera access to record videos',
+        title: errorMessage,
+        description: errorDescription,
         variant: 'destructive',
       });
     }
@@ -396,14 +488,28 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
           )}
           
           {/* Default State */}
-          {!cameraActive && !preview && (
-            <div className="text-center text-gray-400">
+          {!cameraActive && !preview && mediaMode === 'camera' && (
+            <button
+              onClick={startCamera}
+              className="text-center text-gray-400 hover:text-gray-300 transition-colors p-8"
+            >
               <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                       d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <p className="text-lg">Tap to start camera</p>
+              <p className="text-lg">Tap to activate camera</p>
+            </button>
+          )}
+          
+          {/* Gallery Mode Default State */}
+          {!preview && mediaMode === 'gallery' && (
+            <div className="text-center text-gray-400">
+              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-lg">Select from gallery</p>
             </div>
           )}
         </div>

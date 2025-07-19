@@ -27,7 +27,7 @@ export const Z_INDEX = {
   TOOLTIP: 15,
   
   // Fixed navigation (20-29)
-  BOTTOM_NAV: 20,
+  BOTTOM_NAV: 100, // Increased to ensure it's always on top
   HEADER: 25,
   
   // Sticky elements (30-39)

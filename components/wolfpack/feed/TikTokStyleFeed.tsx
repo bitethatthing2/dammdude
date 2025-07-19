@@ -168,7 +168,7 @@ export default function TikTokStyleFeed({
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
       {/* Authentic TikTok Top Navigation */}
-      <div className="absolute top-0 left-0 right-0 z-50 pt-12 pb-2 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-50 pt-2 pb-1 bg-gradient-to-b from-black/60 to-transparent" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
         {/* Top Navigation Tabs */}
         <div className="flex items-center justify-center px-4 relative">
           {/* Live Badge */}
@@ -209,7 +209,7 @@ export default function TikTokStyleFeed({
         </div>
         
         {/* Additional Categories Row */}
-        <div className="flex justify-center items-center mt-4 px-4">
+        <div className="flex justify-center items-center mt-2 px-4">
           <div className="flex space-x-6 overflow-x-auto scrollbar-hide">
             {['Festivals', 'Trending', 'Music'].map((category) => (
               <button
@@ -313,7 +313,7 @@ export default function TikTokStyleFeed({
             )}
 
             {/* TikTok-style Content Overlay */}
-            <div className="absolute inset-x-0 bottom-0 pb-8 px-4">
+            <div className="absolute inset-x-0 bottom-0 pb-20 px-4">
               {/* User Info - simplified TikTok style */}
               <div className="flex items-center gap-3 mb-3">
                 <p className="text-white font-bold text-base drop-shadow-lg">@{video.username}</p>
@@ -339,15 +339,15 @@ export default function TikTokStyleFeed({
 
               {/* Music info - TikTok style */}
               {video.music_name && (
-                <div className="flex items-center gap-2 text-white text-sm mb-2">
-                  <Music className="w-4 h-4" />
-                  <span className="font-medium">Original Sound</span>
+                <div className="flex items-center gap-2 text-white text-sm mb-2 drop-shadow-lg">
+                  <Music className="w-4 h-4 drop-shadow-lg" />
+                  <span className="font-medium drop-shadow-lg">Original Sound</span>
                 </div>
               )}
             </div>
 
             {/* TikTok-style Action Buttons */}
-            <div className="absolute right-3 bottom-8 flex flex-col gap-4">
+            <div className="absolute right-3 bottom-20 flex flex-col gap-4">
               {/* Like */}
               <button
                 onClick={() => handleLike(video.id)}
@@ -450,7 +450,7 @@ export default function TikTokStyleFeed({
             </div>
 
             {/* Minimal Progress Indicators - TikTok style */}
-            <div className="absolute top-16 right-4 flex flex-col gap-1">
+            <div className="absolute right-4 flex flex-col gap-1" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
               {videos.map((_, idx) => (
                 <div
                   key={idx}
@@ -465,21 +465,10 @@ export default function TikTokStyleFeed({
         ))}
       </div>
 
-      {/* Bottom Search Bar */}
-      <div className="absolute bottom-16 left-0 right-0 z-50 px-4">
-        <div className="flex items-center bg-black/80 backdrop-blur-sm rounded-full px-4 py-2">
-          <Search className="w-4 h-4 text-white/70 mr-2" />
-          <input 
-            type="text" 
-            placeholder="Search the wolfpack..." 
-            className="flex-1 bg-transparent text-white text-sm placeholder-white/70 outline-none"
-          />
-        </div>
-      </div>
 
       {/* TikTok Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm">
-        <div className="flex justify-around items-center py-2 px-4">
+      <div className="absolute bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex justify-around items-center py-3 px-4">
           <button className="flex flex-col items-center space-y-1">
             <Home className="w-6 h-6 text-white" />
             <span className="text-xs text-white font-medium">Home</span>

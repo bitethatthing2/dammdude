@@ -12,7 +12,8 @@ import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
 import { DynamicLogo } from '@/components/shared/DynamicLogo';
-import { DynamicGoogleMaps, InstagramEmbed } from '@/components/shared/DynamicGoogleMaps';
+import { DynamicGoogleMaps } from '@/components/shared/DynamicGoogleMaps';
+import { InstagramEmbed } from '@/components/shared/InstagramEmbed';
 import React, { Suspense } from 'react';
 import { MainPageThemeControl } from '@/components/shared/MainPageThemeControl';
 import { ThemeControl } from '@/components/shared/ThemeControl';
@@ -46,26 +47,26 @@ export default function Page() {
   return (
     <div className="main-content bg-gradient-to-br from-background to-muted">
       {/* Side Hustle Logo - top-left */}
-      <div className="absolute top-0 left-4 z-10">
+      <div className="absolute left-4 z-10" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
         <DynamicLogo type="brand" width={160} height={60} className="rounded-md" />
       </div>
       
       {/* Theme Control - top-right */}
-      <div className="absolute top-0 right-4 z-10">
+      <div className="absolute right-4 z-10" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
         <ThemeControl />
       </div>
 
-      <div className="container mx-auto px-4 py-2 sm:py-3 space-y-2 sm:space-y-3">
+      <div className="container mx-auto px-4 space-y-1 sm:space-y-2" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 60px)', paddingBottom: '8px' }}>
         {/* Original Home Page Content */}
         <div className="flex flex-col items-center relative">
 
 
           {/* Wolf Icon - centered */}
-          <div className="w-full flex justify-center items-center px-4 mt-4 sm:mt-8"> 
+          <div className="w-full flex justify-center items-center px-4 mt-2 sm:mt-4"> 
             {mounted ? (
-              <DynamicLogo type="wolf" width={1000} height={1000} className="w-[28rem] h-[28rem] sm:w-[32rem] sm:h-[32rem] md:w-[36rem] md:h-[36rem] lg:w-[42rem] lg:h-[42rem] xl:w-[48rem] xl:h-[48rem] object-contain" alt="Side Hustle Wolf Icon" />
+              <DynamicLogo type="wolf" width={1000} height={1000} className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] lg:w-[34rem] lg:h-[34rem] xl:w-[38rem] xl:h-[38rem] object-contain" alt="Side Hustle Wolf Icon" />
             ) : (
-              <div className="w-[28rem] h-[28rem] sm:w-[32rem] sm:h-[32rem] md:w-[36rem] md:h-[36rem] bg-muted animate-pulse rounded-full" />
+              <div className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] bg-muted animate-pulse rounded-full" />
             )}
           </div>
           
@@ -151,7 +152,7 @@ export default function Page() {
           </div>
 
           {/* Order Online Section */}
-          <div className="w-full max-w-md px-4 mt-4 mb-32">
+          <div className="w-full max-w-md px-4 mt-4 mb-8">
             <h2 className="text-lg font-semibold mb-3 text-center text-foreground">Order Online</h2>
             <div className="space-y-2">
               {/* DoorDash Button */}
@@ -252,9 +253,11 @@ export default function Page() {
           </div>
 
           {/* Instagram Section */}
-          <div className="w-full max-w-2xl px-4 mt-4 mb-6">
-            <h2 className="text-xl font-semibold text-center mb-3 text-foreground">Follow @sidehustle_bar</h2>
-            <InstagramEmbed className="w-full" />
+          <div className="w-full max-w-2xl px-4 mt-3 mb-16 relative z-[1]">
+            <h2 className="text-lg font-semibold text-center mb-2 text-foreground">Follow @sidehustle_bar</h2>
+            <div className="overflow-hidden rounded-lg relative">
+              <InstagramEmbed className="w-full" />
+            </div>
           </div>
         </div>
       </div>
