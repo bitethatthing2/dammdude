@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
 import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
@@ -10,6 +10,7 @@ import { PostCreator } from '@/components/wolfpack/PostCreator';
 import { Loader2, Shield, Sparkles, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { fetchFeedItems, fetchFollowingFeed, type FeedItem } from '@/app/actions/wolfpack-feed';
 
 interface VideoItem {
   id: string;
@@ -41,6 +42,10 @@ export default function WolfpackFeedPage() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostCreator, setShowPostCreator] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [feedType, setFeedType] = useState<'forYou' | 'following'>('forYou');
 
   // Load video content
   useEffect(() => {
@@ -242,6 +247,55 @@ export default function WolfpackFeedPage() {
     }
   };
 
+  // Handle loading more videos for infinite scroll
+  const handleLoadMore = useCallback(async (): Promise<VideoItem[]> => {
+    if (!user || isLoadingMore || !hasMore) return [];
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      let response;
+
+      if (feedType === 'following') {
+        response = await fetchFollowingFeed(nextPage, 10, user.id);
+      } else {
+        response = await fetchFeedItems(nextPage, 10);
+      }
+
+      if (response.items.length > 0) {
+        const newVideos: VideoItem[] = response.items.map(item => ({
+          id: item.id,
+          user_id: item.user_id,
+          username: item.username,
+          avatar_url: item.avatar_url,
+          caption: item.caption,
+          video_url: item.video_url,
+          thumbnail_url: item.thumbnail_url,
+          likes_count: item.likes_count,
+          comments_count: item.comments_count,
+          shares_count: item.shares_count,
+          music_name: item.music_name,
+          hashtags: item.hashtags,
+          created_at: item.created_at
+        }));
+
+        setCurrentPage(nextPage);
+        setHasMore(response.hasMore);
+        setVideos(prevVideos => [...prevVideos, ...newVideos]);
+        
+        return newVideos;
+      } else {
+        setHasMore(false);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error loading more videos:', error);
+      return [];
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [user, currentPage, feedType, hasMore, isLoadingMore]);
+
 
   const isLoadingAll = authLoading || packLoading;
 
@@ -319,6 +373,9 @@ export default function WolfpackFeedPage() {
         onFollow={handleFollow}
         onDelete={handleDelete}
         onCreatePost={() => setShowPostCreator(true)}
+        onLoadMore={handleLoadMore}
+        hasMore={hasMore}
+        isLoading={isLoadingMore}
       />
       
       <PostCreator

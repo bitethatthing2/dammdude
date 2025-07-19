@@ -13,6 +13,31 @@
   display: none;
 }
 
+/* TikTok-style snap scrolling optimizations */
+.snap-container {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Performance optimizations for video elements */
+.video-container {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Prevent layout shift during infinite scroll */
+.feed-container {
+  contain: layout style paint;
+}
+
 /* Smooth scroll behavior */
 html {
   scroll-behavior: smooth;

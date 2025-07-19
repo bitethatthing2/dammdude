@@ -169,7 +169,6 @@ export default function Page() {
                       width={32} 
                       height={32} 
                       className="object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
                     />
                   </div>
                   <span className="text-base">Order on DoorDash</span>
@@ -190,7 +189,8 @@ export default function Page() {
                       alt="Uber Eats" 
                       width={32} 
                       height={32} 
-                      className="w-8 h-8 object-contain"
+                      className="object-contain"
+                      style={{ width: 'auto', height: 'auto' }}
                     />
                   </div>
                   <span className="text-base">Order on Uber Eats</span>
@@ -212,7 +212,6 @@ export default function Page() {
                       width={32} 
                       height={32} 
                       className="object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
                     />
                   </div>
                   <span className="text-base">Order on Postmates</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Search, Plus, UserPlus, Users, Home, ShoppingBag, Mail, User, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Search, Plus, UserPlus, Users, Home, ShoppingBag, Mail, User, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +30,9 @@ interface TikTokStyleFeedProps {
   onFollow: (userId: string) => void;
   onDelete?: (videoId: string) => void;
   onCreatePost?: () => void;
+  onLoadMore?: () => Promise<VideoItem[]>;
+  hasMore?: boolean;
+  isLoading?: boolean;
 }
 
 export default function TikTokStyleFeed({
@@ -40,7 +43,10 @@ export default function TikTokStyleFeed({
   onShare,
   onFollow,
   onDelete,
-  onCreatePost
+  onCreatePost,
+  onLoadMore,
+  hasMore = false,
+  isLoading = false
 }: TikTokStyleFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -51,10 +57,56 @@ export default function TikTokStyleFeed({
   const [activeCategory, setActiveCategory] = useState('For You');
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [videoErrors, setVideoErrors] = useState<Set<string>>(new Set());
+  const [loadedVideos, setLoadedVideos] = useState<VideoItem[]>(videos);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const touchStartY = useRef(0);
   const isScrolling = useRef(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Update loaded videos when prop changes
+  useEffect(() => {
+    setLoadedVideos(videos);
+  }, [videos]);
+
+  // Set up Intersection Observer for infinite loading
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return;
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasMore && !isLoadingMore) {
+        setIsLoadingMore(true);
+        onLoadMore()
+          .then((newVideos) => {
+            setLoadedVideos(prev => [...prev, ...newVideos]);
+            setIsLoadingMore(false);
+          })
+          .catch((error) => {
+            console.error('Error loading more videos:', error);
+            setIsLoadingMore(false);
+          });
+      }
+    };
+
+    observerRef.current = new IntersectionObserver(handleIntersection, {
+      root: containerRef.current,
+      rootMargin: '100px',
+      threshold: 0.1
+    });
+
+    if (sentinelRef.current) {
+      observerRef.current.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [onLoadMore, hasMore, isLoadingMore]);
 
   // Auto-play current video only after user interaction
   useEffect(() => {
@@ -89,10 +141,10 @@ export default function TikTokStyleFeed({
     const containerHeight = container.clientHeight;
     const newIndex = Math.round(scrollTop / containerHeight);
 
-    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < videos.length) {
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < loadedVideos.length) {
       setCurrentIndex(newIndex);
     }
-  }, [currentIndex, videos.length]);
+  }, [currentIndex, loadedVideos.length]);
 
   // Touch handlers for swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -107,7 +159,7 @@ export default function TikTokStyleFeed({
     setUserInteracted(true); // Enable user interaction on touch
 
     if (Math.abs(diff) > 50) {
-      if (diff > 0 && currentIndex < videos.length - 1) {
+      if (diff > 0 && currentIndex < loadedVideos.length - 1) {
         // Swipe up
         scrollToIndex(currentIndex + 1);
       } else if (diff < 0 && currentIndex > 0) {
@@ -239,12 +291,24 @@ export default function TikTokStyleFeed({
         onScroll={handleScroll}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        style={{ scrollSnapType: 'y mandatory' }}
+        style={{ 
+          scrollSnapType: 'y mandatory',
+          scrollBehavior: 'smooth',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}
       >
-        {videos.map((video, index) => (
+        {loadedVideos.map((video, index) => (
           <div
             key={video.id}
-            className="relative h-screen w-full snap-start snap-always"
+            className="relative h-screen w-full snap-start snap-always flex items-center justify-center"
+            style={{
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh',
+              scrollSnapAlign: 'start',
+              scrollSnapStop: 'always'
+            }}
           >
             {/* Video or Fallback Image */}
             {!videoErrors.has(video.id) && 
@@ -451,7 +515,7 @@ export default function TikTokStyleFeed({
 
             {/* Minimal Progress Indicators - TikTok style */}
             <div className="absolute right-4 flex flex-col gap-1" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
-              {videos.map((_, idx) => (
+              {loadedVideos.map((_, idx) => (
                 <div
                   key={idx}
                   className={cn(
@@ -463,6 +527,18 @@ export default function TikTokStyleFeed({
             </div>
           </div>
         ))}
+        
+        {/* Sentinel element for infinite scroll */}
+        {onLoadMore && hasMore && (
+          <div ref={sentinelRef} className="h-20 flex items-center justify-center">
+            {isLoadingMore && (
+              <div className="flex items-center gap-2 text-white">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="text-sm">Loading more...</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
 
