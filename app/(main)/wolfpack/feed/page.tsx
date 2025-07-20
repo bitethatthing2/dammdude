@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
 import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
 import { supabase } from '@/lib/supabase/client';
 import TikTokStyleFeed from '@/components/wolfpack/feed/TikTokStyleFeed';
 import { PostCreator } from '@/components/wolfpack/PostCreator';
+import ShareModal from '@/components/wolfpack/ShareModal';
 import { Loader2, Shield, Sparkles, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,16 +37,32 @@ interface VideoItem {
 
 export default function WolfpackFeedPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useConsistentAuth();
   const { isMember: isInPack, isLoading: packLoading } = useConsistentWolfpackAccess();
   
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostCreator, setShowPostCreator] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareVideoData, setShareVideoData] = useState<{ id: string; caption?: string; username?: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [feedType, setFeedType] = useState<'forYou' | 'following'>('forYou');
+
+  // Check if camera should be opened on mount
+  useEffect(() => {
+    const shouldOpenCamera = searchParams.get('camera') === 'true';
+    if (shouldOpenCamera && isInPack && user) {
+      setShowPostCreator(true);
+      // Remove the camera parameter from URL
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete('camera');
+      const newUrl = `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams, isInPack, user]);
 
   // Load video content
   useEffect(() => {
@@ -209,7 +226,17 @@ export default function WolfpackFeedPage() {
 
   const handleShare = async (videoId: string) => {
     console.log('Share video:', videoId);
-    // TODO: Implement share functionality
+    
+    // Find the video data
+    const video = videos.find(v => v.id === videoId);
+    if (video) {
+      setShareVideoData({
+        id: videoId,
+        caption: video.caption,
+        username: video.username
+      });
+      setShowShareModal(true);
+    }
   };
 
   const handleFollow = async (userId: string) => {
@@ -312,41 +339,80 @@ export default function WolfpackFeedPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Card className="bg-gray-900 border-gray-700 max-w-md">
-          <CardContent className="p-6 text-center">
-            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
-            <p className="text-gray-400 mb-4">Please login to access Wolf Pack features.</p>
-            <Button onClick={() => router.push('/login')} className="w-full bg-blue-600 hover:bg-blue-700">
-              Login to Continue
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Wolf Pack Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-black to-red-900/20" />
+          <div className="absolute top-10 left-10 w-32 h-32 bg-red-600/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-red-700/5 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="relative z-10 bg-black/80 backdrop-blur-xl rounded-3xl p-8 text-center border border-red-500/30 shadow-2xl shadow-red-900/20 max-w-md w-full">
+          {/* Wolf Pack Logo */}
+          <div className="mb-6">
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-red-900/50">
+              <Shield className="h-10 w-10 text-white" />
+            </div>
+            <div className="text-red-500 text-sm font-bold tracking-wider uppercase">Wolf Pack</div>
+          </div>
+          
+          <h2 className="text-2xl font-bold mb-4 text-white">Authentication Required</h2>
+          <p className="mb-6 text-gray-300 leading-relaxed">Please login to access Wolf Pack features and join the pack.</p>
+          
+          <button 
+            onClick={() => router.push('/login')}
+            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-red-900/50 active:scale-95"
+          >
+            🐺 Login to Continue
+          </button>
+          
+          <div className="mt-6 pt-6 border-t border-red-500/20">
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Salem Wolf Pack • Side Hustle Bar</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!isInPack) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Card className="bg-gray-900 border-gray-700 max-w-md">
-          <CardContent className="p-6 text-center">
-            <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Join the Wolf Pack</h2>
-            <p className="text-gray-400 mb-4">You need to be at Side Hustle Bar to join the pack</p>
-            <div className="flex items-center gap-2 text-gray-400 mb-4">
-              <MapPin className="h-4 w-4" />
-              <span>Location verification required</span>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Wolf Pack Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-black to-red-900/20" />
+          <div className="absolute top-10 left-10 w-32 h-32 bg-red-600/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="relative z-10 bg-black/80 backdrop-blur-xl rounded-3xl p-8 text-center border border-red-500/30 shadow-2xl shadow-red-900/20 max-w-md w-full">
+          {/* Wolf Pack Logo */}
+          <div className="mb-6">
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-red-900/50">
+              <Sparkles className="h-10 w-10 text-white" />
             </div>
-            <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700" 
-              onClick={() => router.push('/wolfpack/welcome')}
-            >
-              Enable Location & Join Pack
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="text-red-500 text-sm font-bold tracking-wider uppercase">Wolf Pack</div>
+          </div>
+          
+          <h2 className="text-2xl font-bold mb-4 text-white">Join the Wolf Pack</h2>
+          <p className="mb-4 text-gray-300 leading-relaxed">You need to be at Side Hustle Bar to join the pack</p>
+          
+          <div className="flex items-center justify-center gap-2 text-red-400 mb-6 bg-red-900/20 rounded-lg p-3">
+            <MapPin className="h-5 w-5" />
+            <span className="text-sm font-medium">Location verification required</span>
+          </div>
+          
+          <button 
+            onClick={() => router.push('/wolfpack/welcome')}
+            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-red-900/50 active:scale-95"
+          >
+            📍 Enable Location & Join Pack
+          </button>
+          
+          <div className="mt-6 pt-6 border-t border-red-500/20">
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Salem Wolf Pack • Side Hustle Bar</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -380,7 +446,22 @@ export default function WolfpackFeedPage() {
       
       <PostCreator
         isOpen={showPostCreator}
-        onClose={() => setShowPostCreator(false)}
+        onClose={() => {
+          setShowPostCreator(false);
+          // Reload videos to show new posts
+          window.location.reload();
+        }}
+      />
+      
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setShareVideoData(null);
+        }}
+        videoId={shareVideoData?.id || ''}
+        caption={shareVideoData?.caption}
+        username={shareVideoData?.username}
       />
     </>
   );

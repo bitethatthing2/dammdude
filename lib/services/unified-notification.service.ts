@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 // Types matching your existing schema
 interface WolfpackNotification {
@@ -8,7 +8,7 @@ interface WolfpackNotification {
   type: string;
   message: string;
   link: string | null;
-  status: 'unread' | 'read' | 'dismissed';
+  status: "unread" | "read" | "dismissed";
   metadata: Record<string, any>;
   notification_type?: string;
   related_video_id?: string;
@@ -41,8 +41,10 @@ class UnifiedNotificationService {
 
     try {
       // Import Firebase dynamically (PWA-friendly)
-      const { initializeApp, getApps } = await import('firebase/app');
-      const { getMessaging, getToken, onMessage } = await import('firebase/messaging');
+      const { initializeApp, getApps } = await import("firebase/app");
+      const { getMessaging, getToken, onMessage } = await import(
+        "firebase/messaging"
+      );
 
       // Initialize Firebase if not already done
       if (!getApps().length) {
@@ -51,7 +53,8 @@ class UnifiedNotificationService {
           authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
           storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          messagingSenderId:
+            process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
           appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
         };
         initializeApp(firebaseConfig);
@@ -65,13 +68,13 @@ class UnifiedNotificationService {
 
       // Listen for foreground messages
       onMessage(this.messaging, (payload) => {
-        console.log('Foreground message received:', payload);
+        console.log("Foreground message received:", payload);
         this.handleForegroundMessage(payload);
       });
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize Firebase messaging:', error);
+      console.error("Failed to initialize Firebase messaging:", error);
     }
   }
 
@@ -80,29 +83,31 @@ class UnifiedNotificationService {
    */
   private async getFCMToken() {
     try {
-      const { getToken } = await import('firebase/messaging');
-      
+      const { getToken } = await import("firebase/messaging");
+
       // Check if permission is already granted
-      if (Notification.permission === 'granted') {
+      if (Notification.permission === "granted") {
         const token = await getToken(this.messaging, {
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
         });
 
         if (token) {
           this.fcmToken = token;
-          console.log('FCM token obtained:', token);
-          
+          console.log("FCM token obtained:", token);
+
           // Store token on server
           await this.storeFCMToken(token);
         }
 
         return token;
       } else {
-        console.log('Notification permission not granted, skipping FCM token request');
+        console.log(
+          "Notification permission not granted, skipping FCM token request",
+        );
         return null;
       }
     } catch (error) {
-      console.error('Error getting FCM token:', error);
+      console.error("Error getting FCM token:", error);
       return null;
     }
   }
@@ -113,14 +118,14 @@ class UnifiedNotificationService {
   async requestNotificationPermission() {
     try {
       const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
+      if (permission === "granted") {
         // Re-initialize to get the token
         await this.getFCMToken();
       }
       return permission;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return 'denied';
+      console.error("Error requesting notification permission:", error);
+      return "denied";
     }
   }
 
@@ -134,29 +139,29 @@ class UnifiedNotificationService {
 
       // First, try to find existing token for this user
       const { data: existingToken } = await supabase
-        .from('user_fcm_tokens')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('token', token)
+        .from("user_fcm_tokens")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("token", token)
         .single();
 
       if (existingToken) {
         // Update existing token
         const { error } = await supabase
-          .from('user_fcm_tokens')
+          .from("user_fcm_tokens")
           .update({
             device_info: navigator.userAgent,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingToken.id);
+          .eq("id", existingToken.id);
 
         if (error) {
-          console.error('Error updating FCM token:', error);
+          console.error("Error updating FCM token:", error);
         }
       } else {
         // Insert new token
         const { error } = await supabase
-          .from('user_fcm_tokens')
+          .from("user_fcm_tokens")
           .insert({
             user_id: user.id,
             token,
@@ -165,11 +170,11 @@ class UnifiedNotificationService {
           });
 
         if (error) {
-          console.error('Error inserting FCM token:', error);
+          console.error("Error inserting FCM token:", error);
         }
       }
     } catch (error) {
-      console.error('Error storing FCM token:', error);
+      console.error("Error storing FCM token:", error);
     }
   }
 
@@ -177,9 +182,9 @@ class UnifiedNotificationService {
    * Handle foreground messages (show toast notifications)
    */
   private handleForegroundMessage(payload: any) {
-    const title = payload.notification?.title || 'Wolfpack Notification';
-    const body = payload.notification?.body || 'You have a new notification';
-    
+    const title = payload.notification?.title || "Wolfpack Notification";
+    const body = payload.notification?.body || "You have a new notification";
+
     // Show toast notification
     toast({
       title,
@@ -196,11 +201,13 @@ class UnifiedNotificationService {
    */
   private playNotificationSound() {
     try {
-      const audio = new Audio('/sounds/notification.mp3');
+      const audio = new Audio("/sounds/notification.mp3");
       audio.volume = 0.5;
-      audio.play().catch(e => console.log('Could not play notification sound:', e));
+      audio.play().catch((e) =>
+        console.log("Could not play notification sound:", e)
+      );
     } catch (error) {
-      console.log('Notification sound not available:', error);
+      console.log("Notification sound not available:", error);
     }
   }
 
@@ -211,13 +218,13 @@ class UnifiedNotificationService {
     try {
       // Create notification in database
       const { data, error } = await supabase
-        .from('wolfpack_activity_notifications')
+        .from("wolfpack_activity_notifications")
         .insert({
           recipient_id: recipientId,
           message: payload.body,
           type: payload.type,
           link: payload.link,
-          status: 'unread',
+          status: "unread",
           metadata: payload.data || {},
           notification_type: payload.type,
         })
@@ -225,7 +232,7 @@ class UnifiedNotificationService {
         .single();
 
       if (error) {
-        console.error('Error creating notification:', error);
+        console.error("Error creating notification:", error);
         return null;
       }
 
@@ -236,7 +243,7 @@ class UnifiedNotificationService {
 
       return data;
     } catch (error) {
-      console.error('Error in createNotification:', error);
+      console.error("Error in createNotification:", error);
       return null;
     }
   }
@@ -244,12 +251,15 @@ class UnifiedNotificationService {
   /**
    * Send push notification via Firebase
    */
-  private async sendPushNotification(recipientId: string, payload: NotificationPayload) {
+  private async sendPushNotification(
+    recipientId: string,
+    payload: NotificationPayload,
+  ) {
     try {
-      const response = await fetch('/api/send-notification', {
-        method: 'POST',
+      const response = await fetch("/api/send-notification", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           recipientId,
@@ -262,12 +272,12 @@ class UnifiedNotificationService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send push notification');
+        throw new Error("Failed to send push notification");
       }
 
-      console.log('Push notification sent successfully');
+      console.log("Push notification sent successfully");
     } catch (error) {
-      console.error('Error sending push notification:', error);
+      console.error("Error sending push notification:", error);
     }
   }
 
@@ -276,18 +286,18 @@ class UnifiedNotificationService {
    */
   async markAsRead(notificationId: string) {
     try {
-      const { error } = await supabase.rpc('mark_notification_read', {
+      const { error } = await supabase.rpc("mark_notification_read", {
         p_notification_id: notificationId,
       });
 
       if (error) {
-        console.error('Error marking notification as read:', error);
+        console.error("Error marking notification as read:", error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in markAsRead:', error);
+      console.error("Error in markAsRead:", error);
       return false;
     }
   }
@@ -297,20 +307,20 @@ class UnifiedNotificationService {
    */
   async getNotifications(limit = 50, offset = 0) {
     try {
-      const { data, error } = await supabase.rpc('fetch_notifications', {
+      const { data, error } = await supabase.rpc("fetch_notifications", {
         p_user_id: null,
         p_limit: limit,
         p_offset: offset,
       });
 
       if (error) {
-        console.error('Error fetching notifications:', error);
+        console.error("Error fetching notifications:", error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getNotifications:', error);
+      console.error("Error in getNotifications:", error);
       return [];
     }
   }
@@ -318,20 +328,22 @@ class UnifiedNotificationService {
   /**
    * Subscribe to real-time notifications
    */
-  subscribeToNotifications(callback: (notification: WolfpackNotification) => void) {
+  subscribeToNotifications(
+    callback: (notification: WolfpackNotification) => void,
+  ) {
     return supabase
-      .channel('wolfpack_notifications')
+      .channel("wolfpack_notifications")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'wolfpack_activity_notifications',
+          event: "INSERT",
+          schema: "public",
+          table: "wolfpack_activity_notifications",
         },
         (payload) => {
-          console.log('New notification received:', payload);
+          console.log("New notification received:", payload);
           callback(payload.new as WolfpackNotification);
-        }
+        },
       )
       .subscribe();
   }
@@ -343,13 +355,13 @@ class UnifiedNotificationService {
     recipientId: string,
     senderName: string,
     message: string,
-    chatLink?: string
+    chatLink?: string,
   ) {
     return this.createNotification(recipientId, {
       title: `${senderName} sent you a message`,
       body: message,
-      type: 'wolfpack_message',
-      link: chatLink || '/wolfpack/chat',
+      type: "wolfpack_message",
+      link: chatLink || "/wolfpack/chat",
       data: {
         senderName,
         messagePreview: message.substring(0, 50),
@@ -363,12 +375,12 @@ class UnifiedNotificationService {
   async sendOrderUpdateNotification(
     recipientId: string,
     orderStatus: string,
-    orderNumber: string
+    orderNumber: string,
   ) {
     return this.createNotification(recipientId, {
-      title: 'Order Update',
+      title: "Order Update",
       body: `Your order #${orderNumber} is ${orderStatus}`,
-      type: 'order_update',
+      type: "order_update",
       link: `/orders/${orderNumber}`,
       data: {
         orderNumber,
@@ -383,13 +395,13 @@ class UnifiedNotificationService {
   async sendDJEventNotification(
     recipientId: string,
     eventTitle: string,
-    eventTime: string
+    eventTime: string,
   ) {
     return this.createNotification(recipientId, {
-      title: 'DJ Event Starting',
+      title: "DJ Event Starting",
       body: `${eventTitle} starts at ${eventTime}`,
-      type: 'dj_event',
-      link: '/dj',
+      type: "dj_event",
+      link: "/dj",
       data: {
         eventTitle,
         eventTime,

@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
-// Database types will be generated when needed
+import { Database } from '@/types/database.types'
 import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
 
 // Define proper error types
@@ -84,8 +84,8 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries
   throw new Error('Max retries reached')
 }
 
-// Create a single shared instance
-let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
+// Create a single shared instance with proper typing
+let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 export function createClient() {
   // Return existing instance if it exists
@@ -121,7 +121,7 @@ export function createClient() {
 
   // Create new instance with better error handling
   try {
-    supabaseClient = createBrowserClient(
+    supabaseClient = createBrowserClient<Database>(
       supabaseUrl,
       supabaseAnonKey,
       {
@@ -156,7 +156,7 @@ export function createClient() {
     }
     
     // Retry with minimal config
-    supabaseClient = createBrowserClient(
+    supabaseClient = createBrowserClient<Database>(
       supabaseUrl,
       supabaseAnonKey
     )

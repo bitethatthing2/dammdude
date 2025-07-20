@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 export interface FeedItem {
   id: string;
@@ -25,20 +25,21 @@ export interface FetchFeedResponse {
 }
 
 export async function fetchFeedItems(
-  page: number = 1, 
+  page: number = 1,
   limit: number = 10,
-  userId?: string
+  userId?: string,
 ): Promise<FetchFeedResponse> {
   const supabase = await createClient();
-  
+
   try {
     // Calculate offset
     const offset = (page - 1) * limit;
-    
+
     // Build query
     let query = supabase
-      .from('wolfpack_posts')
-      .select(`
+      .from("wolfpack_videos")
+      .select(
+        `
         *,
         user:profiles!user_id(
           username,
@@ -46,29 +47,31 @@ export async function fetchFeedItems(
         ),
         likes:wolfpack_likes(count),
         comments:wolfpack_comments(count)
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false })
+      `,
+        { count: "exact" },
+      )
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
-    
+
     // Add user filter if provided
     if (userId) {
-      query = query.eq('user_id', userId);
+      query = query.eq("user_id", userId);
     }
-    
+
     const { data, error, count } = await query;
-    
+
     if (error) {
-      console.error('Error fetching feed items:', error);
+      console.error("Error fetching feed items:", error);
       throw error;
     }
-    
+
     // Transform the data to match FeedItem interface
-    const items: FeedItem[] = (data || []).map(post => ({
+    const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.username || 'Unknown',
+      username: post.user?.username || "Unknown",
       avatar_url: post.user?.avatar_url,
-      caption: post.content || '',
+      caption: post.content || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url || post.image_url,
       likes_count: post.likes?.[0]?.count || 0,
@@ -76,23 +79,23 @@ export async function fetchFeedItems(
       shares_count: post.shares_count || 0,
       music_name: post.music_name,
       hashtags: post.hashtags || [],
-      created_at: post.created_at
+      created_at: post.created_at,
     }));
-    
+
     const totalItems = count || 0;
     const hasMore = offset + limit < totalItems;
-    
+
     return {
       items,
       totalItems,
-      hasMore
+      hasMore,
     };
   } catch (error) {
-    console.error('Failed to fetch feed items:', error);
+    console.error("Failed to fetch feed items:", error);
     return {
       items: [],
       totalItems: 0,
-      hasMore: false
+      hasMore: false,
     };
   }
 }
@@ -100,34 +103,35 @@ export async function fetchFeedItems(
 export async function fetchFollowingFeed(
   page: number = 1,
   limit: number = 10,
-  currentUserId: string
+  currentUserId: string,
 ): Promise<FetchFeedResponse> {
   const supabase = await createClient();
-  
+
   try {
     // First get the users that the current user follows
     const { data: following } = await supabase
-      .from('wolfpack_follows')
-      .select('following_id')
-      .eq('follower_id', currentUserId);
-    
+      .from("wolfpack_follows")
+      .select("following_id")
+      .eq("follower_id", currentUserId);
+
     if (!following || following.length === 0) {
       return {
         items: [],
         totalItems: 0,
-        hasMore: false
+        hasMore: false,
       };
     }
-    
-    const followingIds = following.map(f => f.following_id);
-    
+
+    const followingIds = following.map((f) => f.following_id);
+
     // Calculate offset
     const offset = (page - 1) * limit;
-    
+
     // Get posts from followed users
     const { data, error, count } = await supabase
-      .from('wolfpack_posts')
-      .select(`
+      .from("wolfpack_videos")
+      .select(
+        `
         *,
         user:profiles!user_id(
           username,
@@ -135,23 +139,25 @@ export async function fetchFollowingFeed(
         ),
         likes:wolfpack_likes(count),
         comments:wolfpack_comments(count)
-      `, { count: 'exact' })
-      .in('user_id', followingIds)
-      .order('created_at', { ascending: false })
+      `,
+        { count: "exact" },
+      )
+      .in("user_id", followingIds)
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
-    
+
     if (error) {
-      console.error('Error fetching following feed:', error);
+      console.error("Error fetching following feed:", error);
       throw error;
     }
-    
+
     // Transform the data
-    const items: FeedItem[] = (data || []).map(post => ({
+    const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.username || 'Unknown',
+      username: post.user?.username || "Unknown",
       avatar_url: post.user?.avatar_url,
-      caption: post.content || '',
+      caption: post.content || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url || post.image_url,
       likes_count: post.likes?.[0]?.count || 0,
@@ -159,23 +165,23 @@ export async function fetchFollowingFeed(
       shares_count: post.shares_count || 0,
       music_name: post.music_name,
       hashtags: post.hashtags || [],
-      created_at: post.created_at
+      created_at: post.created_at,
     }));
-    
+
     const totalItems = count || 0;
     const hasMore = offset + limit < totalItems;
-    
+
     return {
       items,
       totalItems,
-      hasMore
+      hasMore,
     };
   } catch (error) {
-    console.error('Failed to fetch following feed:', error);
+    console.error("Failed to fetch following feed:", error);
     return {
       items: [],
       totalItems: 0,
-      hasMore: false
+      hasMore: false,
     };
   }
 }

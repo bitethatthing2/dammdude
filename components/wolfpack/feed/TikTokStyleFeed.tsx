@@ -4,6 +4,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Search, Plus, UserPlus, Users, Home, ShoppingBag, Mail, User, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import VideoComments from '@/components/wolfpack/VideoComments';
+import FindFriends from '@/components/wolfpack/FindFriends';
+import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface VideoItem {
   id: string;
@@ -48,11 +53,14 @@ export default function TikTokStyleFeed({
   hasMore = false,
   isLoading = false
 }: TikTokStyleFeedProps) {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [showComments, setShowComments] = useState(false);
+  const [videoStats, setVideoStats] = useState<Map<string, { likes_count: number; comments_count: number; user_liked: boolean }>>(new Map());
+  const [followingStatus, setFollowingStatus] = useState<Map<string, boolean>>(new Map());
   const [currentCommentVideo, setCurrentCommentVideo] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('For You');
   const [showFriendSearch, setShowFriendSearch] = useState(false);
@@ -70,6 +78,59 @@ export default function TikTokStyleFeed({
   useEffect(() => {
     setLoadedVideos(videos);
   }, [videos]);
+
+  // Load initial stats for videos
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!loadedVideos.length || !user) return;
+      
+      const statsPromises = loadedVideos.map(video => 
+        wolfpackSocialService.getVideoStats(video.id, user.id)
+      );
+      
+      try {
+        const stats = await Promise.all(statsPromises);
+        
+        const newStatsMap = new Map();
+        loadedVideos.forEach((video, index) => {
+          newStatsMap.set(video.id, stats[index]);
+        });
+        
+        setVideoStats(newStatsMap);
+      } catch (error) {
+        console.error('Error loading video stats:', error);
+      }
+    };
+    
+    loadStats();
+  }, [loadedVideos, user]);
+
+  // Set up real-time subscriptions for the current video
+  useEffect(() => {
+    if (!loadedVideos[currentIndex] || !user) return;
+    
+    const currentVideo = loadedVideos[currentIndex];
+    const unsubscribe = wolfpackSocialService.subscribeToVideoStats(
+      currentVideo.id,
+      (stats) => {
+        setVideoStats(prev => {
+          const newMap = new Map(prev);
+          newMap.set(currentVideo.id, stats);
+          return newMap;
+        });
+      },
+      user.id
+    );
+    
+    return unsubscribe;
+  }, [currentIndex, loadedVideos, user]);
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      wolfpackSocialService.cleanup();
+    };
+  }, []);
 
   // Set up Intersection Observer for infinite loading
   useEffect(() => {
@@ -187,16 +248,48 @@ export default function TikTokStyleFeed({
     }, 300);
   };
 
-  const handleLike = (videoId: string) => {
-    if (liked.has(videoId)) {
-      setLiked(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(videoId);
-        return newSet;
+  const handleLike = async (videoId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to like videos',
+        variant: 'destructive'
       });
-    } else {
-      setLiked(prev => new Set(prev).add(videoId));
+      return;
     }
+
+    // Optimistic update
+    const currentStats = videoStats.get(videoId) || { likes_count: 0, comments_count: 0, user_liked: false };
+    const newStats = {
+      ...currentStats,
+      likes_count: currentStats.user_liked ? currentStats.likes_count - 1 : currentStats.likes_count + 1,
+      user_liked: !currentStats.user_liked
+    };
+    
+    setVideoStats(prev => {
+      const newMap = new Map(prev);
+      newMap.set(videoId, newStats);
+      return newMap;
+    });
+
+    // Update server
+    const result = await wolfpackSocialService.toggleLike(videoId, user.id);
+    
+    if (!result.success) {
+      // Revert on error
+      setVideoStats(prev => {
+        const newMap = new Map(prev);
+        newMap.set(videoId, currentStats);
+        return newMap;
+      });
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update like',
+        variant: 'destructive'
+      });
+    }
+    
     onLike(videoId);
   };
 
@@ -212,10 +305,79 @@ export default function TikTokStyleFeed({
   };
 
   const handleCommentClick = (videoId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to comment',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     setCurrentCommentVideo(videoId);
     setShowComments(true);
     onComment(videoId);
   };
+
+  const handleFollowClick = async (userId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to follow users',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (userId === user.id) {
+      return; // Can't follow yourself
+    }
+
+    // Optimistic update
+    const currentlyFollowing = followingStatus.get(userId) || false;
+    setFollowingStatus(prev => {
+      const newMap = new Map(prev);
+      newMap.set(userId, !currentlyFollowing);
+      return newMap;
+    });
+
+    // Update server
+    const result = await wolfpackSocialService.toggleFollow(user.id, userId);
+    
+    if (!result.success) {
+      // Revert on error
+      setFollowingStatus(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userId, currentlyFollowing);
+        return newMap;
+      });
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update follow status',
+        variant: 'destructive'
+      });
+    } else {
+      toast({
+        title: result.following ? 'Following' : 'Unfollowed',
+        description: result.following ? 'You are now following this user' : 'You have unfollowed this user'
+      });
+    }
+    
+    onFollow(userId);
+  };
+
+  // Memoize the comment count change callback to prevent infinite re-renders
+  const handleCommentCountChange = useCallback((count: number) => {
+    if (currentCommentVideo) {
+      setVideoStats(prev => {
+        const newMap = new Map(prev);
+        const currentStats = newMap.get(currentCommentVideo) || { likes_count: 0, comments_count: 0, user_liked: false };
+        newMap.set(currentCommentVideo, { ...currentStats, comments_count: count });
+        return newMap;
+      });
+    }
+  }, [currentCommentVideo]);
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
@@ -326,6 +488,7 @@ export default function TikTokStyleFeed({
                 muted={muted}
                 playsInline
                 preload="metadata"
+                crossOrigin="anonymous"
                 style={{ objectFit: 'cover' }}
                 onClick={handleVideoClick}
                 onError={(e) => {
@@ -342,6 +505,13 @@ export default function TikTokStyleFeed({
                     newSet.delete(video.id);
                     return newSet;
                   });
+                }}
+                onCanPlay={(e) => {
+                  // Ensure quality matches viewport
+                  const video = e.target as HTMLVideoElement;
+                  if (video.videoWidth > window.innerWidth * 2) {
+                    console.info('High resolution video detected, consider using adaptive streaming');
+                  }
                 }}
               />
             ) : (
@@ -381,12 +551,19 @@ export default function TikTokStyleFeed({
               {/* User Info - simplified TikTok style */}
               <div className="flex items-center gap-3 mb-3">
                 <p className="text-white font-bold text-base drop-shadow-lg">@{video.username}</p>
-                <button
-                  onClick={() => onFollow(video.user_id)}
-                  className="text-white text-sm border border-white px-4 py-1 rounded-md font-medium"
-                >
-                  Follow
-                </button>
+                {video.user_id !== user?.id && (
+                  <button
+                    onClick={() => handleFollowClick(video.user_id)}
+                    className={cn(
+                      "text-white text-sm border px-4 py-1 rounded-md font-medium transition-all",
+                      followingStatus.get(video.user_id)
+                        ? "border-gray-500 bg-gray-800/50"
+                        : "border-white hover:bg-white/20"
+                    )}
+                  >
+                    {followingStatus.get(video.user_id) ? 'Following' : 'Follow'}
+                  </button>
+                )}
               </div>
 
               {/* Caption with hashtags inline */}
@@ -424,14 +601,18 @@ export default function TikTokStyleFeed({
                   <Heart
                     className={cn(
                       "w-8 h-8 transition-all duration-300",
-                      liked.has(video.id) ? "fill-red-500 text-red-500 animate-pulse" : "text-white"
+                      videoStats.get(video.id)?.user_liked ? "fill-red-500 text-red-500 animate-pulse" : "text-white"
                     )}
                   />
                 </div>
                 <span className="text-white text-xs mt-1 font-bold">
-                  {video.likes_count + (liked.has(video.id) ? 1 : 0) > 999 
-                    ? `${Math.floor((video.likes_count + (liked.has(video.id) ? 1 : 0))/1000)}K` 
-                    : video.likes_count + (liked.has(video.id) ? 1 : 0)}
+                  {(() => {
+                    const stats = videoStats.get(video.id);
+                    const likeCount = stats?.likes_count ?? video.likes_count;
+                    return likeCount > 999 
+                      ? `${Math.floor(likeCount/1000)}K` 
+                      : likeCount;
+                  })()}
                 </span>
               </button>
 
@@ -444,9 +625,13 @@ export default function TikTokStyleFeed({
                   <MessageCircle className="w-8 h-8 text-white" />
                 </div>
                 <span className="text-white text-xs mt-1 font-bold">
-                  {video.comments_count > 999 
-                    ? `${Math.floor(video.comments_count/1000)}K` 
-                    : video.comments_count}
+                  {(() => {
+                    const stats = videoStats.get(video.id);
+                    const commentCount = stats?.comments_count ?? video.comments_count;
+                    return commentCount > 999 
+                      ? `${Math.floor(commentCount/1000)}K` 
+                      : commentCount;
+                  })()}
                 </span>
               </button>
 
@@ -481,7 +666,7 @@ export default function TikTokStyleFeed({
               {/* Profile Picture */}
               <div className="mt-2">
                 <button
-                  onClick={() => onFollow(video.user_id)}
+                  onClick={() => handleFollowClick(video.user_id)}
                   className="relative"
                 >
                   <div className="relative w-12 h-12 rounded-full border-2 border-white overflow-hidden">
@@ -494,9 +679,11 @@ export default function TikTokStyleFeed({
                       quality={95}
                     />
                   </div>
-                  <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
-                    <Plus className="w-3 h-3 text-white" />
-                  </div>
+                  {video.user_id !== user?.id && !followingStatus.get(video.user_id) && (
+                    <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
+                      <Plus className="w-3 h-3 text-white" />
+                    </div>
+                  )}
                 </button>
               </div>
 
@@ -545,7 +732,10 @@ export default function TikTokStyleFeed({
       {/* TikTok Bottom Navigation */}
       <div className="absolute bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex justify-around items-center py-3 px-4">
-          <button className="flex flex-col items-center space-y-1">
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="flex flex-col items-center space-y-1"
+          >
             <Home className="w-6 h-6 text-white" />
             <span className="text-xs text-white font-medium">Home</span>
           </button>
@@ -572,7 +762,10 @@ export default function TikTokStyleFeed({
             </div>
           </button>
           
-          <button className="flex flex-col items-center space-y-1">
+          <button 
+            onClick={() => window.location.href = '/wolfpack/profile'}
+            className="flex flex-col items-center space-y-1"
+          >
             <User className="w-6 h-6 text-white/70" />
             <span className="text-xs text-white/70">Profile</span>
           </button>
@@ -580,165 +773,22 @@ export default function TikTokStyleFeed({
       </div>
 
       {/* TikTok-style Comment Overlay */}
-      {showComments && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-60 flex items-end">
-          <div className="w-full bg-black rounded-t-3xl max-h-[70vh] overflow-hidden">
-            {/* Comment Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <span className="text-white font-bold text-lg">Comments</span>
-              <button
-                onClick={() => setShowComments(false)}
-                className="text-white/70 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Comments List */}
-            <div className="p-4 space-y-4 max-h-[50vh] overflow-y-auto">
-              {/* Sample comments - replace with real data */}
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">A</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-bold text-sm">ariel.dudley</span>
-                    <span className="text-white/70 text-xs">2h</span>
-                  </div>
-                  <p className="text-white text-sm">Great atmosphere at Side Hustle tonight! Love this place 🔥</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">C</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-bold text-sm">cyberjjux</span>
-                    <span className="text-white/70 text-xs">1h</span>
-                  </div>
-                  <p className="text-white text-sm">Replying to @ariel.dudley totally agree! #wolfpack</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Comment Input */}
-            <div className="p-4 border-t border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">W</span>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Add a comment..."
-                  className="flex-1 bg-white/10 text-white placeholder-white/70 rounded-full px-4 py-2 outline-none text-sm"
-                />
-                <button className="text-white/70 hover:text-white">
-                  <span className="text-sm font-bold">Post</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showComments && currentCommentVideo && (
+        <VideoComments
+          postId={currentCommentVideo}
+          isOpen={showComments}
+          onClose={() => {
+            setShowComments(false);
+            setCurrentCommentVideo(null);
+          }}
+          initialCommentCount={loadedVideos.find(v => v.id === currentCommentVideo)?.comments_count || 0}
+          onCommentCountChange={handleCommentCountChange}
+        />
       )}
 
       {/* Friend Search Overlay */}
       {showFriendSearch && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-60">
-          <div className="h-full bg-black">
-            {/* Search Header */}
-            <div className="flex items-center justify-between p-4 pt-16 border-b border-white/10">
-              <button
-                onClick={() => setShowFriendSearch(false)}
-                className="text-white/70 hover:text-white text-lg"
-              >
-                ✕
-              </button>
-              <h2 className="text-white font-bold text-lg">Find Friends</h2>
-              <div className="w-6"></div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="p-4">
-              <div className="flex items-center bg-white/10 rounded-full px-4 py-3">
-                <Search className="w-5 h-5 text-white/70 mr-3" />
-                <input
-                  type="text"
-                  placeholder="Search friends..."
-                  className="flex-1 bg-transparent text-white placeholder-white/70 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="px-4 mb-6">
-              <div className="flex gap-4">
-                <button className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                  <Users className="w-4 h-4 text-white" />
-                  <span className="text-white text-sm">Nearby</span>
-                </button>
-                <button className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                  <UserPlus className="w-4 h-4 text-white" />
-                  <span className="text-white text-sm">Invite</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Friend Suggestions */}
-            <div className="px-4">
-              <h3 className="text-white font-semibold mb-4">Suggested Friends</h3>
-              <div className="space-y-4">
-                {/* Sample friend suggestions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center">
-                      <span className="text-white font-bold">J</span>
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">@john_doe</p>
-                      <p className="text-white/70 text-sm">Mutual friends: 3</p>
-                    </div>
-                  </div>
-                  <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium">
-                    Follow
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center">
-                      <span className="text-white font-bold">S</span>
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">@sarah_wolf</p>
-                      <p className="text-white/70 text-sm">Active 2h ago</p>
-                    </div>
-                  </div>
-                  <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium">
-                    Follow
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-teal-400 flex items-center justify-center">
-                      <span className="text-white font-bold">M</span>
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">@mike_salem</p>
-                      <p className="text-white/70 text-sm">In your area</p>
-                    </div>
-                  </div>
-                  <button className="border border-white/30 text-white px-4 py-2 rounded-full text-sm font-medium">
-                    Following
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FindFriends onClose={() => setShowFriendSearch(false)} />
       )}
     </div>
   );

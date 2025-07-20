@@ -357,8 +357,9 @@ export class MediaOptimizationService {
     const isLargeFile = this.isLargeFile(url);
     const isOldFormat = this.isOldFormat(url);
     const isHighRes = this.isHighResolution(url);
+    const isSecure = this.isSecureUrl(url);
     
-    return isLargeFile || isOldFormat || isHighRes;
+    return (isLargeFile || isOldFormat || isHighRes) && isSecure;
   }
 
   /**
@@ -606,6 +607,17 @@ export class MediaOptimizationService {
         return video.canPlayType('video/webm') !== '';
       default:
         return false;
+    }
+  }
+
+  private isSecureUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      const trustedDomains = ['supabase.co', 'cloudinary.com', 'amazonaws.com', 'unsplash.com'];
+      return urlObj.protocol === 'https:' && 
+             trustedDomains.some(domain => urlObj.hostname.includes(domain));
+    } catch {
+      return false;
     }
   }
 }

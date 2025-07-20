@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { toast } from '@/components/ui/use-toast';
 
 interface WolfpackUser {
   id: string;
@@ -33,84 +35,126 @@ export default function FindFriends({ onClose }: FindFriendsProps) {
   const [searchResults, setSearchResults] = useState<WolfpackUser[]>([]);
   const [contactsCount, setContactsCount] = useState(259);
   const [loading, setLoading] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
 
-  // Sample suggested users data
+  // Load suggested users from database
   useEffect(() => {
-    const sampleUsers: WolfpackUser[] = [
-      {
-        id: '1',
-        first_name: 'Jonezy',
-        last_name: 'Art',
-        username: 'JONEZYARTWORK',
-        avatar_url: '/icons/wolf-icon-light-screen.png',
-        bio: 'Art • Artist for musician @ButtontheBusk...',
-        location: 'Salem, OR',
-        is_verified: false,
-        mutual_friends: 1,
-        is_following: false,
-        follower_count: 1240
-      },
-      {
-        id: '2',
-        first_name: 'Mike',
-        last_name: 'Johnson',
-        username: 'mike_salem_dj',
-        avatar_url: '/icons/wolf-icon-light-screen.png',
-        bio: 'DJ • Salem Wolf Pack Leader',
-        location: 'Salem, OR',
-        is_verified: true,
-        mutual_friends: 12,
-        is_following: false,
-        follower_count: 3500
-      },
-      {
-        id: '3',
-        first_name: 'Sarah',
-        last_name: 'Martinez',
-        username: 'sarah_foodie',
-        avatar_url: '/icons/wolf-icon-light-screen.png',
-        bio: 'Food blogger • Pack member since 2023',
-        location: 'Portland, OR',
-        is_verified: false,
-        mutual_friends: 8,
-        is_following: true,
-        follower_count: 842
+    const loadSuggestions = async () => {
+      if (!user) return;
+      
+      try {
+        setLoadingSuggestions(true);
+        const users = await wolfpackSocialService.findFriends(user.id);
+        
+        // Transform to component format
+        const transformed = users.map(u => ({
+          id: u.id,
+          first_name: u.first_name || 'Wolf',
+          last_name: u.last_name || 'Member',
+          username: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'wolfmember',
+          avatar_url: u.avatar_url || '/icons/wolf-icon-light-screen.png',
+          bio: 'Wolf Pack Member',
+          location: 'Salem, OR',
+          is_verified: false,
+          mutual_friends: 0,
+          is_following: u.is_following || false,
+          follower_count: u.followers_count || 0
+        }));
+        
+        setSuggestedUsers(transformed);
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load suggestions',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoadingSuggestions(false);
       }
-    ];
+    };
     
-    setSuggestedUsers(sampleUsers);
-  }, []);
+    loadSuggestions();
+  }, [user]);
 
   const handleSearch = async (query: string) => {
-    if (!query.trim()) {
+    if (!query.trim() || !user) {
       setSearchResults([]);
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: Implement actual search functionality
-      const filtered = suggestedUsers.filter(user => 
-        user.username.toLowerCase().includes(query.toLowerCase()) ||
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
+      const users = await wolfpackSocialService.findFriends(user.id, query);
+      
+      // Transform to component format
+      const transformed = users.map(u => ({
+        id: u.id,
+        first_name: u.first_name || 'Wolf',
+        last_name: u.last_name || 'Member',
+        username: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'wolfmember',
+        avatar_url: u.avatar_url || '/icons/wolf-icon-light-screen.png',
+        bio: 'Wolf Pack Member',
+        location: 'Salem, OR',
+        is_verified: false,
+        mutual_friends: 0,
+        is_following: u.is_following || false,
+        follower_count: u.followers_count || 0
+      }));
+      
+      setSearchResults(transformed);
     } catch (error) {
       console.error('Search error:', error);
+      toast({
+        title: 'Error',
+        description: 'Search failed',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleFollowUser = async (userId: string) => {
-    // TODO: Implement follow functionality
-    setSuggestedUsers(prev => 
-      prev.map(user => 
-        user.id === userId 
-          ? { ...user, is_following: !user.is_following }
-          : user
-      )
-    );
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to follow users',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Optimistic update
+    const updateList = (list: WolfpackUser[]) => 
+      list.map(u => 
+        u.id === userId 
+          ? { ...u, is_following: !u.is_following }
+          : u
+      );
+    
+    setSuggestedUsers(prev => updateList(prev));
+    setSearchResults(prev => updateList(prev));
+    
+    // Send to server
+    const result = await wolfpackSocialService.toggleFollow(user.id, userId);
+    
+    if (!result.success) {
+      // Revert on error
+      setSuggestedUsers(prev => updateList(prev));
+      setSearchResults(prev => updateList(prev));
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update follow status',
+        variant: 'destructive'
+      });
+    } else {
+      toast({
+        title: result.following ? 'Following' : 'Unfollowed',
+        description: result.following ? 'You are now following this user' : 'You have unfollowed this user'
+      });
+    }
   };
 
   const handleQRCode = () => {
@@ -214,39 +258,47 @@ export default function FindFriends({ onClose }: FindFriendsProps) {
   );
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-6 w-6" />
+    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col relative overflow-hidden">
+      {/* Wolf Pack Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-black to-red-900/10" />
+        <div className="absolute top-10 left-10 w-32 h-32 bg-red-600/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-red-500/5 rounded-full blur-3xl" />
+      </div>
+      
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-red-500/20 bg-black/50 backdrop-blur-sm">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onClose}
+              className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-900/20 transition-colors"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <h1 className="text-xl font-bold text-white">🐺 Find Pack Members</h1>
+          </div>
+          <button className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-900/20 transition-colors">
+            <Scan className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-semibold text-gray-900">Find friends</h1>
         </div>
-        <button className="text-gray-600 hover:text-gray-900">
-          <Scan className="h-6 w-6" />
-        </button>
-      </div>
 
-      {/* Search Bar */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="text"
-            placeholder="Search by name or username"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              handleSearch(e.target.value);
-            }}
-            className="pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-full text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-yellow-400 focus:bg-white"
-          />
+        {/* Search Bar */}
+        <div className="p-4 border-b border-red-500/20">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400 h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Search by name or username"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                handleSearch(e.target.value);
+              }}
+              className="pl-10 pr-4 py-3 bg-gray-900/50 border border-red-500/30 rounded-full text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-red-400 backdrop-blur-sm"
+            />
+          </div>
         </div>
-      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
@@ -341,27 +393,44 @@ export default function FindFriends({ onClose }: FindFriendsProps) {
               </button>
             </div>
 
-            {/* New suggested account */}
-            <div className="mb-6">
-              <p className="text-sm text-gray-500 mb-3">1 new suggested account</p>
-              {suggestedUsers.slice(0, 1).map(user => renderUserCard(user))}
-            </div>
-
             {/* Suggested Accounts */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Suggested accounts</h2>
-                <button className="text-sm text-gray-500 hover:text-gray-700">
-                  See all
-                </button>
+            {loadingSuggestions ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
               </div>
-              
-              {suggestedUsers.slice(1).map(user => renderUserCard(user))}
-            </div>
+            ) : suggestedUsers.length > 0 ? (
+              <>
+                {/* New suggested account */}
+                {suggestedUsers.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500 mb-3">{suggestedUsers.filter(u => !u.is_following).length} new suggested accounts</p>
+                    {suggestedUsers.slice(0, 1).map(user => renderUserCard(user))}
+                  </div>
+                )}
+
+                {/* All Suggested Accounts */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Suggested accounts</h2>
+                    <button className="text-sm text-gray-500 hover:text-gray-700">
+                      See all
+                    </button>
+                  </div>
+                  
+                  {suggestedUsers.slice(1).map(user => renderUserCard(user))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No suggestions available</p>
+                <p className="text-sm text-gray-400 mt-1">Start following people to see suggestions</p>
+              </div>
+            )}
           </div>
         )}
+        </div>
       </div>
-
     </div>
   );
 }

@@ -69,7 +69,7 @@ users (
 
 ### 2. Wolf Pack Posts Table
 ```sql
-wolfpack_posts (
+wolfpack_videos (
   id: UUID PRIMARY KEY,
   author_id: UUID REFERENCES users(id),
   content: TEXT,
@@ -161,10 +161,10 @@ events (
 reactions (
   id: UUID PRIMARY KEY,
   user_id: UUID REFERENCES users(id),
-  post_id: UUID REFERENCES wolfpack_posts(id),
+  video_id: UUID REFERENCES wolfpack_videos(id),
   reaction_type: ENUM('like', 'love', 'laugh', 'wow', 'sad', 'angry'),
   created_at: TIMESTAMP,
-  UNIQUE(user_id, post_id)
+  UNIQUE(user_id, video_id)
 )
 ```
 
@@ -172,7 +172,7 @@ reactions (
 ```sql
 comments (
   id: UUID PRIMARY KEY,
-  post_id: UUID REFERENCES wolfpack_posts(id),
+  video_id: UUID REFERENCES wolfpack_videos(id),
   user_id: UUID REFERENCES users(id),
   parent_comment_id: UUID REFERENCES comments(id),
   content: TEXT,

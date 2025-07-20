@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Camera, Video, Upload, RotateCcw, Clock, Zap, Send, Type } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-import { uploadImage, uploadVideo, generateVideoThumbnail } from '@/lib/storage/uploadHelpers';
-import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
-import { X } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 
 interface PostCreatorProps {
@@ -13,148 +12,103 @@ interface PostCreatorProps {
 }
 
 export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
-  const { user } = useConsistentAuth();
-  const [caption, setCaption] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  
-  // Camera states
-  const [cameraActive, setCameraActive] = useState(false);
+  const { user } = useAuth();
+  const [hasStream, setHasStream] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [selectedDuration, setSelectedDuration] = useState(15); // Default to 15s
-  const [mediaMode, setMediaMode] = useState<'camera' | 'gallery'>('camera');
+  const [recordingMode, setRecordingMode] = useState<'photo' | 'video'>('video');
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [maxDuration, setMaxDuration] = useState(60); // 60 seconds default
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [recordingProgress, setRecordingProgress] = useState(0);
   
-  // Refs
+  // Post creation states
+  const [capturedMedia, setCapturedMedia] = useState<Blob | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string>('');
+  const [caption, setCaption] = useState<string>('');
+  const [posting, setPosting] = useState(false);
+  const [showCaptionInput, setShowCaptionInput] = useState(false);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
+    videoRef.current = element;
+    
+    // If we already have a stream, apply it immediately
+    if (element && streamRef.current) {
+      console.log('🎥 Applying existing stream to video element');
+      element.srcObject = streamRef.current;
+      setHasStream(true);
+      setCameraStatus('ready');
+    }
+  }, []);
 
-  // Auto-start camera disabled to allow manual activation
   useEffect(() => {
-    // Cleanup on close
-    if (!isOpen) {
+    if (isOpen && !streamRef.current) {
+      console.log('Opening camera...');
+      startCamera();
+    } else if (!isOpen) {
+      console.log('Closing camera...');
       stopCamera();
     }
-    return () => {
-      stopCamera();
-    };
   }, [isOpen]);
 
   const startCamera = async () => {
     try {
-      console.log('Starting camera activation...');
+      console.log('=== STARTING CAMERA ===');
+      setCameraStatus('loading');
+      setErrorMessage('');
       
-      // Check if getUserMedia is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not available. Please ensure you are using HTTPS.');
-      }
-
-      // Check if we're in a secure context
-      if (!window.isSecureContext) {
-        throw new Error('Camera requires a secure context (HTTPS)');
-      }
-
-      // For iOS PWAs, try with simplified constraints first
-      const isIOSPWA = window.navigator.standalone || 
-                       (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-      
-      let constraints = {
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode },
         audio: true
-      };
-
-      // Simplify constraints for iOS PWAs to improve compatibility
-      if (isIOSPWA) {
-        constraints = {
-          video: { facingMode: 'user' },
-          audio: false // Some iOS PWAs have issues with audio permissions
-        };
-      }
-
-      console.log('Requesting camera access with constraints:', constraints);
-      console.log('Browser:', navigator.userAgent);
-      console.log('Is iOS PWA:', isIOSPWA);
-      console.log('Is secure context:', window.isSecureContext);
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        
-        // Wait for video metadata to load
-        await new Promise((resolve, reject) => {
-          if (videoRef.current) {
-            videoRef.current.onloadedmetadata = resolve;
-            videoRef.current.onerror = reject;
-          }
-        });
-        
-        // Attempt to play the video
-        await videoRef.current.play();
-        setCameraActive(true);
-        console.log('Camera activated successfully');
-        
-        toast({
-          title: 'Camera activated',
-          description: 'Ready to record',
-        });
-      }
-    } catch (error: any) {
-      console.error('Error accessing camera:', error);
-      
-      let errorMessage = 'Failed to access camera';
-      let errorDescription = 'Please check your camera permissions';
-      
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = 'Camera access denied';
-        errorDescription = 'Please allow camera access in your browser settings. For iOS, you may need to enable camera in Safari settings > Website Settings';
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = 'No camera found';
-        errorDescription = 'Please ensure your device has a camera connected';
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = 'Camera is busy';
-        errorDescription = 'Camera might be used by another application. Please close other apps and try again';
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage = 'Camera requirements not met';
-        errorDescription = 'Trying with basic camera settings...';
-        
-        // Retry with basic constraints
-        try {
-          const basicStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          if (videoRef.current) {
-            videoRef.current.srcObject = basicStream;
-            streamRef.current = basicStream;
-            await videoRef.current.play();
-            setCameraActive(true);
-            toast({
-              title: 'Camera activated',
-              description: 'Using basic camera settings',
-            });
-            return;
-          }
-        } catch (retryError) {
-          console.error('Basic camera retry failed:', retryError);
-        }
-      } else if (error.message?.includes('https')) {
-        errorMessage = 'Secure connection required';
-        errorDescription = 'Camera access requires HTTPS. Please use a secure connection';
-      }
-      
-      toast({
-        title: errorMessage,
-        description: errorDescription,
-        variant: 'destructive',
       });
+      
+      console.log('✅ Got camera stream:', stream);
+      streamRef.current = stream;
+      
+      // Apply stream to video element if it exists
+      if (videoRef.current) {
+        console.log('✅ Video element ready, setting srcObject');
+        videoRef.current.srcObject = stream;
+        setHasStream(true);
+        setCameraStatus('ready');
+        console.log('✅ Camera setup complete!');
+      } else {
+        console.log('⚠️ Video element not ready yet, will be applied when mounted');
+        setHasStream(true);
+        setCameraStatus('ready');
+      }
+    } catch (error) {
+      console.error('❌ Camera failed:', error);
+      setHasStream(false);
+      setCameraStatus('error');
+      
+      if (error instanceof DOMException) {
+        switch (error.name) {
+          case 'NotAllowedError':
+            setErrorMessage('Camera access denied. Please enable camera permissions in your browser settings.');
+            break;
+          case 'NotFoundError':
+            setErrorMessage('No camera found. Please ensure your camera is connected and enabled.');
+            break;
+          case 'NotReadableError':
+            setErrorMessage('Camera is in use by another application. Please close other apps using the camera.');
+            break;
+          case 'OverconstrainedError':
+            setErrorMessage('Camera constraints could not be satisfied. Try adjusting video settings.');
+            break;
+          default:
+            setErrorMessage(`Camera error: ${error.message}`);
+        }
+      } else {
+        setErrorMessage('An unexpected error occurred while starting camera.');
+      }
     }
   };
 
@@ -163,540 +117,598 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    setCameraActive(false);
+    setHasStream(false);
     setIsRecording(false);
     setRecordingTime(0);
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-    }
+    setRecordingProgress(0);
+    setCameraStatus('idle');
+    setErrorMessage('');
   };
 
   const startRecording = () => {
     if (!streamRef.current) return;
-
-    const mediaRecorder = new MediaRecorder(streamRef.current);
-    const chunks: BlobPart[] = [];
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
+    
+    console.log('Starting recording...');
+    
+    // Try to use a supported MIME type for video recording
+    let options: MediaRecorderOptions = {};
+    const supportedTypes = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8', 
+      'video/webm',
+      'video/mp4'
+    ];
+    
+    for (const mimeType of supportedTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        options.mimeType = mimeType;
+        console.log('🎥 Using MIME type:', mimeType);
+        break;
       }
-    };
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const file = new File([blob], 'recorded-video.webm', { type: 'video/webm' });
-      
-      // Convert to supported format or use as-is
-      setSelectedFile(file);
-      const url = URL.createObjectURL(blob);
-      setPreview(url);
-      
-      // Stop recording UI
-      setIsRecording(false);
-      setRecordingTime(0);
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-    };
-
+    }
+    
+    const mediaRecorder = new MediaRecorder(streamRef.current, options);
     mediaRecorderRef.current = mediaRecorder;
+    
     mediaRecorder.start();
     setIsRecording(true);
     setRecordingTime(0);
-
-    // Start recording timer
-    recordingIntervalRef.current = setInterval(() => {
+    
+    intervalRef.current = setInterval(() => {
       setRecordingTime(prev => {
         const newTime = prev + 1;
-        if (newTime >= selectedDuration) {
+        setRecordingProgress((newTime / maxDuration) * 100);
+        
+        // Auto-stop when max duration reached
+        if (newTime >= maxDuration) {
           stopRecording();
-          return selectedDuration;
         }
+        
         return newTime;
       });
     }, 1000);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          setCapturedMedia(event.data);
+          setMediaUrl(URL.createObjectURL(event.data));
+          setShowCaptionInput(true);
+        }
+      };
+      
       mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setRecordingProgress(0);
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     }
+  };
+
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacingMode);
+    
+    // Stop current stream and restart with new facing mode
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    setCameraStatus('loading');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+        audio: true
+      });
+      
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setHasStream(true);
+        setCameraStatus('ready');
+      }
+    } catch (error) {
+      console.error('Camera switch failed:', error);
+      setCameraStatus('error');
+      setErrorMessage('Failed to switch camera');
+    }
+  };
+
+  const handleUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.multiple = true;
+    
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        console.log('Files selected:', files);
+        // Handle file upload logic here
+      }
+    };
+    
+    input.click();
   };
 
   const takePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
+    if (!videoRef.current) return;
+    
+    const canvas = document.createElement('canvas');
     const video = videoRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    // Set canvas size to video size
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0);
-
-    // Convert canvas to blob
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-        setSelectedFile(file);
-        const url = URL.createObjectURL(blob);
-        setPreview(url);
-      }
-    }, 'image/jpeg', 0.9);
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          setCapturedMedia(blob);
+          setMediaUrl(URL.createObjectURL(blob));
+          setShowCaptionInput(true);
+          console.log('Photo taken');
+        }
+      }, 'image/jpeg', 0.9);
+    }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleMainAction = () => {
+    if (recordingMode === 'photo') {
+      takePhoto();
+    } else {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+  };
 
-    // Validate file size (max 100MB for videos, 10MB for images)
-    const isVideo = file.type.startsWith('video/');
-    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    
-    if (file.size > maxSize) {
-      toast({
-        title: 'File too large',
-        description: `Maximum size is ${isVideo ? '100MB' : '10MB'}`,
-        variant: 'destructive',
-      });
-      return;
+  const uploadToSupabase = async (file: Blob, fileName: string) => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
     }
 
-    setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    setMediaMode('gallery');
+    // Debug blob info
+    console.log('🎬 UPLOADING BLOB:', {
+      type: file.type,
+      size: file.size,
+      fileName,
+      recordingMode
+    });
+
+    // TEMPORARY: Use simple upload path like before while debugging
+    console.log('⚡ Using simple upload (bypassing validation for now)');
+    const simplePath = `${user.id}/${Date.now()}-${fileName}`;
+    
+    try {
+      // Upload directly to simple path
+      const { data, error } = await supabase.storage
+        .from('wolfpack-media')
+        .upload(simplePath, file);
+      
+      if (error) {
+        console.error('Storage error:', error);
+        throw error;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('wolfpack-media')
+        .getPublicUrl(data.path);
+        
+      console.log('✅ Upload successful:', publicUrl);
+      return publicUrl;
+      
+    } catch (error) {
+      console.log('❌ Simple upload failed, trying with validation...');
+      
+      // Handle missing or invalid MIME type for video recordings
+      let actualMimeType = file.type;
+      if ((recordingMode === 'video' || fileName.includes('video')) && (!file.type || !file.type.startsWith('video/'))) {
+        // Default to webm if no type is set for video recordings
+        actualMimeType = 'video/webm';
+        console.log('🔧 Corrected MIME type from', file.type, 'to:', actualMimeType);
+      }
+
+      // Determine file type
+      const fileType = actualMimeType.startsWith('video/') ? 'video' : 'image';
+      
+      // Try validation approach
+      const { data: validation, error: validationError } = await supabase.rpc('validate_file_upload', {
+        p_user_id: user.id,
+        p_file_type: fileType,
+        p_file_size: file.size,
+        p_mime_type: actualMimeType
+      });
+
+      if (validationError) {
+        throw new Error(`Validation failed: ${validationError.message}`);
+      }
+
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+
+      // Generate proper storage path
+      const { data: storagePath, error: pathError } = await supabase.rpc('generate_storage_path', {
+        p_user_id: user.id,
+        p_file_type: fileType,
+        p_filename: fileName
+      });
+
+      if (pathError) {
+        throw new Error(`Path generation failed: ${pathError.message}`);
+      }
+
+      // Upload to the generated path
+      const { data: validatedData, error: validatedError } = await supabase.storage
+        .from('wolfpack-media')
+        .upload(storagePath, file);
+      
+      if (validatedError) throw validatedError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('wolfpack-media')
+        .getPublicUrl(validatedData.path);
+        
+      return publicUrl;
+    }
   };
 
   const handlePost = async () => {
-    if (!selectedFile || !user) {
+    if (!user || !capturedMedia) {
       toast({
-        title: 'Authentication required',
-        description: 'Please log in to upload content',
-        variant: 'destructive',
+        title: 'Error',
+        description: 'No media captured or user not authenticated',
+        variant: 'destructive'
       });
       return;
     }
 
-    setLoading(true);
-    setUploadProgress(0);
-
     try {
-      const isVideo = selectedFile.type.startsWith('video/');
+      setPosting(true);
 
-      if (isVideo) {
-        // Upload video
-        const mediaUrl = await uploadVideo(selectedFile, (progress) => {
-          setUploadProgress(progress * 0.7); // 70% for video
-        });
+      // Upload media to Supabase storage
+      const fileName = recordingMode === 'photo' ? 'photo.jpg' : 'video.mp4';
+      const mediaUrl = await uploadToSupabase(capturedMedia, fileName);
 
-        // Generate and upload thumbnail
-        let thumbnailUrl: string | null = null;
-        try {
-          const thumbnailFile = await generateVideoThumbnail(selectedFile);
-          thumbnailUrl = await uploadImage(thumbnailFile, 'wolfpack-thumbnails');
-          setUploadProgress(85);
-        } catch (error) {
-          console.warn('Failed to generate thumbnail:', error);
-          // Continue without thumbnail
-        }
+      // Create post in database
+      const { data: postData, error: postError } = await supabase
+        .from('wolfpack_videos')
+        .insert({
+          user_id: user.id,
+          caption: caption.trim() || 'New post from Wolf Pack!',
+          video_url: recordingMode === 'video' ? mediaUrl : null,
+          thumbnail_url: recordingMode === 'photo' ? mediaUrl : null,
+          duration: recordingMode === 'video' ? recordingTime : null,
+          view_count: 0,
+          like_count: 0,
+          comments_count: 0
+        })
+        .select()
+        .single();
 
-        // Create video post in wolfpack_videos table (using backend schema column names)
-        const { error: postError } = await supabase
-          .from('wolfpack_videos')
-          .insert({
-            user_id: user.id,
-            title: caption.substring(0, 100), // Use first 100 chars as title
-            caption: caption, // Full caption text (existing column)
-            description: caption, // Also store as description for compatibility
-            video_url: mediaUrl,
-            thumbnail_url: thumbnailUrl,
-            duration: null, // Use duration (backend added this)
-            view_count: 0, // Use view_count (backend added this)
-            like_count: 0, // Use like_count (backend added this)
-            is_featured: false,
-            is_active: true
-          });
+      if (postError) throw postError;
 
-        if (postError) {
-          console.error('Error creating video post:', postError);
-          throw new Error(`Failed to create video post: ${postError.message}`);
-        }
+      toast({
+        title: 'Post created!',
+        description: 'Your post has been shared to the Wolf Pack feed'
+      });
 
-        setUploadProgress(100);
-        
-        toast({
-          title: 'Video posted!',
-          description: 'Your video has been shared with the wolfpack.',
-        });
-
-      } else {
-        // Upload image
-        const mediaUrl = await uploadImage(selectedFile, 'wolfpack-images');
-        setUploadProgress(80);
-
-        // For images, we'll also use the wolfpack_videos table but with null video_url
-        // This keeps all posts in one place for the feed (using backend schema column names)
-        const { error: postError } = await supabase
-          .from('wolfpack_videos')
-          .insert({
-            user_id: user.id,
-            title: caption.substring(0, 100),
-            caption: caption, // Full caption text (existing column)
-            description: caption, // Also store as description for compatibility
-            video_url: null, // No video for image posts
-            thumbnail_url: mediaUrl, // Use image as thumbnail
-            duration: null, // Use duration (backend added this)
-            view_count: 0, // Use view_count (backend added this)
-            like_count: 0, // Use like_count (backend added this)
-            is_featured: false,
-            is_active: true
-          });
-
-        if (postError) {
-          console.error('Error creating image post:', postError);
-          throw new Error(`Failed to create image post: ${postError.message}`);
-        }
-
-        setUploadProgress(100);
-        
-        toast({
-          title: 'Image posted!',
-          description: 'Your image has been shared with the wolfpack.',
-        });
-      }
-
-      // Success! Reset form
-      setCaption('');
-      setSelectedFile(null);
-      setPreview(null);
+      // Reset state and close
+      resetState();
       onClose();
 
     } catch (error) {
       console.error('Error creating post:', error);
       
-      // Check for specific RLS policy errors
-      let errorMessage = 'Failed to create post';
-      if (error instanceof Error) {
-        if (error.message.includes('row-level security policy')) {
-          errorMessage = 'Authentication error. Please log out and log back in.';
-        } else if (error.message.includes('User not authenticated')) {
-          errorMessage = 'Please log in to upload content';
-        } else {
-          errorMessage = error.message;
-        }
-      }
+      // Show specific error message if available
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create post. Please try again.';
       
       toast({
-        title: 'Upload failed',
-        description: errorMessage,
-        variant: 'destructive',
+        title: 'Post failed',
+        description: errorMessage.includes('quota') 
+          ? 'Storage quota exceeded. Please delete some files or upgrade your plan.'
+          : errorMessage.includes('File too large')
+          ? 'File is too large. Please try a smaller file.'
+          : errorMessage.includes('Invalid file type')
+          ? 'Invalid file type. Please upload a supported video or image format.'
+          : errorMessage,
+        variant: 'destructive'
       });
     } finally {
-      setLoading(false);
-      setUploadProgress(0);
+      setPosting(false);
     }
   };
 
-  const handleClose = () => {
-    if (loading) return; // Prevent closing during upload
+  const resetState = () => {
+    setCapturedMedia(null);
+    setMediaUrl('');
     setCaption('');
-    setSelectedFile(null);
-    setPreview(null);
-    onClose();
+    setShowCaptionInput(false);
+    setRecordingTime(0);
+    setRecordingProgress(0);
+  };
+
+  const handleRetake = () => {
+    if (mediaUrl) {
+      URL.revokeObjectURL(mediaUrl);
+    }
+    resetState();
   };
 
   if (!isOpen) return null;
 
+  console.log('🎬 RENDER STATE:', {
+    isOpen,
+    hasStream,
+    videoRefExists: !!videoRef.current,
+    streamRefExists: !!streamRef.current
+  });
+
   return (
     <div className="fixed inset-0 bg-black z-50">
-      {/* TikTok-style Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 flex items-center justify-between">
-        <button
-          onClick={handleClose}
-          disabled={loading}
-          className="text-white hover:text-gray-300 disabled:opacity-50"
-        >
-          <X className="w-6 h-6" />
-        </button>
-        <div className="bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-full">
-          <span className="text-white font-medium">Add sound</span>
-        </div>
-        <div className="w-6 h-6" /> {/* Spacer */}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="h-full flex flex-col">
-        {/* Camera/Preview Area */}
-        <div className="flex-1 relative bg-gray-900 flex items-center justify-center">
-          {/* Live Camera Feed */}
-          {mediaMode === 'camera' && cameraActive && !preview && (
-            <div className="relative w-full h-full">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
+      {/* Full-screen camera view */}
+      <div className="relative w-full h-full">
+        {/* Camera View */}
+        {hasStream ? (
+          <video
+            ref={setVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)' }}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-white bg-gray-900">
+            <div className="text-center space-y-4 max-w-sm mx-auto">
+              <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
               
-              {/* Recording Timer */}
-              {isRecording && (
-                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span className="font-mono text-sm">
-                    {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
+              {cameraStatus === 'loading' && (
+                <>
+                  <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto"></div>
+                  <p>Starting camera...</p>
+                </>
               )}
               
-              {/* Recording Progress Bar */}
-              {isRecording && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700">
-                  <div 
-                    className="h-full bg-red-500 transition-all duration-1000"
-                    style={{ width: `${(recordingTime / selectedDuration) * 100}%` }}
-                  />
-                </div>
+              {cameraStatus === 'error' && (
+                <>
+                  <p className="text-red-400 font-medium">Camera Error</p>
+                  <p className="text-sm text-gray-300">{errorMessage}</p>
+                </>
               )}
-            </div>
-          )}
-          
-          {/* Preview Mode */}
-          {preview && (
-            <div className="relative w-full h-full">
-              {selectedFile?.type.startsWith('video/') ? (
-                <video 
-                  src={preview} 
-                  controls 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <img 
-                  src={preview} 
-                  alt="Preview" 
-                  className="w-full h-full object-cover"
-                />
+              
+              {cameraStatus === 'idle' && (
+                <p>Camera not ready</p>
               )}
-            </div>
-          )}
-          
-          {/* Default State */}
-          {!cameraActive && !preview && mediaMode === 'camera' && (
-            <button
-              onClick={startCamera}
-              className="text-center text-gray-400 hover:text-gray-300 transition-colors p-8"
-            >
-              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <p className="text-lg">Tap to activate camera</p>
-            </button>
-          )}
-          
-          {/* Gallery Mode Default State */}
-          {!preview && mediaMode === 'gallery' && (
-            <div className="text-center text-gray-400">
-              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-lg">Select from gallery</p>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Controls */}
-        <div className="bg-black p-4 space-y-4">
-          {/* Recording Duration Selector */}
-          <div className="flex items-center justify-center space-x-6">
-            {[3, 6, 9, 15, 30, 60].map((duration) => (
-              <button
-                key={duration}
-                onClick={() => setSelectedDuration(duration)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  selectedDuration === duration
-                    ? 'bg-white text-black'
-                    : 'text-white hover:bg-white/20'
-                }`}
+              
+              <button 
+                onClick={startCamera}
+                disabled={cameraStatus === 'loading'}
+                className="bg-pink-500 px-6 py-3 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                {duration}s
+                {cameraStatus === 'loading' ? 'Starting...' : 'Start Camera'}
               </button>
-            ))}
-            <button
-              onClick={() => setSelectedDuration(0)}
-              className={`px-4 py-1 rounded-full text-sm font-medium transition-colors ${
-                selectedDuration === 0
-                  ? 'bg-white text-black'
-                  : 'text-white hover:bg-white/20'
-              }`}
+            </div>
+          </div>
+        )}
+        
+        {/* Top overlay */}
+        <div className="absolute top-0 left-0 right-0 z-10">
+          {/* Close button and duration selector */}
+          <div className="flex items-center justify-between p-4">
+            <button 
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white"
             >
-              PHOTO
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Duration options */}
+            <div className="flex gap-2">
+              {[15, 60, 180].map((duration) => (
+                <button
+                  key={duration}
+                  onClick={() => setMaxDuration(duration)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    maxDuration === duration 
+                      ? 'bg-pink-500 text-white' 
+                      : 'bg-black/30 text-white'
+                  }`}
+                >
+                  {duration < 60 ? `${duration}s` : `${duration/60}m`}
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              onClick={switchCamera}
+              disabled={!hasStream}
+              className="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white disabled:opacity-50"
+            >
+              <RotateCcw className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Camera Controls */}
-          <div className="flex items-center justify-between">
-            {/* Mode Switch */}
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setMediaMode('camera')}
-                className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
-                  mediaMode === 'camera' ? 'bg-purple-600' : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setMediaMode('gallery')}
-                className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
-                  mediaMode === 'gallery' ? 'bg-purple-600' : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Main Action Button */}
-            <button
-              onClick={() => {
-                if (mediaMode === 'camera') {
-                  if (selectedDuration === 0) {
-                    takePhoto();
-                  } else if (isRecording) {
-                    stopRecording();
-                  } else {
-                    startRecording();
-                  }
-                } else {
-                  document.getElementById('media-upload')?.click();
-                }
-              }}
-              disabled={loading || (mediaMode === 'camera' && !cameraActive)}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-white hover:bg-gray-100'
-              }`}
-            >
-              {mediaMode === 'camera' ? (
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  isRecording ? 'bg-white' : 'bg-red-500'
-                }`}>
-                  {isRecording ? (
-                    <div className="w-6 h-6 bg-red-500 rounded-sm"></div>
-                  ) : selectedDuration === 0 ? (
-                    <div className="w-12 h-12 bg-white rounded-full border-4 border-gray-300"></div>
-                  ) : (
-                    <div className="w-12 h-12 bg-white rounded-full"></div>
-                  )}
-                </div>
-              ) : (
-                <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              )}
-            </button>
-
-            {/* Gallery Button */}
-            <button
-              onClick={() => document.getElementById('media-upload')?.click()}
-              className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Caption Input */}
-          {selectedFile && (
-            <div className="space-y-2">
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Write a caption..."
-                className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 
-                           resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 
-                           focus:border-transparent"
-                rows={2}
-                disabled={loading}
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-500 text-center">
-                {caption.length}/500 characters
-              </p>
-            </div>
-          )}
-
-          {/* Progress Bar */}
-          {loading && uploadProgress > 0 && (
-            <div>
-              <div className="bg-gray-800 rounded-full h-2 overflow-hidden">
+          
+          {/* Recording progress bar */}
+          {isRecording && (
+            <div className="px-4">
+              <div className="w-full h-1 bg-black/30 rounded-full overflow-hidden">
                 <div 
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
+                  className="h-full bg-pink-500 transition-all duration-100 ease-linear"
+                  style={{ width: `${recordingProgress}%` }}
                 />
               </div>
-              <p className="text-gray-400 text-sm mt-2 text-center">
-                Uploading... {Math.round(uploadProgress)}%
-              </p>
             </div>
           )}
+          
+          {/* Recording timer */}
+          {isRecording && (
+            <div className="absolute top-16 left-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span className="font-mono text-sm">
+                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Side controls */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-4">
+          {/* Upload from gallery */}
+          <button
+            onClick={handleUpload}
+            className="w-12 h-12 rounded-full bg-black/30 flex items-center justify-center text-white"
+          >
+            <Upload className="w-6 h-6" />
+          </button>
+          
+          {/* Speed control */}
+          <button
+            onClick={() => {
+              const speeds = [0.5, 1, 1.5, 2];
+              const currentIndex = speeds.indexOf(playbackSpeed);
+              const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+              setPlaybackSpeed(nextSpeed);
+            }}
+            className="w-12 h-12 rounded-full bg-black/30 flex items-center justify-center text-white"
+          >
+            <div className="text-xs font-bold">{playbackSpeed}x</div>
+          </button>
+        </div>
 
-          {/* Post/Create Buttons */}
-          <div className="flex space-x-4">
-            <button
-              onClick={handlePost}
-              disabled={loading || !selectedFile || !caption.trim()}
-              className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-semibold
-                         disabled:bg-gray-700 disabled:cursor-not-allowed
-                         hover:bg-purple-700 transition-colors duration-200"
-            >
-              {loading ? 'POSTING...' : 'POST'}
-            </button>
-            <button
-              onClick={handleClose}
-              disabled={loading}
-              className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-semibold
-                         hover:bg-gray-600 transition-colors duration-200"
-            >
-              CREATE
-            </button>
-          </div>
+        {/* Bottom controls */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 pb-8">
+          {showCaptionInput ? (
+            /* Caption input and post controls */
+            <div className="px-4 space-y-4">
+              {/* Preview thumbnail */}
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-black/20">
+                  {recordingMode === 'photo' ? (
+                    <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={mediaUrl} className="w-full h-full object-cover" muted />
+                  )}
+                </div>
+              </div>
+
+              {/* Caption input */}
+              <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <Type className="w-5 h-5 text-white mt-3" />
+                  <textarea
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    placeholder="What's happening in the Wolf Pack?"
+                    className="flex-1 bg-transparent text-white placeholder-white/70 resize-none border-none outline-none text-sm"
+                    rows={3}
+                    maxLength={300}
+                  />
+                </div>
+                <div className="text-right text-white/50 text-xs mt-2">
+                  {caption.length}/300
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleRetake}
+                  disabled={posting}
+                  className="flex-1 bg-black/30 text-white py-3 rounded-xl font-medium transition-all disabled:opacity-50"
+                >
+                  Retake
+                </button>
+                <button
+                  onClick={handlePost}
+                  disabled={posting}
+                  className="flex-1 bg-pink-500 text-white py-3 rounded-xl font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {posting ? (
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Post
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Mode selector */}
+              <div className="flex justify-center mb-6">
+                <div className="flex bg-black/30 rounded-full p-1">
+                  <button
+                    onClick={() => setRecordingMode('photo')}
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                      recordingMode === 'photo' 
+                        ? 'bg-white text-black' 
+                        : 'text-white'
+                    }`}
+                  >
+                    Photo
+                  </button>
+                  <button
+                    onClick={() => setRecordingMode('video')}
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                      recordingMode === 'video' 
+                        ? 'bg-white text-black' 
+                        : 'text-white'
+                    }`}
+                  >
+                    Video
+                  </button>
+                </div>
+              </div>
+
+              {/* Main record button */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  {/* Outer ring for recording state */}
+                  <div className={`w-20 h-20 rounded-full border-4 transition-all duration-300 ${
+                    isRecording 
+                      ? 'border-red-500 scale-110' 
+                      : 'border-white/50'
+                  }`}>
+                    {/* Inner button */}
+                    <button
+                      onClick={handleMainAction}
+                      disabled={!hasStream}
+                      className={`w-full h-full rounded-full transition-all duration-200 ${
+                        recordingMode === 'photo'
+                          ? 'bg-white disabled:bg-gray-400'
+                          : isRecording
+                            ? 'bg-red-500 scale-75'
+                            : 'bg-pink-500 disabled:bg-gray-400'
+                      } disabled:opacity-50 flex items-center justify-center`}
+                    >
+                      {recordingMode === 'photo' ? (
+                        <Camera className="w-8 h-8 text-black" />
+                      ) : isRecording ? (
+                        <div className="w-4 h-4 bg-white rounded-sm"></div>
+                      ) : (
+                        <div className="w-6 h-6 bg-white rounded-full"></div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {/* Hidden File Input */}
-      <input
-        id="media-upload"
-        type="file"
-        accept="image/*,video/mp4,video/mov,video/avi,video/wmv,video/flv,video/mkv"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={loading}
-      />
-      
-      {/* Hidden Canvas for Photo Capture */}
-      <canvas
-        ref={canvasRef}
-        className="hidden"
-      />
     </div>
   );
 }

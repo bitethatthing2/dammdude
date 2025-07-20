@@ -16,7 +16,8 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { getZIndexClass } from '@/lib/constants/z-index';
-// import { useComments } from '@/lib/contexts/CommentsContext';
+import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { toast } from '@/components/ui/use-toast';
 
 interface Comment {
   id: string;
@@ -40,86 +41,100 @@ interface VideoCommentsProps {
   isOpen: boolean;
   onClose: () => void;
   initialCommentCount: number;
+  onCommentCountChange?: (count: number) => void;
 }
 
-export default function VideoComments({ postId, isOpen, onClose, initialCommentCount }: VideoCommentsProps) {
+export default function VideoComments({ postId, isOpen, onClose, initialCommentCount, onCommentCountChange }: VideoCommentsProps) {
   const { user } = useAuth();
-  // const { setIsCommentsOpen } = useComments();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isOpen && postId) {
       fetchComments();
       // Focus input when opened
       setTimeout(() => inputRef.current?.focus(), 100);
+      
+      // Subscribe to real-time updates
+      unsubscribeRef.current = wolfpackSocialService.subscribeToComments(
+        postId,
+        (updatedComments) => {
+          // Convert to the component's comment format
+          const formattedComments = updatedComments.map(c => ({
+            id: c.id,
+            user_id: c.user_id,
+            content: c.content,
+            created_at: c.created_at,
+            likes_count: c.reactions?.reduce((sum, r) => sum + r.count, 0) || 0,
+            replies_count: c.replies_count || 0,
+            user_profile: {
+              first_name: c.user?.first_name,
+              last_name: c.user?.last_name,
+              username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
+              avatar_url: c.user?.avatar_url,
+              verified: true
+            },
+            is_liked: c.reactions?.some(r => r.user_reacted && r.emoji === '❤️') || false
+          }));
+          setComments(formattedComments);
+        },
+        user?.id
+      );
     }
-    // Update comments context state when comments open/close
-    // setIsCommentsOpen(isOpen);
-  }, [isOpen, postId]);
+    
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [isOpen, postId, user?.id]);
+
+  // Notify parent when comment count changes
+  useEffect(() => {
+    if (onCommentCountChange) {
+      onCommentCountChange(comments.length);
+    }
+  }, [comments.length, onCommentCountChange]);
 
   const fetchComments = async () => {
     try {
       setLoading(true);
       
-      // For now, use sample data since we don't have comments table set up
-      const sampleComments: Comment[] = [
-        {
-          id: '1',
-          user_id: 'user1',
-          content: 'Amazing video! Love the energy 🔥',
-          created_at: '2024-01-15T10:30:00Z',
-          likes_count: 24,
-          replies_count: 3,
-          user_profile: {
-            first_name: 'Sarah',
-            last_name: 'M',
-            username: 'sarahm_salem',
-            avatar_url: '/icons/wolf-icon-light-screen.png',
-            verified: true
-          },
-          is_liked: false
-        },
-        {
-          id: '2',
-          user_id: 'user2',
-          content: 'Salem Wolf Pack representing! 🐺',
-          created_at: '2024-01-15T10:25:00Z',
-          likes_count: 18,
-          replies_count: 1,
-          user_profile: {
-            first_name: 'Mike',
-            last_name: 'R',
-            username: 'mike_rocks',
-            avatar_url: '/icons/wolf-icon-light-screen.png',
-            verified: false
-          },
-          is_liked: true
-        },
-        {
-          id: '3',
-          user_id: 'user3',
-          content: 'When will you be at Portland location?',
-          created_at: '2024-01-15T10:20:00Z',
-          likes_count: 12,
-          replies_count: 0,
-          user_profile: {
-            first_name: 'Alex',
-            last_name: 'C',
-            username: 'alexc_pdx',
-            avatar_url: '/icons/wolf-icon-light-screen.png',
-            verified: false
-          },
-          is_liked: false
-        }
-      ];
+      const fetchedComments = await wolfpackSocialService.getComments(postId, user?.id);
       
-      setComments(sampleComments);
+      // Convert to the component's comment format
+      const formattedComments = fetchedComments.map(c => ({
+        id: c.id,
+        user_id: c.user_id,
+        content: c.content,
+        created_at: c.created_at,
+        likes_count: c.reactions?.reduce((sum, r) => sum + r.count, 0) || 0,
+        replies_count: c.replies_count || 0,
+        user_profile: {
+          first_name: c.user?.first_name,
+          last_name: c.user?.last_name,
+          username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
+          avatar_url: c.user?.avatar_url,
+          verified: true
+        },
+        is_liked: c.reactions?.some(r => r.user_reacted && r.emoji === '❤️') || false
+      }));
+      
+      setComments(formattedComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load comments',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -132,38 +147,49 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
     try {
       setSubmitting(true);
       
-      // Create new comment
-      const newCommentData: Comment = {
-        id: Date.now().toString(),
-        user_id: user?.id || 'anonymous',
-        content: newComment.trim(),
-        created_at: new Date().toISOString(),
-        likes_count: 0,
-        replies_count: 0,
-        user_profile: {
-          first_name: user?.user_metadata?.first_name || 'User',
-          last_name: user?.user_metadata?.last_name || '',
-          username: user?.email?.split('@')[0] || 'user',
-          avatar_url: user?.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png',
-          verified: true
-        },
-        is_liked: false
-      };
-
-      // Add to comments list
-      setComments(prev => [newCommentData, ...prev]);
-      setNewComment('');
-
-      // TODO: Submit to database
-      console.log('Submitted comment:', newCommentData);
+      const result = await wolfpackSocialService.createComment(
+        postId,
+        user.id,
+        newComment.trim()
+      );
+      
+      if (result.success && result.comment) {
+        setNewComment('');
+        // The real-time subscription will update the comments list
+        toast({
+          title: 'Comment posted!',
+          description: 'Your comment has been added'
+        });
+      } else {
+        throw new Error('Failed to create comment');
+      }
     } catch (error) {
       console.error('Error submitting comment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to post comment',
+        variant: 'destructive'
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleLikeComment = async (commentId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to like comments',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Get the current comment to check like status
+    const currentComment = comments.find(c => c.id === commentId);
+    if (!currentComment) return;
+    
+    // Optimistic update
     setComments(prev => 
       prev.map(comment => 
         comment.id === commentId 
@@ -175,6 +201,39 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
           : comment
       )
     );
+    
+    // Send to server
+    const result = currentComment.is_liked 
+      ? await wolfpackSocialService.removeCommentReaction(commentId, user.id, '❤️')
+      : await wolfpackSocialService.addCommentReaction(commentId, user.id, '❤️');
+      
+    if (!result.success) {
+      // Revert on error
+      setComments(prev => 
+        prev.map(c => 
+          c.id === commentId 
+            ? { 
+                ...c, 
+                is_liked: !c.is_liked,
+                likes_count: c.is_liked ? c.likes_count - 1 : c.likes_count + 1
+              }
+            : c
+        )
+      );
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update like',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleEmojiReaction = (emoji: string) => {
+    setNewComment(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    // Focus the input after adding emoji
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const formatTimeAgo = (timestamp: string) => {
@@ -190,13 +249,24 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
 
   if (!isOpen) return null;
 
+  console.log('VideoComments render:', { 
+    isOpen, 
+    postId, 
+    user: !!user, 
+    userId: user?.id,
+    commentsLength: comments.length,
+    loading,
+    newComment,
+    userMetadata: user?.user_metadata
+  });
+
   return (
     <div className={`fixed inset-0 ${getZIndexClass('NOTIFICATION')} flex flex-col`}>
       {/* Video background (blurred) */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
       {/* Comments overlay - slides up from bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl flex flex-col max-h-[70vh] animate-slide-up">
+      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl flex flex-col max-h-[80vh] animate-slide-up">
         {/* TikTok-style Header */}
         <div className="flex items-center justify-center p-4 relative">
           <div className="w-12 h-1 bg-gray-400 rounded-full absolute top-2"></div>
@@ -282,80 +352,123 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
           )}
         </div>
 
-        {/* TikTok-style Emoji Reactions */}
-        <div className="flex justify-center gap-2 py-3 border-t border-gray-200">
-          {['😂', '😍', '😮', '😢', '😡', '👍'].map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => {
-                // TODO: Handle emoji reaction
-                console.log('Emoji reaction:', emoji);
-              }}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-2xl"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
 
-        {/* Comment Input */}
-        <div className="border-t border-gray-200 p-4 pb-6 bg-white">
-          <form onSubmit={handleSubmitComment} className="flex gap-3 items-center">
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <Image
-                src={user?.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png'}
-                alt="Your avatar"
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-            </Avatar>
-            
-            <div className="flex-1 flex gap-2 items-center">
-              <Input
-                ref={inputRef}
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
-                className="flex-1 bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-gray-500 rounded-full px-4 py-2"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="p-2 text-gray-500 hover:text-gray-700"
-                  title="Mention someone"
-                >
-                  @
-                </button>
-                <button
-                  type="button"
-                  className="p-2 text-gray-500 hover:text-gray-700"
-                  title="Add emoji"
-                >
-                  😊
-                </button>
-                <button
-                  type="button"
-                  className="p-2 text-gray-500 hover:text-gray-700"
-                  title="Add photo"
-                >
-                  🖼️
+        {/* Comment Input - TikTok Style */}
+        <div className="border-t border-gray-200 bg-white sticky bottom-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
+          <div className="p-4 pt-3">
+            {!user ? (
+            <div>
+              <div className="text-center py-2 mb-3">
+                <p className="text-gray-500 text-sm mb-2">Sign in to comment</p>
+                <button className="text-purple-600 text-sm font-medium">
+                  Sign In
                 </button>
               </div>
+              {/* Show input anyway for testing */}
+              <form className="flex gap-3 items-center opacity-50">
+                <div className="w-9 h-9 bg-gray-300 rounded-full flex-shrink-0"></div>
+                <input 
+                  type="text"
+                  placeholder="Sign in to comment..."
+                  disabled
+                  className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 rounded-full px-4 py-3 text-sm"
+                />
+                <button type="button" disabled className="p-2 text-gray-400">
+                  <Send className="h-5 w-5" />
+                </button>
+              </form>
             </div>
+          ) : (
+            <form onSubmit={handleSubmitComment} className="flex gap-3 items-center">
+              {/* User Avatar */}
+              <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                <Image
+                  src={user?.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png'}
+                  alt="Your avatar"
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             
-            <button
-              type="submit"
-              disabled={!newComment.trim() || submitting}
-              className="text-gray-500 hover:text-gray-700 disabled:text-gray-400 transition-colors p-2"
-            >
-              {submitting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+              {/* Input Container */}
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add comment..."
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-gray-400 focus:ring-0 rounded-full px-4 py-3 pr-24 text-sm"
+                />
+                
+                {/* Emoji picker - positioned relative to entire form */}
+                {showEmojiPicker && (
+                  <>
+                    {/* Backdrop to close picker */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowEmojiPicker(false)}
+                    />
+                    {/* Emoji picker */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white rounded-xl shadow-xl border p-3 grid grid-cols-8 gap-2 z-50 w-80">
+                      {['😀', '😄', '😎', '😍', '🤣', '😢', '😡', '🤯',
+                        '👍', '👎', '👏', '🙌', '❤️', '🔥', '🎉', '🎆',
+                        '🐺', '🍻', '🍸', '🍹', '🍾', '🎵', '🎶', '💯'].map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          onClick={() => handleEmojiReaction(e)}
+                          className="w-8 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center text-xl transition-colors"
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                {/* Action Buttons Inside Input */}
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                  <button
+                    type="button"
+                    className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                    title="Mention someone"
+                  >
+                    <span className="text-lg font-bold">@</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                    title="Add emoji"
+                  >
+                    <span className="text-lg">😊</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                    title="Add photo"
+                  >
+                    <span className="text-lg">📷</span>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Send Button */}
+              <button
+                type="submit"
+                disabled={!newComment.trim() || submitting}
+                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 disabled:text-gray-400 transition-colors rounded-full hover:bg-gray-100 flex-shrink-0"
+              >
+                {submitting ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
             </button>
           </form>
+          )}
+          </div>
         </div>
       </div>
     </div>
