@@ -1,5 +1,8 @@
 -- Create missing RPC functions for wolfpack social features
 
+-- Drop existing function if it exists with different signature
+DROP FUNCTION IF EXISTS public.get_user_social_stats(UUID);
+
 -- Function to get user social statistics
 CREATE OR REPLACE FUNCTION public.get_user_social_stats(user_uuid UUID)
 RETURNS TABLE (
@@ -67,6 +70,9 @@ BEGIN
     END as engagement_rate;
 END;
 $$;
+
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS public.get_video_stats(UUID);
 
 -- Function to get video statistics
 CREATE OR REPLACE FUNCTION public.get_video_stats(video_uuid UUID)

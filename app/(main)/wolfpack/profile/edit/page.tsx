@@ -256,6 +256,7 @@ export default function WolfpackProfileEditPage() {
               width={120}
               height={120}
               className="w-30 h-30 rounded-full border-2 border-gray-700"
+              priority
             />
             <button
               onClick={() => fileInputRef.current?.click()}

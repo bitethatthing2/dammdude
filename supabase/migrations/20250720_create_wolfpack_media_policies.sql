@@ -1,6 +1,4 @@
--- Enable RLS on storage.buckets and storage.objects
-ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: RLS is already enabled on storage tables by Supabase
 
 -- Create or update the wolfpack-media bucket
 INSERT INTO storage.buckets (id, name, public) 

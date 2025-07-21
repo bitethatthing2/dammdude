@@ -2306,6 +2306,7 @@ export type Database = {
           verified_by: string | null
           verified_region: string | null
           vibe_status: string | null
+          website: string | null
           wolf_emoji: string | null
           wolfpack_availability_status: string | null
           wolfpack_bio: string | null
@@ -2403,6 +2404,7 @@ export type Database = {
           verified_by?: string | null
           verified_region?: string | null
           vibe_status?: string | null
+          website?: string | null
           wolf_emoji?: string | null
           wolfpack_availability_status?: string | null
           wolfpack_bio?: string | null
@@ -2500,6 +2502,7 @@ export type Database = {
           verified_by?: string | null
           verified_region?: string | null
           vibe_status?: string | null
+          website?: string | null
           wolf_emoji?: string | null
           wolfpack_availability_status?: string | null
           wolfpack_bio?: string | null
@@ -8038,6 +8041,7 @@ export type Database = {
           verified_by: string | null
           verified_region: string | null
           vibe_status: string | null
+          website: string | null
           wolf_emoji: string | null
           wolfpack_availability_status: string | null
           wolfpack_bio: string | null

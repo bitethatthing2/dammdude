@@ -117,26 +117,63 @@ export default function WolfpackProfilePage() {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // First get posts from wolfpack_videos
+      const { data: videoPosts, error: videoError } = await supabase
         .from('wolfpack_videos')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (error) throw error;
+      if (videoError) throw videoError;
       
-      const postsData: UserPost[] = (data || []).map(post => ({
-        id: post.id,
-        video_url: post.video_url,
-        thumbnail_url: post.thumbnail_url,
-        likes_count: post.like_count || 0,
-        comments_count: post.comments_count || 0,
-        created_at: post.created_at,
-        is_video: !!post.video_url
-      }));
+      // Also get posts from wolfpack_posts
+      const { data: textPosts, error: postsError } = await supabase
+        .from('wolfpack_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
       
-      setPosts(postsData);
+      // Combine and sort all posts
+      const allPosts = [];
+      
+      // Add video posts
+      if (videoPosts) {
+        videoPosts.forEach(post => {
+          allPosts.push({
+            id: post.id,
+            video_url: post.video_url,
+            thumbnail_url: post.thumbnail_url || '/images/placeholder-video.svg',
+            likes_count: post.like_count || 0,
+            comments_count: post.comments_count || 0,
+            created_at: post.created_at,
+            is_video: true
+          });
+        });
+      }
+      
+      // Add text posts with media
+      if (textPosts) {
+        textPosts.forEach(post => {
+          if (post.media_url) {
+            allPosts.push({
+              id: post.id,
+              video_url: null,
+              thumbnail_url: post.media_url,
+              likes_count: post.likes || 0,
+              comments_count: post.comments || 0,
+              created_at: post.created_at,
+              is_video: false
+            });
+          }
+        });
+      }
+      
+      // Sort by created_at
+      allPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setPosts(allPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
     }
@@ -369,9 +406,10 @@ export default function WolfpackProfilePage() {
                   onClick={() => router.push(`/wolfpack/video/${post.id}`)}
                 >
                   <Image
-                    src={post.thumbnail_url || '/images/placeholder-video.jpg'}
+                    src={post.thumbnail_url || '/images/placeholder-video.svg'}
                     alt="Post thumbnail"
                     fill
+                    sizes="(max-width: 768px) 33vw, (max-width: 1200px) 25vw, 20vw"
                     className="object-cover"
                   />
                   
