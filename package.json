@@ -34,7 +34,6 @@
     "debug:deprecation": "node --trace-deprecation node_modules/.bin/next dev",
     "types:generate": "npx supabase gen types typescript --project-id tvnpgbjypnezoasbhbwx > types/database.types.ts",
     "types:generate:local": "npx supabase gen types typescript --local > types/database.types.ts",
-    "prebuild": "npm run types:generate",
     "predev": "npm run types:generate",
     "types:validate": "tsc --noEmit",
     "types:check": "tsc --noEmit",
