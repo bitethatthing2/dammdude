@@ -1,7 +1,7 @@
 // app/api/wolfpack/status/route.ts
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getDatabaseUserId } from '@/lib/utils/user-mapping';
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getDatabaseUserId } from "@/lib/utils/user-mapping";
 
 export async function GET() {
   try {
@@ -10,8 +10,8 @@ export async function GET() {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required', code: 'AUTH_ERROR' },
-        { status: 401 }
+        { error: "Authentication required", code: "AUTH_ERROR" },
+        { status: 401 },
       );
     }
 
@@ -24,13 +24,13 @@ export async function GET() {
         membership: null,
         location: null,
         databaseUserId: null,
-        userProfile: null
+        userProfile: null,
       });
     }
 
     // Get user profile with wolfpack status
     const { data: userProfile, error: userError } = await supabase
-      .from('users')
+      .from("users")
       .select(`
         id,
         first_name,
@@ -48,20 +48,20 @@ export async function GET() {
         last_activity,
         status
       `)
-      .eq('id', databaseUserId)
+      .eq("id", databaseUserId)
       .single();
 
     if (userError) {
-      console.error('User profile error:', userError);
+      console.error("User profile error:", userError);
       return NextResponse.json(
-        { error: 'Failed to get user profile', code: 'USER_ERROR' },
-        { status: 500 }
+        { error: "Failed to get user profile", code: "USER_ERROR" },
+        { status: 500 },
       );
     }
 
     // Check if user has an active wolfpack membership
     const { data: activeMembership, error: membershipError } = await supabase
-      .from('wolf_pack_members')
+      .from("wolf_pack_members")
       .select(`
         id,
         user_id,
@@ -81,23 +81,23 @@ export async function GET() {
           is_active
         )
       `)
-      .eq('user_id', databaseUserId)
-      .eq('status', 'active')
+      .eq("user_id", databaseUserId)
+      .eq("status", "active")
       .maybeSingle();
 
-    if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('Membership error:', membershipError);
+    if (membershipError && membershipError.code !== "PGRST116") {
+      console.error("Membership error:", membershipError);
       return NextResponse.json(
-        { error: 'Failed to check membership', code: 'MEMBERSHIP_ERROR' },
-        { status: 500 }
+        { error: "Failed to check membership", code: "MEMBERSHIP_ERROR" },
+        { status: 500 },
       );
     }
 
     // Determine if user is currently a wolfpack member
     const isMember = !!(
-      activeMembership || 
-      userProfile?.is_wolfpack_member || 
-      userProfile?.wolfpack_status === 'active' ||
+      activeMembership ||
+      userProfile?.is_wolfpack_member ||
+      userProfile?.wolfpack_status === "active" ||
       userProfile?.wolfpack_tier
     );
 
@@ -108,7 +108,7 @@ export async function GET() {
     } else if (userProfile?.location_id) {
       // Fallback: get location from user profile
       const { data: location } = await supabase
-        .from('locations')
+        .from("locations")
         .select(`
           id,
           name,
@@ -119,7 +119,7 @@ export async function GET() {
           longitude,
           is_active
         `)
-        .eq('id', userProfile.location_id)
+        .eq("id", userProfile.location_id)
         .single();
       locationInfo = location;
     }
@@ -129,7 +129,9 @@ export async function GET() {
     if (userProfile?.wolfpack_joined_at) {
       const joinedDate = new Date(userProfile.wolfpack_joined_at);
       const now = new Date();
-      membershipDuration = Math.floor((now.getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24)); // days
+      membershipDuration = Math.floor(
+        (now.getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24),
+      ); // days
     }
 
     return NextResponse.json({
@@ -148,23 +150,24 @@ export async function GET() {
         isWolfpackMember: userProfile.is_wolfpack_member,
         wolfpackTier: userProfile.wolfpack_tier,
         isPermanentMember: userProfile.wolfpack_tier,
-        permanentMemberSince: userProfile.perm anent_member_since,
+        permanentMemberSince: userProfile.permanent_member_since,
         wolfpackJoinedAt: userProfile.wolfpack_joined_at,
         lastActivity: userProfile.last_activity,
-        status: userProfile.status, 
-        membershipDuration
-      }
-    });
-
-  } catch (error) {
-    console.error('Get wolfpack status error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error', 
-        code: 'SERVER_ERROR',
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+        status: userProfile.status,
+        membershipDuration,
       },
-      { status: 500 }
+    });
+  } catch (error) {
+    console.error("Get wolfpack status error:", error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        code: "SERVER_ERROR",
+        details: process.env.NODE_ENV === "development"
+          ? (error instanceof Error ? error.message : String(error))
+          : undefined,
+      },
+      { status: 500 },
     );
   }
 }

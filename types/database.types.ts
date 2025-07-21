@@ -1404,6 +1404,13 @@ export type Database = {
             referencedRelation: "food_drink_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "item_modifier_groups_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items_with_working_modifiers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       location_verifications: {
@@ -1693,6 +1700,13 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "food_drink_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items_with_working_modifiers"
             referencedColumns: ["id"]
           },
           {
@@ -5406,6 +5420,37 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      menu_items_with_working_modifiers: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string | null
+          image_id: string | null
+          is_available: boolean | null
+          modifier_groups: Json | null
+          name: string | null
+          price: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_drink_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "food_drink_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
