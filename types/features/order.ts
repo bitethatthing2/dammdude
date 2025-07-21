@@ -13,6 +13,7 @@ export type {
   WolfPackOrderSummary as OrderSummary,
   WolfPackOrderRequest as OrderRequest,
   ItemCustomization as OrderItemCustomization,
+  CartItem,
   BartenderOrderRow,
   OrderInsert,
   OrderUpdate

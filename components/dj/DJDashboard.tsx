@@ -273,7 +273,7 @@ export interface Database {
           phone_verification_sent_at: string | null;
           privacy_settings: Json | null;
           notification_preferences: Json | null;
-          is_permanent_pack_member: boolean | null;
+          wolfpack_tier: boolean | null;
           permanent_member_since: string | null;
           permanent_member_benefits: Json | null;
           permanent_member_notes: string | null;
@@ -334,7 +334,7 @@ export interface Database {
           phone_verification_sent_at?: string | null;
           privacy_settings?: Json | null;
           notification_preferences?: Json | null;
-          is_permanent_pack_member?: boolean | null;
+          wolfpack_tier?: boolean | null;
           permanent_member_since?: string | null;
           permanent_member_benefits?: Json | null;
           permanent_member_notes?: string | null;
@@ -395,7 +395,7 @@ export interface Database {
           phone_verification_sent_at?: string | null;
           privacy_settings?: Json | null;
           notification_preferences?: Json | null;
-          is_permanent_pack_member?: boolean | null;
+          wolfpack_tier?: boolean | null;
           permanent_member_since?: string | null;
           permanent_member_benefits?: Json | null;
           permanent_member_notes?: string | null;

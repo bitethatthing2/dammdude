@@ -1,14 +1,14 @@
 // lib/hooks/useConsistentWolfpackAccess.ts
 // Simplified version that matches your existing interface expectations
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 // =============================================================================
 // INTERFACE MATCHING YOUR CURRENT USAGE
 // =============================================================================
 
-type WolfpackStatusValue = 'pending' | 'active' | 'inactive' | 'suspended';
+type WolfpackStatusValue = "pending" | "active" | "inactive" | "suspended";
 
 export interface ConsistentWolfpackAccess {
   isMember: boolean;
@@ -30,19 +30,18 @@ const calculateDistance = (
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number => {
   const R = 3959; // Earth's radius in miles
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
-  
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(lat1)) *
       Math.cos(toRadians(lat2)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -63,30 +62,34 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
     error: null,
     canCheckout: false,
     wolfpackStatus: null,
-    hasLocationPermission: false
+    hasLocationPermission: false,
   });
 
   const checkLocationAccess = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       // Get current authenticated user
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      
+      const { data: { user: authUser }, error: authError } = await supabase.auth
+        .getUser();
+
       if (authError || !authUser) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: 'Authentication required',
-          isMember: false
+          error: "Authentication required",
+          isMember: false,
         }));
         return;
       }
 
       // Get user profile data
-      console.log('🔍 [WOLFPACK ACCESS] Fetching user profile for auth_id:', authUser.id);
+      console.log(
+        "🔍 [WOLFPACK ACCESS] Fetching user profile for auth_id:",
+        authUser.id,
+      );
       const { data: userProfile, error: userError } = await supabase
-        .from('users')
+        .from("users")
         .select(`
           id,
           email,
@@ -95,50 +98,55 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
           display_name,
           wolfpack_status,
           is_wolfpack_member,
-          is_permanent_pack_member,
+          wolfpack_tier,
           location_permissions_granted,
           location_id
         `)
-        .eq('auth_id', authUser.id)
+        .eq("auth_id", authUser.id)
         .single();
 
-      console.log('👤 [WOLFPACK ACCESS] User profile result:', { userProfile, userError });
-      console.log('🎯 [WOLFPACK ACCESS] Wolfpack status check:', {
+      console.log("👤 [WOLFPACK ACCESS] User profile result:", {
+        userProfile,
+        userError,
+      });
+      console.log("🎯 [WOLFPACK ACCESS] Wolfpack status check:", {
         is_wolfpack_member: userProfile?.is_wolfpack_member,
         wolfpack_status: userProfile?.wolfpack_status,
         location_id: userProfile?.location_id,
-        email: userProfile?.email
+        email: userProfile?.email,
       });
 
       if (userError) {
-        console.error('❌ [WOLFPACK ACCESS] User profile error:', userError);
-        setState(prev => ({
+        console.error("❌ [WOLFPACK ACCESS] User profile error:", userError);
+        setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: 'Could not fetch user profile',
-          isMember: false
+          error: "Could not fetch user profile",
+          isMember: false,
         }));
         return;
       }
 
       // Check if user is a wolfpack member
       const isMember = Boolean(
-        userProfile.is_wolfpack_member || 
-        userProfile.is_permanent_pack_member ||
-        userProfile.wolfpack_status === 'active'
+        userProfile.is_wolfpack_member ||
+          userProfile.wolfpack_tier ||
+          userProfile.wolfpack_status === "active",
       );
 
       // Get location information
       let locationName: string | null = null;
-      let hasLocationPermission = Boolean(userProfile.location_permissions_granted);
+      let hasLocationPermission = Boolean(
+        userProfile.location_permissions_granted,
+      );
 
       if (userProfile.location_id) {
         const { data: location } = await supabase
-          .from('locations')
-          .select('name')
-          .eq('id', userProfile.location_id)
+          .from("locations")
+          .select("name")
+          .eq("id", userProfile.location_id)
           .single();
-        
+
         locationName = location?.name || null;
       }
 
@@ -146,26 +154,27 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
       // Location will need to be set manually or through user interaction
 
       // Determine canCheckout
-      const canCheckout = isMember && 
-        userProfile.wolfpack_status === 'active' && 
+      const canCheckout = isMember &&
+        userProfile.wolfpack_status === "active" &&
         hasLocationPermission;
 
       setState({
         isMember,
         isLoading: false,
-        locationName: locationName || 'The Side Hustle Bar', // Default fallback
+        locationName: locationName || "The Side Hustle Bar", // Default fallback
         error: null,
         canCheckout,
-        wolfpackStatus: userProfile.wolfpack_status as WolfpackStatusValue | null,
-        hasLocationPermission
+        wolfpackStatus: userProfile.wolfpack_status as
+          | WolfpackStatusValue
+          | null,
+        hasLocationPermission,
       });
-
     } catch (error) {
-      console.error('Error checking wolfpack access:', error);
-      setState(prev => ({
+      console.error("Error checking wolfpack access:", error);
+      setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       }));
     }
   }, []);
@@ -176,18 +185,20 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
 
   const requestLocationAccess = useCallback(async () => {
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 300000
-        });
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 300000,
+          });
+        },
+      );
 
       const { data: locations } = await supabase
-        .from('locations')
-        .select('id, name, latitude, longitude, radius_miles')
-        .eq('is_active', true);
+        .from("locations")
+        .select("id, name, latitude, longitude, radius_miles")
+        .eq("is_active", true);
 
       if (locations && locations.length > 0) {
         let nearestLocation = null;
@@ -198,7 +209,7 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
             position.coords.latitude,
             position.coords.longitude,
             location.latitude,
-            location.longitude
+            location.longitude,
           );
 
           if (distance < minDistance) {
@@ -207,17 +218,20 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
           }
         }
 
-        if (nearestLocation && minDistance <= (nearestLocation.radius_miles || 0.25)) {
-          setState(prev => ({
+        if (
+          nearestLocation &&
+          minDistance <= (nearestLocation.radius_miles || 0.25)
+        ) {
+          setState((prev) => ({
             ...prev,
             locationName: nearestLocation.name,
             hasLocationPermission: true,
-            canCheckout: prev.isMember && prev.wolfpackStatus === 'active'
+            canCheckout: prev.isMember && prev.wolfpackStatus === "active",
           }));
         }
       }
     } catch (error) {
-      console.warn('Could not get location:', error);
+      console.warn("Could not get location:", error);
     }
   }, []);
 
@@ -229,7 +243,7 @@ export function useConsistentWolfpackAccess(): ConsistentWolfpackAccess {
   return {
     ...state,
     refreshData,
-    requestLocationAccess
+    requestLocationAccess,
   };
 }
 

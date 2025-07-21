@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Search, Plus, UserPlus, Users, Home, ShoppingBag, Mail, User, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export default function TikTokStyleFeed({
   hasMore = false,
   isLoading = false
 }: TikTokStyleFeedProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -763,7 +765,7 @@ export default function TikTokStyleFeed({
           </button>
           
           <button 
-            onClick={() => window.location.href = '/wolfpack/profile'}
+            onClick={() => router.push('/wolfpack/profile')}
             className="flex flex-col items-center space-y-1"
           >
             <User className="w-6 h-6 text-white/70" />

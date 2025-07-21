@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/lib/supabase/types';
+import type { Database } from '@/types/database.types';
 interface DJPermissions {
   canCreateEvents: boolean;
   canSendMassMessages: boolean;

@@ -73,8 +73,8 @@ export function WolfpackSignupForm() {
         description: 'Your membership is now active. Enjoy exclusive benefits!'
       });
 
-      // Redirect to a success page or back to the app
-      router.push('/wolfpack/welcome');
+      // Redirect to wolfpack main page
+      router.push('/wolfpack');
     } catch (error) {
       console.error('Wolfpack signup error:', error);
       toast.error('Failed to join Wolfpack', {

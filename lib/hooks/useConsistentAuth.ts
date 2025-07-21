@@ -1,8 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type {
+  AuthChangeEvent,
+  Session,
+  User as SupabaseUser,
+} from "@supabase/supabase-js";
 
 // Define the complete user type from database
 export interface DatabaseUser {
@@ -12,9 +16,9 @@ export interface DatabaseUser {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  wolfpack_status: 'active' | 'pending' | 'inactive' | 'suspended' | null;
+  wolfpack_status: "active" | "pending" | "inactive" | "suspended" | null;
   location_permissions_granted: boolean | null;
-  is_permanent_pack_member: boolean | null;
+  wolfpack_tier: boolean | null;
   role: string | null;
   created_at: string;
   updated_at: string;
@@ -33,24 +37,28 @@ export function useConsistentAuth(): AuthState {
   const [error, setError] = useState<Error | null>(null);
 
   // Fetch user data from database based on auth user
-  const fetchDatabaseUser = async (authUser: SupabaseUser): Promise<DatabaseUser | null> => {
+  const fetchDatabaseUser = async (
+    authUser: SupabaseUser,
+  ): Promise<DatabaseUser | null> => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', authUser.id)
+        .from("users")
+        .select("*")
+        .eq("auth_id", authUser.id)
         .single();
 
       if (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching user data:", error);
         setError(new Error(error.message));
         return null;
       }
 
       return data as DatabaseUser;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch user data';
-      console.error('Error fetching user:', errorMessage);
+      const errorMessage = err instanceof Error
+        ? err.message
+        : "Failed to fetch user data";
+      console.error("Error fetching user:", errorMessage);
       setError(new Error(errorMessage));
       return null;
     }
@@ -60,10 +68,10 @@ export function useConsistentAuth(): AuthState {
   const refresh = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      
+
       if (authUser) {
         const dbUser = await fetchDatabaseUser(authUser);
         setUser(dbUser);
@@ -71,8 +79,10 @@ export function useConsistentAuth(): AuthState {
         setUser(null);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh user';
-      console.error('Error refreshing user:', errorMessage);
+      const errorMessage = err instanceof Error
+        ? err.message
+        : "Failed to refresh user";
+      console.error("Error refreshing user:", errorMessage);
       setError(new Error(errorMessage));
     } finally {
       setLoading(false);
@@ -87,8 +97,11 @@ export function useConsistentAuth(): AuthState {
       try {
         // First check for existing session
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 Auth state changed: INITIAL_SESSION', session ? 'Found' : 'None');
-        
+        console.log(
+          "🔐 Auth state changed: INITIAL_SESSION",
+          session ? "Found" : "None",
+        );
+
         if (session?.user) {
           const dbUser = await fetchDatabaseUser(session.user);
           if (mounted) {
@@ -98,7 +111,7 @@ export function useConsistentAuth(): AuthState {
         } else {
           // Fallback to getUser if no session
           const { data: { user: authUser } } = await supabase.auth.getUser();
-          
+
           if (mounted) {
             if (authUser) {
               const dbUser = await fetchDatabaseUser(authUser);
@@ -111,8 +124,10 @@ export function useConsistentAuth(): AuthState {
         }
       } catch (err) {
         if (mounted) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to initialize auth';
-          console.error('Error initializing auth:', errorMessage);
+          const errorMessage = err instanceof Error
+            ? err.message
+            : "Failed to initialize auth";
+          console.error("Error initializing auth:", errorMessage);
           setError(new Error(errorMessage));
           setLoading(false);
         }
@@ -126,10 +141,10 @@ export function useConsistentAuth(): AuthState {
       async (event: AuthChangeEvent, session: Session | null) => {
         if (!mounted) return;
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Auth state changed:', event);
+        if (process.env.NODE_ENV === "development") {
+          console.log("Auth state changed:", event);
         }
-        
+
         if (session?.user) {
           const dbUser = await fetchDatabaseUser(session.user);
           setUser(dbUser);
@@ -137,7 +152,7 @@ export function useConsistentAuth(): AuthState {
           setUser(null);
         }
         setLoading(false);
-      }
+      },
     );
 
     return () => {

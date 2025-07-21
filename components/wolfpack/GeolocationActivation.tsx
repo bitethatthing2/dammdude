@@ -121,12 +121,13 @@ export function GeolocationActivation() {
       if (!user?.id) return;
 
       try {
-        // First get the member data
+        // First get the member data from users table
         const { data: memberData, error: memberError } = await supabase
-          .from("wolf_pack_members")
-          .select("id, location_id")
+          .from("users")
+          .select("id, location_id, is_wolfpack_member, wolfpack_status")
           .eq('id', user.id)
-          .eq('status', 'active')
+          .eq('wolfpack_status', 'active')
+          .eq('is_wolfpack_member', true)
           .maybeSingle();
 
         if (memberError || !memberData) {
@@ -312,8 +313,8 @@ export function GeolocationActivation() {
         description: `You've joined the ${invitation.location.name} pack`
       });
 
-      // Navigate to welcome page
-      router.push('/wolfpack/welcome');
+      // Navigate to wolfpack main page
+      router.push('/wolfpack');
     } catch (error) {
       console.error('Error joining wolf pack:', error);
       

@@ -122,22 +122,21 @@ export class EngagementScoringService {
     try {
       // Get active wolfpack members at this specific location with user info
       const { data: activeMembers, error: membersError } = await supabase
-        .from('wolf_pack_members')
+        .from('users')
         .select(`
-          user_id,
-          users!inner(
-            display_name,
-            avatar_url
-          )
+          id,
+          display_name,
+          avatar_url
         `)
         .eq('location_id', locationId)
-        .eq('status', 'active')
-        .gte('last_activity', startOfDay.toISOString());
+        .eq('wolfpack_status', 'active')
+        .eq('is_wolfpack_member', true)
+        .gte('updated_at', startOfDay.toISOString());
 
       if (membersError) throw membersError;
       if (!activeMembers || activeMembers.length === 0) return [];
 
-      const userIds = activeMembers.map(member => member.user_id);
+      const userIds = activeMembers.map(member => member.id);
 
       // Get broadcast responses for this location (today)
       const { data: broadcastResponses, error: broadcastError } = await supabase

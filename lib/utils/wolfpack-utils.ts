@@ -77,38 +77,40 @@ export const debugWolfPackMembership = async (userId: string, locationId?: strin
     console.log('Auth User:', user ? '✅ Found' : '❌ Not found');
     if (authError) console.error('Auth Error:', authError);
     
-    // Test 2: Check wolf-pack-memberships table
+    // Test 2: Check users table for wolfpack data
     const { error: tableError } = await supabase
-      .from("wolf_pack_members")
-      .select('*')
+      .from("users")
+      .select('is_wolfpack_member')
       .limit(0);
     console.log('Table Access:', tableError ? '❌ Failed' : '✅ Success');
     if (tableError) console.error('Table Error:', tableError);
     
-    // Test 3: Count total memberships
+    // Test 3: Count total wolfpack members
     const { count, error: countError } = await supabase
-      .from("wolf_pack_members")
-      .select('*', { count: 'exact', head: true });
-    console.log('Total Memberships:', count);
+      .from("users")
+      .select('*', { count: 'exact', head: true })
+      .eq('is_wolfpack_member', true);
+    console.log('Total Wolfpack Members:', count);
     if (countError) console.error('Count Error:', countError);
     
-    // Test 4: Try to find user's membership
+    // Test 4: Try to find user's wolfpack status
     const { data: userMembership, error: userError } = await supabase
-      .from("wolf_pack_members")
-      .select('*')
+      .from("users")
+      .select('is_wolfpack_member, wolfpack_status, location_id')
       .eq('id', userId);
-    console.log('User Memberships Found:', userMembership?.length || 0);
-    console.log('User Membership Data:', userMembership);
+    console.log('User Found:', userMembership?.length || 0);
+    console.log('User Wolfpack Data:', userMembership);
     if (userError) console.error('User Query Error:', userError);
     
     // Test 5: Check specific location membership if provided
     if (locationId) {
       const { data: locationMembership, error: locationError } = await supabase
-        .from("wolf_pack_members")
-        .select('*')
+        .from("users")
+        .select('is_wolfpack_member, wolfpack_status, location_id')
         .eq('id', userId)
         .eq('location_id', locationId)
-        .eq('status', 'active')
+        .eq('wolfpack_status', 'active')
+        .eq('is_wolfpack_member', true)
         .maybeSingle();
       console.log('Location Membership:', locationMembership ? '✅ Active' : '❌ Not found');
       if (locationError) console.error('Location Query Error:', locationError);
@@ -199,34 +201,33 @@ export const joinWolfPackFromLocation = async (
 
     // Step 4: Check if already a pack member
     const { data: existingMember, error: memberCheckError } = await supabase
-      .from("wolf_pack_members")
-      .select('*')
+      .from("users")
+      .select('is_wolfpack_member, wolfpack_status, location_id')
       .eq('id', user.id)
-      .eq('location_id', locationId)
       .maybeSingle();
 
-    if (memberCheckError && memberCheckError.code !== 'PGRST116') {
+    if (memberCheckError) {
       console.error('Error checking pack membership:', memberCheckError);
     }
 
-    // Step 5: Create or update pack membership
-    if (!existingMember) {
+    // Step 5: Update user to be a pack member
+    if (!existingMember?.is_wolfpack_member) {
       const memberData = {
-        user_id: user.id,
+        is_wolfpack_member: true,
+        wolfpack_status: 'active',
         location_id: locationId,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        last_activity: new Date().toISOString()
+        location_permissions_granted: true
       };
 
       const { data: memberEntry, error: memberError } = await supabase
-        .from("wolf_pack_members")
-        .insert(memberData)
+        .from("users")
+        .update(memberData)
+        .eq('id', user.id)
         .select()
         .single();
 
       if (memberError) {
-        console.error('Wolf pack member creation error:', memberError);
+        console.error('Wolf pack member update error:', memberError);
         // Don't throw - profile was created successfully
       } else {
         console.log('Successfully joined wolf pack:', memberEntry);
@@ -234,12 +235,14 @@ export const joinWolfPackFromLocation = async (
     } else {
       // Update existing membership
       const { error: updateError } = await supabase
-        .from("wolf_pack_members")
+        .from("users")
         .update({ 
-          status: 'active', 
-          last_active: new Date().toISOString() 
+          wolfpack_status: 'active',
+          is_wolfpack_member: true,
+          location_id: locationId,
+          location_permissions_granted: true
         })
-        .eq('id', existingMember.id!);
+        .eq('id', user.id);
 
       if (updateError) {
         console.error('Error updating pack membership:', updateError);
@@ -267,19 +270,20 @@ export async function checkWolfPackStatus(userId: string) {  try {
       console.error('Error checking user wolfpack status:', userError);
     }
 
-    // Query wolf-pack-memberships with correct columns
+    // Query users table for wolfpack membership data
     const { data: memberData, error: memberError } = await supabase
-      .from('wolf_pack_members')
+      .from('users')
       .select(`
         id,
-        user_id,
+        is_wolfpack_member,
+        wolfpack_status,
         location_id,
-        status,
         created_at,
-        last_activity
+        location_permissions_granted
       `)
       .eq('id', userId)
-      .eq('status', 'active');
+      .eq('wolfpack_status', 'active')
+      .eq('is_wolfpack_member', true);
 
     if (memberError) {
       console.error('Error checking pack membership:', memberError);

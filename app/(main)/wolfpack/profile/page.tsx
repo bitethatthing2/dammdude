@@ -70,6 +70,13 @@ export default function WolfpackProfilePage() {
     try {
       setLoading(true);
       
+      // Get user profile data from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('first_name, last_name, bio, avatar_url, location, website')
+        .eq('id', user.id)
+        .single();
+
       // Get social stats
       const socialStats = await wolfpackSocialService.getUserSocialStats(user.id);
       
@@ -77,17 +84,16 @@ export default function WolfpackProfilePage() {
       const { count: postsCount } = await supabase
         .from('wolfpack_videos')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('user_id', user.id);
       
       const profileData: UserProfile = {
         id: user.id,
-        first_name: user.user_metadata?.first_name || user.user_metadata?.name?.split(' ')[0] || 'Wolf',
-        last_name: user.user_metadata?.last_name || user.user_metadata?.name?.split(' ')[1] || 'Member',
-        avatar_url: user.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png',
-        bio: user.user_metadata?.bio || '🐺 Salem Wolf Pack Member',
-        location: 'Salem, OR',
-        website: user.user_metadata?.website,
+        first_name: userData?.first_name || user.user_metadata?.first_name || user.user_metadata?.name?.split(' ')[0] || 'Wolf',
+        last_name: userData?.last_name || user.user_metadata?.last_name || user.user_metadata?.name?.split(' ')[1] || 'Member',
+        avatar_url: userData?.avatar_url || user.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png',
+        bio: userData?.bio || user.user_metadata?.bio || '🐺 Salem Wolf Pack Member',
+        location: userData?.location || 'Salem, OR',
+        website: userData?.website || user.user_metadata?.website,
         joined_date: user.created_at,
         followers_count: socialStats.followers_count,
         following_count: socialStats.following_count,
@@ -115,7 +121,6 @@ export default function WolfpackProfilePage() {
         .from('wolfpack_videos')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(50);
       

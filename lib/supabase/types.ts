@@ -313,7 +313,7 @@ export interface Database {
           custom_avatar_id: string | null;
           wolfpack_status: string | null;
           is_wolfpack_member: boolean | null;
-          is_permanent_pack_member: boolean | null;
+          wolfpack_tier: string | null;
           location_permissions_granted: boolean | null;
           location_id: string | null;
         };
@@ -334,7 +334,7 @@ export interface Database {
           custom_avatar_id?: string | null;
           wolfpack_status?: string | null;
           is_wolfpack_member?: boolean | null;
-          is_permanent_pack_member?: boolean | null;
+          wolfpack_tier?: string | null;
           location_permissions_granted?: boolean | null;
           location_id?: string | null;
         };
@@ -355,7 +355,7 @@ export interface Database {
           custom_avatar_id?: string | null;
           wolfpack_status?: string | null;
           is_wolfpack_member?: boolean | null;
-          is_permanent_pack_member?: boolean | null;
+          wolfpack_tier?: string | null;
           location_permissions_granted?: boolean | null;
           location_id?: string | null;
         };
@@ -489,6 +489,98 @@ export interface Database {
           },
         ];
       };
+      wolfpack_post_likes: {
+        Row: {
+          id: string;
+          user_id: string;
+          video_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          video_id: string;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          video_id?: string;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_post_likes_video_id_fkey";
+            columns: ["video_id"];
+            referencedRelation: "wolfpack_videos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wolfpack_video_likes_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wolfpack_comments: {
+        Row: {
+          id: string;
+          user_id: string;
+          video_id: string;
+          content: string;
+          parent_comment_id: string | null;
+          like_count: number | null;
+          is_pinned: boolean | null;
+          is_edited: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          video_id: string;
+          content: string;
+          parent_comment_id?: string | null;
+          like_count?: number | null;
+          is_pinned?: boolean | null;
+          is_edited?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          video_id?: string;
+          content?: string;
+          parent_comment_id?: string | null;
+          like_count?: number | null;
+          is_pinned?: boolean | null;
+          is_edited?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_comments_parent_comment_id_fkey";
+            columns: ["parent_comment_id"];
+            referencedRelation: "wolfpack_comments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wolfpack_comments_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wolfpack_comments_video_id_fkey";
+            columns: ["video_id"];
+            referencedRelation: "wolfpack_videos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -565,6 +657,14 @@ export interface Database {
       update_updated_at_column: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
+      };
+      user_liked_video: {
+        Args: { p_video_id: string };
+        Returns: boolean;
+      };
+      check_user_liked_video: {
+        Args: { p_video_id: string };
+        Returns: boolean;
       };
     };
     Enums: {

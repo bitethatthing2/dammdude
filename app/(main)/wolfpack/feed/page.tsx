@@ -403,7 +403,7 @@ export default function WolfpackFeedPage() {
           </div>
           
           <button 
-            onClick={() => router.push('/wolfpack/welcome')}
+            onClick={() => router.push('/wolfpack')}
             className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-red-900/50 active:scale-95"
           >
             📍 Enable Location & Join Pack

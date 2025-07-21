@@ -41,7 +41,7 @@ export async function GET() {
         wolfpack_status,
         is_wolfpack_member,
         wolfpack_tier,
-        is_permanent_pack_member,
+        wolfpack_tier,
         permanent_member_since,
         wolfpack_joined_at,
         location_id,
@@ -98,7 +98,7 @@ export async function GET() {
       activeMembership || 
       userProfile?.is_wolfpack_member || 
       userProfile?.wolfpack_status === 'active' ||
-      userProfile?.is_permanent_pack_member
+      userProfile?.wolfpack_tier
     );
 
     // Get location info (from membership or user profile)
@@ -147,11 +147,11 @@ export async function GET() {
         wolfpackStatus: userProfile.wolfpack_status,
         isWolfpackMember: userProfile.is_wolfpack_member,
         wolfpackTier: userProfile.wolfpack_tier,
-        isPermanentMember: userProfile.is_permanent_pack_member,
-        permanentMemberSince: userProfile.permanent_member_since,
+        isPermanentMember: userProfile.wolfpack_tier,
+        permanentMemberSince: userProfile.perm anent_member_since,
         wolfpackJoinedAt: userProfile.wolfpack_joined_at,
         lastActivity: userProfile.last_activity,
-        status: userProfile.status,
+        status: userProfile.status, 
         membershipDuration
       }
     });

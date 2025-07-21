@@ -14,6 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      _archive_menu_item_modifiers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_available: boolean | null
+          is_popular: boolean | null
+          modifier_type: string | null
+          name: string | null
+          price_adjustment: number | null
+          spice_level: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id: string
+          is_available?: boolean | null
+          is_popular?: boolean | null
+          modifier_type?: string | null
+          name?: string | null
+          price_adjustment?: number | null
+          spice_level?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_available?: boolean | null
+          is_popular?: boolean | null
+          modifier_type?: string | null
+          name?: string | null
+          price_adjustment?: number | null
+          spice_level?: number | null
+        }
+        Relationships: []
+      }
+      _archive_menu_items: {
+        Row: {
+          active: boolean | null
+          availability: boolean | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          metadata: Json | null
+          name: string | null
+          price: number | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          availability?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id: string
+          image_url?: string | null
+          metadata?: Json | null
+          name?: string | null
+          price?: number | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          availability?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          metadata?: Json | null
+          name?: string | null
+          price?: number | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _archive_order_requests: {
+        Row: {
+          approved_at: string | null
+          bartender_id: string | null
+          created_at: string | null
+          declined_at: string | null
+          declined_reason: string | null
+          expires_at: string | null
+          id: string
+          item_name: string | null
+          item_price: number | null
+          location_id: string | null
+          menu_item_id: string | null
+          quantity: number | null
+          request_type: string | null
+          response_message: string | null
+          special_instructions: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          bartender_id?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          declined_reason?: string | null
+          expires_at?: string | null
+          id: string
+          item_name?: string | null
+          item_price?: number | null
+          location_id?: string | null
+          menu_item_id?: string | null
+          quantity?: number | null
+          request_type?: string | null
+          response_message?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          bartender_id?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          declined_reason?: string | null
+          expires_at?: string | null
+          id?: string
+          item_name?: string | null
+          item_price?: number | null
+          location_id?: string | null
+          menu_item_id?: string | null
+          quantity?: number | null
+          request_type?: string | null
+          response_message?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      _system_documentation: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          table_name: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
       api_configurations: {
         Row: {
           api_key: string | null
@@ -161,7 +335,7 @@ export type Database = {
             columns: ["bartender_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_orders_bartender_id_fkey"
@@ -196,7 +370,7 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bartender_orders_customer_id_fkey"
@@ -321,7 +495,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcast_responses_user_id_fkey"
@@ -450,7 +624,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
@@ -563,7 +737,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: true
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_dashboard_state_dj_id_fkey"
@@ -633,7 +807,7 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_event_participants_participant_id_fkey"
@@ -729,7 +903,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_events_dj_id_fkey"
@@ -778,7 +952,7 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_events_winner_id_fkey"
@@ -859,7 +1033,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_quick_actions_dj_id_fkey"
@@ -970,7 +1144,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "food_drink_categories_created_by_fkey"
@@ -1055,7 +1229,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "food_drink_items_created_by_fkey"
@@ -1143,7 +1317,7 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "images_uploaded_by_fkey"
@@ -1160,6 +1334,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      implementation_status: {
+        Row: {
+          action_required: string | null
+          component: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          status: string | null
+        }
+        Insert: {
+          action_required?: string | null
+          component: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          action_required?: string | null
+          component?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       item_modifier_groups: {
         Row: {
@@ -1203,11 +1404,93 @@ export type Database = {
             referencedRelation: "food_drink_items"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      location_verifications: {
+        Row: {
+          created_at: string | null
+          distance_from_nearest: number | null
+          id: string
+          is_within_area: boolean
+          latitude: number
+          longitude: number
+          metadata: Json | null
+          nearest_location_id: string | null
+          user_id: string
+          verification_method: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          distance_from_nearest?: number | null
+          id?: string
+          is_within_area: boolean
+          latitude: number
+          longitude: number
+          metadata?: Json | null
+          nearest_location_id?: string | null
+          user_id: string
+          verification_method?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          distance_from_nearest?: number | null
+          id?: string
+          is_within_area?: boolean
+          latitude?: number
+          longitude?: number
+          metadata?: Json | null
+          nearest_location_id?: string | null
+          user_id?: string
+          verification_method?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: "location_verifications_nearest_location_id_fkey"
+            columns: ["nearest_location_id"]
             isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "location_verifications_nearest_location_id_fkey"
+            columns: ["nearest_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1293,90 +1576,6 @@ export type Database = {
         }
         Relationships: []
       }
-      menu_item_modifiers: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string
-          is_available: boolean | null
-          is_popular: boolean | null
-          modifier_type: string
-          name: string
-          price_adjustment: number | null
-          spice_level: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          modifier_type: string
-          name: string
-          price_adjustment?: number | null
-          spice_level?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          modifier_type?: string
-          name?: string
-          price_adjustment?: number | null
-          spice_level?: number | null
-        }
-        Relationships: []
-      }
-      menu_items: {
-        Row: {
-          active: boolean | null
-          availability: boolean | null
-          category: string
-          created_at: string | null
-          description: string | null
-          id: string
-          image_url: string | null
-          metadata: Json | null
-          name: string
-          price: number
-          sort_order: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          availability?: boolean | null
-          category: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          metadata?: Json | null
-          name: string
-          price: number
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          availability?: boolean | null
-          category?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          metadata?: Json | null
-          name?: string
-          price?: number
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       modifier_group_items: {
         Row: {
           created_at: string | null
@@ -1408,20 +1607,6 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "item_modifier_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "modifier_group_items_modifier_id_fkey"
-            columns: ["modifier_id"]
-            isOneToOne: false
-            referencedRelation: "menu_item_modifier_details"
-            referencedColumns: ["modifier_id"]
-          },
-          {
-            foreignKeyName: "modifier_group_items_modifier_id_fkey"
-            columns: ["modifier_id"]
-            isOneToOne: false
-            referencedRelation: "menu_item_modifiers"
             referencedColumns: ["id"]
           },
         ]
@@ -1511,13 +1696,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -1529,154 +1707,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "bartender_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      order_requests: {
-        Row: {
-          approved_at: string | null
-          bartender_id: string | null
-          created_at: string | null
-          declined_at: string | null
-          declined_reason: string | null
-          expires_at: string | null
-          id: string
-          item_name: string
-          item_price: number
-          location_id: string | null
-          menu_item_id: string | null
-          quantity: number | null
-          request_type: string | null
-          response_message: string | null
-          special_instructions: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          approved_at?: string | null
-          bartender_id?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          declined_reason?: string | null
-          expires_at?: string | null
-          id?: string
-          item_name: string
-          item_price: number
-          location_id?: string | null
-          menu_item_id?: string | null
-          quantity?: number | null
-          request_type?: string | null
-          response_message?: string | null
-          special_instructions?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          approved_at?: string | null
-          bartender_id?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          declined_reason?: string | null
-          expires_at?: string | null
-          id?: string
-          item_name?: string
-          item_price?: number
-          location_id?: string | null
-          menu_item_id?: string | null
-          quantity?: number | null
-          request_type?: string | null
-          response_message?: string | null
-          special_instructions?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_requests_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "order_requests_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "order_requests_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "order_requests_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "order_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "order_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1849,7 +1879,7 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "system_config_updated_by_fkey"
@@ -1861,6 +1891,153 @@ export type Database = {
           {
             foreignKeyName: "system_config_updated_by_fkey"
             columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_documentation: {
+        Row: {
+          created_at: string | null
+          documentation: string
+          id: string
+          topic: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          documentation: string
+          id?: string
+          topic: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          documentation?: string
+          id?: string
+          topic?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          log_type: string
+          message: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          log_type: string
+          message: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          log_type?: string
+          message?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      system_security_notes: {
+        Row: {
+          component: string
+          created_at: string | null
+          id: string
+          issue: string
+          resolution: string | null
+          status: string | null
+        }
+        Insert: {
+          component: string
+          created_at?: string | null
+          id?: string
+          issue: string
+          resolution?: string | null
+          status?: string | null
+        }
+        Update: {
+          component?: string
+          created_at?: string | null
+          id?: string
+          issue?: string
+          resolution?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      upload_performance_metrics: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          file_size_bytes: number | null
+          id: string
+          success: boolean | null
+          upload_duration_ms: number | null
+          upload_end: string | null
+          upload_start: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          success?: boolean | null
+          upload_duration_ms?: number | null
+          upload_end?: string | null
+          upload_start?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          success?: boolean | null
+          upload_duration_ms?: number | null
+          upload_end?: string | null
+          upload_start?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1921,7 +2098,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_fcm_tokens_user_id_fkey"
@@ -2023,7 +2200,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_storage_quotas_user_id_fkey"
@@ -2075,7 +2252,6 @@ export type Database = {
           instagram_handle: string | null
           is_approved: boolean | null
           is_online: boolean | null
-          is_permanent_pack_member: boolean | null
           is_profile_visible: boolean | null
           is_side_hustle: boolean | null
           is_vip: boolean | null
@@ -2092,7 +2268,12 @@ export type Database = {
           location: string | null
           location_accuracy: number | null
           location_id: string | null
+          location_last_reported: string | null
           location_permissions_granted: boolean | null
+          location_report_count: number | null
+          location_verification_date: string | null
+          location_verification_method: string | null
+          location_verification_status: string | null
           location_verified: boolean | null
           looking_for: string | null
           loyalty_score: number | null
@@ -2102,15 +2283,10 @@ export type Database = {
           pack_achievements: Json | null
           pack_badges: Json | null
           password_hash: string | null
-          permanent_member_benefits: Json | null
-          permanent_member_notes: string | null
-          permanent_member_since: string | null
           permissions: Json | null
           phone: string | null
           phone_normalized: string | null
           phone_number: string | null
-          phone_verification_code: string | null
-          phone_verification_sent_at: string | null
           phone_verified: boolean | null
           preferred_pack_activities: string[] | null
           privacy_settings: Json | null
@@ -2173,7 +2349,6 @@ export type Database = {
           instagram_handle?: string | null
           is_approved?: boolean | null
           is_online?: boolean | null
-          is_permanent_pack_member?: boolean | null
           is_profile_visible?: boolean | null
           is_side_hustle?: boolean | null
           is_vip?: boolean | null
@@ -2190,7 +2365,12 @@ export type Database = {
           location?: string | null
           location_accuracy?: number | null
           location_id?: string | null
+          location_last_reported?: string | null
           location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
           location_verified?: boolean | null
           looking_for?: string | null
           loyalty_score?: number | null
@@ -2200,15 +2380,10 @@ export type Database = {
           pack_achievements?: Json | null
           pack_badges?: Json | null
           password_hash?: string | null
-          permanent_member_benefits?: Json | null
-          permanent_member_notes?: string | null
-          permanent_member_since?: string | null
           permissions?: Json | null
           phone?: string | null
           phone_normalized?: string | null
           phone_number?: string | null
-          phone_verification_code?: string | null
-          phone_verification_sent_at?: string | null
           phone_verified?: boolean | null
           preferred_pack_activities?: string[] | null
           privacy_settings?: Json | null
@@ -2271,7 +2446,6 @@ export type Database = {
           instagram_handle?: string | null
           is_approved?: boolean | null
           is_online?: boolean | null
-          is_permanent_pack_member?: boolean | null
           is_profile_visible?: boolean | null
           is_side_hustle?: boolean | null
           is_vip?: boolean | null
@@ -2288,7 +2462,12 @@ export type Database = {
           location?: string | null
           location_accuracy?: number | null
           location_id?: string | null
+          location_last_reported?: string | null
           location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
           location_verified?: boolean | null
           looking_for?: string | null
           loyalty_score?: number | null
@@ -2298,15 +2477,10 @@ export type Database = {
           pack_achievements?: Json | null
           pack_badges?: Json | null
           password_hash?: string | null
-          permanent_member_benefits?: Json | null
-          permanent_member_notes?: string | null
-          permanent_member_since?: string | null
           permissions?: Json | null
           phone?: string | null
           phone_normalized?: string | null
           phone_number?: string | null
-          phone_verification_code?: string | null
-          phone_verification_sent_at?: string | null
           phone_verified?: boolean | null
           preferred_pack_activities?: string[] | null
           privacy_settings?: Json | null
@@ -2356,7 +2530,7 @@ export type Database = {
             columns: ["blocked_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_users_blocked_by"
@@ -2405,7 +2579,7 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "users_verified_by_fkey"
@@ -2492,7 +2666,7 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "notifications_recipient_id_fkey"
@@ -2527,7 +2701,7 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
@@ -2587,7 +2761,7 @@ export type Database = {
             columns: ["blocked_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
@@ -2622,7 +2796,7 @@ export type Database = {
             columns: ["blocker_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_blocked_users_blocker_id_fkey"
@@ -2723,7 +2897,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_chat_messages_user"
@@ -2772,7 +2946,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
@@ -2846,7 +3020,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
@@ -2905,70 +3079,6 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wolfpack_comment_likes: {
-        Row: {
-          comment_id: string
-          created_at: string | null
-          id: string
-          user_id: string
-        }
-        Insert: {
-          comment_id: string
-          created_at?: string | null
-          id?: string
-          user_id: string
-        }
-        Update: {
-          comment_id?: string
-          created_at?: string | null
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wolfpack_comment_likes_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "wolfpack_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3037,7 +3147,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_comments_user_id_fkey"
@@ -3074,12 +3184,17 @@ export type Database = {
           content: string | null
           conversation_id: string | null
           created_at: string | null
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           is_read: boolean | null
+          media_metadata: Json | null
           media_url: string | null
           message_type: string | null
+          reactions: Json | null
           read_at: string | null
           recipient_id: string
+          reply_to_message_id: string | null
           sender_id: string
           shared_post_id: string | null
         }
@@ -3087,12 +3202,17 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           is_read?: boolean | null
+          media_metadata?: Json | null
           media_url?: string | null
           message_type?: string | null
+          reactions?: Json | null
           read_at?: string | null
           recipient_id: string
+          reply_to_message_id?: string | null
           sender_id: string
           shared_post_id?: string | null
         }
@@ -3100,12 +3220,17 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           is_read?: boolean | null
+          media_metadata?: Json | null
           media_url?: string | null
           message_type?: string | null
+          reactions?: Json | null
           read_at?: string | null
           recipient_id?: string
+          reply_to_message_id?: string | null
           sender_id?: string
           shared_post_id?: string | null
         }
@@ -3143,7 +3268,7 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
@@ -3157,6 +3282,13 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_direct_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_direct_messages"
             referencedColumns: ["id"]
           },
           {
@@ -3178,7 +3310,7 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_direct_messages_sender_id_fkey"
@@ -3198,26 +3330,47 @@ export type Database = {
       }
       wolfpack_dm_conversations: {
         Row: {
+          archived_at: string | null
           created_at: string | null
           id: string
+          is_archived: boolean | null
           last_message_at: string | null
           last_message_preview: string | null
+          last_read_user1: string | null
+          last_read_user2: string | null
+          unread_count_user1: number | null
+          unread_count_user2: number | null
+          updated_at: string | null
           user1_id: string | null
           user2_id: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string | null
           id?: string
+          is_archived?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          last_read_user1?: string | null
+          last_read_user2?: string | null
+          unread_count_user1?: number | null
+          unread_count_user2?: number | null
+          updated_at?: string | null
           user1_id?: string | null
           user2_id?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string | null
           id?: string
+          is_archived?: boolean | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          last_read_user1?: string | null
+          last_read_user2?: string | null
+          unread_count_user1?: number | null
+          unread_count_user2?: number | null
+          updated_at?: string | null
           user1_id?: string | null
           user2_id?: string | null
         }
@@ -3241,7 +3394,7 @@ export type Database = {
             columns: ["user1_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
@@ -3276,7 +3429,7 @@ export type Database = {
             columns: ["user2_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_dm_conversations_user2_id_fkey"
@@ -3333,7 +3486,7 @@ export type Database = {
             columns: ["follower_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_follows_follower_id_fkey"
@@ -3368,7 +3521,7 @@ export type Database = {
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_follows_following_id_fkey"
@@ -3380,6 +3533,122 @@ export type Database = {
           {
             foreignKeyName: "wolfpack_follows_following_id_fkey"
             columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wolfpack_friend_suggestions: {
+        Row: {
+          action_taken: string | null
+          common_interests: string[] | null
+          created_at: string | null
+          id: string
+          interacted_at: string | null
+          mutual_friend_count: number | null
+          reason: string | null
+          score: number | null
+          shown_at: string | null
+          suggested_user_id: string
+          suggestion_type: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          common_interests?: string[] | null
+          created_at?: string | null
+          id?: string
+          interacted_at?: string | null
+          mutual_friend_count?: number | null
+          reason?: string | null
+          score?: number | null
+          shown_at?: string | null
+          suggested_user_id: string
+          suggestion_type: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          common_interests?: string[] | null
+          created_at?: string | null
+          id?: string
+          interacted_at?: string | null
+          mutual_friend_count?: number | null
+          reason?: string | null
+          score?: number | null
+          shown_at?: string | null
+          suggested_user_id?: string
+          suggestion_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3413,6 +3682,123 @@ export type Database = {
           tag_normalized?: string | null
           updated_at?: string | null
           usage_count?: number | null
+        }
+        Relationships: []
+      }
+      wolfpack_ingested_content: {
+        Row: {
+          cdn_url: string | null
+          comment_count: number | null
+          created_at: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          ingested_at: string | null
+          like_count: number | null
+          metadata: Json | null
+          post_status: string | null
+          posted_at: string | null
+          relevance_score: number | null
+          scheduled_post_time: string | null
+          source_id: string
+          source_platform: string
+          source_url: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string | null
+          video_url: string | null
+          view_count: number | null
+        }
+        Insert: {
+          cdn_url?: string | null
+          comment_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          ingested_at?: string | null
+          like_count?: number | null
+          metadata?: Json | null
+          post_status?: string | null
+          posted_at?: string | null
+          relevance_score?: number | null
+          scheduled_post_time?: string | null
+          source_id: string
+          source_platform: string
+          source_url: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          cdn_url?: string | null
+          comment_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          ingested_at?: string | null
+          like_count?: number | null
+          metadata?: Json | null
+          post_status?: string | null
+          posted_at?: string | null
+          relevance_score?: number | null
+          scheduled_post_time?: string | null
+          source_id?: string
+          source_platform?: string
+          source_url?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      wolfpack_ingestion_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          items_found: number | null
+          items_ingested: number | null
+          job_type: string
+          platform: string
+          search_params: Json | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_found?: number | null
+          items_ingested?: number | null
+          job_type: string
+          platform: string
+          search_params?: Json | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_found?: number | null
+          items_ingested?: number | null
+          job_type?: string
+          platform?: string
+          search_params?: Json | null
+          started_at?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -3493,7 +3879,7 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
@@ -3528,7 +3914,7 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
@@ -3642,7 +4028,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_video_likes_user_id_fkey"
@@ -3699,7 +4085,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_saved_posts_user_id_fkey"
@@ -3782,7 +4168,7 @@ export type Database = {
             columns: ["shared_by_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
@@ -3817,7 +4203,7 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
@@ -3969,7 +4355,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_user_settings_user_id_fkey"
@@ -4103,7 +4489,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_video_uploads_user_id_fkey"
@@ -4123,84 +4509,154 @@ export type Database = {
       }
       wolfpack_videos: {
         Row: {
+          algorithm_boost: number | null
+          allow_comments: boolean | null
+          allow_duets: boolean | null
+          allow_stitches: boolean | null
           aspect_ratio: string | null
           caption: string | null
+          comment_count: number | null
           comments_count: number | null
           created_at: string | null
           description: string | null
           duration: number | null
           duration_seconds: number | null
+          effect_id: string | null
+          effect_name: string | null
+          featured_at: string | null
+          hashtags: string[] | null
           id: string
+          images: string[] | null
+          ingested_content_id: string | null
           is_active: boolean | null
+          is_ad: boolean | null
           is_featured: boolean | null
           like_count: number | null
           likes_count: number | null
           location_id: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_tag: string | null
           metadata: Json | null
+          music_id: string | null
+          music_name: string | null
+          post_type: string | null
           processing_status: string | null
           share_count: number | null
+          source: string | null
           tags: string[] | null
           thumbnail_url: string | null
           title: string | null
+          trending_score: number | null
           updated_at: string | null
           user_id: string | null
           video_url: string | null
           view_count: number | null
           views_count: number | null
+          visibility: string | null
         }
         Insert: {
+          algorithm_boost?: number | null
+          allow_comments?: boolean | null
+          allow_duets?: boolean | null
+          allow_stitches?: boolean | null
           aspect_ratio?: string | null
           caption?: string | null
+          comment_count?: number | null
           comments_count?: number | null
           created_at?: string | null
           description?: string | null
           duration?: number | null
           duration_seconds?: number | null
+          effect_id?: string | null
+          effect_name?: string | null
+          featured_at?: string | null
+          hashtags?: string[] | null
           id?: string
+          images?: string[] | null
+          ingested_content_id?: string | null
           is_active?: boolean | null
+          is_ad?: boolean | null
           is_featured?: boolean | null
           like_count?: number | null
           likes_count?: number | null
           location_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_tag?: string | null
           metadata?: Json | null
+          music_id?: string | null
+          music_name?: string | null
+          post_type?: string | null
           processing_status?: string | null
           share_count?: number | null
+          source?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
           title?: string | null
+          trending_score?: number | null
           updated_at?: string | null
           user_id?: string | null
           video_url?: string | null
           view_count?: number | null
           views_count?: number | null
+          visibility?: string | null
         }
         Update: {
+          algorithm_boost?: number | null
+          allow_comments?: boolean | null
+          allow_duets?: boolean | null
+          allow_stitches?: boolean | null
           aspect_ratio?: string | null
           caption?: string | null
+          comment_count?: number | null
           comments_count?: number | null
           created_at?: string | null
           description?: string | null
           duration?: number | null
           duration_seconds?: number | null
+          effect_id?: string | null
+          effect_name?: string | null
+          featured_at?: string | null
+          hashtags?: string[] | null
           id?: string
+          images?: string[] | null
+          ingested_content_id?: string | null
           is_active?: boolean | null
+          is_ad?: boolean | null
           is_featured?: boolean | null
           like_count?: number | null
           likes_count?: number | null
           location_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_tag?: string | null
           metadata?: Json | null
+          music_id?: string | null
+          music_name?: string | null
+          post_type?: string | null
           processing_status?: string | null
           share_count?: number | null
+          source?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
           title?: string | null
+          trending_score?: number | null
           updated_at?: string | null
           user_id?: string | null
           video_url?: string | null
           view_count?: number | null
           views_count?: number | null
+          visibility?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "wolfpack_videos_ingested_content_id_fkey"
+            columns: ["ingested_content_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_ingested_content"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wolfpack_videos_location_id_fkey"
             columns: ["location_id"]
@@ -4234,7 +4690,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
@@ -4368,7 +4824,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
@@ -4454,7 +4910,7 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
@@ -4488,63 +4944,382 @@ export type Database = {
       }
       active_wolfpack_members: {
         Row: {
+          allow_messages: boolean | null
+          artist_account: boolean | null
+          auth_id: string | null
+          avatar_id: string | null
           avatar_url: string | null
           bio: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          business_account: boolean | null
+          card_on_file: boolean | null
+          city: string | null
+          created_at: string | null
+          custom_avatar_id: string | null
+          daily_customization: Json | null
+          deleted_at: string | null
           display_name: string | null
+          email: string | null
+          email_normalized: string | null
+          favorite_bartender: string | null
           favorite_drink: string | null
           favorite_song: string | null
+          first_name: string | null
+          full_name_normalized: string | null
           gender: string | null
+          has_open_tab: boolean | null
           id: string | null
+          id_verification_method: string | null
+          id_verified: boolean | null
           instagram_handle: string | null
+          is_approved: boolean | null
           is_online: boolean | null
-          is_permanent_pack_member: boolean | null
+          is_profile_visible: boolean | null
+          is_side_hustle: boolean | null
+          is_vip: boolean | null
+          is_wolfpack_member: boolean | null
           last_activity: string | null
+          last_known_lat: number | null
+          last_known_lng: number | null
+          last_location_check: string | null
+          last_location_update: string | null
+          last_login: string | null
+          last_name: string | null
+          last_seen_at: string | null
+          leader_rank: string | null
+          location: string | null
+          location_accuracy: number | null
+          location_id: string | null
+          location_last_reported: string | null
+          location_permissions_granted: boolean | null
+          location_report_count: number | null
+          location_verification_date: string | null
+          location_verification_method: string | null
+          location_verification_status: string | null
+          location_verified: boolean | null
           looking_for: string | null
+          loyalty_score: number | null
+          notes: string | null
+          notification_preferences: Json | null
+          occupation: string | null
+          pack_achievements: Json | null
+          pack_badges: Json | null
+          password_hash: string | null
+          permissions: Json | null
+          phone: string | null
+          phone_normalized: string | null
+          phone_number: string | null
+          phone_verified: boolean | null
+          preferred_pack_activities: string[] | null
+          privacy_settings: Json | null
+          profile_image_url: string | null
+          profile_last_seen_at: string | null
           profile_pic_url: string | null
           pronouns: string | null
+          role: string | null
+          sensitive_data_encrypted: Json | null
+          session_id: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          username: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          verified_region: string | null
           vibe_status: string | null
           wolf_emoji: string | null
+          wolfpack_availability_status: string | null
+          wolfpack_bio: string | null
+          wolfpack_interests: string[] | null
+          wolfpack_joined_at: string | null
+          wolfpack_skills: string[] | null
+          wolfpack_social_links: Json | null
+          wolfpack_status: string | null
           wolfpack_tier: string | null
         }
         Insert: {
+          allow_messages?: boolean | null
+          artist_account?: boolean | null
+          auth_id?: string | null
+          avatar_id?: string | null
           avatar_url?: string | null
           bio?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          business_account?: boolean | null
+          card_on_file?: boolean | null
+          city?: string | null
+          created_at?: string | null
+          custom_avatar_id?: string | null
+          daily_customization?: Json | null
+          deleted_at?: string | null
           display_name?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          favorite_bartender?: string | null
           favorite_drink?: string | null
           favorite_song?: string | null
+          first_name?: string | null
+          full_name_normalized?: string | null
           gender?: string | null
+          has_open_tab?: boolean | null
           id?: string | null
+          id_verification_method?: string | null
+          id_verified?: boolean | null
           instagram_handle?: string | null
+          is_approved?: boolean | null
           is_online?: boolean | null
-          is_permanent_pack_member?: boolean | null
+          is_profile_visible?: boolean | null
+          is_side_hustle?: boolean | null
+          is_vip?: boolean | null
+          is_wolfpack_member?: boolean | null
           last_activity?: string | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          last_location_check?: string | null
+          last_location_update?: string | null
+          last_login?: string | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          leader_rank?: string | null
+          location?: string | null
+          location_accuracy?: number | null
+          location_id?: string | null
+          location_last_reported?: string | null
+          location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
+          location_verified?: boolean | null
           looking_for?: string | null
+          loyalty_score?: number | null
+          notes?: string | null
+          notification_preferences?: Json | null
+          occupation?: string | null
+          pack_achievements?: Json | null
+          pack_badges?: Json | null
+          password_hash?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          phone_normalized?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          preferred_pack_activities?: string[] | null
+          privacy_settings?: Json | null
+          profile_image_url?: string | null
+          profile_last_seen_at?: string | null
           profile_pic_url?: string | null
           pronouns?: string | null
+          role?: string | null
+          sensitive_data_encrypted?: Json | null
+          session_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_region?: string | null
           vibe_status?: string | null
           wolf_emoji?: string | null
+          wolfpack_availability_status?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_interests?: string[] | null
+          wolfpack_joined_at?: string | null
+          wolfpack_skills?: string[] | null
+          wolfpack_social_links?: Json | null
+          wolfpack_status?: string | null
           wolfpack_tier?: string | null
         }
         Update: {
+          allow_messages?: boolean | null
+          artist_account?: boolean | null
+          auth_id?: string | null
+          avatar_id?: string | null
           avatar_url?: string | null
           bio?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          business_account?: boolean | null
+          card_on_file?: boolean | null
+          city?: string | null
+          created_at?: string | null
+          custom_avatar_id?: string | null
+          daily_customization?: Json | null
+          deleted_at?: string | null
           display_name?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          favorite_bartender?: string | null
           favorite_drink?: string | null
           favorite_song?: string | null
+          first_name?: string | null
+          full_name_normalized?: string | null
           gender?: string | null
+          has_open_tab?: boolean | null
           id?: string | null
+          id_verification_method?: string | null
+          id_verified?: boolean | null
           instagram_handle?: string | null
+          is_approved?: boolean | null
           is_online?: boolean | null
-          is_permanent_pack_member?: boolean | null
+          is_profile_visible?: boolean | null
+          is_side_hustle?: boolean | null
+          is_vip?: boolean | null
+          is_wolfpack_member?: boolean | null
           last_activity?: string | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          last_location_check?: string | null
+          last_location_update?: string | null
+          last_login?: string | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          leader_rank?: string | null
+          location?: string | null
+          location_accuracy?: number | null
+          location_id?: string | null
+          location_last_reported?: string | null
+          location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
+          location_verified?: boolean | null
           looking_for?: string | null
+          loyalty_score?: number | null
+          notes?: string | null
+          notification_preferences?: Json | null
+          occupation?: string | null
+          pack_achievements?: Json | null
+          pack_badges?: Json | null
+          password_hash?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          phone_normalized?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          preferred_pack_activities?: string[] | null
+          privacy_settings?: Json | null
+          profile_image_url?: string | null
+          profile_last_seen_at?: string | null
           profile_pic_url?: string | null
           pronouns?: string | null
+          role?: string | null
+          sensitive_data_encrypted?: Json | null
+          session_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_region?: string | null
           vibe_status?: string | null
           wolf_emoji?: string | null
+          wolfpack_availability_status?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_interests?: string[] | null
+          wolfpack_joined_at?: string | null
+          wolfpack_skills?: string[] | null
+          wolfpack_social_links?: Json | null
+          wolfpack_status?: string | null
           wolfpack_tier?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_custom_avatar_id_fkey"
+            columns: ["custom_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bartender_locations: {
         Row: {
@@ -4629,74 +5404,6 @@ export type Database = {
         }
         Relationships: []
       }
-      menu_item_modifier_details: {
-        Row: {
-          category: string | null
-          category_order: number | null
-          description: string | null
-          display_order: number | null
-          group_name: string | null
-          is_available: boolean | null
-          is_default: boolean | null
-          is_required: boolean | null
-          item_id: string | null
-          max_selections: number | null
-          min_selections: number | null
-          modifier_id: string | null
-          modifier_name: string | null
-          modifier_type: string | null
-          price_adjustment: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      menu_items_with_working_modifiers: {
-        Row: {
-          category: Json | null
-          category_id: string | null
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string | null
-          image_id: string | null
-          image_url: string | null
-          is_available: boolean | null
-          modifiers: Json | null
-          name: string | null
-          price: number | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "food_drink_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_image_id_fkey"
-            columns: ["image_id"]
-            isOneToOne: false
-            referencedRelation: "images"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           created_at: string | null
@@ -4760,7 +5467,7 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "notifications_recipient_id_fkey"
@@ -4795,7 +5502,7 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
@@ -4813,33 +5520,51 @@ export type Database = {
           },
         ]
       }
-      user_interaction_permissions: {
+      spatial_references: {
         Row: {
-          auth_id: string | null
-          email: string | null
-          interaction_status: string | null
-          is_wolfpack_member: boolean | null
-          role: string | null
-          user_id: string | null
-          wolfpack_status: string | null
+          auth_name: string | null
+          auth_srid: number | null
+          proj4text: string | null
+          srid: number | null
+          srtext: string | null
         }
         Insert: {
-          auth_id?: string | null
-          email?: string | null
-          interaction_status?: never
-          is_wolfpack_member?: boolean | null
-          role?: string | null
-          user_id?: string | null
-          wolfpack_status?: string | null
+          auth_name?: string | null
+          auth_srid?: number | null
+          proj4text?: string | null
+          srid?: number | null
+          srtext?: string | null
         }
         Update: {
-          auth_id?: string | null
-          email?: string | null
-          interaction_status?: never
+          auth_name?: string | null
+          auth_srid?: number | null
+          proj4text?: string | null
+          srid?: number | null
+          srtext?: string | null
+        }
+        Relationships: []
+      }
+      user_interaction_permissions: {
+        Row: {
+          allow_messages: boolean | null
+          display_name: string | null
+          id: string | null
+          is_wolfpack_member: boolean | null
+          privacy_settings: Json | null
+        }
+        Insert: {
+          allow_messages?: boolean | null
+          display_name?: string | null
+          id?: string | null
           is_wolfpack_member?: boolean | null
-          role?: string | null
-          user_id?: string | null
-          wolfpack_status?: string | null
+          privacy_settings?: Json | null
+        }
+        Update: {
+          allow_messages?: boolean | null
+          display_name?: string | null
+          id?: string | null
+          is_wolfpack_member?: boolean | null
+          privacy_settings?: Json | null
         }
         Relationships: []
       }
@@ -4961,7 +5686,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_chat_messages_user"
@@ -4996,7 +5721,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
@@ -5016,46 +5741,58 @@ export type Database = {
       }
       wolfpack_posts: {
         Row: {
-          comment_count: number | null
+          comments_count: number | null
           content: string | null
           created_at: string | null
+          hashtags: string[] | null
           id: string | null
-          is_published: boolean | null
-          like_count: number | null
+          is_featured: boolean | null
+          likes_count: number | null
+          location: string | null
           media_type: string | null
           media_url: string | null
-          share_count: number | null
+          mentions: string[] | null
+          shares_count: number | null
           updated_at: string | null
           user_id: string | null
-          view_count: number | null
+          views_count: number | null
+          visibility: string | null
         }
         Insert: {
-          comment_count?: never
+          comments_count?: never
           content?: string | null
           created_at?: string | null
+          hashtags?: string[] | null
           id?: string | null
-          is_published?: boolean | null
-          like_count?: never
+          is_featured?: never
+          likes_count?: never
+          location?: string | null
           media_type?: never
-          media_url?: string | null
-          share_count?: never
+          media_url?: never
+          mentions?: never
+          shares_count?: never
           updated_at?: string | null
           user_id?: string | null
-          view_count?: never
+          views_count?: never
+          visibility?: string | null
         }
         Update: {
-          comment_count?: never
+          comments_count?: never
           content?: string | null
           created_at?: string | null
+          hashtags?: string[] | null
           id?: string | null
-          is_published?: boolean | null
-          like_count?: never
+          is_featured?: never
+          likes_count?: never
+          location?: string | null
           media_type?: never
-          media_url?: string | null
-          share_count?: never
+          media_url?: never
+          mentions?: never
+          shares_count?: never
           updated_at?: string | null
           user_id?: string | null
-          view_count?: never
+          views_count?: never
+          visibility?: string | null
         }
         Relationships: [
           {
@@ -5077,7 +5814,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
@@ -5149,7 +5886,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_video_likes_user_id_fkey"
@@ -5218,7 +5955,7 @@ export type Database = {
             columns: ["shared_by_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
@@ -5253,7 +5990,7 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
@@ -5843,6 +6580,14 @@ export type Database = {
         Args: { target_user_id: string; new_status: string }
         Returns: Json
       }
+      analyze_content_with_ai: {
+        Args: { p_content_type: string; p_content: string; p_context?: Json }
+        Returns: Json
+      }
+      analyze_content_with_ai_enhanced: {
+        Args: { p_content_id: string; p_content_type: string }
+        Returns: Json
+      }
       analyze_index_usage: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5925,6 +6670,10 @@ export type Database = {
         }
         Returns: Json
       }
+      boost_content_trending: {
+        Args: { p_video_id: string; p_boost_factor?: number }
+        Returns: undefined
+      }
       box: {
         Args: { "": unknown } | { "": unknown }
         Returns: unknown
@@ -5975,6 +6724,16 @@ export type Database = {
       }
       calculate_crowd_energy: {
         Args: { p_location_id: string }
+        Returns: number
+      }
+      calculate_trending_score: {
+        Args: {
+          p_view_count: number
+          p_like_count: number
+          p_comment_count: number
+          p_share_count: number
+          p_created_at: string
+        }
         Returns: number
       }
       can_access_bar_tab: {
@@ -6109,6 +6868,10 @@ export type Database = {
         Args: { check_auth_id: string }
         Returns: boolean
       }
+      check_location_requirement: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       check_my_access: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6168,6 +6931,10 @@ export type Database = {
           notes: string
         }[]
       }
+      check_service_health: {
+        Args: { p_service: string }
+        Returns: Json
+      }
       check_srid_exists: {
         Args: { check_srid: number }
         Returns: boolean
@@ -6196,6 +6963,10 @@ export type Database = {
       check_user_liked_video: {
         Args: { p_video_id: string }
         Returns: boolean
+      }
+      check_user_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       check_user_membership: {
         Args: { user_uuid: string; location_uuid: string }
@@ -6465,6 +7236,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_ingestion_job: {
+        Args: { p_platform: string; p_url: string; p_user_id?: string }
+        Returns: string
+      }
       create_live_contest: {
         Args: {
           p_dj_id: string
@@ -6538,6 +7313,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_test_notification: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      create_video_post: {
+        Args: {
+          p_video_url: string
+          p_caption?: string
+          p_tags?: string[]
+          p_thumbnail_url?: string
+        }
+        Returns: Json
+      }
       create_wolf_interaction: {
         Args: {
           p_receiver_id: string
@@ -6580,6 +7368,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      debug_video_upload: {
+        Args: { p_user_id: string; p_file_size: number; p_mime_type: string }
+        Returns: Json
+      }
       delete_chat_message: {
         Args: { p_message_id: string }
         Returns: boolean
@@ -6611,6 +7403,10 @@ export type Database = {
           p_days_ahead?: number
         }
         Returns: Json
+      }
+      dismiss_friend_suggestion: {
+        Args: { p_user_id: string; p_suggested_user_id: string }
+        Returns: undefined
       }
       dj_broadcast_message: {
         Args: { p_message: string; p_broadcast_type?: string }
@@ -6767,6 +7563,15 @@ export type Database = {
         Args: { p_message_id: string; p_reason?: string }
         Returns: boolean
       }
+      flag_content_for_review: {
+        Args: {
+          p_video_id: string
+          p_reporter_id: string
+          p_reason: string
+          p_details?: string
+        }
+        Returns: Json
+      }
       format_location_hours: {
         Args: { location_hours: Json }
         Returns: string
@@ -6774,6 +7579,22 @@ export type Database = {
       generate_ai_content_post: {
         Args: { p_city: string; p_content_type: string }
         Returns: string
+      }
+      generate_ai_recommendations: {
+        Args: { p_user_id: string; p_recommendation_type: string }
+        Returns: Json
+      }
+      generate_all_friend_suggestions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_friend_suggestions_for_user: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      generate_location_based_suggestions: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       generate_optimization_report: {
         Args: Record<PropertyKey, never>
@@ -6804,6 +7625,10 @@ export type Database = {
       }
       generate_unique_filename: {
         Args: { original_filename: string; user_id: string }
+        Returns: string
+      }
+      generate_video_upload_path: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       geography: {
@@ -7159,7 +7984,6 @@ export type Database = {
           instagram_handle: string | null
           is_approved: boolean | null
           is_online: boolean | null
-          is_permanent_pack_member: boolean | null
           is_profile_visible: boolean | null
           is_side_hustle: boolean | null
           is_vip: boolean | null
@@ -7176,7 +8000,12 @@ export type Database = {
           location: string | null
           location_accuracy: number | null
           location_id: string | null
+          location_last_reported: string | null
           location_permissions_granted: boolean | null
+          location_report_count: number | null
+          location_verification_date: string | null
+          location_verification_method: string | null
+          location_verification_status: string | null
           location_verified: boolean | null
           looking_for: string | null
           loyalty_score: number | null
@@ -7186,15 +8015,10 @@ export type Database = {
           pack_achievements: Json | null
           pack_badges: Json | null
           password_hash: string | null
-          permanent_member_benefits: Json | null
-          permanent_member_notes: string | null
-          permanent_member_since: string | null
           permissions: Json | null
           phone: string | null
           phone_normalized: string | null
           phone_number: string | null
-          phone_verification_code: string | null
-          phone_verification_sent_at: string | null
           phone_verified: boolean | null
           preferred_pack_activities: string[] | null
           privacy_settings: Json | null
@@ -7363,6 +8187,25 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_conversation_messages: {
+        Args: {
+          p_conversation_id: string
+          p_user_id: string
+          p_limit?: number
+          p_before_id?: string
+        }
+        Returns: {
+          message_id: string
+          sender_id: string
+          sender_name: string
+          sender_avatar: string
+          message: string
+          message_type: string
+          created_at: string
+          is_read: boolean
+          is_own_message: boolean
+        }[]
+      }
       get_conversation_stats: {
         Args: { p_conversation_id: string }
         Returns: {
@@ -7396,6 +8239,10 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_current_user_info: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
@@ -7498,6 +8345,20 @@ export type Database = {
       get_firebase_credentials: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_friend_suggestions: {
+        Args: { p_user_id: string; p_limit?: number }
+        Returns: {
+          suggested_user_id: string
+          username: string
+          display_name: string
+          avatar_url: string
+          bio: string
+          location: string
+          common_interests: string[]
+          score: number
+          suggestion_type: string
+        }[]
       }
       get_hot_events_at_bar: {
         Args: { p_location_id: string; p_limit?: number }
@@ -7682,6 +8543,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_moderation_queue: {
+        Args: { p_status?: string; p_limit?: number }
+        Returns: {
+          video_id: string
+          user_id: string
+          username: string
+          video_url: string
+          thumbnail_url: string
+          caption: string
+          flag_reason: string
+          flag_count: number
+          created_at: string
+          flagged_at: string
+        }[]
+      }
       get_my_event_recommendations: {
         Args: { p_user_id: string; p_limit?: number }
         Returns: {
@@ -7758,6 +8634,16 @@ export type Database = {
       get_pack_role: {
         Args: { pack_id_param: string; user_id_param?: string }
         Returns: string
+      }
+      get_pending_ingestion_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          platform: string
+          source_url: string
+          created_by: string
+          created_at: string
+        }[]
       }
       get_pending_orders: {
         Args: { p_location_id?: string }
@@ -7875,6 +8761,10 @@ export type Database = {
           role: string
         }[]
       }
+      get_secure_credential: {
+        Args: { p_name: string }
+        Returns: string
+      }
       get_security_health_summary: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -7895,6 +8785,10 @@ export type Database = {
       get_session_id_by_code: {
         Args: { session_code_param: string }
         Returns: string
+      }
+      get_setup_checklist: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_slow_query_summary: {
         Args: { p_hours?: number }
@@ -7935,6 +8829,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_system_health_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_tab_total: {
         Args: { p_user_id: string }
         Returns: Json
@@ -7963,6 +8861,34 @@ export type Database = {
           idx_scan: number
           idx_tup_fetch: number
           index_hit_ratio: number
+        }[]
+      }
+      get_trending_content: {
+        Args: {
+          p_user_id?: string
+          p_location?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          id: string
+          user_id: string
+          username: string
+          display_name: string
+          avatar_url: string
+          video_url: string
+          thumbnail_url: string
+          caption: string
+          hashtags: string[]
+          location_tag: string
+          post_type: string
+          view_count: number
+          like_count: number
+          comment_count: number
+          share_count: number
+          trending_score: number
+          created_at: string
+          user_has_liked: boolean
         }[]
       }
       get_trending_hashtags: {
@@ -8001,18 +8927,16 @@ export type Database = {
         Returns: number
       }
       get_user_conversations: {
-        Args: { p_limit?: number; p_offset?: number } | { user_uuid: string }
+        Args: { p_user_id: string; p_limit?: number; p_offset?: number }
         Returns: {
           conversation_id: string
-          conversation_type: string
-          name: string
-          avatar_url: string
-          last_message_preview: string
+          other_user_id: string
+          other_user_name: string
+          other_user_avatar: string
+          last_message: string
           last_message_at: string
           unread_count: number
-          is_muted: boolean
-          is_pinned: boolean
-          participants: Json
+          is_online: boolean
         }[]
       }
       get_user_dashboard: {
@@ -8203,6 +9127,10 @@ export type Database = {
       get_video_stats: {
         Args: { video_uuid: string }
         Returns: Json
+      }
+      get_video_upload_path: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       get_video_with_status: {
         Args: { p_video_id: string; p_user_id: string }
@@ -8625,6 +9553,10 @@ export type Database = {
         Args: { user_lat: number; user_lon: number; location_id: string }
         Returns: boolean
       }
+      is_within_service_area: {
+        Args: { lat: number; lng: number }
+        Returns: boolean
+      }
       is_wolf_pack_available: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -8820,8 +9752,8 @@ export type Database = {
         Returns: Json
       }
       mark_message_read: {
-        Args: { p_user_id: string; p_message_id: string }
-        Returns: boolean
+        Args: { p_message_id: string; p_user_id: string }
+        Returns: undefined
       }
       mark_messages_as_read: {
         Args: { p_conversation_id: string; p_user_id?: string }
@@ -8853,6 +9785,15 @@ export type Database = {
       migrate_old_direct_messages: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      moderate_content: {
+        Args: {
+          p_video_id: string
+          p_moderator_id: string
+          p_action: string
+          p_notes?: string
+        }
+        Returns: Json
       }
       monitor_admin_activity: {
         Args: Record<PropertyKey, never>
@@ -9116,6 +10057,24 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      process_content_ingestion_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      process_ingested_content: {
+        Args: {
+          p_job_id: string
+          p_platform_id: string
+          p_title: string
+          p_description: string
+          p_media_url: string
+          p_thumbnail_url: string
+          p_author_name: string
+          p_author_id?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       process_notifications_direct: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -9135,6 +10094,14 @@ export type Database = {
       }
       process_push_notifications_cron: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      process_tiktok_content: {
+        Args: { p_job_id: string }
+        Returns: Json
+      }
+      process_youtube_content: {
+        Args: { p_job_id: string }
         Returns: Json
       }
       promote_user_to_admin: {
@@ -9232,6 +10199,14 @@ export type Database = {
         }
         Returns: Json
       }
+      report_location_violation: {
+        Args: {
+          p_reporter_id: string
+          p_reported_user_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       report_message: {
         Args: {
           p_message_id: string
@@ -9287,6 +10262,10 @@ export type Database = {
       run_comprehensive_health_check: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      run_daily_maintenance: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       run_event_discovery_for_all_locations: {
         Args: Record<PropertyKey, never>
@@ -9398,6 +10377,15 @@ export type Database = {
       }
       send_chat_message_simple: {
         Args: { p_content: string; p_session_id?: string }
+        Returns: Json
+      }
+      send_direct_message: {
+        Args: {
+          p_sender_id: string
+          p_recipient_id: string
+          p_message: string
+          p_message_type?: string
+        }
         Returns: Json
       }
       send_dj_broadcast_to_pack: {
@@ -10692,12 +11680,20 @@ export type Database = {
             }
         Returns: string
       }
+      store_secure_credential: {
+        Args: { p_name: string; p_value: string; p_metadata?: Json }
+        Returns: Json
+      }
       submit_event_vote: {
         Args: { p_event_id: string; p_voted_for_id: string }
         Returns: Json
       }
       test_api_health: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      test_location_verification: {
+        Args: { p_lat?: number; p_lng?: number }
         Returns: Json
       }
       text: {
@@ -10739,6 +11735,16 @@ export type Database = {
       track_event_interest: {
         Args: { p_user_id: string; p_event_id: string; p_action: string }
         Returns: Json
+      }
+      track_upload_performance: {
+        Args: {
+          p_upload_start: string
+          p_upload_end: string
+          p_file_size: number
+          p_success?: boolean
+          p_error?: string
+        }
+        Returns: undefined
       }
       track_video_share: {
         Args: {
@@ -10791,6 +11797,10 @@ export type Database = {
           p_description?: string
         }
         Returns: Json
+      }
+      update_ingestion_job_status: {
+        Args: { p_job_id: string; p_status: string; p_error_message?: string }
+        Returns: undefined
       }
       update_kitchen_order_status: {
         Args: {
@@ -10852,6 +11862,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_trending_scores: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_typing_indicator: {
         Args: { p_conversation_type: string; p_conversation_id: string }
         Returns: undefined
@@ -10893,6 +11907,15 @@ export type Database = {
           table_name: string
           column_name: string
           new_srid_in: number
+        }
+        Returns: string
+      }
+      upload_video: {
+        Args: {
+          p_video_url: string
+          p_thumbnail_url: string
+          p_caption: string
+          p_duration?: number
         }
         Returns: string
       }
@@ -10996,6 +12019,10 @@ export type Database = {
         Args: { bucket: string; file_path: string; user_id: string }
         Returns: boolean
       }
+      validate_system_setup: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       validate_video_format: {
         Args: { file_extension: string }
         Returns: boolean
@@ -11007,6 +12034,10 @@ export type Database = {
           p_duration_seconds: number
         }
         Returns: boolean
+      }
+      validate_video_upload_simple: {
+        Args: { p_user_id: string; p_file_size: number }
+        Returns: Json
       }
       verify_location_access: {
         Args: {
@@ -11032,9 +12063,18 @@ export type Database = {
       verify_user_location: {
         Args: {
           p_user_id: string
+          p_lat: number
+          p_lng: number
+          p_method?: string
+        }
+        Returns: Json
+      }
+      verify_user_location_postgis: {
+        Args: {
+          p_user_id: string
           p_latitude: number
           p_longitude: number
-          p_accuracy?: number
+          p_method?: string
         }
         Returns: Json
       }

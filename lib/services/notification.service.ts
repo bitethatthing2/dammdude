@@ -1,7 +1,7 @@
 // Notification Service for Push Notifications
 import { getFCMToken, onForegroundMessage, getPlatform, getDeviceInfo } from '@/lib/config/firebase.config';
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/supabase/types';
+import { Database } from '@/types/database.types';
 
 interface NotificationPayload {
   title: string;

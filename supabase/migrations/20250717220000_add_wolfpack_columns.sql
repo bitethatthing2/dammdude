@@ -2,7 +2,7 @@
 ALTER TABLE public.users 
 ADD COLUMN IF NOT EXISTS wolfpack_status TEXT DEFAULT 'inactive',
 ADD COLUMN IF NOT EXISTS is_wolfpack_member BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS is_permanent_pack_member BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS wolfpack_tier BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS location_permissions_granted BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS location_id UUID;
 
@@ -11,7 +11,7 @@ UPDATE public.users
 SET 
     wolfpack_status = 'active',
     is_wolfpack_member = true,
-    is_permanent_pack_member = true,
+    wolfpack_tier = true,
     location_permissions_granted = true
 WHERE auth_id = '12345678-1234-5678-9012-123456789012';
 
