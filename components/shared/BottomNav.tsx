@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageCircle, User, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info, Settings } from 'lucide-react';
+import { Home, MessageCircle, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getZIndexClass } from '@/lib/constants/z-index';
 // useWolfpackAccess functionality integrated into TikTok-style Wolfpack Local Pack
@@ -76,7 +76,6 @@ export const BottomNav = () => {
         { id: 'home', href: '/', icon: Home, label: 'Home' },
         { id: 'menu', href: '/menu', icon: UtensilsCrossed, label: 'Menu' },
         { id: 'wolfpack', href: '/wolfpack', icon: Shield, label: 'WOLFPACK' },
-        { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
         { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
       ];
 
@@ -98,10 +97,9 @@ export const BottomNav = () => {
       { id: 'home', href: '/', icon: Home, label: 'Home' },
     ];
 
-    // If logged in but not Wolf Pack member, show profile and join option
+    // If logged in but not Wolf Pack member, show join option
     if (user) {
       basicItems.push(
-        { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
         { id: 'join-pack', href: '/wolfpack', icon: Shield, label: 'Join the Pack' }
       );
     } else {
