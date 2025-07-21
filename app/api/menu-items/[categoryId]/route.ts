@@ -4,9 +4,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
-  const { categoryId } = params;
+  const { categoryId } = await params;
   
   console.log('🍽️ API: Fetching items for category:', categoryId);
   

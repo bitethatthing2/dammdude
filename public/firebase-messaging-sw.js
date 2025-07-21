@@ -1,8 +1,8 @@
 // Firebase Cloud Messaging Service Worker
 // This handles push notifications when the app is in the background
 
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js');
 
 // Initialize Firebase
 firebase.initializeApp({
