@@ -5,14 +5,22 @@ import { X, Camera, Video, Upload, RotateCcw, Clock, Zap, Send, Type } from 'luc
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { useAuthenticatedFeature } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/lib/services/feature-flags.service';
 
 interface PostCreatorProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (post: any) => void;
 }
 
-export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
+export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
   const { user } = useAuth();
+  
+  // Feature flag integration
+  const { hasAccess: canUploadVideos, loading: featureLoading, error: featureError } = 
+    useAuthenticatedFeature(FEATURE_FLAGS.WOLFPACK_VIDEO_UPLOAD);
+    
   const [hasStream, setHasStream] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -35,6 +43,17 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Set error message based on feature flag status
+  useEffect(() => {
+    if (featureError) {
+      setErrorMessage(featureError);
+    } else if (!canUploadVideos && !featureLoading) {
+      setErrorMessage('Video uploads are currently disabled for your account');
+    } else {
+      setErrorMessage('');
+    }
+  }, [canUploadVideos, featureLoading, featureError]);
   
   const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
     videoRef.current = element;
@@ -364,7 +383,10 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
   };
 
   const handlePost = async () => {
-    if (!user || !capturedMedia) {
+    // Get current auth user in case the profile hasn't loaded yet
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if ((!user && !authUser) || !capturedMedia) {
       toast({
         title: 'Error',
         description: 'No media captured or user not authenticated',
@@ -376,6 +398,39 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
     try {
       setPosting(true);
 
+      // For new users, we need to get their database user ID
+      let userDbId = user?.id;
+      
+      if (!userDbId && authUser) {
+        // Try to get the user profile by auth ID
+        const { data: userProfile, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_id', authUser.id)
+          .single();
+          
+        if (userError) {
+          console.error('Error finding user profile:', userError);
+          toast({
+            title: 'Error',
+            description: 'Unable to find user profile. Please try refreshing the page.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        userDbId = userProfile.id;
+      }
+
+      if (!userDbId) {
+        toast({
+          title: 'Error',
+          description: 'Unable to identify user for posting. Please try signing out and back in.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       // Upload media to Supabase storage
       const fileName = recordingMode === 'photo' ? 'photo.jpg' : 'video.mp4';
       const mediaUrl = await uploadToSupabase(capturedMedia, fileName);
@@ -384,7 +439,7 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
       const { data: postData, error: postError } = await supabase
         .from('wolfpack_videos')
         .insert({
-          user_id: user.id,
+          user_id: userDbId,
           caption: caption.trim() || 'New post from Wolf Pack!',
           video_url: recordingMode === 'video' ? mediaUrl : null,
           thumbnail_url: recordingMode === 'photo' ? mediaUrl : null,
@@ -402,6 +457,11 @@ export function PostCreator({ isOpen, onClose }: PostCreatorProps) {
         title: 'Post created!',
         description: 'Your post has been shared to the Wolf Pack feed'
       });
+
+      // Call success callback with the new post data
+      if (onSuccess && postData) {
+        onSuccess(postData);
+      }
 
       // Reset state and close
       resetState();

@@ -101,8 +101,11 @@ export default function UnifiedLoginPage() {
         if (data?.user) {
           console.log('Sign up successful - user profile will be created automatically by database trigger');
           
+          // Small delay to allow trigger to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           toast({
-            title: "Sign Up Successful",
+            title: "Sign Up Successful", 
             description: "Welcome! Please check your email to verify your account.",
           });
           

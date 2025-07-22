@@ -121,10 +121,22 @@ export function WolfpackProfileManager() {
 
   // Load existing profile
   const loadProfile = useCallback(async () => {
-    if (!user?.id) return;
+    // For new users, we might not have user.id yet, but we can get the auth user ID
+    const { supabase } = await import('@/lib/supabase/client');
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!user?.id && !authUser?.id) return;
 
     try {
-      const profileData = await userProfileService.getUserProfile(user.id);
+      let profileData;
+      
+      // Try to load profile using database user ID first, fall back to auth ID
+      if (user?.id) {
+        profileData = await userProfileService.getUserProfile(user.id);
+      } else if (authUser?.id) {
+        // For new users, try to load profile using auth ID
+        profileData = await userProfileService.getUserProfileByAuthId(authUser.id);
+      }
       
       if (profileData) {
         setProfile(profileData);
@@ -147,8 +159,9 @@ export function WolfpackProfileManager() {
       } else {
         // Set default values for new profile
         const defaultName: string = 
-          (user.first_name && typeof user.first_name === 'string' ? user.first_name : '') ||
-          (user.email ? user.email.split('@')[0] : '') ||
+          (user?.first_name && typeof user.first_name === 'string' ? user.first_name : '') ||
+          (user?.email ? user.email.split('@')[0] : '') ||
+          (authUser?.email ? authUser.email.split('@')[0] : '') ||
           'Wolf';
 
         setFormData({
@@ -177,15 +190,20 @@ export function WolfpackProfileManager() {
   }, [user?.id, user?.first_name, user?.email]);
 
   useEffect(() => {
-    if (!userLoading && user) {
+    // Load profile when user is loaded OR when we're not loading and have an authenticated user
+    if (!userLoading) {
       loadProfile();
     }
-  }, [userLoading, user, loadProfile]);
+  }, [userLoading, loadProfile]);
 
 
   // Save profile with proper typing
   const saveProfile = async (data: FormData = formData, showToast = true) => {
-    if (!user?.id) {
+    // For new users, we might not have user.id yet, but we can get the auth user ID
+    const { supabase } = await import('@/lib/supabase/client');
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!user?.id && !authUser?.id) {
       console.error('Cannot save profile: No user ID available');
       toast.error('Please log in to save your profile');
       return;
@@ -222,12 +240,27 @@ export function WolfpackProfileManager() {
         profileData.profile_pic_url = data.profile_image_url; // Keep both in sync
       }
 
-      const updatedProfile = await userProfileService.updateUserProfile(user.id, profileData);
+      let updatedProfile;
+      
+      // Try to update using the database user ID first, fall back to auth ID
+      if (user?.id) {
+        updatedProfile = await userProfileService.updateUserProfile(user.id, profileData);
+      } else if (authUser?.id) {
+        // For new users, use the auth ID to update the profile
+        updatedProfile = await userProfileService.updateUserProfileByAuthId(authUser.id, profileData);
+      } else {
+        throw new Error('Unable to identify user for profile update');
+      }
+      
       setProfile(updatedProfile);
       
       if (showToast) {
         toast.success('Profile saved successfully!');
       }
+      
+      // Reload the profile to refresh the user context
+      await loadProfile();
+      
     } catch (error: any) {
       console.error('Error saving profile:', error);
       toast.error(error.message || 'Failed to save profile');

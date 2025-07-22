@@ -18,6 +18,8 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { getZIndexClass } from '@/lib/constants/z-index';
 import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
 import { toast } from '@/components/ui/use-toast';
+import { useMultipleFeatureFlags } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/lib/services/feature-flags.service';
 
 interface Comment {
   id: string;
@@ -199,6 +201,13 @@ function CommentItem({
 
 export default function VideoComments({ postId, isOpen, onClose, initialCommentCount, onCommentCountChange }: VideoCommentsProps) {
   const { user } = useAuth();
+  
+  // Feature flag integration
+  const { features: socialFeatures, loading: featuresLoading } = useMultipleFeatureFlags([
+    FEATURE_FLAGS.WOLFPACK_COMMENTS,
+    FEATURE_FLAGS.WOLFPACK_LIKES
+  ]);
+  
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -363,14 +372,59 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !user || submitting) return;
+    if (!newComment.trim() || submitting) return;
+
+    // Get current auth user in case the profile hasn't loaded yet
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!user && !authUser) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to comment',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
       
+      // For new users, we need to get their database user ID
+      let userDbId = user?.id;
+      
+      if (!userDbId && authUser) {
+        // Try to get the user profile by auth ID
+        const { data: userProfile, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_id', authUser.id)
+          .single();
+          
+        if (userError) {
+          console.error('Error finding user profile:', userError);
+          toast({
+            title: 'Error',
+            description: 'Unable to find user profile. Please try refreshing the page.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        userDbId = userProfile.id;
+      }
+
+      if (!userDbId) {
+        toast({
+          title: 'Error',
+          description: 'Unable to identify user for commenting. Please try signing out and back in.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       const result = await wolfpackSocialService.createComment(
         postId,
-        user.id,
+        userDbId,
         newComment.trim()
       );
       
@@ -494,21 +548,66 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
   
   const handleSubmitReply = async (e: React.FormEvent, parentCommentId: string) => {
     e.preventDefault();
-    if (!replyContent.trim() || !user || submittingReply) return;
+    if (!replyContent.trim() || submittingReply) return;
+
+    // Get current auth user in case the profile hasn't loaded yet
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!user && !authUser) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to reply',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
       setSubmittingReply(true);
       
+      // For new users, we need to get their database user ID
+      let userDbId = user?.id;
+      
+      if (!userDbId && authUser) {
+        // Try to get the user profile by auth ID
+        const { data: userProfile, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_id', authUser.id)
+          .single();
+          
+        if (userError) {
+          console.error('Error finding user profile:', userError);
+          toast({
+            title: 'Error',
+            description: 'Unable to find user profile. Please try refreshing the page.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        userDbId = userProfile.id;
+      }
+
+      if (!userDbId) {
+        toast({
+          title: 'Error',
+          description: 'Unable to identify user for replying. Please try signing out and back in.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       console.log('Submitting reply:', {
         postId,
-        userId: user.id,
+        userId: userDbId,
         content: replyContent.trim(),
         parentCommentId
       });
       
       const result = await wolfpackSocialService.createComment(
         postId,
-        user.id,
+        userDbId,
         replyContent.trim(),
         parentCommentId
       );

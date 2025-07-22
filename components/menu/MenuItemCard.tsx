@@ -146,7 +146,6 @@ const itemImageMapping: { [key: string]: string } = {
   'burrito': 'burrito.png',
   'pancakes': 'pancakes.jpg',
   'pancake': 'pancakes.jpg',
-  'margarita': 'margarita.png',
   'molita': 'molita.png',
   'mulitas': 'mulitas.png',
   'mulita': 'mulitas.png',
@@ -163,9 +162,7 @@ const itemImageMapping: { [key: string]: string } = {
   'beans': 'beans.png',
   'rice': 'rice.png',
   'vampiros': 'vampiros.png',
-  'vampiro': 'vampiros.png',
-  'boards': 'boards.png',
-  'board': 'boards.png'
+  'vampiro': 'vampiros.png'
 };
 
 const findImageForMenuItem = (itemName: string, itemDescription: string, categoryType?: string): string | null => {
@@ -173,8 +170,13 @@ const findImageForMenuItem = (itemName: string, itemDescription: string, categor
   const itemNameOnly = itemName.toLowerCase().trim();
   
   // Special handling for margarita drinks - they use the margarita image from food-menu-images
-  if (categoryType === 'drink' && (searchText.includes('margarita') && !searchText.includes('board'))) {
-    return '/food-menu-images/margarita.png';
+  // But margarita boards use the drink-menu-images directory
+  if (categoryType === 'drink' && searchText.includes('margarita')) {
+    if (searchText.includes('board')) {
+      return '/drink-menu-images/margarita-boards.png';
+    } else {
+      return '/food-menu-images/margarita.png';
+    }
   }
   
   // Determine image directory based on category type
@@ -345,7 +347,11 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
   // Add fallback images for items without specific images
   const getFallbackImageUrl = (categoryType?: string): string => {
     if (categoryType === 'drink') {
-      return '/food-menu-images/margarita.png'; // Fallback for drinks
+      // Use boards image for general drinks, margarita for margarita-specific drinks
+      if (item.name.toLowerCase().includes('margarita')) {
+        return '/food-menu-images/margarita.png';
+      }
+      return '/drink-menu-images/boards.png'; // General drink fallback
     }
     return '/food-menu-images/tacos.png'; // Fallback for food
   };
@@ -534,7 +540,11 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
   // Add fallback images for items without specific images
   const getFallbackImageUrl = (categoryType?: string): string => {
     if (categoryType === 'drink') {
-      return '/food-menu-images/margarita.png'; // Fallback for drinks
+      // Use boards image for general drinks, margarita for margarita-specific drinks
+      if (item.name.toLowerCase().includes('margarita')) {
+        return '/food-menu-images/margarita.png';
+      }
+      return '/drink-menu-images/boards.png'; // General drink fallback
     }
     return '/food-menu-images/tacos.png'; // Fallback for food
   };

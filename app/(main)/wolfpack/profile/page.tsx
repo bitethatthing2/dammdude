@@ -64,27 +64,47 @@ export default function WolfpackProfilePage() {
     loadwolfpack_posts();
   }, [user]);
 
+  // Listen for refresh parameter to reload profile data
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('refresh')) {
+        loadProfile();
+        // Clear the refresh parameter from URL without page reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
+
   const loadProfile = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
       
-      // Get user profile data from users table
+      // Get the auth user to ensure we have the auth ID
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Get user profile data from users table using auth_id
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('first_name, last_name, bio, avatar_url, location, website')
-        .eq('id', user.id)
+        .select('id, first_name, last_name, bio, avatar_url, location, website')
+        .eq('auth_id', authUser.id)
         .single();
 
+      const dbUserId = userData?.id || user.id;
+
       // Get social stats
-      const socialStats = await wolfpackSocialService.getUserSocialStats(user.id);
+      const socialStats = await wolfpackSocialService.getUserSocialStats(dbUserId);
       
       // Get wolfpack_posts count
       const { count: wolfpack_postsCount } = await supabase
         .from('wolfpack_videos')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .eq('user_id', dbUserId);
       
       const profileData: UserProfile = {
         id: user.id,
@@ -117,11 +137,26 @@ export default function WolfpackProfilePage() {
     if (!user) return;
     
     try {
+      // Get the auth user and database user ID
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Get user profile to get database ID
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_id', authUser.id)
+        .single();
+        
+      const dbUserId = userData?.id || user.id;
+      
       // First get wolfpack_posts from wolfpack_videos
       const { data: videowolfpack_posts, error: videoError } = await supabase
         .from('wolfpack_videos')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', dbUserId)
         .order('created_at', { ascending: false })
         .limit(50);
       
@@ -131,7 +166,7 @@ export default function WolfpackProfilePage() {
       const { data: textwolfpack_posts, error: wolfpack_postsError } = await supabase
         .from('wolfpack_posts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', dbUserId)
         .order('created_at', { ascending: false })
         .limit(50);
       

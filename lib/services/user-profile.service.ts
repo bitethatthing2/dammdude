@@ -59,9 +59,9 @@ export class UserProfileService {
   private supabase = createClient();
 
   /**
-   * Get user profile by ID
+   * Get user profile by ID (internal database ID) or by auth ID
    */
-  async getUserProfile(userId: string): Promise<WolfpackProfile | null> {
+  async getUserProfile(userId: string, isAuthId: boolean = false): Promise<WolfpackProfile | null> {
     try {
       const { data, error } = await this.supabase
         .from('users')
@@ -74,7 +74,7 @@ export class UserProfileService {
           wolfpack_join_date, last_seen_at, is_online,
           location_permissions_granted, phone, created_at, updated_at
         `)
-        .eq('id', userId)
+        .eq(isAuthId ? 'auth_id' : 'id', userId)
         .single();
 
       if (error) {
@@ -93,11 +93,19 @@ export class UserProfileService {
   }
 
   /**
-   * Update user profile
+   * Get user profile by auth ID (for cases where we only have the Supabase auth user ID)
+   */
+  async getUserProfileByAuthId(authId: string): Promise<WolfpackProfile | null> {
+    return this.getUserProfile(authId, true);
+  }
+
+  /**
+   * Update user profile by ID (internal database ID) or auth ID
    */
   async updateUserProfile(
     userId: string,
-    updates: UserProfileUpdate
+    updates: UserProfileUpdate,
+    isAuthId: boolean = false
   ): Promise<WolfpackProfile> {
     try {
       // Validate required fields
@@ -117,7 +125,7 @@ export class UserProfileService {
           ...cleanedUpdates,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId)
+        .eq(isAuthId ? 'auth_id' : 'id', userId)
         .select(`
           id, email, first_name, last_name, display_name, bio,
           wolf_emoji, vibe_status, favorite_drink, favorite_song,
@@ -150,6 +158,16 @@ export class UserProfileService {
       
       throw error;
     }
+  }
+
+  /**
+   * Update user profile by auth ID (for cases where we only have the Supabase auth user ID)
+   */
+  async updateUserProfileByAuthId(
+    authId: string,
+    updates: UserProfileUpdate
+  ): Promise<WolfpackProfile> {
+    return this.updateUserProfile(authId, updates, true);
   }
 
   /**

@@ -904,6 +904,82 @@ export type Database = {
           },
         ]
       }
+      duplicate_account_checks: {
+        Row: {
+          checked_email: string | null
+          checked_name: string | null
+          created_at: string | null
+          flagged_as_duplicate: boolean | null
+          id: string
+          similar_accounts: Json | null
+        }
+        Insert: {
+          checked_email?: string | null
+          checked_name?: string | null
+          created_at?: string | null
+          flagged_as_duplicate?: boolean | null
+          id?: string
+          similar_accounts?: Json | null
+        }
+        Update: {
+          checked_email?: string | null
+          checked_name?: string | null
+          created_at?: string | null
+          flagged_as_duplicate?: boolean | null
+          id?: string
+          similar_accounts?: Json | null
+        }
+        Relationships: []
+      }
+      feature_flag_examples: {
+        Row: {
+          code_example: string | null
+          created_at: string | null
+          description: string | null
+          example_type: string | null
+          flag_name: string | null
+          id: string
+        }
+        Insert: {
+          code_example?: string | null
+          created_at?: string | null
+          description?: string | null
+          example_type?: string | null
+          flag_name?: string | null
+          id?: string
+        }
+        Update: {
+          code_example?: string | null
+          created_at?: string | null
+          description?: string | null
+          example_type?: string | null
+          flag_name?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_examples_flag_name_fkey"
+            columns: ["flag_name"]
+            isOneToOne: false
+            referencedRelation: "feature_flag_dashboard"
+            referencedColumns: ["flag_name"]
+          },
+          {
+            foreignKeyName: "feature_flag_examples_flag_name_fkey"
+            columns: ["flag_name"]
+            isOneToOne: false
+            referencedRelation: "feature_flag_reality_check"
+            referencedColumns: ["flag_name"]
+          },
+          {
+            foreignKeyName: "feature_flag_examples_flag_name_fkey"
+            columns: ["flag_name"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["flag_name"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           created_at: string | null
@@ -1024,6 +1100,7 @@ export type Database = {
           display_order: number | null
           id: string
           image_id: string | null
+          image_url: string | null
           is_available: boolean | null
           name: string
           price: number
@@ -1037,6 +1114,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_id?: string | null
+          image_url?: string | null
           is_available?: boolean | null
           name: string
           price: number
@@ -1050,6 +1128,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_id?: string | null
+          image_url?: string | null
           is_available?: boolean | null
           name?: string
           price?: number
@@ -1647,6 +1726,27 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          audit_date: string | null
+          id: string
+          notes: string | null
+          security_status: Json | null
+        }
+        Insert: {
+          audit_date?: string | null
+          id?: string
+          notes?: string | null
+          security_status?: Json | null
+        }
+        Update: {
+          audit_date?: string | null
+          id?: string
+          notes?: string | null
+          security_status?: Json | null
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1784,6 +1884,45 @@ export type Database = {
           documentation?: string
           id?: string
           topic?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_feature_documentation: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          feature_category: string
+          feature_name: string
+          id: string
+          notes: string | null
+          related_functions: string[] | null
+          related_tables: string[] | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          feature_category: string
+          feature_name: string
+          id?: string
+          notes?: string | null
+          related_functions?: string[] | null
+          related_tables?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          feature_category?: string
+          feature_name?: string
+          id?: string
+          notes?: string | null
+          related_functions?: string[] | null
+          related_tables?: string[] | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -5299,6 +5438,51 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flag_dashboard: {
+        Row: {
+          description: string | null
+          enabled_for_roles: string[] | null
+          feature_category: string | null
+          flag_name: string | null
+          globally_enabled: boolean | null
+          specific_users_count: number | null
+          total_users_with_access: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled_for_roles?: string[] | null
+          feature_category?: never
+          flag_name?: string | null
+          globally_enabled?: boolean | null
+          specific_users_count?: never
+          total_users_with_access?: never
+          updated_at?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled_for_roles?: string[] | null
+          feature_category?: never
+          flag_name?: string | null
+          globally_enabled?: boolean | null
+          specific_users_count?: never
+          total_users_with_access?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      feature_flag_reality_check: {
+        Row: {
+          actual_implementation: string | null
+          flag_description: string | null
+          flag_enabled: boolean | null
+          flag_name: string | null
+          reality_status: string | null
+          related_functions: string[] | null
+          related_tables: string[] | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -5357,6 +5541,7 @@ export type Database = {
           image_id: string | null
           image_url: string | null
           is_active: boolean | null
+          is_available: boolean | null
           modifier_groups: Json | null
           name: string | null
           price: number | null
@@ -6886,6 +7071,10 @@ export type Database = {
       check_email_exists: {
         Args: { check_email: string }
         Returns: boolean
+      }
+      check_feature_access: {
+        Args: { p_flag_name: string; p_user_id?: string }
+        Returns: Json
       }
       check_functions_without_search_path: {
         Args: Record<PropertyKey, never>
@@ -11815,6 +12004,10 @@ export type Database = {
       }
       toggle_block_user: {
         Args: { p_user_id: string }
+        Returns: Json
+      }
+      toggle_feature_for_testing: {
+        Args: { p_flag_name: string; p_enabled: boolean }
         Returns: Json
       }
       toggle_private_message_reaction: {

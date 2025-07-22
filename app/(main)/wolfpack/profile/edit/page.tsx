@@ -54,11 +54,17 @@ export default function WolfpackProfileEditPage() {
     if (!user) return;
     
     try {
-      // Get existing user data from Supabase auth metadata and users table
+      // First, get the auth user to ensure we have the auth ID
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Get existing user data from users table using auth_id
       const { data: userData, error } = await supabase
         .from('users')
-        .select('first_name, last_name, bio, avatar_url, location, website')
-        .eq('id', user.id)
+        .select('id, first_name, last_name, bio, avatar_url, location, website')
+        .eq('auth_id', authUser.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -87,24 +93,54 @@ export default function WolfpackProfileEditPage() {
     try {
       setImageUploading(true);
       
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      // Get the auth user to ensure we have the auth ID
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Create unique filename and path for RLS policy compliance
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${authUser.id}/${fileName}`;
+      
+      // Additional validation
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Selected file is not an image');
+      }
 
-      // Upload image to Supabase storage
+      // Check auth status
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Upload debug info:', {
+        fileName,
+        filePath,
+        fileSize: file.size,
+        fileType: file.type,
+        authUserId: authUser.id,
+        hasSession: !!session,
+        sessionExpiry: session?.expires_at
+      });
+
+      // Try a direct upload first with upsert to handle existing files
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('user-uploads')
-        .upload(filePath, file);
+        .from('user-avatars')
+        .upload(filePath, file, {
+          upsert: true
+        });
 
       if (uploadError) {
-        throw uploadError;
+        console.error('Storage upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload to storage');
       }
+
+      console.log('Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('user-uploads')
+        .from('user-avatars')
         .getPublicUrl(filePath);
+
+      console.log('Generated public URL:', publicUrl);
 
       // Update profile with new image URL
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
@@ -115,9 +151,26 @@ export default function WolfpackProfileEditPage() {
       });
     } catch (error) {
       console.error('Error uploading image:', error);
+      
+      // Get more detailed error information
+      let errorMessage = 'Failed to upload image. Please try again.';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = (error as any).message;
+        } else if ('error' in error) {
+          errorMessage = (error as any).error;
+        } else if ('statusText' in error) {
+          errorMessage = (error as any).statusText;
+        }
+        
+        // Log the full error object for debugging
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+      }
+      
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload image. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -159,22 +212,61 @@ export default function WolfpackProfileEditPage() {
     try {
       setSaving(true);
       
-      // Update users table
-      const { error: userError } = await supabase
+      // Get the auth user to ensure we have the auth ID
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // First, get the database user record by auth_id
+      const { data: existingUser, error: fetchError } = await supabase
         .from('users')
-        .upsert({
-          id: user.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          bio: profile.bio,
-          avatar_url: profile.avatar_url,
-          location: profile.location,
-          website: profile.website,
-          updated_at: new Date().toISOString()
-        });
+        .select('id')
+        .eq('auth_id', authUser.id)
+        .single();
+        
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+      
+      if (existingUser) {
+        // Update existing user
+        const { error: userError } = await supabase
+          .from('users')
+          .update({
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            bio: profile.bio,
+            avatar_url: profile.avatar_url,
+            location: profile.location,
+            website: profile.website,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingUser.id);
 
-      if (userError) {
-        throw userError;
+        if (userError) {
+          throw userError;
+        }
+      } else {
+        // Create new user profile if it doesn't exist
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            auth_id: authUser.id,
+            email: authUser.email,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            bio: profile.bio,
+            avatar_url: profile.avatar_url,
+            location: profile.location,
+            website: profile.website,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (userError) {
+          throw userError;
+        }
       }
 
       // Update auth metadata
@@ -196,8 +288,8 @@ export default function WolfpackProfileEditPage() {
         description: 'Your profile has been saved successfully'
       });
 
-      // Go back to profile
-      router.back();
+      // Add cache-busting parameter to force profile page reload
+      router.push('/wolfpack/profile?refresh=' + Date.now());
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
