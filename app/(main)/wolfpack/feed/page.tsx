@@ -19,7 +19,7 @@ interface VideoItem {
   username: string;
   avatar_url?: string;
   caption: string;
-  video_url: string | null; // Can be null for image posts
+  video_url: string | null; // Can be null for image wolfpack_posts
   thumbnail_url?: string;
   likes_count: number;
   comments_count: number;
@@ -70,7 +70,7 @@ export default function WolfpackFeedPage() {
       if (!isInPack) return;
       
       try {
-        // Load video posts (fallback to sample data if table doesn't exist)
+        // Load video wolfpack_posts (fallback to sample data if table doesn't exist)
         let videoData = [];
         try {
           // Check if wolfpack_videos table exists by attempting a simple query
@@ -139,7 +139,7 @@ export default function WolfpackFeedPage() {
         // Transform data into video format
         const transformedVideos: VideoItem[] = [];
 
-        // Add real video posts
+        // Add real video wolfpack_posts
         videoData?.forEach(video => {
           transformedVideos.push({
             id: video.id,
@@ -448,7 +448,7 @@ export default function WolfpackFeedPage() {
         isOpen={showPostCreator}
         onClose={() => {
           setShowPostCreator(false);
-          // Reload videos to show new posts
+          // Reload videos to show new wolfpack_posts
           window.location.reload();
         }}
       />

@@ -10,11 +10,13 @@ import {
   Bell,
   ChefHat,
   DollarSign,
-  BookOpen
+  BookOpen,
+  Archive
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import BroadcastCleanupManager from '@/components/admin/BroadcastArchiveManager';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -220,6 +222,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Broadcast Cleanup Management Section */}
+      <BroadcastCleanupManager />
     </div>
   );
 }

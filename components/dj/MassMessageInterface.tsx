@@ -33,15 +33,16 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { 
   BroadcastType,
-  BroadcastPriority
+  BroadcastPriority,
+  LocationKey
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 interface MassMessageInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   packMemberCount: number;
-  location: 'salem' | 'portland';
+  location: LocationKey;
 }
 
 interface MessageTemplate {
@@ -60,6 +61,8 @@ const LOCATION_CONFIG = {
   salem: '50d17782-3f4a-43a1-b6b6-608171ca3c7c',
   portland: 'ec1e8869-454a-49d2-93e5-ed05f49bb932'
 } as const;
+
+type LocationConfigKey = keyof typeof LOCATION_CONFIG;
 
 const messageTemplates: MessageTemplate[] = [
   // Engagement Templates
@@ -241,16 +244,16 @@ export function MassMessageInterface({ isOpen, onClose, packMemberCount, locatio
         return;
       }
 
-      const locationId = LOCATION_CONFIG[location];
+      const locationId = LOCATION_CONFIG[location as LocationConfigKey];
       
       // Create broadcast using the new schema
       const broadcastData: Database['public']['Tables']['dj_broadcasts']['Insert'] = {
         dj_id: user.id,
         location_id: locationId,
-        broadcast_type: broadcastType,
+        broadcast_type: broadcastType as string,
         title: messageTitle,
         message: messageContent,
-        priority: priority,
+        priority: priority as string,
         duration_seconds: duration,
         auto_close: true,
         status: 'active',
@@ -267,7 +270,7 @@ export function MassMessageInterface({ isOpen, onClose, packMemberCount, locatio
           response_type: 'emoji',
           show_results_live: true,
           anonymous_responses: false
-        }
+        } as Database['public']['Tables']['dj_broadcasts']['Insert']['interaction_config']
       };
 
       const { data, error } = await supabase

@@ -18,7 +18,7 @@ npm run db:check
 ```typescript
 import { useComments } from '@/hooks/useComments'
 import { useLikes } from '@/hooks/useLikes'
-import { usePosts } from '@/hooks/usePosts'
+import { usewolfpack_posts } from '@/hooks/usewolfpack_posts'
 ```
 
 ## 📋 Table of Contents
@@ -40,7 +40,7 @@ import { usePosts } from '@/hooks/usePosts'
 │                 │────▶│                  │────▶│                 │
 │ VideoComments   │    │ useComments      │    │ comments.ts     │
 │ LikeButton      │    │ useLikes         │    │ likes.ts        │
-│ PostFeed        │    │ usePosts         │    │ posts.ts        │
+│ PostFeed        │    │ usewolfpack_posts         │    │ wolfpack_posts.ts        │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -109,7 +109,7 @@ await supabase
   .eq('video_id', postId)
 ```
 
-### Posts (`/lib/database/posts.ts`)
+### wolfpack_posts (`/lib/database/wolfpack_posts.ts`)
 
 ```typescript
 // ✅ Typed operations
@@ -181,21 +181,21 @@ function LikeButton({ postId }: { postId: string }) {
 }
 ```
 
-### usePosts Hook
+### usewolfpack_posts Hook
 
 ```typescript
 function FeedComponent() {
   const {
-    posts,
+    wolfpack_posts,
     loading,
     hasMore,
     loadMore,
     createNewPost
-  } = useFeedPosts(20)
+  } = useFeedwolfpack_posts(20)
 
   return (
     <div>
-      {posts.map(post => (
+      {wolfpack_posts.map(post => (
         <VideoCard key={post.id} post={post} />
       ))}
       {hasMore && (
@@ -443,7 +443,7 @@ The script will identify schema mismatches that cause duplicates.
 ### 1. Use Pagination
 
 ```typescript
-const { posts, loadMore, hasMore } = useFeedPosts(20) // Load 20 at a time
+const { wolfpack_posts, loadMore, hasMore } = useFeedwolfpack_posts(20) // Load 20 at a time
 ```
 
 ### 2. Optimize Real-time Subscriptions

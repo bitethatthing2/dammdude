@@ -16,7 +16,7 @@ type WolfpackVideoInsert =
 type WolfpackVideoUpdate =
   Database["public"]["Tables"]["wolfpack_videos"]["Update"];
 
-export async function getFeedPosts(
+export async function getFeedwolfpack_posts(
   limit = 20,
   offset = 0,
 ): Promise<WolfpackVideo[]> {
@@ -37,8 +37,8 @@ export async function getFeedPosts(
     .range(offset, offset + limit - 1);
 
   if (error) {
-    console.error("Error fetching feed posts:", error);
-    throw new Error(`Failed to fetch feed posts: ${error.message}`);
+    console.error("Error fetching feed wolfpack_posts:", error);
+    throw new Error(`Failed to fetch feed wolfpack_posts: ${error.message}`);
   }
 
   return data || [];
@@ -72,7 +72,7 @@ export async function getPost(postId: string): Promise<WolfpackVideo | null> {
   return data;
 }
 
-export async function getUserPosts(
+export async function getUserwolfpack_posts(
   userId: string,
   limit = 20,
   offset = 0,
@@ -95,8 +95,8 @@ export async function getUserPosts(
     .range(offset, offset + limit - 1);
 
   if (error) {
-    console.error("Error fetching user posts:", error);
-    throw new Error(`Failed to fetch user posts: ${error.message}`);
+    console.error("Error fetching user wolfpack_posts:", error);
+    throw new Error(`Failed to fetch user wolfpack_posts: ${error.message}`);
   }
 
   return data || [];
@@ -226,7 +226,7 @@ export async function incrementViewCount(postId: string): Promise<void> {
   }
 }
 
-export async function getPostStats(postId: string): Promise<{
+export async function getwolfpack_poststats(postId: string): Promise<{
   views: number;
   likes: number;
   comments: number;

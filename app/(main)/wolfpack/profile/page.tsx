@@ -35,7 +35,7 @@ interface UserProfile {
   joined_date?: string;
   followers_count: number;
   following_count: number;
-  posts_count: number;
+  wolfpack_posts_count: number;
 }
 
 interface UserPost {
@@ -52,16 +52,16 @@ export default function WolfpackProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [posts, setPosts] = useState<UserPost[]>([]);
+  const [wolfpack_posts, setwolfpack_posts] = useState<UserPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'liked' | 'saved'>('posts');
+  const [activeTab, setActiveTab] = useState<'wolfpack_posts' | 'liked' | 'saved'>('wolfpack_posts');
   const [isOwnProfile, setIsOwnProfile] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     
     loadProfile();
-    loadPosts();
+    loadwolfpack_posts();
   }, [user]);
 
   const loadProfile = async () => {
@@ -80,8 +80,8 @@ export default function WolfpackProfilePage() {
       // Get social stats
       const socialStats = await wolfpackSocialService.getUserSocialStats(user.id);
       
-      // Get posts count
-      const { count: postsCount } = await supabase
+      // Get wolfpack_posts count
+      const { count: wolfpack_postsCount } = await supabase
         .from('wolfpack_videos')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
@@ -97,7 +97,7 @@ export default function WolfpackProfilePage() {
         joined_date: user.created_at,
         followers_count: socialStats.followers_count,
         following_count: socialStats.following_count,
-        posts_count: postsCount || 0
+        wolfpack_posts_count: wolfpack_postsCount || 0
       };
       
       setProfile(profileData);
@@ -113,12 +113,12 @@ export default function WolfpackProfilePage() {
     }
   };
 
-  const loadPosts = async () => {
+  const loadwolfpack_posts = async () => {
     if (!user) return;
     
     try {
-      // First get posts from wolfpack_videos
-      const { data: videoPosts, error: videoError } = await supabase
+      // First get wolfpack_posts from wolfpack_videos
+      const { data: videowolfpack_posts, error: videoError } = await supabase
         .from('wolfpack_videos')
         .select('*')
         .eq('user_id', user.id)
@@ -127,21 +127,21 @@ export default function WolfpackProfilePage() {
       
       if (videoError) throw videoError;
       
-      // Also get posts from wolfpack_posts
-      const { data: textPosts, error: postsError } = await supabase
-        .from('wolfpack_posts')
+      // Also get wolfpack_posts from wolfpack_wolfpack_posts
+      const { data: textwolfpack_posts, error: wolfpack_postsError } = await supabase
+        .from('wolfpack_wolfpack_posts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
       
-      // Combine and sort all posts
-      const allPosts = [];
+      // Combine and sort all wolfpack_posts
+      const allwolfpack_posts = [];
       
-      // Add video posts
-      if (videoPosts) {
-        videoPosts.forEach(post => {
-          allPosts.push({
+      // Add video wolfpack_posts
+      if (videowolfpack_posts) {
+        videowolfpack_posts.forEach(post => {
+          allwolfpack_posts.push({
             id: post.id,
             video_url: post.video_url,
             thumbnail_url: post.thumbnail_url || '/images/placeholder-video.svg',
@@ -153,11 +153,11 @@ export default function WolfpackProfilePage() {
         });
       }
       
-      // Add text posts with media
-      if (textPosts) {
-        textPosts.forEach(post => {
+      // Add text wolfpack_posts with media
+      if (textwolfpack_posts) {
+        textwolfpack_posts.forEach(post => {
           if (post.media_url) {
-            allPosts.push({
+            allwolfpack_posts.push({
               id: post.id,
               video_url: null,
               thumbnail_url: post.media_url,
@@ -171,11 +171,11 @@ export default function WolfpackProfilePage() {
       }
       
       // Sort by created_at
-      allPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      allwolfpack_posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      setPosts(allPosts);
+      setwolfpack_posts(allwolfpack_posts);
     } catch (error) {
-      console.error('Error loading posts:', error);
+      console.error('Error loading wolfpack_posts:', error);
     }
   };
 
@@ -270,8 +270,8 @@ export default function WolfpackProfilePage() {
           <div className="flex-1">
             <div className="flex justify-around text-center mb-4">
               <div>
-                <div className="text-xl font-bold">{profile.posts_count}</div>
-                <div className="text-sm text-gray-400">Posts</div>
+                <div className="text-xl font-bold">{profile.wolfpack_posts_count}</div>
+                <div className="text-sm text-gray-400">wolfpack_posts</div>
               </div>
               <button
                 onClick={() => router.push('/wolfpack/followers')}
@@ -368,9 +368,9 @@ export default function WolfpackProfilePage() {
       <div className="border-t border-gray-800">
         <div className="flex">
           <button
-            onClick={() => setActiveTab('posts')}
+            onClick={() => setActiveTab('wolfpack_posts')}
             className={`flex-1 flex items-center justify-center py-4 ${
-              activeTab === 'posts' ? 'border-t-2 border-white' : ''
+              activeTab === 'wolfpack_posts' ? 'border-t-2 border-white' : ''
             }`}
           >
             <Grid3X3 className="w-6 h-6" />
@@ -394,12 +394,12 @@ export default function WolfpackProfilePage() {
         </div>
       </div>
 
-      {/* Posts Grid */}
+      {/* wolfpack_posts Grid */}
       <div className="p-1">
-        {activeTab === 'posts' && (
-          posts.length > 0 ? (
+        {activeTab === 'wolfpack_posts' && (
+          wolfpack_posts.length > 0 ? (
             <div className="grid grid-cols-3 gap-1">
-              {posts.map((post) => (
+              {wolfpack_posts.map((post) => (
                 <div
                   key={post.id}
                   className="aspect-square bg-gray-900 relative cursor-pointer hover:opacity-80"
@@ -435,7 +435,7 @@ export default function WolfpackProfilePage() {
           ) : (
             <div className="text-center py-12">
               <Grid3X3 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <h3 className="text-lg font-semibold mb-2">No wolfpack_posts yet</h3>
               <p className="text-gray-400 mb-4">Start sharing your moments with the pack</p>
               {isOwnProfile && (
                 <Button
@@ -452,16 +452,16 @@ export default function WolfpackProfilePage() {
         {activeTab === 'liked' && (
           <div className="text-center py-12">
             <Heart className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Liked posts</h3>
-            <p className="text-gray-400">Posts you've liked will appear here</p>
+            <h3 className="text-lg font-semibold mb-2">Liked wolfpack_posts</h3>
+            <p className="text-gray-400">wolfpack_posts you've liked will appear here</p>
           </div>
         )}
 
         {activeTab === 'saved' && (
           <div className="text-center py-12">
             <Bookmark className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Saved posts</h3>
-            <p className="text-gray-400">Save posts to view them later</p>
+            <h3 className="text-lg font-semibold mb-2">Saved wolfpack_posts</h3>
+            <p className="text-gray-400">Save wolfpack_posts to view them later</p>
           </div>
         )}
       </div>

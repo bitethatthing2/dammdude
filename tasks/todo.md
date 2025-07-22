@@ -9,7 +9,7 @@ Transform the current fragmented Side Hustle Bar PWA into a unified TikTok-style
 
 #### 1. Social Feed Components
 - **Adapt**: `social-feed.tsx` → `WolfpackVerticalFeed.tsx`
-- **Transform**: Card-based layout → Full-screen vertical posts
+- **Transform**: Card-based layout → Full-screen vertical wolfpack_posts
 - **Add**: TikTok-style swipe gestures and video autoplay
 - **Integrate**: DJ live indicators, events, and business content
 
@@ -82,7 +82,7 @@ components/wolfpack/
 │   ├── AudienceParticipation.tsx (pack engagement)
 │   └── LiveChat.tsx (real-time messaging)
 ├── businesses/
-│   ├── BusinessShowcase.tsx (local business posts)
+│   ├── BusinessShowcase.tsx (local business wolfpack_posts)
 │   ├── PackDollarIntegration.tsx (rewards system)
 │   └── BusinessDirectory.tsx (comprehensive listings)
 └── social/
@@ -107,7 +107,7 @@ components/wolfpack/
 - **Touch Optimization**: Large tap targets and smooth interactions
 
 ### Content Types in Feed
-1. **Social Posts**: Pack member updates and interactions
+1. **Social wolfpack_posts**: Pack member updates and interactions
 2. **Live DJ**: Real-time DJ broadcasts with audience participation
 3. **Events**: Video-style event announcements and RSVPs
 4. **Businesses**: Local business showcases and services

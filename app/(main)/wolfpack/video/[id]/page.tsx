@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { VideoComments } from '@/components/wolfpack/VideoComments';
-import { ShareModal } from '@/components/wolfpack/ShareModal';
+import VideoComments from '@/components/wolfpack/VideoComments';
+import ShareModal from '@/components/wolfpack/ShareModal';
 import { toast } from 'sonner';
 
 export default function VideoPage() {
@@ -30,9 +30,9 @@ export default function VideoPage() {
     try {
       const supabase = createClient();
       
-      // Fetch post data
+      // Fetch post data with proper video_id relationships
       const { data: postData, error } = await supabase
-        .from('posts')
+        .from('wolfpack_posts')
         .select(`
           *,
           users:user_id (
@@ -41,13 +41,36 @@ export default function VideoPage() {
             avatar_url,
             profile_image_url
           ),
-          likes:likes(count),
-          comments:comments(count)
+          wolfpack_post_likes!video_id (
+            id,
+            user_id,
+            created_at
+          ),
+          wolfpack_comments!video_id (
+            id,
+            user_id,
+            content,
+            created_at,
+            like_count,
+            users (
+              id,
+              display_name,
+              avatar_url
+            )
+          )
         `)
         .eq('id', videoId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Post not found - likely deleted
+          toast.error('This post has been removed. Old wolfpack_posts are automatically deleted to maintain performance.');
+          router.push('/wolfpack');
+          return;
+        }
+        throw error;
+      }
 
       if (!postData) {
         toast.error('Post not found');
@@ -56,19 +79,17 @@ export default function VideoPage() {
       }
 
       setPost(postData);
-      setLikeCount(postData.likes?.[0]?.count || 0);
+      // Count likes from the wolfpack_post_likes array
+      setLikeCount(postData.wolfpack_post_likes?.length || 0);
 
       // Check if current user has liked this post
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: likeData } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', videoId)
-          .eq('user_id', user.id)
-          .single();
-        
-        setIsLiked(!!likeData);
+      if (user && postData.wolfpack_post_likes) {
+        // Check if user id exists in the likes array
+        const userLike = postData.wolfpack_post_likes.find(
+          (like: any) => like.user_id === user.id
+        );
+        setIsLiked(!!userLike);
       }
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -84,16 +105,16 @@ export default function VideoPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error('Please sign in to like posts');
+        toast.error('Please sign in to like wolfpack_posts');
         return;
       }
 
       if (isLiked) {
         // Unlike
         await supabase
-          .from('likes')
+          .from('wolfpack_post_likes')
           .delete()
-          .eq('post_id', videoId)
+          .eq('video_id', videoId)
           .eq('user_id', user.id);
         
         setIsLiked(false);
@@ -101,8 +122,8 @@ export default function VideoPage() {
       } else {
         // Like
         await supabase
-          .from('likes')
-          .insert({ post_id: videoId, user_id: user.id });
+          .from('wolfpack_post_likes')
+          .insert({ video_id: videoId, user_id: user.id });
         
         setIsLiked(true);
         setLikeCount(prev => prev + 1);
@@ -214,7 +235,7 @@ export default function VideoPage() {
                 className="flex items-center gap-2 text-white hover:text-primary transition-colors"
               >
                 <MessageCircle className="h-6 w-6" />
-                <span>{post.comments?.[0]?.count || 0}</span>
+                <span>{post.wolfpack_comments?.length || 0}</span>
               </button>
 
               <button
@@ -229,12 +250,16 @@ export default function VideoPage() {
 
         {/* Comments Section */}
         {showComments && (
-          <div className="max-w-2xl mx-auto mt-4 bg-zinc-900 rounded-t-xl">
-            <VideoComments 
-              videoId={videoId} 
-              onClose={() => setShowComments(false)} 
-            />
-          </div>
+          <VideoComments 
+            postId={videoId} 
+            isOpen={showComments}
+            onClose={() => setShowComments(false)} 
+            initialCommentCount={post.wolfpack_comments?.length || 0}
+            onCommentCountChange={(count) => {
+              // Update the post state with new comment count if needed
+              console.log('Comment count changed:', count);
+            }}
+          />
         )}
       </div>
 
@@ -243,7 +268,8 @@ export default function VideoPage() {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         videoId={videoId}
-        videoTitle={post.caption || 'Check out this post!'}
+        caption={post.caption || 'Check out this post!'}
+        username={post.users?.display_name}
       />
     </div>
   );

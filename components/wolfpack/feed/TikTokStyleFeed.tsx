@@ -17,7 +17,7 @@ interface VideoItem {
   username: string;
   avatar_url?: string;
   caption: string;
-  video_url: string | null; // Can be null for image posts
+  video_url: string | null; // Can be null for image wolfpack_posts
   thumbnail_url?: string;
   likes_count: number;
   comments_count: number;
@@ -652,7 +652,7 @@ export default function TikTokStyleFeed({
                 </span>
               </button>
 
-              {/* Delete Button - only for current user's posts */}
+              {/* Delete Button - only for current user's wolfpack_posts */}
               {currentUser && video.user_id === currentUser.id && onDelete && (
                 <button
                   onClick={() => onDelete(video.id)}

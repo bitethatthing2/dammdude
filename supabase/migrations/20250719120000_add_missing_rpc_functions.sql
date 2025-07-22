@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION public.get_user_social_stats(user_uuid UUID)
 RETURNS TABLE (
   followers_count INTEGER,
   following_count INTEGER,
-  posts_count INTEGER,
+  wolfpack_posts_count INTEGER,
   total_likes INTEGER,
   total_views INTEGER,
   engagement_rate NUMERIC
@@ -36,7 +36,7 @@ BEGIN
       SELECT COUNT(*)::INTEGER 
       FROM wolfpack_videos 
       WHERE user_id = user_uuid AND is_active = true
-    ), 0) as posts_count,
+    ), 0) as wolfpack_posts_count,
     
     COALESCE((
       SELECT COUNT(*)::INTEGER 
@@ -164,7 +164,7 @@ GRANT EXECUTE ON FUNCTION public.test_api_health() TO anon, authenticated;
 COMMENT ON TABLE public.wolfpack_follows IS 'User following relationships for the wolfpack social network';
 COMMENT ON TABLE public.wolfpack_likes IS 'Video likes in the wolfpack social network';
 COMMENT ON TABLE public.wolfpack_comments IS 'Comments on wolfpack videos';
-COMMENT ON TABLE public.wolfpack_videos IS 'Video posts in the wolfpack social network';
+COMMENT ON TABLE public.wolfpack_videos IS 'Video wolfpack_posts in the wolfpack social network';
 
 -- Ensure wolfpack_follows table has proper structure
 DO $$

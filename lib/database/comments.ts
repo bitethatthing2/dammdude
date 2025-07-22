@@ -13,6 +13,7 @@ type CommentInsert =
   Database["public"]["Tables"]["wolfpack_comments"]["Insert"];
 
 export async function getCommentsForPost(postId: string): Promise<Comment[]> {
+  // Fetch ALL comments for this post (both root comments and replies)
   const { data, error } = await supabase
     .from("wolfpack_comments")
     .select(`
@@ -26,7 +27,6 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
       )
     `)
     .eq("video_id", postId)
-    .is("parent_comment_id", null)
     .order("created_at", { ascending: false });
 
   if (error) {

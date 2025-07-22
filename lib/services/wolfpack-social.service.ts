@@ -181,7 +181,7 @@ class WolfpackSocialService {
             avatar_url: comment.user.avatar_url,
           }
           : undefined,
-        reactions: [], // Comment reactions feature not implemented yet
+        reactions: [], // Will be populated by real-time subscription or manual fetch
         replies_count: 0, // Could be enhanced later
       }));
 
@@ -195,15 +195,21 @@ class WolfpackSocialService {
   async addCommentReaction(
     commentId: string,
     userId: string,
-    emoji: string,
+    reactionType: string = '❤️',
   ): Promise<{ success: boolean }> {
     try {
-      // Note: wolfpack_comment_reactions table doesn't exist in current schema
-      // This is a placeholder for future implementation
-      console.warn(
-        "Comment reactions not implemented - table wolfpack_comment_reactions does not exist",
-      );
-      return { success: false };
+      const { data, error } = await supabase
+        .from('wolfpack_comment_reactions')
+        .insert({
+          comment_id: commentId,
+          user_id: userId,
+          reaction_type: reactionType
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return { success: true };
     } catch (error) {
       console.error("Error adding reaction:", error);
       return { success: false };
@@ -213,18 +219,70 @@ class WolfpackSocialService {
   async removeCommentReaction(
     commentId: string,
     userId: string,
-    emoji: string,
+    reactionType?: string,
   ): Promise<{ success: boolean }> {
     try {
-      // Note: wolfpack_comment_reactions table doesn't exist in current schema
-      // This is a placeholder for future implementation
-      console.warn(
-        "Comment reactions not implemented - table wolfpack_comment_reactions does not exist",
-      );
-      return { success: false };
+      let query = supabase
+        .from('wolfpack_comment_reactions')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', userId);
+        
+      if (reactionType) {
+        query = query.eq('reaction_type', reactionType);
+      }
+      
+      const { error } = await query;
+      if (error) throw error;
+      return { success: true };
     } catch (error) {
       console.error("Error removing reaction:", error);
       return { success: false };
+    }
+  }
+
+  // Get reactions for a comment
+  async getCommentReactions(commentId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('wolfpack_comment_reactions')
+        .select(`
+          *,
+          user:users(id, first_name, last_name, avatar_url, display_name)
+        `)
+        .eq('comment_id', commentId);
+        
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error getting comment reactions:', error);
+      return [];
+    }
+  }
+
+  // Check if user has reacted to a comment
+  async hasUserReacted(commentId: string, userId: string, reactionType?: string): Promise<boolean> {
+    try {
+      let query = supabase
+        .from('wolfpack_comment_reactions')
+        .select('id')
+        .eq('comment_id', commentId)
+        .eq('user_id', userId);
+        
+      if (reactionType) {
+        query = query.eq('reaction_type', reactionType);
+      }
+      
+      const { data, error } = await query.single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      return !!data;
+    } catch (error) {
+      console.error('Error checking user reaction:', error);
+      return false;
     }
   }
 

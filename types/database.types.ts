@@ -14,153 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _archive_menu_item_modifiers: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string
-          is_available: boolean | null
-          is_popular: boolean | null
-          modifier_type: string | null
-          name: string | null
-          price_adjustment: number | null
-          spice_level: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id: string
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          modifier_type?: string | null
-          name?: string | null
-          price_adjustment?: number | null
-          spice_level?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          modifier_type?: string | null
-          name?: string | null
-          price_adjustment?: number | null
-          spice_level?: number | null
-        }
-        Relationships: []
-      }
-      _archive_menu_items: {
-        Row: {
-          active: boolean | null
-          availability: boolean | null
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          image_url: string | null
-          metadata: Json | null
-          name: string | null
-          price: number | null
-          sort_order: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          availability?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id: string
-          image_url?: string | null
-          metadata?: Json | null
-          name?: string | null
-          price?: number | null
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          availability?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          metadata?: Json | null
-          name?: string | null
-          price?: number | null
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _archive_order_requests: {
-        Row: {
-          approved_at: string | null
-          bartender_id: string | null
-          created_at: string | null
-          declined_at: string | null
-          declined_reason: string | null
-          expires_at: string | null
-          id: string
-          item_name: string | null
-          item_price: number | null
-          location_id: string | null
-          menu_item_id: string | null
-          quantity: number | null
-          request_type: string | null
-          response_message: string | null
-          special_instructions: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          approved_at?: string | null
-          bartender_id?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          declined_reason?: string | null
-          expires_at?: string | null
-          id: string
-          item_name?: string | null
-          item_price?: number | null
-          location_id?: string | null
-          menu_item_id?: string | null
-          quantity?: number | null
-          request_type?: string | null
-          response_message?: string | null
-          special_instructions?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          approved_at?: string | null
-          bartender_id?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          declined_reason?: string | null
-          expires_at?: string | null
-          id?: string
-          item_name?: string | null
-          item_price?: number | null
-          location_id?: string | null
-          menu_item_id?: string | null
-          quantity?: number | null
-          request_type?: string | null
-          response_message?: string | null
-          special_instructions?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       _system_documentation: {
         Row: {
           category: string
@@ -1404,13 +1257,6 @@ export type Database = {
             referencedRelation: "food_drink_items"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
-            referencedColumns: ["id"]
-          },
         ]
       }
       location_verifications: {
@@ -1700,13 +1546,6 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "food_drink_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
             referencedColumns: ["id"]
           },
           {
@@ -3096,6 +2935,73 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wolfpack_comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string | null
+          id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string | null
+          id?: string
+          reaction_type?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string | null
+          id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -5421,37 +5327,6 @@ export type Database = {
         }
         Relationships: []
       }
-      menu_items_with_working_modifiers: {
-        Row: {
-          category_id: string | null
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string | null
-          image_id: string | null
-          is_available: boolean | null
-          modifier_groups: Json | null
-          name: string | null
-          price: number | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "food_drink_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_image_id_fkey"
-            columns: ["image_id"]
-            isOneToOne: false
-            referencedRelation: "images"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           created_at: string | null
@@ -5783,6 +5658,23 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wolfpack_comment_reaction_summary: {
+        Row: {
+          comment_id: string | null
+          count: number | null
+          reaction_type: string | null
+          user_ids: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_comments"
             referencedColumns: ["id"]
           },
         ]
@@ -6636,6 +6528,19 @@ export type Database = {
         Args: { p_content_id: string; p_content_type: string }
         Returns: Json
       }
+      analyze_index_efficiency: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schema_name: string
+          table_name: string
+          index_name: string
+          index_size: string
+          index_scans: number
+          rows_per_scan: number
+          efficiency_score: number
+          recommendation: string
+        }[]
+      }
       analyze_index_usage: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6645,6 +6550,18 @@ export type Database = {
           index_size: string
           usage_count: number
           recommendation: string
+        }[]
+      }
+      analyze_table_bloat: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schemaname: unknown
+          tablename: unknown
+          table_size: string
+          bloat_size: string
+          bloat_ratio: number
+          index_bloat_size: string
+          total_bloat_size: string
         }[]
       }
       apply_for_wolfpack_membership: {
@@ -7308,6 +7225,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_monthly_partition_template: {
+        Args: { p_parent_table: string; p_partition_column?: string }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_recipient_id: string
@@ -7387,6 +7308,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      daily_broadcast_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       daily_wolfpack_reset: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -7427,6 +7352,19 @@ export type Database = {
       delete_env_var: {
         Args: { p_key: string }
         Returns: Json
+      }
+      delete_old_broadcasts: {
+        Args: {
+          days_to_keep_active?: number
+          days_to_keep_completed?: number
+          days_to_keep_expired?: number
+        }
+        Returns: {
+          deleted_active: number
+          deleted_completed: number
+          deleted_expired: number
+          deleted_messages: number
+        }[]
       }
       demo_complete_order_flow: {
         Args: { p_customer_id: string; p_location_id: string }
@@ -7643,6 +7581,15 @@ export type Database = {
       generate_location_based_suggestions: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      generate_maintenance_report: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          report_section: string
+          metric_name: string
+          metric_value: string
+          recommendation: string
+        }[]
       }
       generate_optimization_report: {
         Args: Record<PropertyKey, never>
@@ -8839,6 +8786,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_slow_queries: {
+        Args: { threshold_ms?: number }
+        Returns: {
+          query: string
+          calls: number
+          total_time: number
+          mean_time: number
+          max_time: number
+          cache_hit_ratio: number
+        }[]
+      }
       get_slow_query_summary: {
         Args: { p_hours?: number }
         Returns: {
@@ -9862,6 +9820,17 @@ export type Database = {
           status: string
         }[]
       }
+      monitor_table_growth: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          current_size: string
+          row_count: number
+          avg_row_size: number
+          partitioning_recommendation: string
+          suggested_partition_key: string
+        }[]
+      }
       needs_location_verification: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -9881,6 +9850,10 @@ export type Database = {
       path: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      perform_routine_maintenance: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       perform_table_maintenance: {
         Args: Record<PropertyKey, never>
@@ -10281,6 +10254,10 @@ export type Database = {
       request_to_order: {
         Args: { p_location_id: string; p_message?: string }
         Returns: Json
+      }
+      reset_query_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       reset_user_password: {
         Args: { user_email: string; new_password: string }

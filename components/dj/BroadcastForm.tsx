@@ -33,7 +33,7 @@ import type {
   BroadcastOption,
   Json
 } from '@/types/features/dj-dashboard-types';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 interface BroadcastFormProps {
   djId: string;

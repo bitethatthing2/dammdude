@@ -141,7 +141,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com; img-src 'self' data: https: blob: http:;",
+            value: "frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com https://www.gstatic.com https://apis.google.com; img-src 'self' data: https: blob: http:;",
           },
         ],
       },

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/database.types';
 
 type OrderRequest = Database['public']['Tables']['order_requests']['Row'];
 type OrderRequestInsert = Database['public']['Tables']['order_requests']['Insert'];

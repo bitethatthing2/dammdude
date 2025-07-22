@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { BroadcastStatusService } from '@/lib/services/broadcast-status.service';
 
 interface LiveBroadcast {
   id: string;
@@ -74,6 +75,9 @@ export default function LiveBroadcastIndicator({
   useEffect(() => {
     const initializeLiveBroadcasts = async () => {
       try {
+        // Check for expired broadcasts first
+        await BroadcastStatusService.checkAndUpdateExpiredBroadcasts();
+
         // Check for active broadcasts
         const { data: broadcasts, error } = await supabase
           .from('dj_broadcasts')
@@ -107,6 +111,15 @@ export default function LiveBroadcastIndicator({
     };
 
     initializeLiveBroadcasts();
+
+    // Set up periodic cleanup for expired broadcasts every 30 seconds
+    const cleanupInterval = setInterval(() => {
+      BroadcastStatusService.checkAndUpdateExpiredBroadcasts();
+    }, 30000);
+
+    return () => {
+      clearInterval(cleanupInterval);
+    };
   }, []);
 
   // Load broadcast responses
@@ -137,15 +150,29 @@ export default function LiveBroadcastIndicator({
     }
   };
 
-  // Calculate time remaining for broadcast
+  // Calculate time remaining for broadcast and handle expiration
   useEffect(() => {
     if (!currentBroadcast || !currentBroadcast.expires_at) return;
 
-    const calculateTimeRemaining = () => {
+    const calculateTimeRemaining = async () => {
       const now = new Date().getTime();
       const expiresAt = new Date(currentBroadcast.expires_at!).getTime();
       const remaining = Math.max(0, expiresAt - now);
-      setTimeRemaining(Math.floor(remaining / 1000));
+      const remainingSeconds = Math.floor(remaining / 1000);
+      
+      setTimeRemaining(remainingSeconds);
+      
+      // Handle broadcast expiration
+      if (remainingSeconds === 0 && currentBroadcast.status === 'active') {
+        try {
+          await BroadcastStatusService.expireBroadcast(currentBroadcast.id);
+          // Remove from active broadcasts
+          setActiveBroadcasts(prev => prev.filter(b => b.id !== currentBroadcast.id));
+          setCurrentBroadcast(null);
+        } catch (error) {
+          console.error('Failed to expire broadcast:', error);
+        }
+      }
     };
 
     calculateTimeRemaining();
@@ -182,11 +209,21 @@ export default function LiveBroadcastIndicator({
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedBroadcast = payload.new as LiveBroadcast;
-            setActiveBroadcasts(prev => 
-              prev.map(b => b.id === updatedBroadcast.id ? updatedBroadcast : b)
-            );
-            if (currentBroadcast && currentBroadcast.id === updatedBroadcast.id) {
-              setCurrentBroadcast(updatedBroadcast);
+            
+            // If broadcast is no longer active, remove it from the list
+            if (updatedBroadcast.status !== 'active') {
+              setActiveBroadcasts(prev => prev.filter(b => b.id !== updatedBroadcast.id));
+              if (currentBroadcast && currentBroadcast.id === updatedBroadcast.id) {
+                setCurrentBroadcast(null);
+              }
+            } else {
+              // Update the broadcast if still active
+              setActiveBroadcasts(prev => 
+                prev.map(b => b.id === updatedBroadcast.id ? updatedBroadcast : b)
+              );
+              if (currentBroadcast && currentBroadcast.id === updatedBroadcast.id) {
+                setCurrentBroadcast(updatedBroadcast);
+              }
             }
           }
         }
@@ -337,6 +374,22 @@ export default function LiveBroadcastIndicator({
           </div>
         )}
       </div>
+
+      {/* Deletion Warning */}
+      {(() => {
+        const daysUntilDeletion = BroadcastStatusService.getDaysUntilDeletion(currentBroadcast);
+        if (daysUntilDeletion !== null && daysUntilDeletion <= 7) {
+          return (
+            <div className="mt-2 flex items-center gap-2 bg-red-900/30 border border-red-500/50 rounded-lg p-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span className="text-red-200 text-xs font-medium">
+                ⚠️ Will be deleted in {daysUntilDeletion} day{daysUntilDeletion !== 1 ? 's' : ''}
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Broadcast Message */}
       <div className="mt-2 text-white/90 text-sm">

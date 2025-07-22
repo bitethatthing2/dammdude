@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WolfpackBackendService, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import { BroadcastStatusService } from '@/lib/services/broadcast-status.service';
 import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
@@ -225,13 +226,20 @@ class BroadcastService {
         general: 'DJ Broadcast'
       };
 
+      // Set default expiration time (5 minutes from now)
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
+
       const broadcastData = {
         dj_id: userId,
         location_id: locationId,
         message: sanitizeMessage(message),
         title: typeToTitle[broadcastType] || 'DJ Broadcast',
         broadcast_type: broadcastType,
-        created_at: new Date().toISOString()
+        status: 'active',
+        created_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        sent_at: now.toISOString()
       };
 
       const result = await WolfpackBackendService.insert(

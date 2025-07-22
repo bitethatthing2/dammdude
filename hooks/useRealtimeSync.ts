@@ -175,8 +175,8 @@ export function useRealtimeLikes(
   });
 }
 
-// Specialized hook for posts realtime sync
-export function useRealtimePosts(
+// Specialized hook for wolfpack_posts realtime sync
+export function useRealtimewolfpack_posts(
   onNewPost: (post: any) => void,
   onPostUpdate?: (post: any) => void,
   onPostDelete?: (postId: string) => void,

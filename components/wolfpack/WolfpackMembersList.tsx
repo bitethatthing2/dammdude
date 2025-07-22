@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/lib/contexts/AuthContext'
-import type { Database } from '@/lib/database.types'
+import type { Database } from '@/types/database.types'
 import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error-service'
 import { dataService } from '@/lib/services/data-service'
 import { authService, Permission } from '@/lib/services/auth-service'

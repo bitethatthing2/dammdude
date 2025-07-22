@@ -67,7 +67,7 @@ users (
 )
 ```
 
-### 2. Wolf Pack Posts Table
+### 2. Wolf Pack wolfpack_posts Table
 ```sql
 wolfpack_videos (
   id: UUID PRIMARY KEY,

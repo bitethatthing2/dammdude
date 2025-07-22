@@ -26,6 +26,8 @@ interface Comment {
   created_at: string;
   likes_count: number;
   replies_count: number;
+  parent_id?: string;
+  replies?: Comment[];
   user_profile?: {
     first_name?: string;
     last_name?: string;
@@ -44,6 +46,157 @@ interface VideoCommentsProps {
   onCommentCountChange?: (count: number) => void;
 }
 
+// CommentItem component for rendering individual comments and their replies
+interface CommentItemProps {
+  comment: Comment;
+  onLike: (commentId: string) => void;
+  onReply: (commentId: string) => void;
+  replyingTo: string | null;
+  replyContent: string;
+  setReplyContent: (content: string) => void;
+  onSubmitReply: (e: React.FormEvent, parentCommentId: string) => void;
+  submittingReply: boolean;
+  replyInputRef: React.RefObject<HTMLInputElement>;
+  formatTimeAgo: (timestamp: string) => string;
+  user: any;
+  depth: number;
+}
+
+function CommentItem({
+  comment,
+  onLike,
+  onReply,
+  replyingTo,
+  replyContent,
+  setReplyContent,
+  onSubmitReply,
+  submittingReply,
+  replyInputRef,
+  formatTimeAgo,
+  user,
+  depth
+}: CommentItemProps) {
+  const maxDepth = 3; // Limit nesting depth to avoid UI issues
+  const isReplying = replyingTo === comment.id;
+  
+  return (
+    <div className={`${depth > 0 ? 'ml-4 md:ml-8 border-l border-gray-200 pl-2 md:pl-4' : ''} py-2`}>
+      <div className="flex gap-2 md:gap-3">
+        <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
+          <Image
+            src={comment.user_profile?.avatar_url || '/icons/wolf-icon-light-screen.png'}
+            alt="User avatar"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <div className="mb-1">
+            <span className="text-gray-900 font-semibold text-sm mr-2">
+              {comment.user_profile?.username || 'user'}
+            </span>
+            {comment.user_profile?.verified && (
+              <span className="text-blue-500 mr-2">✓</span>
+            )}
+            <span className="text-gray-500 text-xs">
+              {formatTimeAgo(comment.created_at)}
+            </span>
+          </div>
+          
+          <p className="text-gray-900 text-sm leading-normal mb-2">
+            {comment.content}
+          </p>
+          
+          <div className="flex items-center gap-4 md:gap-6 mb-2">
+            <button
+              onClick={() => onLike(comment.id)}
+              className="text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1"
+            >
+              <Heart 
+                className={`h-4 w-4 ${
+                  comment.is_liked ? 'fill-red-500 text-red-500' : ''
+                }`} 
+              />
+              <span className="text-xs">{comment.likes_count}</span>
+            </button>
+            
+            {depth < maxDepth && (
+              <button
+                onClick={() => onReply(comment.id)}
+                className="text-gray-500 hover:text-gray-700 transition-colors text-xs font-medium py-1 px-2 rounded hover:bg-gray-100"
+              >
+                Reply
+              </button>
+            )}
+          </div>
+          
+          {/* Reply input field */}
+          {isReplying && user && (
+            <form onSubmit={(e) => onSubmitReply(e, comment.id)} className="mt-3 mb-4">
+              <div className="flex gap-2 items-start">
+                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden flex-shrink-0 mt-1">
+                  <Image
+                    src={user?.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png'}
+                    alt="Your avatar"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    ref={replyInputRef}
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder={`Reply to ${comment.user_profile?.username || 'user'}...`}
+                    className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-gray-400 focus:ring-0 rounded-full px-3 py-2 text-sm min-w-0"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!replyContent.trim() || submittingReply}
+                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 disabled:text-gray-400 transition-colors rounded-full hover:bg-gray-100 flex-shrink-0"
+                  >
+                    {submittingReply ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+          
+          {/* Render replies */}
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-2 md:mt-3">
+              {comment.replies.map((reply) => (
+                <CommentItem 
+                  key={reply.id}
+                  comment={reply}
+                  onLike={onLike}
+                  onReply={onReply}
+                  replyingTo={replyingTo}
+                  replyContent={replyContent}
+                  setReplyContent={setReplyContent}
+                  onSubmitReply={onSubmitReply}
+                  submittingReply={submittingReply}
+                  replyInputRef={replyInputRef}
+                  formatTimeAgo={formatTimeAgo}
+                  user={user}
+                  depth={depth + 1}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VideoComments({ postId, isOpen, onClose, initialCommentCount, onCommentCountChange }: VideoCommentsProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -52,7 +205,11 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
   const [submitting, setSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState<string>('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replyInputRef = useRef<HTMLInputElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -64,25 +221,58 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
       // Subscribe to real-time updates
       unsubscribeRef.current = wolfpackSocialService.subscribeToComments(
         postId,
-        (updatedComments) => {
-          // Convert to the component's comment format
-          const formattedComments = updatedComments.map(c => ({
-            id: c.id,
-            user_id: c.user_id,
-            content: c.content,
-            created_at: c.created_at,
-            likes_count: c.reactions?.reduce((sum, r) => sum + r.count, 0) || 0,
-            replies_count: c.replies_count || 0,
-            user_profile: {
-              first_name: c.user?.first_name,
-              last_name: c.user?.last_name,
-              username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
-              avatar_url: c.user?.avatar_url,
-              verified: true
-            },
-            is_liked: c.reactions?.some(r => r.user_reacted && r.emoji === '❤️') || false
-          }));
-          setComments(formattedComments);
+        async (updatedComments) => {
+          console.log('Real-time subscription triggered. Raw comments:', updatedComments);
+          
+          try {
+            // Convert to the component's comment format with reaction checking
+            const allFormattedComments = await Promise.all(
+              updatedComments.map(async (c) => {
+                let is_liked = false;
+                let likes_count = 0;
+                
+                if (user?.id) {
+                  try {
+                    is_liked = await wolfpackSocialService.hasUserReacted(c.id, user.id, '❤️');
+                    const reactions = await wolfpackSocialService.getCommentReactions(c.id);
+                    likes_count = reactions.filter(r => r.reaction_type === '❤️').length;
+                  } catch (error) {
+                    console.error('Error checking reaction status:', error);
+                  }
+                }
+                
+                return {
+                  id: c.id,
+                  user_id: c.user_id,
+                  content: c.content,
+                  created_at: c.created_at,
+                  parent_id: c.parent_id,
+                  likes_count,
+                  replies_count: c.replies_count || 0,
+                  replies: [],
+                  user_profile: {
+                    first_name: c.user?.first_name,
+                    last_name: c.user?.last_name,
+                    username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
+                    avatar_url: c.user?.avatar_url,
+                    verified: true
+                  },
+                  is_liked
+                };
+              })
+            );
+            
+            console.log('Formatted comments before hierarchy:', allFormattedComments);
+            
+            // Organize into hierarchy
+            const formattedComments = organizeCommentsHierarchy(allFormattedComments);
+            
+            console.log('Final hierarchical comments:', formattedComments);
+            
+            setComments(formattedComments);
+          } catch (error) {
+            console.error('Error processing real-time comment updates:', error);
+          }
         },
         user?.id
       );
@@ -107,25 +297,56 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
     try {
       setLoading(true);
       
+      console.log('Fetching comments for post:', postId);
+      
       const fetchedComments = await wolfpackSocialService.getComments(postId, user?.id);
       
-      // Convert to the component's comment format
-      const formattedComments = fetchedComments.map(c => ({
-        id: c.id,
-        user_id: c.user_id,
-        content: c.content,
-        created_at: c.created_at,
-        likes_count: c.reactions?.reduce((sum, r) => sum + r.count, 0) || 0,
-        replies_count: c.replies_count || 0,
-        user_profile: {
-          first_name: c.user?.first_name,
-          last_name: c.user?.last_name,
-          username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
-          avatar_url: c.user?.avatar_url,
-          verified: true
-        },
-        is_liked: c.reactions?.some(r => r.user_reacted && r.emoji === '❤️') || false
-      }));
+      console.log('Raw fetched comments:', fetchedComments);
+      
+      // Convert to the component's comment format and get reaction status
+      const allFormattedComments = await Promise.all(
+        fetchedComments.map(async (c) => {
+          // Check if current user has liked this comment
+          let is_liked = false;
+          let likes_count = 0;
+          
+          if (user?.id) {
+            try {
+              is_liked = await wolfpackSocialService.hasUserReacted(c.id, user.id, '❤️');
+              const reactions = await wolfpackSocialService.getCommentReactions(c.id);
+              likes_count = reactions.filter(r => r.reaction_type === '❤️').length;
+            } catch (error) {
+              console.error('Error checking reaction status:', error);
+            }
+          }
+          
+          return {
+            id: c.id,
+            user_id: c.user_id,
+            content: c.content,
+            created_at: c.created_at,
+            parent_id: c.parent_id,
+            likes_count,
+            replies_count: c.replies_count || 0,
+            replies: [],
+            user_profile: {
+              first_name: c.user?.first_name,
+              last_name: c.user?.last_name,
+              username: `${c.user?.first_name || ''} ${c.user?.last_name || ''}`.trim() || 'User',
+              avatar_url: c.user?.avatar_url,
+              verified: true
+            },
+            is_liked
+          };
+        })
+      );
+      
+      console.log('Formatted comments before hierarchy:', allFormattedComments);
+      
+      // Organize comments into hierarchical structure
+      const formattedComments = organizeCommentsHierarchy(allFormattedComments);
+      
+      console.log('Final hierarchical comments:', formattedComments);
       
       setComments(formattedComments);
     } catch (error) {
@@ -229,6 +450,150 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
     }
   };
   
+  // Helper function to organize comments into hierarchical structure
+  const organizeCommentsHierarchy = (allComments: Comment[]): Comment[] => {
+    const commentMap = new Map<string, Comment>();
+    const rootComments: Comment[] = [];
+    
+    // First pass: create a map of all comments
+    allComments.forEach(comment => {
+      commentMap.set(comment.id, { ...comment, replies: [] });
+    });
+    
+    // Second pass: organize into hierarchy
+    allComments.forEach(comment => {
+      const commentWithReplies = commentMap.get(comment.id)!;
+      
+      if (comment.parent_id) {
+        // This is a reply, add it to parent's replies
+        const parent = commentMap.get(comment.parent_id);
+        if (parent) {
+          parent.replies!.push(commentWithReplies);
+        }
+      } else {
+        // This is a root comment
+        rootComments.push(commentWithReplies);
+      }
+    });
+    
+    // Sort root comments by creation date (newest first)
+    rootComments.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    // Sort replies within each comment by creation date (oldest first)
+    const sortReplies = (comment: Comment) => {
+      if (comment.replies && comment.replies.length > 0) {
+        comment.replies.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        comment.replies.forEach(sortReplies);
+      }
+    };
+    
+    rootComments.forEach(sortReplies);
+    
+    return rootComments;
+  };
+  
+  const handleSubmitReply = async (e: React.FormEvent, parentCommentId: string) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !user || submittingReply) return;
+
+    try {
+      setSubmittingReply(true);
+      
+      console.log('Submitting reply:', {
+        postId,
+        userId: user.id,
+        content: replyContent.trim(),
+        parentCommentId
+      });
+      
+      const result = await wolfpackSocialService.createComment(
+        postId,
+        user.id,
+        replyContent.trim(),
+        parentCommentId
+      );
+      
+      console.log('Reply submission result:', result);
+      
+      if (result.success && result.comment) {
+        setReplyContent('');
+        setReplyingTo(null);
+        
+        // Add optimistic update for immediate feedback
+        if (result.comment) {
+          console.log('Adding optimistic reply:', result.comment);
+          
+          // Create the formatted reply comment
+          const formattedReply = {
+            id: result.comment.id,
+            user_id: result.comment.user_id,
+            content: result.comment.content,
+            created_at: result.comment.created_at,
+            parent_id: result.comment.parent_id,
+            likes_count: 0,
+            replies_count: 0,
+            replies: [],
+            user_profile: {
+              first_name: result.comment.user?.first_name,
+              last_name: result.comment.user?.last_name,
+              username: `${result.comment.user?.first_name || ''} ${result.comment.user?.last_name || ''}`.trim() || 'User',
+              avatar_url: result.comment.user?.avatar_url,
+              verified: true
+            },
+            is_liked: false
+          };
+          
+          // Add reply to parent comment immediately
+          setComments(prevComments => {
+            const addReplyToComments = (comments: Comment[]): Comment[] => {
+              return comments.map(comment => {
+                if (comment.id === parentCommentId) {
+                  return {
+                    ...comment,
+                    replies: [...(comment.replies || []), formattedReply]
+                  };
+                }
+                // Check nested replies
+                if (comment.replies && comment.replies.length > 0) {
+                  return {
+                    ...comment,
+                    replies: addReplyToComments(comment.replies)
+                  };
+                }
+                return comment;
+              });
+            };
+            
+            return addReplyToComments(prevComments);
+          });
+        }
+        
+        toast({
+          title: 'Reply posted!',
+          description: 'Your reply has been added'
+        });
+      } else {
+        console.error('Reply submission failed:', result);
+        throw new Error('Failed to create reply');
+      }
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to post reply',
+        variant: 'destructive'
+      });
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+  
+  const handleReplyClick = (commentId: string) => {
+    setReplyingTo(commentId);
+    // Focus the reply input after it appears
+    setTimeout(() => replyInputRef.current?.focus(), 100);
+  };
+  
   const handleEmojiReaction = (emoji: string) => {
     setNewComment(prev => prev + emoji);
     setShowEmojiPicker(false);
@@ -282,7 +647,7 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto px-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3 md:px-4 space-y-2 md:space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
@@ -295,59 +660,21 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
             </div>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3 py-2">
-                <Avatar className="w-10 h-10 flex-shrink-0">
-                  <Image
-                    src={comment.user_profile?.avatar_url || '/icons/wolf-icon-light-screen.png'}
-                    alt="User avatar"
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="mb-1">
-                    <span className="text-gray-900 font-semibold text-sm mr-2">
-                      {comment.user_profile?.username || 'user'}
-                    </span>
-                    {comment.user_profile?.verified && (
-                      <span className="text-blue-500 mr-2">✓</span>
-                    )}
-                    <span className="text-gray-500 text-xs">
-                      {formatTimeAgo(comment.created_at)}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-900 text-sm leading-normal mb-2">
-                    {comment.content}
-                  </p>
-                  
-                  <div className="flex items-center gap-6">
-                    <button
-                      onClick={() => handleLikeComment(comment.id)}
-                      className="text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1"
-                    >
-                      <Heart 
-                        className={`h-4 w-4 ${
-                          comment.is_liked ? 'fill-red-500 text-red-500' : ''
-                        }`} 
-                      />
-                      <span className="text-xs">{comment.likes_count}</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        // TODO: Implement reply functionality
-                        console.log('Reply to comment:', comment.id);
-                      }}
-                      className="text-gray-500 hover:text-gray-700 transition-colors text-xs"
-                    >
-                      Reply
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <CommentItem 
+                key={comment.id}
+                comment={comment}
+                onLike={handleLikeComment}
+                onReply={handleReplyClick}
+                replyingTo={replyingTo}
+                replyContent={replyContent}
+                setReplyContent={setReplyContent}
+                onSubmitReply={handleSubmitReply}
+                submittingReply={submittingReply}
+                replyInputRef={replyInputRef}
+                formatTimeAgo={formatTimeAgo}
+                user={user}
+                depth={0}
+              />
             ))
           )}
         </div>
@@ -355,7 +682,7 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
 
         {/* Comment Input - TikTok Style */}
         <div className="border-t border-gray-200 bg-white sticky bottom-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-          <div className="p-4 pt-3">
+          <div className="p-3 md:p-4 pt-3">
             {!user ? (
             <div>
               <div className="text-center py-2 mb-3">
@@ -365,23 +692,23 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
                 </button>
               </div>
               {/* Show input anyway for testing */}
-              <form className="flex gap-3 items-center opacity-50">
-                <div className="w-9 h-9 bg-gray-300 rounded-full flex-shrink-0"></div>
+              <form className="flex gap-2 md:gap-3 items-center opacity-50">
+                <div className="w-8 h-8 md:w-9 md:h-9 bg-gray-300 rounded-full flex-shrink-0"></div>
                 <input 
                   type="text"
                   placeholder="Sign in to comment..."
                   disabled
-                  className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 rounded-full px-4 py-3 text-sm"
+                  className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 rounded-full px-3 md:px-4 py-2 md:py-3 text-sm min-w-0"
                 />
-                <button type="button" disabled className="p-2 text-gray-400">
-                  <Send className="h-5 w-5" />
+                <button type="button" disabled className="p-2 text-gray-400 flex-shrink-0">
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
                 </button>
               </form>
             </div>
           ) : (
-            <form onSubmit={handleSubmitComment} className="flex gap-3 items-center">
+            <form onSubmit={handleSubmitComment} className="flex gap-2 md:gap-3 items-center">
               {/* User Avatar */}
-              <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
                 <Image
                   src={user?.user_metadata?.avatar_url || '/icons/wolf-icon-light-screen.png'}
                   alt="Your avatar"
@@ -398,7 +725,7 @@ export default function VideoComments({ postId, isOpen, onClose, initialCommentC
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Add comment..."
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-gray-400 focus:ring-0 rounded-full px-4 py-3 pr-24 text-sm"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-gray-400 focus:ring-0 rounded-full px-3 md:px-4 py-2 md:py-3 pr-20 md:pr-24 text-sm min-w-0"
                 />
                 
                 {/* Emoji picker - positioned relative to entire form */}

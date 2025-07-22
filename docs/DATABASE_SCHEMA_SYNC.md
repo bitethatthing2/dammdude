@@ -10,7 +10,7 @@ This document ensures your frontend code stays perfectly synchronized with the S
 |-------|---------|-------------|
 | `wolfpack_post_likes` | Post likes/hearts | `video_id`, `user_id` (unique together) |
 | `wolfpack_comments` | Comments & replies | `video_id`, `parent_comment_id`, `content` |
-| `wolfpack_videos` | Posts/videos | `id`, `user_id`, `video_url` |
+| `wolfpack_videos` | wolfpack_posts/videos | `id`, `user_id`, `video_url` |
 | `users` | User profiles | `id`, `first_name`, `last_name`, `avatar_url` |
 
 ### Key RPC Functions
@@ -126,7 +126,7 @@ import {
 ```typescript
 import { useComments } from '@/hooks/useComments'
 import { useLikes } from '@/hooks/useLikes'
-import { usePosts } from '@/hooks/usePosts'
+import { usewolfpack_posts } from '@/hooks/usewolfpack_posts'
 
 function VideoCard({ postId }: { postId: string }) {
   const { comments, addComment } = useComments(postId)

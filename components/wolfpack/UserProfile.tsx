@@ -28,7 +28,7 @@ import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
 interface UserStats {
   followers: number;
   following: number;
-  posts: number;
+  wolfpack_posts: number;
   likes: number;
   wolfpack_level: number;
   pack_coins: number;
@@ -45,7 +45,7 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
   const [stats, setStats] = useState<UserStats>({
     followers: 1234,
     following: 567,
-    posts: 89,
+    wolfpack_posts: 89,
     likes: 12400,
     wolfpack_level: 8,
     pack_coins: 2890
@@ -79,7 +79,7 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
     ]
   };
 
-  const recentPosts = [
+  const recentwolfpack_posts = [
     {
       id: '1',
       thumbnail: '/icons/wolf-icon.png',
@@ -250,8 +250,8 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
           </Card>
           <Card className="bg-gray-900 border-gray-700">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white mb-1">{stats.posts}</div>
-              <div className="text-gray-400 text-sm">Posts</div>
+              <div className="text-2xl font-bold text-white mb-1">{stats.wolfpack_posts}</div>
+              <div className="text-gray-400 text-sm">wolfpack_posts</div>
             </CardContent>
           </Card>
           <Card className="bg-gray-900 border-gray-700">
@@ -310,7 +310,7 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
           <div className="flex border-b border-gray-800">
             <div className="flex-1 py-3 text-center border-b-2 border-white">
               <div className="w-6 h-6 mx-auto mb-1">📱</div>
-              <span className="text-white text-xs">Posts</span>
+              <span className="text-white text-xs">wolfpack_posts</span>
             </div>
             <div className="flex-1 py-3 text-center">
               <div className="w-6 h-6 mx-auto mb-1">❤️</div>
@@ -325,9 +325,9 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
           </div>
 
           {/* Content Area */}
-          {recentPosts.length > 0 ? (
+          {recentwolfpack_posts.length > 0 ? (
             <div className="grid grid-cols-3 gap-1">
-              {recentPosts.map((post) => (
+              {recentwolfpack_posts.map((post) => (
                 <div key={post.id} className="aspect-square bg-gray-900 rounded-lg overflow-hidden relative">
                   <Image
                     src={post.thumbnail}
@@ -347,7 +347,7 @@ export default function UserProfile({ isOpen, onClose, userId }: UserProfileProp
               <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Image
                   src="/icons/wolf-icon.png"
-                  alt="No posts"
+                  alt="No wolfpack_posts"
                   width={32}
                   height={32}
                   className="w-8 h-8"

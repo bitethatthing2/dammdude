@@ -127,7 +127,7 @@ export async function fetchFollowingFeed(
     // Calculate offset
     const offset = (page - 1) * limit;
 
-    // Get posts from followed users
+    // Get wolfpack_posts from followed users
     const { data, error, count } = await supabase
       .from("wolfpack_videos")
       .select(
