@@ -127,9 +127,9 @@ export default function WolfpackProfilePage() {
       
       if (videoError) throw videoError;
       
-      // Also get wolfpack_posts from wolfpack_wolfpack_posts
+      // Also get wolfpack_posts from wolfpack_posts
       const { data: textwolfpack_posts, error: wolfpack_postsError } = await supabase
-        .from('wolfpack_wolfpack_posts')
+        .from('wolfpack_posts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })

@@ -36,10 +36,27 @@ export default function UnifiedLoginPage() {
     }
   };
 
+  // Enhanced validation function
+  const validateSignInData = (email: string, password: string): string | null => {
+    if (!email.trim()) return 'Email is required';
+    if (!email.includes('@')) return 'Please enter a valid email address';
+    if (!password) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
+    // Validate input data
+    const validationError = validateSignInData(email, password);
+    if (validationError) {
+      setError(validationError);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -56,12 +73,15 @@ export default function UnifiedLoginPage() {
           return;
         }
 
+        console.log('Attempting sign up with email:', email);
+        
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim().toLowerCase(),
           password,
           options: {
             data: {
               display_name: displayName,
+              full_name: displayName,
             },
           },
         });
@@ -92,8 +112,10 @@ export default function UnifiedLoginPage() {
         }
       } else {
         // Sign in flow
+        console.log('Attempting sign in with email:', email);
+        
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim().toLowerCase(),
           password,
         });
 
@@ -106,6 +128,8 @@ export default function UnifiedLoginPage() {
           // Handle specific authentication errors with better user guidance
           if (error.message.includes('Invalid login credentials')) {
             errorMessage = 'Invalid email or password. Please double-check your credentials and try again.';
+          } else if (error.message.includes('User not found')) {
+            errorMessage = 'No account found with this email address. Please check your email or sign up for a new account.';
             
             // Run diagnostic tests when credentials are invalid
             try {
@@ -165,12 +189,58 @@ export default function UnifiedLoginPage() {
 
         if (data?.user) {
           console.log('Sign in successful');
+          
+          // Check if user profile exists in database
+          try {
+            const { data: userProfile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('auth_id', data.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error checking user profile:', profileError);
+              // Continue with sign in even if profile check fails
+            } else if (!userProfile) {
+              console.log('User profile not found, creating one...');
+              // Create profile for users who signed up before the trigger was fixed
+              const displayName = data.user.user_metadata?.display_name || 
+                                data.user.user_metadata?.full_name || 
+                                data.user.email?.split('@')[0] || 
+                                'User';
+              
+              const { error: createError } = await supabase
+                .from('users')
+                .insert({
+                  auth_id: data.user.id,
+                  email: data.user.email || '',
+                  first_name: displayName.split(' ')[0] || '',
+                  last_name: displayName.split(' ').slice(1).join(' ') || '',
+                  display_name: displayName,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+
+              if (createError) {
+                console.error('Error creating user profile:', createError);
+                // Don't fail sign in if profile creation fails
+              } else {
+                console.log('User profile created successfully during sign in');
+              }
+            } else {
+              console.log('User profile found:', userProfile.display_name);
+            }
+          } catch (profileErr) {
+            console.error('Profile check exception:', profileErr);
+            // Continue with sign in even if profile operations fail
+          }
+
           toast({
             title: "Sign In Successful",
             description: "Welcome back!",
           });
           
-          // Check if user is admin by checking email or metadata
+          // Check if user is admin by checking email, metadata, or database role
           const isAdmin = data.user.email === 'gthabarber1@gmail.com' || 
                           data.user.app_metadata?.role === 'admin';
           

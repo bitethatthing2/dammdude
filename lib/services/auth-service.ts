@@ -230,7 +230,16 @@ class AuthService {
         throw new Error('No user returned from sign in');
       }
 
-      const user = await this.loadUserProfile(data.user.id);
+      // Try to load user profile, create one if it doesn't exist
+      let user: AuthUser;
+      try {
+        user = await this.loadUserProfile(data.user.id);
+      } catch (error) {
+        console.log('User profile not found, creating one for existing user...');
+        // This handles users who signed up before the trigger was implemented
+        await this.createMissingUserProfile(data.user);
+        user = await this.loadUserProfile(data.user.id);
+      }
       
       // Update login metadata
       await this.updateLoginMetadata(user.id);
@@ -518,6 +527,37 @@ class AuthService {
   }
 
   // Note: createUserProfile removed - user profiles are now created automatically by database trigger
+  
+  private async createMissingUserProfile(authUser: any): Promise<void> {
+    try {
+      const displayName = authUser.user_metadata?.display_name || 
+                          authUser.user_metadata?.full_name || 
+                          authUser.email?.split('@')[0] || 
+                          'User';
+      
+      await dataService.executeQuery(
+        () => this.supabase
+          .from('users')
+          .insert({
+            auth_id: authUser.id,
+            email: authUser.email || '',
+            first_name: displayName.split(' ')[0] || '',
+            last_name: displayName.split(' ').slice(1).join(' ') || '',
+            display_name: displayName,
+            role: UserRole.MEMBER,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }),
+        'createMissingUserProfile'
+      );
+    } catch (error) {
+      throw errorService.handleDatabaseError(
+        error as Error,
+        'createMissingUserProfile',
+        { userId: authUser.id }
+      );
+    }
+  }
 
   private async updateLoginMetadata(userId: string): Promise<void> {
     try {

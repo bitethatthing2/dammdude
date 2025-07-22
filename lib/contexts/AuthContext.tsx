@@ -75,7 +75,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: string, session: AuthSession | null) => {
+      async (event: string, session: AuthSession | null) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('Auth state changed: SIGNED_IN');
+          // Verify user profile exists when signing in
+          try {
+            const { data: userProfile, error: profileError } = await supabase
+              .from('users')
+              .select('id, auth_id, display_name')
+              .eq('auth_id', session.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error checking user profile during auth change:', profileError);
+            } else if (!userProfile) {
+              console.warn('User profile not found during auth change - profile may need to be created');
+            } else {
+              console.log('User profile verified during auth change:', userProfile.display_name);
+            }
+          } catch (err) {
+            console.error('Profile verification failed during auth change:', err);
+          }
+        }
+        
         setUser(session?.user ?? null)
         setError(null)
         setLoading(false)
