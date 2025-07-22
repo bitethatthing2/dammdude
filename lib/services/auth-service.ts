@@ -286,15 +286,12 @@ class AuthService {
         throw new Error('No user returned from sign up');
       }
 
-      // Create user profile
-      await this.createUserProfile(data.user.id, {
-        email,
-        firstName,
-        lastName,
-        displayName: displayName || `${firstName} ${lastName}`,
-        role: UserRole.MEMBER
-      });
+      // User profile will be created automatically by database trigger
+      console.log('Sign up successful - user profile will be created automatically by database trigger');
 
+      // Wait a moment for the trigger to complete, then load the profile
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const user = await this.loadUserProfile(data.user.id);
       this.notifyAuthListeners(user);
 
@@ -520,28 +517,7 @@ class AuthService {
     }
   }
 
-  private async createUserProfile(userId: string, profileData: any): Promise<void> {
-    try {
-      await dataService.executeQuery(
-        () => this.supabase
-          .from('users')
-          .insert({
-            id: userId,
-            ...profileData,
-            created_at: new Date().toISOString(),
-            login_count: 1,
-            last_login_at: new Date().toISOString()
-          }),
-        'createUserProfile'
-      );
-    } catch (error) {
-      throw errorService.handleDatabaseError(
-        error as Error,
-        'createUserProfile',
-        { userId }
-      );
-    }
-  }
+  // Note: createUserProfile removed - user profiles are now created automatically by database trigger
 
   private async updateLoginMetadata(userId: string): Promise<void> {
     try {

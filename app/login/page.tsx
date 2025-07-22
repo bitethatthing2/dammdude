@@ -79,33 +79,8 @@ export default function UnifiedLoginPage() {
         }
 
         if (data?.user) {
-          console.log('Sign up successful');
+          console.log('Sign up successful - user profile will be created automatically by database trigger');
           
-          // Create user profile automatically
-          try {
-            const { error: profileError } = await supabase
-              .from('users')
-              .insert({
-                auth_id: data.user.id,
-                email: data.user.email || '',
-                first_name: displayName?.split(' ')[0] || '',
-                last_name: displayName?.split(' ').slice(1).join(' ') || '',
-                display_name: displayName || '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-
-            if (profileError) {
-              console.error('Profile creation error:', profileError);
-              // Don't fail the signup if profile creation fails, just log it
-              console.warn('User signed up but profile creation failed. This may cause issues with WolfPack features.');
-            } else {
-              console.log('User profile created successfully');
-            }
-          } catch (profileErr) {
-            console.error('Profile creation exception:', profileErr);
-          }
-
           toast({
             title: "Sign Up Successful",
             description: "Welcome! Please check your email to verify your account.",

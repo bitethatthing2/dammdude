@@ -92,63 +92,100 @@ const needsCustomization = (item: MenuItemWithModifiers): boolean => {
   return false;
 };
 
-// Mapping object (longest matches first for better accuracy)
+// Enhanced mapping object (longest matches first for better accuracy)
 const itemImageMapping: { [key: string]: string } = {
+  // Multi-word exact matches first
   '3 tacos beans and rice': '3-tacos-beans-rice.png',
   'chips, guac and salsa': 'chips-guac-salsa.png',
   'chips, salsa and guac': 'chips-guac-salsa.png',
   'chips and salsa': 'chips-guac-salsa.png',
   'chips & salsa': 'chips-guac-salsa.png',
   'birria consommé': 'birria-consume.png',
+  'birria consume': 'birria-consume.png',
   'basket of fries': 'basket-of-fries.png',
   'basket of tots': 'basket-of-tots.png',
   'beans and rice': 'beans-and-rice.png',
   'rice and beans': 'beans-and-rice.png',
   'loaded nachos': 'loaded-nacho.png',
-  'loaded fries': 'loaded-nacho.png',
+  'loaded fries': 'loaded-fries.png',
+  'loaded nacho': 'loaded-nacho.png',
   'mango ceviche': 'mango-civeche.png',
   'french fries': 'basket-of-fries.png',
   'taco salad': 'taco-salad.png',
   'fish tacos': 'fish-tacos.png',
   'fish taco': 'fish-tacos.png',
+  'shrimp tacos': 'shrimp-tacos.png',
+  'shrimp taco': 'shrimp-tacos.png',
+  'birria tacos': 'birria-tacos.png',
+  'birria taco': 'birria-tacos.png',
+  'keto tacos': 'keto-tacos.png',
+  'keto taco': 'keto-tacos.png',
+  'queso tacos': 'queso-tacos.png',
+  'queso taco': 'queso-tacos.png',
   'chefa sauce': 'chefa-sauce.png',
+  'chicken and waffles': 'chicken-and-waffles.png',
+  'hot wings': 'hot-wings.png',
+  'hustle bowl': 'hustle-bowl.png',
+  'porkchop platter': 'porkchop-platter.png',
+  'ham and potato burrito': 'ham-and-potatoe-burrito.png',
+  'ham and potatoe burrito': 'ham-and-potatoe-burrito.png',
+  'asada burrito': 'asada-burrito.png',
   'taco dinner': '3-tacos-beans-rice.png',
   'taco combo': 'tacos.png',
   'taco plate': 'tacos.png',
   '3 tacos': 'tacos.png',
   'three tacos': 'tacos.png',
+  
+  // Single word matches
   'chilaquiles': 'CHILAQUILES.PNG',
   'empanadas': 'empanadas.png',
+  'empanada': 'empanadas.png',
   'quesadilla': 'quesadilla.png',
   'flautas': 'flautas.png',
+  'flauta': 'flautas.png',
   'burrito': 'burrito.png',
   'pancakes': 'pancakes.jpg',
+  'pancake': 'pancakes.jpg',
   'margarita': 'margarita.png',
   'molita': 'molita.png',
+  'mulitas': 'mulitas.png',
+  'mulita': 'mulitas.png',
   'ceviche': 'mango-civeche.png',
   'torta': 'torta.png',
-  'nachos': 'loaded-nacho.png',
-  'guacamole': 'guacamole.png',
+  'nachos': 'nacho.png',
+  'nacho': 'nacho.png',
   'consommé': 'birria-consume.png',
+  'consume': 'birria-consume.png',
   'tacos': 'tacos.png',
   'taco': 'tacos.png',
   'fries': 'basket-of-fries.png',
   'tots': 'basket-of-tots.png',
   'beans': 'beans.png',
-  'rice': 'rice.png'
+  'rice': 'rice.png',
+  'vampiros': 'vampiros.png',
+  'vampiro': 'vampiros.png',
+  'boards': 'boards.png',
+  'board': 'boards.png'
 };
 
 const findImageForMenuItem = (itemName: string, itemDescription: string, categoryType?: string): string | null => {
   const searchText = (itemName + ' ' + itemDescription).toLowerCase().trim();
   const itemNameOnly = itemName.toLowerCase().trim();
   
+  // Special handling for margarita drinks - they use the margarita image from food-menu-images
+  if (categoryType === 'drink' && (searchText.includes('margarita') && !searchText.includes('board'))) {
+    return '/food-menu-images/margarita.png';
+  }
+  
   // Determine image directory based on category type
   const imageDir = categoryType === 'drink' ? '/drink-menu-images/' : '/food-menu-images/';
   
-  // Drink-specific mappings
+  // Drink-specific mappings (for boards and other drink-specific images)
   const drinkImageMapping: { [key: string]: string } = {
-    'margarita board': 'boards.png',
+    'margarita board': 'margarita-boards.png',
+    'margarita boards': 'margarita-boards.png',
     'mimosa board': 'boards.png',
+    'mimosa boards': 'boards.png',
     'board': 'boards.png',
     'boards': 'boards.png'
   };
@@ -302,11 +339,18 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
   
   const themeColor = getCategoryTheme(item.category?.name);
   
-  // Get the food image URL for this item - prioritize database images
+  // Get the food image URL for this item with fallback system
   const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
-  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
-    ? `${baseImageUrl}?v=${Date.now()}` 
-    : baseImageUrl;
+  
+  // Add fallback images for items without specific images
+  const getFallbackImageUrl = (categoryType?: string): string => {
+    if (categoryType === 'drink') {
+      return '/food-menu-images/margarita.png'; // Fallback for drinks
+    }
+    return '/food-menu-images/tacos.png'; // Fallback for food
+  };
+  
+  const foodImageUrl = baseImageUrl || getFallbackImageUrl(item.category?.type);
   
   const isSpicy = item.name.toLowerCase().includes('spicy');
   const isVegetarian = item.name.toLowerCase().includes('vegetarian') || 
@@ -484,11 +528,18 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
     }
   }, [user?.id]);
   
-  // Get the food image URL for this item - prioritize database images
+  // Get the food image URL for this item with fallback system
   const baseImageUrl = item.image_url || findImageForMenuItem(item.name, item.description || '', item.category?.type);
-  const foodImageUrl = baseImageUrl?.startsWith('/food-menu-images/') || baseImageUrl?.startsWith('/drink-menu-images/')
-    ? `${baseImageUrl}?v=${Date.now()}` 
-    : baseImageUrl;
+  
+  // Add fallback images for items without specific images
+  const getFallbackImageUrl = (categoryType?: string): string => {
+    if (categoryType === 'drink') {
+      return '/food-menu-images/margarita.png'; // Fallback for drinks
+    }
+    return '/food-menu-images/tacos.png'; // Fallback for food
+  };
+  
+  const foodImageUrl = baseImageUrl || getFallbackImageUrl(item.category?.type);
   
   // Handler for add button - either create order request or add to cart
   const handleAddClick = async () => {
