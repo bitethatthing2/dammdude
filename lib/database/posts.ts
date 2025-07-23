@@ -109,14 +109,25 @@ export async function createPost(postData: {
   thumbnail_url?: string;
   duration?: number;
 }): Promise<WolfpackVideo> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!authUser) {
     throw new Error("User not authenticated");
   }
 
+  // Get the public user profile using the auth ID
+  const { data: publicUser, error: userError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single();
+    
+  if (userError || !publicUser) {
+    throw new Error(`Error fetching user profile: ${userError?.message || 'User not found'}`);
+  }
+
   const insertData: WolfpackVideoInsert = {
-    user_id: user.id,
+    user_id: publicUser.id, // Use the public user ID, not auth user ID
     title: postData.title || null,
     description: postData.description || null,
     video_url: postData.video_url,

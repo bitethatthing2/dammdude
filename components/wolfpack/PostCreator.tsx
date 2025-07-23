@@ -291,22 +291,59 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
     }
   };
 
-  const uploadToSupabase = async (file: Blob, fileName: string) => {
-    if (!user?.id) {
+  // Helper function to get current public user
+  const getCurrentPublicUser = async () => {
+    // First try to use the user from context
+    if (user?.id) {
+      return user;
+    }
+
+    // Fallback to getting auth user and finding their public profile
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
       throw new Error('User not authenticated');
     }
+
+    // Get the public user profile using the auth ID
+    const { data: publicUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', authUser.id)
+      .single();
+      
+    if (error) {
+      throw new Error(`Error fetching user profile: ${error.message}`);
+    }
+    
+    if (!publicUser) {
+      throw new Error('No public user profile found');
+    }
+    
+    return publicUser;
+  };
+
+  const uploadToSupabase = async (file: Blob, fileName: string) => {
+    const publicUser = await getCurrentPublicUser();
+    
+    console.log('🔍 PUBLIC USER FOR UPLOAD:', {
+      id: publicUser.id,
+      auth_id: publicUser.auth_id,
+      email: publicUser.email
+    });
 
     // Debug blob info
     console.log('🎬 UPLOADING BLOB:', {
       type: file.type,
       size: file.size,
       fileName,
-      recordingMode
+      recordingMode,
+      publicUserId: publicUser.id
     });
 
     // TEMPORARY: Use simple upload path like before while debugging
     console.log('⚡ Using simple upload (bypassing validation for now)');
-    const simplePath = `${user.id}/${Date.now()}-${fileName}`;
+    const simplePath = `${publicUser.id}/${Date.now()}-${fileName}`;
+    console.log('📁 UPLOAD PATH:', simplePath);
     
     try {
       // Upload directly to simple path
@@ -342,7 +379,7 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
       
       // Try validation approach
       const { data: validation, error: validationError } = await supabase.rpc('validate_file_upload', {
-        p_user_id: user.id,
+        p_user_id: publicUser.id,
         p_file_type: fileType,
         p_file_size: file.size,
         p_mime_type: actualMimeType
@@ -358,7 +395,7 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
 
       // Generate proper storage path
       const { data: storagePath, error: pathError } = await supabase.rpc('generate_storage_path', {
-        p_user_id: user.id,
+        p_user_id: publicUser.id,
         p_file_type: fileType,
         p_filename: fileName
       });
@@ -383,13 +420,10 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
   };
 
   const handlePost = async () => {
-    // Get current auth user in case the profile hasn't loaded yet
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    
-    if ((!user && !authUser) || !capturedMedia) {
+    if (!capturedMedia) {
       toast({
         title: 'Error',
-        description: 'No media captured or user not authenticated',
+        description: 'No media captured',
         variant: 'destructive'
       });
       return;
@@ -398,38 +432,8 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
     try {
       setPosting(true);
 
-      // For new users, we need to get their database user ID
-      let userDbId = user?.id;
-      
-      if (!userDbId && authUser) {
-        // Try to get the user profile by auth ID
-        const { data: userProfile, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_id', authUser.id)
-          .single();
-          
-        if (userError) {
-          console.error('Error finding user profile:', userError);
-          toast({
-            title: 'Error',
-            description: 'Unable to find user profile. Please try refreshing the page.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        
-        userDbId = userProfile.id;
-      }
-
-      if (!userDbId) {
-        toast({
-          title: 'Error',
-          description: 'Unable to identify user for posting. Please try signing out and back in.',
-          variant: 'destructive'
-        });
-        return;
-      }
+      // Get the public user (this handles auth ID to public ID mapping)
+      const publicUser = await getCurrentPublicUser();
 
       // Upload media to Supabase storage
       const fileName = recordingMode === 'photo' ? 'photo.jpg' : 'video.mp4';
@@ -439,7 +443,7 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
       const { data: postData, error: postError } = await supabase
         .from('wolfpack_videos')
         .insert({
-          user_id: userDbId,
+          user_id: publicUser.id, // Use the correct public user ID
           caption: caption.trim() || 'New post from Wolf Pack!',
           video_url: recordingMode === 'video' ? mediaUrl : null,
           thumbnail_url: recordingMode === 'photo' ? mediaUrl : null,

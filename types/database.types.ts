@@ -187,6 +187,13 @@ export type Database = {
             foreignKeyName: "bartender_orders_bartender_id_fkey"
             columns: ["bartender_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_bartender_id_fkey"
+            columns: ["bartender_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -216,6 +223,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -341,6 +355,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -476,6 +497,13 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -589,6 +617,13 @@ export type Database = {
             foreignKeyName: "dj_dashboard_state_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: true
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -653,6 +688,13 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_event_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -755,6 +797,13 @@ export type Database = {
             foreignKeyName: "dj_events_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_events_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -798,6 +847,13 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_events_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -879,6 +935,13 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_quick_actions_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -1072,6 +1135,13 @@ export type Database = {
             foreignKeyName: "food_drink_categories_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -1160,6 +1230,13 @@ export type Database = {
             foreignKeyName: "food_drink_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -1242,6 +1319,13 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -1409,6 +1493,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -1845,6 +1936,13 @@ export type Database = {
             foreignKeyName: "system_config_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2031,6 +2129,13 @@ export type Database = {
             foreignKeyName: "upload_performance_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2097,6 +2202,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_fcm_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2199,6 +2311,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_storage_quotas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2538,6 +2657,13 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2581,6 +2707,13 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2674,6 +2807,13 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2703,6 +2843,13 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2769,6 +2916,13 @@ export type Database = {
             foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
             columns: ["blocked_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2798,6 +2952,13 @@ export type Database = {
             columns: ["blocker_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_blocked_users_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2905,6 +3066,13 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_messages_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2948,6 +3116,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3022,6 +3197,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3140,6 +3322,13 @@ export type Database = {
             foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3216,6 +3405,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3343,6 +3539,13 @@ export type Database = {
             foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3379,6 +3582,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3469,6 +3679,13 @@ export type Database = {
             foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
             columns: ["user1_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3498,6 +3715,13 @@ export type Database = {
             columns: ["user2_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_dm_conversations_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3561,6 +3785,13 @@ export type Database = {
             foreignKeyName: "wolfpack_follows_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3590,6 +3821,13 @@ export type Database = {
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3677,6 +3915,13 @@ export type Database = {
             foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
             columns: ["suggested_user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3706,6 +3951,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -3954,6 +4206,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
             columns: ["receiver_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3983,6 +4242,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -4103,6 +4369,13 @@ export type Database = {
             foreignKeyName: "wolfpack_video_likes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4154,6 +4427,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_saved_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -4243,6 +4523,13 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4272,6 +4559,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
+            columns: ["shared_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -4430,6 +4724,13 @@ export type Database = {
             foreignKeyName: "wolfpack_user_settings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4558,6 +4859,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_uploads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -4765,6 +5073,13 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4899,6 +5214,13 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4979,6 +5301,13 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -5329,6 +5658,13 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5372,6 +5708,13 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -5437,6 +5780,405 @@ export type Database = {
           table_name: unknown | null
         }
         Relationships: []
+      }
+      current_user_profile: {
+        Row: {
+          allow_messages: boolean | null
+          artist_account: boolean | null
+          auth_id: string | null
+          auth_user_id: string | null
+          avatar_id: string | null
+          avatar_url: string | null
+          bio: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          business_account: boolean | null
+          card_on_file: boolean | null
+          city: string | null
+          created_at: string | null
+          custom_avatar_id: string | null
+          daily_customization: Json | null
+          deleted_at: string | null
+          display_name: string | null
+          email: string | null
+          email_normalized: string | null
+          favorite_bartender: string | null
+          favorite_drink: string | null
+          favorite_song: string | null
+          first_name: string | null
+          full_name_normalized: string | null
+          gender: string | null
+          has_open_tab: boolean | null
+          id: string | null
+          id_verification_method: string | null
+          id_verified: boolean | null
+          instagram_handle: string | null
+          is_approved: boolean | null
+          is_online: boolean | null
+          is_profile_visible: boolean | null
+          is_side_hustle: boolean | null
+          is_vip: boolean | null
+          is_wolfpack_member: boolean | null
+          last_activity: string | null
+          last_known_lat: number | null
+          last_known_lng: number | null
+          last_location_check: string | null
+          last_location_update: string | null
+          last_login: string | null
+          last_name: string | null
+          last_seen_at: string | null
+          leader_rank: string | null
+          location: string | null
+          location_accuracy: number | null
+          location_id: string | null
+          location_last_reported: string | null
+          location_permissions_granted: boolean | null
+          location_report_count: number | null
+          location_verification_date: string | null
+          location_verification_method: string | null
+          location_verification_status: string | null
+          location_verified: boolean | null
+          looking_for: string | null
+          loyalty_score: number | null
+          notes: string | null
+          notification_preferences: Json | null
+          occupation: string | null
+          pack_achievements: Json | null
+          pack_badges: Json | null
+          password_hash: string | null
+          permissions: Json | null
+          phone: string | null
+          phone_normalized: string | null
+          phone_number: string | null
+          phone_verified: boolean | null
+          preferred_pack_activities: string[] | null
+          privacy_settings: Json | null
+          profile_image_url: string | null
+          profile_last_seen_at: string | null
+          profile_pic_url: string | null
+          pronouns: string | null
+          role: string | null
+          sensitive_data_encrypted: Json | null
+          session_id: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          username: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          verified_region: string | null
+          vibe_status: string | null
+          website: string | null
+          wolf_emoji: string | null
+          wolfpack_availability_status: string | null
+          wolfpack_bio: string | null
+          wolfpack_interests: string[] | null
+          wolfpack_joined_at: string | null
+          wolfpack_skills: string[] | null
+          wolfpack_social_links: Json | null
+          wolfpack_status: string | null
+          wolfpack_tier: string | null
+        }
+        Insert: {
+          allow_messages?: boolean | null
+          artist_account?: boolean | null
+          auth_id?: string | null
+          auth_user_id?: never
+          avatar_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          business_account?: boolean | null
+          card_on_file?: boolean | null
+          city?: string | null
+          created_at?: string | null
+          custom_avatar_id?: string | null
+          daily_customization?: Json | null
+          deleted_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          favorite_bartender?: string | null
+          favorite_drink?: string | null
+          favorite_song?: string | null
+          first_name?: string | null
+          full_name_normalized?: string | null
+          gender?: string | null
+          has_open_tab?: boolean | null
+          id?: string | null
+          id_verification_method?: string | null
+          id_verified?: boolean | null
+          instagram_handle?: string | null
+          is_approved?: boolean | null
+          is_online?: boolean | null
+          is_profile_visible?: boolean | null
+          is_side_hustle?: boolean | null
+          is_vip?: boolean | null
+          is_wolfpack_member?: boolean | null
+          last_activity?: string | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          last_location_check?: string | null
+          last_location_update?: string | null
+          last_login?: string | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          leader_rank?: string | null
+          location?: string | null
+          location_accuracy?: number | null
+          location_id?: string | null
+          location_last_reported?: string | null
+          location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
+          location_verified?: boolean | null
+          looking_for?: string | null
+          loyalty_score?: number | null
+          notes?: string | null
+          notification_preferences?: Json | null
+          occupation?: string | null
+          pack_achievements?: Json | null
+          pack_badges?: Json | null
+          password_hash?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          phone_normalized?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          preferred_pack_activities?: string[] | null
+          privacy_settings?: Json | null
+          profile_image_url?: string | null
+          profile_last_seen_at?: string | null
+          profile_pic_url?: string | null
+          pronouns?: string | null
+          role?: string | null
+          sensitive_data_encrypted?: Json | null
+          session_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_region?: string | null
+          vibe_status?: string | null
+          website?: string | null
+          wolf_emoji?: string | null
+          wolfpack_availability_status?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_interests?: string[] | null
+          wolfpack_joined_at?: string | null
+          wolfpack_skills?: string[] | null
+          wolfpack_social_links?: Json | null
+          wolfpack_status?: string | null
+          wolfpack_tier?: string | null
+        }
+        Update: {
+          allow_messages?: boolean | null
+          artist_account?: boolean | null
+          auth_id?: string | null
+          auth_user_id?: never
+          avatar_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          business_account?: boolean | null
+          card_on_file?: boolean | null
+          city?: string | null
+          created_at?: string | null
+          custom_avatar_id?: string | null
+          daily_customization?: Json | null
+          deleted_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          favorite_bartender?: string | null
+          favorite_drink?: string | null
+          favorite_song?: string | null
+          first_name?: string | null
+          full_name_normalized?: string | null
+          gender?: string | null
+          has_open_tab?: boolean | null
+          id?: string | null
+          id_verification_method?: string | null
+          id_verified?: boolean | null
+          instagram_handle?: string | null
+          is_approved?: boolean | null
+          is_online?: boolean | null
+          is_profile_visible?: boolean | null
+          is_side_hustle?: boolean | null
+          is_vip?: boolean | null
+          is_wolfpack_member?: boolean | null
+          last_activity?: string | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          last_location_check?: string | null
+          last_location_update?: string | null
+          last_login?: string | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          leader_rank?: string | null
+          location?: string | null
+          location_accuracy?: number | null
+          location_id?: string | null
+          location_last_reported?: string | null
+          location_permissions_granted?: boolean | null
+          location_report_count?: number | null
+          location_verification_date?: string | null
+          location_verification_method?: string | null
+          location_verification_status?: string | null
+          location_verified?: boolean | null
+          looking_for?: string | null
+          loyalty_score?: number | null
+          notes?: string | null
+          notification_preferences?: Json | null
+          occupation?: string | null
+          pack_achievements?: Json | null
+          pack_badges?: Json | null
+          password_hash?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          phone_normalized?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
+          preferred_pack_activities?: string[] | null
+          privacy_settings?: Json | null
+          profile_image_url?: string | null
+          profile_last_seen_at?: string | null
+          profile_pic_url?: string | null
+          pronouns?: string | null
+          role?: string | null
+          sensitive_data_encrypted?: Json | null
+          session_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_region?: string | null
+          vibe_status?: string | null
+          website?: string | null
+          wolf_emoji?: string | null
+          wolfpack_availability_status?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_interests?: string[] | null
+          wolfpack_joined_at?: string | null
+          wolfpack_skills?: string[] | null
+          wolfpack_social_links?: Json | null
+          wolfpack_status?: string | null
+          wolfpack_tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_custom_avatar_id_fkey"
+            columns: ["custom_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_flag_dashboard: {
         Row: {
@@ -5573,6 +6315,13 @@ export type Database = {
             foreignKeyName: "food_drink_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5661,6 +6410,13 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5690,6 +6446,13 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -5880,6 +6643,13 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_messages_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5909,6 +6679,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -6025,6 +6802,13 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6091,6 +6875,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -6166,6 +6957,13 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6195,6 +6993,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
+            columns: ["shared_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
           {
@@ -8991,6 +9796,10 @@ export type Database = {
           status: string
           details: string
         }[]
+      }
+      get_public_user_id: {
+        Args: { auth_user_id: string }
+        Returns: string
       }
       get_push_notification_audience_count: {
         Args: Record<PropertyKey, never>

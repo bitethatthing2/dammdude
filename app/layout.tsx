@@ -95,55 +95,63 @@ const ServiceWorkerScript = () => (
     strategy="afterInteractive"
     dangerouslySetInnerHTML={{
       __html: `
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js').then(
-              function(registration) {
-                console.log('ServiceWorker registration successful');
-              },
-              function(err) {
-                console.log('ServiceWorker registration failed: ', err);
-              }
-            );
-          });
-        }
-
-        // Register Firebase messaging service worker if needed
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          navigator.serviceWorker.register('/firebase-messaging-sw.js')
-            .then(function(registration) {
-              console.log('Firebase SW registered');
-            })
-            .catch(function(error) {
-              console.log('Firebase SW registration failed:', error);
-            });
-        }
-
-        // Performance monitoring
-        if ('PerformanceObserver' in window) {
+        (function() {
           try {
-            const observer = new PerformanceObserver((list) => {
-              const entries = list.getEntries();
-              entries.forEach((entry) => {
-                if (entry.entryType === 'largest-contentful-paint') {
-                  console.log('LCP:', entry.startTime);
-                }
-                if (entry.entryType === 'first-input') {
-                  console.log('FID:', entry.processingStart - entry.startTime);
-                }
-                if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
-                  console.log('CLS:', entry.value);
-                }
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(
+                  function(registration) {
+                    console.log('ServiceWorker registration successful');
+                  },
+                  function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                  }
+                ).catch(function(error) {
+                  console.log('ServiceWorker registration error:', error);
+                });
               });
-            });
-            
-            observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
-          } catch (e) {
-            console.log('Performance monitoring not supported');
-          }
-        }
+            }
 
-        console.log('Cookie utilities available: clearCorruptedCookies(), clearAllCookies()');
+            // Register Firebase messaging service worker if needed
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+              navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then(function(registration) {
+                  console.log('Firebase SW registered');
+                })
+                .catch(function(error) {
+                  console.log('Firebase SW registration failed:', error);
+                });
+            }
+
+            // Performance monitoring
+            if ('PerformanceObserver' in window) {
+              try {
+                const observer = new PerformanceObserver((list) => {
+                  const entries = list.getEntries();
+                  entries.forEach((entry) => {
+                    if (entry.entryType === 'largest-contentful-paint') {
+                      console.log('LCP:', entry.startTime);
+                    }
+                    if (entry.entryType === 'first-input') {
+                      console.log('FID:', entry.processingStart - entry.startTime);
+                    }
+                    if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
+                      console.log('CLS:', entry.value);
+                    }
+                  });
+                });
+                
+                observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+              } catch (e) {
+                console.log('Performance monitoring not supported');
+              }
+            }
+
+            console.log('Cookie utilities available: clearCorruptedCookies(), clearAllCookies()');
+          } catch (error) {
+            console.error('ServiceWorker script error:', error);
+          }
+        })();
       `,
     }}
   />
@@ -263,24 +271,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }}
         />
         
-        {/* Instagram Embed Script */}
+        {/* Instagram Embed Script - Simplified to avoid React conflicts */}
         <Script
-          id="instagram-embed"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const script = document.createElement('script');
-                script.src = '//www.instagram.com/embed.js';
-                script.onload = function() {
-                  if (window.instgrm) {
-                    window.instgrm.Embeds.process();
-                  }
-                };
-                document.head.appendChild(script);
-              })();
-            `
-          }}
+          src="https://www.instagram.com/embed.js"
+          strategy="lazyOnload"
+          async
         />
       </body>
     </html>

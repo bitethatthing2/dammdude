@@ -63,6 +63,7 @@ export function DynamicLogo({
       priority={type === 'brand' || (type === 'wolf' && width >= 40)} // Prioritize brand and large wolf logos
       style={{
         maxWidth: '100%',
+        width: 'auto',
         height: 'auto'
       }}
     />

@@ -4,12 +4,12 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   
-  // Disable typechecking and linting during build for testing
+  // Re-enable typechecking and linting to catch errors early
   typescript: {
-    ignoreBuildErrors: true
+    ignoreBuildErrors: false
   },
   eslint: {
-    ignoreDuringBuilds: true
+    ignoreDuringBuilds: false
   },
   
   // Image optimization configuration
@@ -141,7 +141,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.firebaseapp.com https://*.firebase.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcmregistrations.googleapis.com; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcm.googleapis.com https://fcmregistrations.googleapis.com wss://*.firebaseio.com https://tvnpgbjypnezoasbhbwx.supabase.co; img-src 'self' data: https: blob: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;",
+            value: "default-src 'self'; frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.firebaseapp.com https://*.firebase.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcmregistrations.googleapis.com; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcm.googleapis.com https://fcmregistrations.googleapis.com wss://*.firebaseio.com https://tvnpgbjypnezoasbhbwx.supabase.co wss://tvnpgbjypnezoasbhbwx.supabase.co; media-src 'self' https://tvnpgbjypnezoasbhbwx.supabase.co; img-src 'self' data: https: blob: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;",
           },
         ],
       },
