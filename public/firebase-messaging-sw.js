@@ -21,25 +21,28 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
-  const notificationTitle = payload.notification?.title || 'Wolfpack Notification';
+  const notificationTitle = payload.notification?.title || 'Side Hustle';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/icons/wolf-icon.png',
-    badge: '/icons/notification-small-24x24.png',
-    tag: payload.data?.notificationId || 'wolfpack-notification',
+    icon: '/icons/favicon-for-public/web-app-manifest-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    tag: payload.data?.notificationId || 'side-hustle-notification',
     data: payload.data,
     actions: [
       {
         action: 'open',
-        title: 'Open'
+        title: 'Open',
+        icon: '/icons/favicon-for-public/web-app-manifest-192x192.png'
       },
       {
         action: 'dismiss',
-        title: 'Dismiss'
+        title: 'Dismiss',
+        icon: '/icons/favicon-for-public/web-app-manifest-192x192.png'
       }
     ],
     requireInteraction: true,
-    silent: false
+    silent: false,
+    vibrate: [200, 100, 200]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
@@ -63,9 +66,11 @@ self.addEventListener('notificationclick', function(event) {
   
   // Navigate to specific page based on notification type
   if (notificationData?.type === 'wolfpack_message') {
-    urlToOpen = '/wolfpack/chat';
+    urlToOpen = '/wolfpack/feed';
   } else if (notificationData?.type === 'order_update') {
     urlToOpen = '/orders';
+  } else if (notificationData?.type === 'wolfpack_post') {
+    urlToOpen = '/wolfpack/feed';
   } else if (notificationData?.link) {
     urlToOpen = notificationData.link;
   }
@@ -95,14 +100,15 @@ self.addEventListener('push', function(event) {
     
     // If not handled by onBackgroundMessage, handle manually
     if (!data.notification) {
-      const notificationTitle = data.title || 'Wolfpack Notification';
+      const notificationTitle = data.title || 'Side Hustle';
       const notificationOptions = {
         body: data.message || data.body || 'You have a new notification',
-        icon: '/icons/wolf-icon.png',
-        badge: '/icons/notification-small-24x24.png',
-        tag: data.notificationId || 'wolfpack-notification',
+        icon: '/icons/favicon-for-public/web-app-manifest-192x192.png',
+        badge: '/icons/badge-72x72.png',
+        tag: data.notificationId || 'side-hustle-notification',
         data: data,
-        requireInteraction: true
+        requireInteraction: true,
+        vibrate: [200, 100, 200]
       };
       
       event.waitUntil(

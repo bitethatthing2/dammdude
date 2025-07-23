@@ -98,6 +98,41 @@ const nextConfig = {
           },
         ],
       },
+      // Specific headers for service workers
+      {
+        source: '/firebase-messaging-sw.js',
+        headers: [
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/'
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/javascript'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate'
+          }
+        ]
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/'
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/javascript'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate'
+          }
+        ]
+      },
       // Static assets caching
       {
         source: '/food-menu-images/:path*',
@@ -141,7 +176,18 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com http://www.instagram.com https://maps.googleapis.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.firebaseapp.com https://*.firebase.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcmregistrations.googleapis.com; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcm.googleapis.com https://fcmregistrations.googleapis.com wss://*.firebaseio.com https://tvnpgbjypnezoasbhbwx.supabase.co wss://tvnpgbjypnezoasbhbwx.supabase.co; media-src 'self' https://tvnpgbjypnezoasbhbwx.supabase.co; img-src 'self' data: https: blob: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.instagram.com http://www.instagram.com https://maps.googleapis.com https://apis.google.com https://www.googletagmanager.com https://*.firebaseapp.com https://*.firebase.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcmregistrations.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: blob: http:",
+              "media-src 'self' blob: https://tvnpgbjypnezoasbhbwx.supabase.co",
+              "connect-src 'self' https://api.instagram.com https://www.instagram.com https://*.supabase.co https://*.supabase.com wss://*.supabase.co wss://*.supabase.com https://maps.googleapis.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://fcmregistrations.googleapis.com wss://*.firebaseio.com https://tvnpgbjypnezoasbhbwx.supabase.co wss://tvnpgbjypnezoasbhbwx.supabase.co",
+              "worker-src 'self' blob:",
+              "child-src 'self' blob:",
+              "frame-src 'self' https://www.instagram.com https://instagram.com https://www.google.com https://maps.google.com https://maps.googleapis.com",
+            ].join('; ')
           },
         ],
       },

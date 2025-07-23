@@ -16,6 +16,17 @@ export interface FeedItem {
   music_name?: string;
   hashtags?: string[];
   created_at: string;
+  // Additional user fields now available
+  user?: {
+    id: string;
+    username?: string;
+    display_name?: string;
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+    profile_image_url?: string;
+    wolf_emoji?: string;
+  };
 }
 
 export interface FetchFeedResponse {
@@ -41,9 +52,15 @@ export async function fetchFeedItems(
       .select(
         `
         *,
-        user:profiles!user_id(
+        user:users!user_id(
+          id,
           username,
-          avatar_url
+          display_name,
+          first_name,
+          last_name,
+          avatar_url,
+          profile_image_url,
+          wolf_emoji
         ),
         likes:wolfpack_likes(count),
         comments:wolfpack_comments(count)
@@ -69,17 +86,19 @@ export async function fetchFeedItems(
     const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.username || "Unknown",
-      avatar_url: post.user?.avatar_url,
-      caption: post.content || "",
+      username: post.user?.display_name || post.user?.username || 
+               `${post.user?.first_name || ''} ${post.user?.last_name || ''}`.trim() || "Unknown",
+      avatar_url: post.user?.profile_image_url || post.user?.avatar_url,
+      caption: post.caption || post.content || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url || post.image_url,
-      likes_count: post.likes?.[0]?.count || 0,
-      comments_count: post.comments?.[0]?.count || 0,
+      likes_count: post.likes_count || post.likes?.[0]?.count || 0,
+      comments_count: post.comments_count || post.comments?.[0]?.count || 0,
       shares_count: post.shares_count || 0,
       music_name: post.music_name,
       hashtags: post.hashtags || [],
       created_at: post.created_at,
+      user: post.user,
     }));
 
     const totalItems = count || 0;
@@ -133,9 +152,15 @@ export async function fetchFollowingFeed(
       .select(
         `
         *,
-        user:profiles!user_id(
+        user:users!user_id(
+          id,
           username,
-          avatar_url
+          display_name,
+          first_name,
+          last_name,
+          avatar_url,
+          profile_image_url,
+          wolf_emoji
         ),
         likes:wolfpack_likes(count),
         comments:wolfpack_comments(count)
@@ -155,17 +180,19 @@ export async function fetchFollowingFeed(
     const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.username || "Unknown",
-      avatar_url: post.user?.avatar_url,
-      caption: post.content || "",
+      username: post.user?.display_name || post.user?.username || 
+               `${post.user?.first_name || ''} ${post.user?.last_name || ''}`.trim() || "Unknown",
+      avatar_url: post.user?.profile_image_url || post.user?.avatar_url,
+      caption: post.caption || post.content || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url || post.image_url,
-      likes_count: post.likes?.[0]?.count || 0,
-      comments_count: post.comments?.[0]?.count || 0,
+      likes_count: post.likes_count || post.likes?.[0]?.count || 0,
+      comments_count: post.comments_count || post.comments?.[0]?.count || 0,
       shares_count: post.shares_count || 0,
       music_name: post.music_name,
       hashtags: post.hashtags || [],
       created_at: post.created_at,
+      user: post.user,
     }));
 
     const totalItems = count || 0;

@@ -47,12 +47,12 @@ export default function Page() {
   return (
     <div className="main-content bg-gradient-to-br from-background to-muted">
       {/* Side Hustle Logo - top-left */}
-      <div className="absolute left-4 z-10" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
-        <DynamicLogo type="brand" width={160} height={60} className="rounded-md" />
+      <div className="absolute left-4 top-4 z-10">
+        <DynamicLogo type="brand" width={160} height={40} className="rounded-md" />
       </div>
       
       {/* Theme Control - top-right */}
-      <div className="absolute right-4 z-10" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="absolute right-4 top-4 z-10">
         <ThemeControl />
       </div>
 
@@ -61,12 +61,12 @@ export default function Page() {
         <div className="flex flex-col items-center relative">
 
 
-          {/* Wolf Icon - centered */}
+          {/* Wolf Icon - centered - DO NOT TOUCH THIS WOLF LOGO */}
           <div className="w-full flex justify-center items-center px-4 mt-2 sm:mt-4"> 
             {mounted ? (
-              <DynamicLogo type="wolf" width={400} height={400} className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] lg:w-[34rem] lg:h-[34rem] xl:w-[38rem] xl:h-[38rem] object-contain" alt="Side Hustle Wolf Icon" />
+              <DynamicLogo type="wolf" width={400} height={400} className="w-[18rem] h-[18rem] sm:w-[20rem] sm:h-[20rem] md:w-[22rem] md:h-[22rem] lg:w-[24rem] lg:h-[24rem] xl:w-[26rem] xl:h-[26rem] object-contain" alt="Side Hustle Wolf Icon" />
             ) : (
-              <div className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] bg-muted animate-pulse rounded-full" />
+              <div className="w-[18rem] h-[18rem] sm:w-[20rem] sm:h-[20rem] md:w-[22rem] md:h-[22rem] bg-muted animate-pulse rounded-full" />
             )}
           </div>
           
@@ -232,7 +232,7 @@ export default function Page() {
                   </CardContent>
                 </Card>
               </Link>
-              <Link href="/wolfpack">
+              <Link href="/wolfpack/feed">
                 <Card className="bg-card/90 backdrop-blur-sm border border-primary shadow-lg cursor-pointer hover:bg-card/95 transition-colors">
                   <CardContent className="p-3 flex flex-col items-center justify-center">
                     <Users className="h-5 w-5 text-primary mb-1" />

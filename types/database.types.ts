@@ -194,6 +194,13 @@ export type Database = {
             foreignKeyName: "bartender_orders_bartender_id_fkey"
             columns: ["bartender_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_bartender_id_fkey"
+            columns: ["bartender_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -230,6 +237,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bartender_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -362,6 +376,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -504,6 +525,13 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -624,6 +652,13 @@ export type Database = {
             foreignKeyName: "dj_dashboard_state_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: true
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -695,6 +730,13 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_event_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -804,6 +846,13 @@ export type Database = {
             foreignKeyName: "dj_events_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_events_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -854,6 +903,13 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_events_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -942,6 +998,13 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_quick_actions_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1142,6 +1205,13 @@ export type Database = {
             foreignKeyName: "food_drink_categories_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -1237,6 +1307,13 @@ export type Database = {
             foreignKeyName: "food_drink_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -1326,6 +1403,13 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1500,6 +1584,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1943,6 +2034,13 @@ export type Database = {
             foreignKeyName: "system_config_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2136,6 +2234,13 @@ export type Database = {
             foreignKeyName: "upload_performance_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_performance_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2209,6 +2314,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_fcm_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2318,6 +2430,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_storage_quotas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2664,6 +2783,13 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2714,6 +2840,13 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2814,6 +2947,13 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2850,6 +2990,13 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2923,6 +3070,13 @@ export type Database = {
             foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
             columns: ["blocked_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -2959,6 +3113,13 @@ export type Database = {
             columns: ["blocker_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_blocked_users_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3073,6 +3234,13 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_messages_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3123,6 +3291,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3204,6 +3379,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3329,6 +3511,13 @@ export type Database = {
             foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3412,6 +3601,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3553,6 +3749,13 @@ export type Database = {
             foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3596,6 +3799,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3693,6 +3903,13 @@ export type Database = {
             foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
             columns: ["user1_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3729,6 +3946,13 @@ export type Database = {
             columns: ["user2_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_dm_conversations_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3799,6 +4023,13 @@ export type Database = {
             foreignKeyName: "wolfpack_follows_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3835,6 +4066,13 @@ export type Database = {
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3929,6 +4167,13 @@ export type Database = {
             foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
             columns: ["suggested_user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
+            columns: ["suggested_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -3965,6 +4210,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -4220,6 +4472,13 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
             columns: ["receiver_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4256,6 +4515,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -4397,6 +4663,13 @@ export type Database = {
             foreignKeyName: "wolfpack_video_likes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4455,6 +4728,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_saved_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -4558,6 +4838,13 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4594,6 +4881,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
+            columns: ["shared_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -4766,6 +5060,13 @@ export type Database = {
             foreignKeyName: "wolfpack_user_settings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -4901,6 +5202,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_uploads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -5115,6 +5423,13 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5256,6 +5571,13 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5343,6 +5665,13 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dj_broadcasts_dj_id_fkey"
+            columns: ["dj_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -5700,6 +6029,13 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -5750,6 +6086,13 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -6140,6 +6483,13 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_users_blocked_by"
+            columns: ["blocked_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6190,6 +6540,13 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -6357,6 +6714,13 @@ export type Database = {
             foreignKeyName: "food_drink_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_drink_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6483,6 +6847,13 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6571,6 +6942,13 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6613,6 +6991,13 @@ export type Database = {
             foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
             columns: ["related_user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6631,6 +7016,108 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          auth_id: string | null
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          computed_avatar_url: string | null
+          computed_display_name: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          favorite_drink: string | null
+          favorite_song: string | null
+          first_name: string | null
+          id: string | null
+          instagram_handle: string | null
+          is_online: boolean | null
+          is_vip: boolean | null
+          last_name: string | null
+          last_seen_at: string | null
+          location: string | null
+          occupation: string | null
+          profile_image_url: string | null
+          profile_pic_url: string | null
+          state: string | null
+          updated_at: string | null
+          username: string | null
+          verified: boolean | null
+          vibe_status: string | null
+          wolf_emoji: string | null
+          wolfpack_bio: string | null
+          wolfpack_status: string | null
+          wolfpack_tier: string | null
+        }
+        Insert: {
+          auth_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          computed_avatar_url?: never
+          computed_display_name?: never
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          favorite_drink?: string | null
+          favorite_song?: string | null
+          first_name?: string | null
+          id?: string | null
+          instagram_handle?: string | null
+          is_online?: boolean | null
+          is_vip?: boolean | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          location?: string | null
+          occupation?: string | null
+          profile_image_url?: string | null
+          profile_pic_url?: string | null
+          state?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          vibe_status?: string | null
+          wolf_emoji?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_status?: string | null
+          wolfpack_tier?: string | null
+        }
+        Update: {
+          auth_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          computed_avatar_url?: never
+          computed_display_name?: never
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          favorite_drink?: string | null
+          favorite_song?: string | null
+          first_name?: string | null
+          id?: string | null
+          instagram_handle?: string | null
+          is_online?: boolean | null
+          is_vip?: boolean | null
+          last_name?: string | null
+          last_seen_at?: string | null
+          location?: string | null
+          occupation?: string | null
+          profile_image_url?: string | null
+          profile_pic_url?: string | null
+          state?: string | null
+          updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          vibe_status?: string | null
+          wolf_emoji?: string | null
+          wolfpack_bio?: string | null
+          wolfpack_status?: string | null
+          wolfpack_tier?: string | null
+        }
+        Relationships: []
       }
       spatial_references: {
         Row: {
@@ -6804,6 +7291,13 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_messages_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -6840,6 +7334,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -6963,6 +7464,13 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -7049,6 +7557,13 @@ export type Database = {
             foreignKeyName: "wolfpack_video_likes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -7125,6 +7640,13 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
             referencedRelation: "user_interaction_permissions"
             referencedColumns: ["id"]
           },
@@ -7161,6 +7683,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
+            columns: ["shared_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
