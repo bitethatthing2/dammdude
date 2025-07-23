@@ -157,11 +157,11 @@ export default function WolfpackProfileEditPage() {
       
       if (error && typeof error === 'object') {
         if ('message' in error) {
-          errorMessage = (error as any).message;
+          errorMessage = (error as { message: string }).message;
         } else if ('error' in error) {
-          errorMessage = (error as any).error;
+          errorMessage = (error as { error: string }).error;
         } else if ('statusText' in error) {
-          errorMessage = (error as any).statusText;
+          errorMessage = (error as { statusText: string }).statusText;
         }
         
         // Log the full error object for debugging

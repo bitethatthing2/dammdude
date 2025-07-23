@@ -11,6 +11,7 @@ import { PostCreator } from '@/components/wolfpack/PostCreator';
 import ShareModal from '@/components/wolfpack/ShareModal';
 import { Loader2, Shield, Sparkles, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { deletePost } from '@/lib/database/posts';
 
 export default function OptimizedWolfpackFeedPage() {
   const router = useRouter();
@@ -119,17 +120,13 @@ export default function OptimizedWolfpackFeedPage() {
       // Optimistically remove from UI
       removeVideo(videoId);
 
-      // Delete from database
-      const { error } = await supabase
-        .from('wolfpack_videos')
-        .delete()
-        .eq('id', videoId)
-        .eq('user_id', user.id);
+      // Delete from database using proper deletePost function
+      const result = await deletePost(videoId);
 
-      if (error) {
+      if (!result) {
         // Revert optimistic update
         await refreshFeed();
-        throw error;
+        throw new Error('Failed to delete post');
       }
 
       toast({
@@ -147,7 +144,7 @@ export default function OptimizedWolfpackFeedPage() {
   }, [user, videos, removeVideo, refreshFeed]);
 
   // Handle post creation success
-  const handlePostCreated = useCallback((newPost: any) => {
+  const handlePostCreated = useCallback((newPost: unknown) => {
     // The real-time subscription will automatically add the new post
     // Just show a success message
     toast({

@@ -50,8 +50,8 @@ export default function ShareModal({ isOpen, onClose, videoId, caption, username
   };
 
   const handleSocialShare = async (platform: string) => {
-    let shareUrlEncoded = encodeURIComponent(shareUrl);
-    let textEncoded = encodeURIComponent(shareText);
+    const shareUrlEncoded = encodeURIComponent(shareUrl);
+    const textEncoded = encodeURIComponent(shareText);
     let url = '';
 
     switch (platform) {

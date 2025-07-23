@@ -64,7 +64,7 @@ export default function Page() {
           {/* Wolf Icon - centered */}
           <div className="w-full flex justify-center items-center px-4 mt-2 sm:mt-4"> 
             {mounted ? (
-              <DynamicLogo type="wolf" width={1000} height={1000} className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] lg:w-[34rem] lg:h-[34rem] xl:w-[38rem] xl:h-[38rem] object-contain" alt="Side Hustle Wolf Icon" />
+              <DynamicLogo type="wolf" width={400} height={400} className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] lg:w-[34rem] lg:h-[34rem] xl:w-[38rem] xl:h-[38rem] object-contain" alt="Side Hustle Wolf Icon" />
             ) : (
               <div className="w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] bg-muted animate-pulse rounded-full" />
             )}

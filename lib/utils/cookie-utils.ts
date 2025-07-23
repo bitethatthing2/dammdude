@@ -22,6 +22,11 @@ export function safeBase64Decode(str: string): string | null {
  * Check if a cookie value is corrupted
  */
 export function isCookieCorrupted(cookieValue: string): boolean {
+  if (!cookieValue) return false;
+  
+  // Check for common corruption patterns
+  if (cookieValue.includes('undefined') || cookieValue.includes('null')) return true;
+  
   try {
     // Check if it looks like a base64 encoded JWT
     if (cookieValue.includes('.')) {
@@ -35,6 +40,19 @@ export function isCookieCorrupted(cookieValue: string): boolean {
       // Check if base64 encoded cookie is valid
       const base64Part = cookieValue.replace('base64-', '');
       return safeBase64Decode(base64Part) === null;
+    } else if (cookieValue.match(/^[A-Za-z0-9+/\-_]+=*$/)) {
+      // Try to decode if it looks like base64
+      const decoded = safeBase64Decode(cookieValue);
+      if (!decoded) return true;
+      
+      // Try to parse as JSON if it looks like JSON
+      if (decoded.startsWith('{') || decoded.startsWith('[')) {
+        try {
+          JSON.parse(decoded);
+        } catch {
+          return true;
+        }
+      }
     }
     
     return false;
@@ -78,35 +96,44 @@ export function clearAllCookies(): void {
 }
 
 /**
- * Clear specific Supabase auth cookies
+ * Clear all Supabase auth-related cookies and storage
+ * This is the nuclear option - clears everything
  */
 export function clearSupabaseCookies(): void {
   if (typeof document === 'undefined') return;
   
-  const supabaseCookieNames = [
-    'sb-access-token',
-    'sb-refresh-token',
-    'supabase-auth-token',
-    'supabase.auth.token',
-    'sb-tvnpgbjypnezoasbhbwx-auth-token',
-    'sb-tvnpgbjypnezoasbhbwx-auth-token-code-verifier'
-  ];
+  // Get all cookies
+  const cookies = document.cookie.split(';');
   
-  for (const cookieName of supabaseCookieNames) {
-    // Clear cookie for current path
-    document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+  // Clear any cookie that contains 'supabase' or 'sb-' in the name
+  cookies.forEach(cookie => {
+    const eqPos = cookie.indexOf('=');
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
     
-    // Clear cookie for root path
-    document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;`;
-    
-    // Clear cookie with domain
-    if (window.location.hostname !== 'localhost') {
-      document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-      document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
+    if (name && (name.includes('supabase') || name.includes('sb-'))) {
+      // Clear the cookie by setting it to expire in the past
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      // Also try with domain variations
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
     }
-  }
+  });
+
+  // Also clear from localStorage
+  Object.keys(localStorage).forEach(key => {
+    if (key.includes('supabase') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  // Clear from sessionStorage
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.includes('supabase') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
   
-  console.log('Supabase cookies cleared');
+  console.log('Supabase cookies and storage cleared');
 }
 
 /**
@@ -168,6 +195,39 @@ declare global {
     clearAllCookies?: () => void;
     clearSupabaseCookies?: () => void;
     checkAndClearCorruptedCookies?: () => boolean;
+    fixAuthCookies?: () => void;
+  }
+}
+
+/**
+ * Complete auth cleanup and reset
+ */
+export async function cleanupAndResetAuth(supabase: any): Promise<{ success: boolean; error?: any }> {
+  try {
+    // 1. Sign out from Supabase (if possible)
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.log('Could not sign out:', error);
+    }
+
+    // 2. Clear all auth cookies
+    clearSupabaseCookies();
+
+    // 3. Clear the Supabase client's internal state
+    if (supabase.auth.session) {
+      supabase.auth.session = null;
+    }
+
+    // 4. Reload the page to ensure clean state
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error during auth cleanup:', error);
+    return { success: false, error };
   }
 }
 
@@ -181,6 +241,11 @@ export function exposeCookieUtils(): void {
   window.clearAllCookies = clearAllCookies;
   window.clearSupabaseCookies = clearSupabaseCookies;
   window.checkAndClearCorruptedCookies = checkAndClearCorruptedCookies;
+  window.fixAuthCookies = () => {
+    console.log('Clearing all Supabase auth cookies...');
+    clearSupabaseCookies();
+    console.log('Done! Please refresh the page.');
+  };
   
-  console.log('Cookie utilities exposed to window: clearAllCookies(), clearSupabaseCookies(), checkAndClearCorruptedCookies()');
+  console.log('Cookie utilities exposed to window: clearAllCookies(), clearSupabaseCookies(), checkAndClearCorruptedCookies(), fixAuthCookies()');
 }

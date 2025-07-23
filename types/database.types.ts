@@ -3439,6 +3439,13 @@ export type Database = {
             foreignKeyName: "wolfpack_comments_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -4305,6 +4312,13 @@ export type Database = {
             foreignKeyName: "wolfpack_post_hashtags_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_post_hashtags_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -4337,6 +4351,13 @@ export type Database = {
           video_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wolfpack_post_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wolfpack_post_likes_video_id_fkey"
             columns: ["video_id"]
@@ -4455,6 +4476,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_saved_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "my_videos"
             referencedColumns: ["id"]
           },
           {
@@ -4587,6 +4615,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "my_videos"
             referencedColumns: ["id"]
           },
           {
@@ -6348,6 +6383,125 @@ export type Database = {
           },
         ]
       }
+      my_videos: {
+        Row: {
+          algorithm_boost: number | null
+          allow_comments: boolean | null
+          allow_duets: boolean | null
+          allow_stitches: boolean | null
+          aspect_ratio: string | null
+          caption: string | null
+          comment_count: number | null
+          comments_count: number | null
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          duration: number | null
+          duration_seconds: number | null
+          effect_id: string | null
+          effect_name: string | null
+          featured_at: string | null
+          first_name: string | null
+          hashtags: string[] | null
+          id: string | null
+          images: string[] | null
+          ingested_content_id: string | null
+          is_active: boolean | null
+          is_ad: boolean | null
+          is_featured: boolean | null
+          last_name: string | null
+          like_count: number | null
+          likes_count: number | null
+          location_id: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_tag: string | null
+          metadata: Json | null
+          music_id: string | null
+          music_name: string | null
+          post_type: string | null
+          processing_status: string | null
+          share_count: number | null
+          source: string | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string | null
+          trending_score: number | null
+          updated_at: string | null
+          user_email: string | null
+          user_id: string | null
+          user_profile_image: string | null
+          video_url: string | null
+          view_count: number | null
+          views_count: number | null
+          visibility: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_videos_ingested_content_id_fkey"
+            columns: ["ingested_content_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_ingested_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -6853,6 +7007,13 @@ export type Database = {
             foreignKeyName: "wolfpack_post_likes_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_post_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -7021,6 +7182,13 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "my_videos"
             referencedColumns: ["id"]
           },
           {
@@ -8027,6 +8195,16 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      check_video_ownership: {
+        Args: { video_id: string }
+        Returns: {
+          video_exists: boolean
+          belongs_to_current_user: boolean
+          video_user_id: string
+          current_user_id: string
+          current_auth_id: string
+        }[]
+      }
       check_wolfpack_access: {
         Args: Record<PropertyKey, never> | { p_user_id: string }
         Returns: {
@@ -8432,6 +8610,10 @@ export type Database = {
       }
       delete_env_var: {
         Args: { p_key: string }
+        Returns: Json
+      }
+      delete_my_video: {
+        Args: { video_id: string }
         Returns: Json
       }
       delete_old_broadcasts: {
@@ -11674,6 +11856,10 @@ export type Database = {
               p_user_lon: number
               p_table_location?: string
             }
+        Returns: Json
+      }
+      soft_delete_my_video: {
+        Args: { video_id: string }
         Returns: Json
       }
       spheroid_in: {

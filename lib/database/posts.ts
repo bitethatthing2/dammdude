@@ -200,10 +200,21 @@ export async function updatePost(
 }
 
 export async function deletePost(postId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!authUser) {
     throw new Error("User not authenticated");
+  }
+
+  // Get the public user profile using the auth ID
+  const { data: publicUser, error: userError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single();
+    
+  if (userError || !publicUser) {
+    throw new Error(`Error fetching user profile: ${userError?.message || 'User not found'}`);
   }
 
   // Soft delete by setting is_active to false
@@ -214,7 +225,7 @@ export async function deletePost(postId: string): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq("id", postId)
-    .eq("user_id", user.id); // Ensure user owns the post
+    .eq("user_id", publicUser.id); // Use the correct public user ID
 
   if (error) {
     console.error("Error deleting post:", error);

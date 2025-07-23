@@ -150,7 +150,7 @@ export function PostCreator({ isOpen, onClose, onSuccess }: PostCreatorProps) {
     console.log('Starting recording...');
     
     // Try to use a supported MIME type for video recording
-    let options: MediaRecorderOptions = {};
+    const options: MediaRecorderOptions = {};
     const supportedTypes = [
       'video/webm;codecs=vp9',
       'video/webm;codecs=vp8', 

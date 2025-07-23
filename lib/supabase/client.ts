@@ -130,8 +130,36 @@ export function createClient() {
           autoRefreshToken: true,
           detectSessionInUrl: true,
           flowType: 'pkce',
-          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-          storageKey: 'supabase.auth.token'
+          storageKey: 'supabase.auth.token',
+          storage: typeof window !== 'undefined' ? {
+            getItem: (key: string) => {
+              try {
+                const value = window.localStorage.getItem(key);
+                // Validate the value before returning
+                if (value && (value.includes('undefined') || value.includes('null'))) {
+                  window.localStorage.removeItem(key);
+                  return null;
+                }
+                return value;
+              } catch {
+                return null;
+              }
+            },
+            setItem: (key: string, value: string) => {
+              try {
+                window.localStorage.setItem(key, value);
+              } catch (error) {
+                console.error('Failed to save to localStorage:', error);
+              }
+            },
+            removeItem: (key: string) => {
+              try {
+                window.localStorage.removeItem(key);
+              } catch (error) {
+                console.error('Failed to remove from localStorage:', error);
+              }
+            },
+          } : undefined
         },
         realtime: {
           params: {

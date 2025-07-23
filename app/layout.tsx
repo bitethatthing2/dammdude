@@ -88,7 +88,7 @@ interface RootLayoutProps {
   children: ReactNode;
 }
 
-// Service Worker registration script
+// Service Worker registration script with cookie cleanup utilities
 const ServiceWorkerScript = () => (
   <Script
     id="service-worker"
@@ -97,6 +97,66 @@ const ServiceWorkerScript = () => (
       __html: `
         (function() {
           try {
+            // Cookie cleanup utilities
+            window.clearCorruptedCookies = function() {
+              const cookies = document.cookie.split(';');
+              let cleared = 0;
+              
+              cookies.forEach(cookie => {
+                const [name, value] = cookie.split('=').map(s => s.trim());
+                
+                if (name && (name.includes('supabase') || name.includes('sb-'))) {
+                  // Check if cookie value contains corruption indicators
+                  if (value && (value.includes('undefined') || value.includes('null') || value === '')) {
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname + ';';
+                    cleared++;
+                  }
+                }
+              });
+              
+              console.log('Cleared ' + cleared + ' corrupted cookies');
+              return cleared;
+            };
+            
+            window.clearAllCookies = function() {
+              const cookies = document.cookie.split(';');
+              let cleared = 0;
+              
+              cookies.forEach(cookie => {
+                const name = cookie.split('=')[0].trim();
+                
+                if (name && (name.includes('supabase') || name.includes('sb-'))) {
+                  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
+                  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname + ';';
+                  cleared++;
+                }
+              });
+              
+              // Also clear localStorage
+              Object.keys(localStorage).forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-')) {
+                  localStorage.removeItem(key);
+                }
+              });
+              
+              // Clear sessionStorage
+              Object.keys(sessionStorage).forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-')) {
+                  sessionStorage.removeItem(key);
+                }
+              });
+              
+              console.log('Cleared all auth cookies and storage');
+              return cleared;
+            };
+
+            // Check for corrupted cookies on load
+            window.clearCorruptedCookies();
+
+            // Service Worker Registration
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js').then(
@@ -165,10 +225,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {/* DNS Prefetch for performance */}
-        <link rel="dns-prefetch" href="https://your-supabase-url.supabase.co" />
-        
-        {/* Preload critical fonts - Removed inter-var.woff2 as file doesn't exist */}
+        {/* DNS Prefetch for performance - using actual Supabase URL */}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+        )}
         
         {/* PWA splash screens for iOS */}
         <link
@@ -271,11 +331,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
           }}
         />
         
-        {/* Instagram Embed Script - Simplified to avoid React conflicts */}
+        {/* Instagram Embed Script */}
         <Script
           src="https://www.instagram.com/embed.js"
           strategy="lazyOnload"
-          async
         />
       </body>
     </html>
