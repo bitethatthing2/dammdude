@@ -3,6 +3,7 @@
 
 import { MapPin, Clock, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export function AboutHero() {
@@ -14,9 +15,15 @@ export function AboutHero() {
       
       <div className="relative container mx-auto px-4 py-32 sm:py-40 pt-40">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Side Hustle Bar
-          </h1>
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="/icons/sidehustle.png"
+              alt="Side Hustle Bar"
+              width={300}
+              height={100}
+              className="max-w-[250px] sm:max-w-[300px] lg:max-w-[350px] h-auto"
+            />
+          </div>
           <p className="text-xl sm:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
             Where high-energy entertainment meets authentic Mexican cuisine in the heart of Oregon. Unlock your potential and live your best life with the Wolf Pack.
           </p>

@@ -149,10 +149,6 @@ export default function AboutPage( ) {
           </div>
         </section>
 
-        {/* Milestones - REMOVED as no factual milestones were found */}
-        {/* Testimonials - REMOVED as no factual testimonials were found */}
-        {/* Team - REMOVED as no specific team info was found */}
-
         {/* Locations */}
         <LocationsSection />
 

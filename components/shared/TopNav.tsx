@@ -40,7 +40,13 @@ export function TopNav() {
               height={56}
               className="w-14 h-14"
             />
-            <span className="text-xl font-bold text-white hidden sm:block">Side Hustle</span>
+            <Image
+              src="/icons/sidehustle.png"
+              alt="Side Hustle"
+              width={120}
+              height={40}
+              className="hidden sm:block"
+            />
           </Link>
 
           {/* Desktop Menu */}

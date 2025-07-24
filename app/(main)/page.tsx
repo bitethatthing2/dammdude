@@ -16,6 +16,7 @@ import { DynamicGoogleMaps } from '@/components/shared/DynamicGoogleMaps';
 import { InstagramEmbed } from '@/components/shared/InstagramEmbed';
 import React, { Suspense } from 'react';
 import { VideoBackground } from '@/components/shared/VideoBackground';
+import { FoodDrinkCarousel } from '@/components/shared/FoodDrinkCarousel';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
@@ -59,14 +60,14 @@ export default function Page() {
   return (
     <div className="main-content bg-black text-white min-h-screen">
       {/* Hero Section with Video Background - Full Screen */}
-      <div className="relative h-screen w-full -mt-16 overflow-visible mb-16">
+      <div className="relative h-screen w-full -mt-16 overflow-visible mb-32">
         <VideoBackground 
           videoSrc="/icons/main-page-only.mp4"
           overlayOpacity={0.4}
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-48 md:pt-56 pb-32 overflow-visible">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-48 md:pt-56 pb-48 overflow-visible">
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-6 mt-16 md:mt-20 animate-fade-in">
             <Image 
@@ -185,76 +186,89 @@ export default function Page() {
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Signature Tacos & Craft Cocktails</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {/* Featured Item 1 - Video */}
-            <div className="group relative overflow-hidden rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer">
-              <div className="aspect-square relative">
-                <video
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  src="/icons/first-box.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  style={{ 
-                    minWidth: '100%',
-                    minHeight: '100%',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                />
+          {/* Food & Drink Carousel */}
+          <div className="mb-16">
+            <FoodDrinkCarousel />
+          </div>
+
+          {/* Text Content - Salem Flagship */}
+          <div className="max-w-6xl mx-auto mb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="text-center lg:text-left">
+                <h3 className="text-3xl font-serif text-red-400 mb-6">Salem's Premier Entertainment Destination</h3>
+                <p className="text-lg text-white/90 leading-relaxed mb-6">
+                  Since opening in late 2023, our flagship Salem location at 145 Liberty St NE has redefined Oregon's bar scene. 
+                  Executive Chef Rebecca Sanchez leads our kitchen with an innovative Mexican menu that goes far beyond typical bar food. 
+                  From our legendary birria tacos that locals can't stop raving about to our house-made salsas crafted fresh daily, 
+                  every dish reflects our commitment to authentic flavors and quality ingredients.
+                </p>
+                <p className="text-lg text-white/80 leading-relaxed">
+                  With over <span className="text-red-400 font-semibold">750+ five-star reviews</span> and a growing community of 
+                  <span className="text-red-400 font-semibold"> 101,000+ Instagram followers</span>, we've proven that Salem was ready 
+                  for something different - a place where exceptional food meets high-energy entertainment.
+                </p>
               </div>
-            </div>
-            
-            {/* Featured Item 2 - Video */}
-            <div className="group relative overflow-hidden rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer">
-              <div className="aspect-square relative">
-                <video
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  src="/icons/video-food.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                />
-              </div>
-            </div>
-            
-            {/* Featured Item 3 - Video */}
-            <div className="group relative overflow-hidden rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer">
-              <div className="aspect-square relative">
-                <video
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  src="/icons/welcome-to-hustle.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  style={{ 
-                    minWidth: '100%',
-                    minHeight: '100%',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                />
+              <div className="relative">
+                <div className="aspect-video rounded-xl overflow-hidden shadow-2xl">
+                  <video 
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: '50% 30%' }}
+                  >
+                    <source src="/icons/priemer-destination.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Text Content - Salem Flagship */}
+          {/* Chef Rebecca's Culinary Leadership */}
           <div className="max-w-4xl mx-auto text-center mb-20">
-            <h3 className="text-3xl font-serif text-red-400 mb-6">Salem's Premier Entertainment Destination</h3>
-            <p className="text-lg text-white/90 leading-relaxed mb-6">
-              Since opening in late 2023, our flagship Salem location at 145 Liberty St NE has redefined Oregon's bar scene. 
-              Executive Chef Rebecca Sanchez leads our kitchen with an innovative Mexican menu that goes far beyond typical bar food. 
-              From our legendary birria tacos that locals can't stop raving about to our house-made salsas crafted fresh daily, 
-              every dish reflects our commitment to authentic flavors and quality ingredients.
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+              Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
+            </h3>
+            <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto">
+              Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
+              from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
+              With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
+              we're not just serving food – we're creating experiences.
             </p>
-            <p className="text-lg text-white/80 leading-relaxed">
-              With over <span className="text-red-400 font-semibold">750+ five-star reviews</span> and a growing community of 
-              <span className="text-red-400 font-semibold"> 101,000+ Instagram followers</span>, we've proven that Salem was ready 
-              for something different - a place where exceptional food meets high-energy entertainment.
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-12">
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Utensils className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Legendary Birria</h3>
+                <p className="text-sm sm:text-base text-white/80">
+                  Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
+                  slow-cooked to perfection in our secret blend of spices.
+                </p>
+              </div>
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Star className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">House-Made Everything</h3>
+                <p className="text-sm sm:text-base text-white/80">
+                  From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
+                  we believe authentic flavor comes from doing things the right way.
+                </p>
+              </div>
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Value Meets Quality</h3>
+                <p className="text-sm sm:text-base text-white/80">
+                  With most dishes between $10-20, we prove that exceptional Mexican cuisine 
+                  doesn't have to break the bank.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -299,7 +313,7 @@ export default function Page() {
               </div>
               <div className="relative h-[400px] rounded-xl overflow-hidden shadow-2xl">
                 <Image 
-                  src="/icons/wolfpack-chat.gif"
+                  src="/icons/ufc-section.jpeg"
                   alt="UFC Night at Side Hustle Bar"
                   fill
                   className="object-cover"
@@ -315,52 +329,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* Chef Rebecca's Kitchen Section */}
-      <section className="py-20 px-4 bg-zinc-900">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
-            Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
-          </h2>
-          <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto">
-            Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
-            from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
-            With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
-            we're not just serving food – we're creating experiences.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-12">
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Utensils className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Legendary Birria</h3>
-              <p className="text-sm sm:text-base text-white/80">
-                Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
-                slow-cooked to perfection in our secret blend of spices.
-              </p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">House-Made Everything</h3>
-              <p className="text-sm sm:text-base text-white/80">
-                From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
-                we believe authentic flavor comes from doing things the right way.
-              </p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Value Meets Quality</h3>
-              <p className="text-sm sm:text-base text-white/80">
-                With most dishes between $10-20, we prove that exceptional Mexican cuisine 
-                doesn't have to break the bank.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Wolf Pack Community Section */}
       <section className="py-20 px-4 bg-black">
@@ -379,11 +347,13 @@ export default function Page() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative h-[500px] rounded-xl overflow-hidden shadow-2xl">
-              <Image 
-                src="/icons/side-hustle-exterior.jpg"
-                alt="Wolf Pack Community at Side Hustle Bar"
-                fill
-                className="object-cover"
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/icons/welcome-to-hustle.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
               <div className="absolute bottom-6 left-6 right-6">
@@ -516,6 +486,7 @@ export default function Page() {
               destination for authentic hip-hop and R&B experiences.
             </p>
           </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
             {/* Major Artists */}
