@@ -220,14 +220,22 @@ export default function Page() {
               </div>
             </div>
             
-            {/* Featured Item 3 - Replace with third video or image */}
+            {/* Featured Item 3 - Video */}
             <div className="group relative overflow-hidden rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer">
-              <div className="aspect-square relative bg-black">
-                <Image 
-                  src="/icons/side-hustle-food.jpg"
-                  alt="Side Hustle Bar Food"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-700"
+              <div className="aspect-square relative">
+                <video
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  src="/icons/welcome-to-hustle.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  style={{ 
+                    minWidth: '100%',
+                    minHeight: '100%',
+                    width: 'auto',
+                    height: 'auto'
+                  }}
                 />
               </div>
             </div>
@@ -291,7 +299,7 @@ export default function Page() {
               </div>
               <div className="relative h-[400px] rounded-xl overflow-hidden shadow-2xl">
                 <Image 
-                  src="/icons/side-hustle-exterior.jpg"
+                  src="/icons/wolfpack-chat.gif"
                   alt="UFC Night at Side Hustle Bar"
                   fill
                   className="object-cover"
