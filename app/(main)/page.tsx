@@ -55,7 +55,7 @@ export default function Page() {
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-20">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-36">
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-12 animate-fade-in">
             <Image 
@@ -236,11 +236,30 @@ export default function Page() {
                     <p className="text-lg font-medium text-white">Enable Notifications</p>
                     <p className="text-zinc-400">Order updates & special offers</p>
                   </div>
-                  <NotificationErrorBoundary fallback={<NotificationIndicatorFallback />}>
-                    <Suspense fallback={<NotificationIndicatorFallback />}>
-                      <NotificationIndicator className="bg-green-600 hover:bg-green-700 text-white" /> 
-                    </Suspense>
-                  </NotificationErrorBoundary>
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={async () => {
+                      try {
+                        console.log('Requesting notification permission...');
+                        const permission = await Notification.requestPermission();
+                        console.log('Notification permission result:', permission);
+                        
+                        if (permission === 'granted') {
+                          alert('Notifications enabled! You\'ll receive updates about your orders and special offers.');
+                        } else if (permission === 'denied') {
+                          alert('Notifications were blocked. You can enable them in your browser settings if you change your mind.');
+                        } else {
+                          alert('Notification permission was dismissed. You can try again anytime.');
+                        }
+                      } catch (error) {
+                        console.error('Error requesting notification permission:', error);
+                        alert('There was an error enabling notifications. Please try again.');
+                      }
+                    }}
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    Enable
+                  </Button>
                 </div>
               </div>
             </CardContent>
