@@ -137,7 +137,7 @@ export default function AboutPage( ) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-black text-white">
         {/* Hero Section */}
         <AboutHero />
         
@@ -159,10 +159,10 @@ export default function AboutPage( ) {
         {/* Community Involvement - REMOVED as no specific community involvement was found */}
 
         {/* FAQ */}
-        <section className="py-16 bg-muted/30">
+        <section className="py-16 bg-black">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">Frequently Asked Questions</h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Frequently Asked Questions</h2>
+            <p className="text-lg text-white/80 text-center mb-12 max-w-2xl mx-auto">
               Got questions? We&apos;ve got answers!
             </p>
             <FrequentlyAskedQuestions />

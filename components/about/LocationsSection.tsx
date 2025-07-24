@@ -23,28 +23,28 @@ interface Location {
 
 const locations: Location[] = [
   {
-    name: "Side Hustle Salem",
+    name: "Side Hustle Salem - The Original",
     address: "145 Liberty St NE Suite #101",
     city: "Salem",
     state: "OR",
     zip: "97301",
-    phone: "Contact for current hours",
+    phone: "503-585-7827",
     hours: {
-      weekdays: "Contact for current hours",
-      weekends: "Contact for current hours"
+      weekdays: "Mon-Wed: 10:00 AM - 11:00 PM, Thu: 10:00 AM - 12:00 AM",
+      weekends: "Fri-Sat: 10:00 AM - 2:00 AM, Sun: 10:00 AM - 11:00 PM"
     },
     mapUrl: "https://maps.google.com/?q=44.9429,-123.0351"
   },
   {
-    name: "Side Hustle Portland",
-    address: "327 SW Morrison St",
+    name: "Side Hustle Portland - Now Open",
+    address: "327 SW Morrison Street",
     city: "Portland",
     state: "OR",
     zip: "97204",
     phone: "Contact for current hours",
     hours: {
-      weekdays: "10:00 AM - 11:00 PM (Mon-Wed), 10:00 AM - 1:00 AM (Thu)",
-      weekends: "10:00 AM - 2:30 AM (Fri-Sat), 10:00 AM - 12:00 AM (Sun)"
+      weekdays: "Mon-Wed & Sun: 10:00 AM - 1:00 AM, Thu: 10:00 AM - 1:00 AM",
+      weekends: "Fri-Sat: 10:00 AM - 3:00 AM"
     },
     mapUrl: "https://maps.google.com/?q=45.5152,-122.6784"
   }
@@ -52,13 +52,12 @@ const locations: Location[] = [
 
 export function LocationsSection() {
   return (
-    <section className="py-16 bg-muted/50">
+    <section className="py-16 bg-zinc-900">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Our Locations</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Visit us at either of our two convenient locations in Salem and Portland. 
-            Both venues offer the same great atmosphere, food, and Wolf Pack community.
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">Two Locations, One Wolf Pack</h2>
+          <p className="text-lg text-white/80 max-w-3xl mx-auto">
+            From our flagship Salem location in the heart of downtown to our expanding Portland presence, each Side Hustle venue brings the same legendary birria tacos, electric UFC atmosphere, and community spirit that defines the Wolf Pack experience.
           </p>
         </div>
 
@@ -66,9 +65,9 @@ export function LocationsSection() {
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {locations.map((location) => (
             <Card key={location.name} className="overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+              <CardHeader className="bg-red-600 text-white">
                 <CardTitle className="text-2xl">{location.name}</CardTitle>
-                <CardDescription className="text-purple-100">
+                <CardDescription className="text-red-100">
                   {location.city}, {location.state}
                 </CardDescription>
               </CardHeader>
@@ -90,15 +89,19 @@ export function LocationsSection() {
                     <div>
                       <p className="font-medium">Hours</p>
                       <p className="text-sm text-muted-foreground">
-                        {location.city === "Portland" ? (
+                        {location.city === "Salem" ? (
                           <>
                             Mon-Wed: 10:00 AM - 11:00 PM<br />
-                            Thu: 10:00 AM - 1:00 AM<br />
-                            Fri-Sat: 10:00 AM - 2:30 AM<br />
-                            Sun: 10:00 AM - 12:00 AM
+                            Thu: 10:00 AM - 12:00 AM<br />
+                            Fri-Sat: 10:00 AM - 2:00 AM<br />
+                            Sun: 10:00 AM - 11:00 PM
                           </>
                         ) : (
-                          "Contact for current hours"
+                          <>
+                            Mon-Wed & Sun: 10:00 AM - 1:00 AM<br />
+                            Thu: 10:00 AM - 1:00 AM<br />
+                            Fri-Sat: 10:00 AM - 3:00 AM
+                          </>
                         )}
                       </p>
                     </div>

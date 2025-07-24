@@ -59,14 +59,14 @@ export default function Page() {
   return (
     <div className="main-content bg-black text-white min-h-screen">
       {/* Hero Section with Video Background - Full Screen */}
-      <div className="relative h-screen w-full -mt-16 overflow-visible">
+      <div className="relative h-screen w-full -mt-16 overflow-visible mb-8">
         <VideoBackground 
           videoSrc="/icons/main-page-only.mp4"
           overlayOpacity={0.4}
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-40 md:pt-48 overflow-visible">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-40 md:pt-48 pb-20 overflow-visible">
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-6 mt-8 md:mt-12 animate-fade-in">
             <Image 
@@ -114,7 +114,7 @@ export default function Page() {
           </div>
           
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 relative z-20">
             <Link href="/menu">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 text-xl font-semibold rounded-full shadow-lg hover:shadow-xl transition-all">
                 View Menu
@@ -133,7 +133,7 @@ export default function Page() {
                 </div>
               </div>
               {orderDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 backdrop-blur-sm rounded-lg border border-white/20 shadow-xl z-[100]">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 backdrop-blur-sm rounded-lg border border-white/20 shadow-xl z-[1000]">
                   <div className="py-2">
                     <div 
                       onClick={() => {
@@ -187,7 +187,7 @@ export default function Page() {
       </div>
 
       {/* Featured Section */}
-      <section className="py-20 px-4 bg-zinc-900">
+      <section className="pt-32 pb-20 px-4 bg-zinc-900">
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Signature Tacos & Craft Cocktails</h2>
           
