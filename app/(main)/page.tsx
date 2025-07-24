@@ -70,27 +70,48 @@ export default function Page() {
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-6 animate-fade-in">
             <Image 
-              src="/icons/wolf-and-title.png"
+              src={`/icons/wolf-and-title.png?v=${Date.now()}`}
               alt="Side Hustle Bar"
               width={400}
               height={200}
-              className="mx-auto w-full max-w-[150px] md:max-w-[180px] lg:max-w-[200px] h-auto"
+              className="mx-auto w-full max-w-[280px] md:max-w-[350px] lg:max-w-[450px] h-auto"
               priority
+              unoptimized
             />
           </div>
           
           {/* Main Hero Text */}
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 max-w-3xl leading-tight drop-shadow-2xl">
-            Enjoy Happy Hour 7 Days a Week at
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 max-w-4xl leading-tight drop-shadow-2xl">
+            Experience Salem's Best Tacos
             <br />
-            <span className="text-red-500">All Locations!</span>
+            <span className="text-red-500 font-serif">7 Days a Week</span>
           </h1>
           
           {/* Subtitle */}
-          <p className="text-base md:text-lg text-white/90 mb-6 max-w-2xl leading-relaxed drop-shadow-lg">
-            Monday through Saturday, 3pm to 6pm and 9pm to Close<br />
-            Sunday All Day!
+          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl leading-relaxed drop-shadow-lg">
+            Authentic flavors, vibrant atmosphere, and unforgettable experiences at both locations
           </p>
+          
+          {/* Location & Hours Card */}
+          <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-6 md:p-8 max-w-3xl mb-8 shadow-2xl border border-white/20">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="text-white">
+                <h3 className="text-xl font-bold text-red-500 mb-3">Salem Location</h3>
+                <p className="text-base mb-1">145 Liberty St NE Suite #101</p>
+                <p className="text-base mb-3">Salem, OR 97301</p>
+                <p className="text-base font-semibold">📞 (503) 391-9977</p>
+              </div>
+              
+              <div className="text-white">
+                <h3 className="text-xl font-bold text-red-500 mb-3">Hours</h3>
+                <div className="space-y-1 text-sm md:text-base">
+                  <p><span className="font-medium">Mon-Thu:</span> 10AM - 12AM</p>
+                  <p><span className="font-medium">Fri-Sat:</span> 10AM - 2AM</p>
+                  <p><span className="font-medium">Sunday:</span> 10AM - 12AM</p>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4">
@@ -168,7 +189,7 @@ export default function Page() {
       {/* Featured Section */}
       <section className="py-20 px-4 bg-zinc-900">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Featured Cocktails & Dishes</h2>
+          <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Signature Tacos & Craft Cocktails</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Featured Item 1 - Video */}
@@ -224,10 +245,15 @@ export default function Page() {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl md:text-5xl font-serif mb-6">Welcome to Side Hustle</h2>
-              <p className="text-xl text-white/80 mb-6">
-                Experience the perfect blend of high-energy sports bar atmosphere with authentic Mexican cuisine. 
-                Our 5-star Chef Rebecca Sanchez brings you the best tacos in Salem.
+              <h2 className="text-4xl md:text-5xl font-serif mb-6">Welcome to Side Hustle Bar</h2>
+              <p className="text-xl text-white/80 mb-6 leading-relaxed">
+                Where culinary excellence meets vibrant nightlife. Our award-winning Chef Rebecca Sanchez 
+                crafts Salem's most authentic tacos using time-honored recipes and the freshest ingredients. 
+                Every bite tells a story of tradition, passion, and exceptional flavor.
+              </p>
+              <p className="text-lg text-white/70 mb-6">
+                From our handmade tortillas to our signature salsas, we're dedicated to delivering 
+                an unforgettable dining experience that celebrates the rich heritage of Mexican cuisine.
               </p>
               <div className="flex items-center gap-4 mb-6">
                 <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
