@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import consolidated menu styles */
+@import '../styles/consolidated-menu.css';
+
 /* TikTok-style feed scrollbar hiding */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

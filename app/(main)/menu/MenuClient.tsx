@@ -265,9 +265,9 @@ export default function MenuClient({
   // Debug info removed to reduce console noise
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-black text-white">
       {/* Mobile-First Header */}
-      <header className="sticky top-0 z-40 bg-black/95 backdrop-blur border-b">
+      <header className="sticky top-0 z-40 bg-black/95 backdrop-blur border-b border-zinc-700">
         <div className="flex items-center justify-between p-4">
           <Button
             variant="ghost"
@@ -281,7 +281,7 @@ export default function MenuClient({
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold">Menu</h1>
+          <h1 className="text-xl font-bold text-white">Menu</h1>
           
           {/* Cart Button or Login CTA */}
           {user ? (
@@ -319,7 +319,7 @@ export default function MenuClient({
       </header>
 
       {/* Main Tabs - Full width on mobile */}
-      <div className="sticky top-[73px] z-30 bg-background border-b">
+      <div className="sticky top-[73px] z-30 bg-black border-b border-zinc-700">
         <Tabs 
           value={activeTab} 
           onValueChange={(val) => setActiveTab(val as 'food' | 'drink')} 
@@ -328,14 +328,14 @@ export default function MenuClient({
           <TabsList className="grid w-full grid-cols-2 h-12 p-1 rounded-none">
             <TabsTrigger 
               value="food" 
-              className="flex items-center gap-2 text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="menu-main-tab-food flex items-center gap-2 text-base"
             >
               <UtensilsCrossed className="w-5 h-5" />
               <span>Food ({foodCategories.length})</span>
             </TabsTrigger>
             <TabsTrigger 
               value="drink" 
-              className="flex items-center gap-2 text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="menu-main-tab-drinks flex items-center gap-2 text-base"
             >
               <Wine className="w-5 h-5" />
               <span>Drinks ({drinkCategories.length})</span>
@@ -343,7 +343,7 @@ export default function MenuClient({
           </TabsList>
 
           {/* Category Navigation - Horizontal scroll on mobile */}
-          <div className="bg-muted/50">
+          <div className="bg-zinc-800/50">
             <TabsContent value="food" className="m-0">
               <div className="overflow-x-auto">
                 <MenuCategoryNav

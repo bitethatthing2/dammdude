@@ -428,7 +428,7 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
   
   return (
     <>
-      <Card>
+      <Card className="menu-item-card bg-zinc-800 border-zinc-600">
         <CardContent className="p-3">
           <div className="md:flex gap-4">
             {/* Image with mobile-first sizing constraints */}
@@ -459,11 +459,11 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start gap-2 mb-2">
-                <h3 className="font-semibold text-base sm:text-lg leading-tight flex-1">{item.name}</h3>
-                <span className="font-bold text-base sm:text-lg text-green-600 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
+                <h3 className="menu-item-name font-semibold text-base sm:text-lg leading-tight flex-1 text-white">{item.name}</h3>
+                <span className="menu-item-price font-bold text-base sm:text-lg text-green-500 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
               </div>
               {item.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 sm:line-clamp-none">
+                <p className="menu-item-description text-xs sm:text-sm text-gray-300 line-clamp-3 sm:line-clamp-none">
                   {item.description}
                 </p>
               )}
@@ -616,7 +616,7 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
   
   return (
     <>
-      <div className="menu-item-compact flex items-center gap-3 p-2">
+      <div className="menu-item-compact flex items-center gap-3 p-2 bg-zinc-800 rounded-lg border border-zinc-600">
         {/* Small image/color indicator with mobile-first constraints */}
         {foodImageUrl && !imageError ? (
           <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800 relative">
@@ -643,11 +643,11 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start gap-2 mb-1">
-            <h3 className="font-semibold text-sm leading-tight">{item.name}</h3>
-            <span className="font-bold text-sm text-green-600 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
+            <h3 className="menu-item-name font-semibold text-sm leading-tight text-white">{item.name}</h3>
+            <span className="menu-item-price font-bold text-sm text-green-500 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
           </div>
           {item.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">
+            <p className="menu-item-description text-xs text-gray-300 line-clamp-2">
               {item.description}
             </p>
           )}

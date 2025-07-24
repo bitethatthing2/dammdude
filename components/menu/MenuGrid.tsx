@@ -157,9 +157,9 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
   const sortedItems = [...availableItems, ...unavailableItems];
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-black text-white">
       {/* Category Navigation */}
-      <div className="menu-category-nav sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+      <div className="menu-category-nav sticky top-0 z-10 bg-black/95 backdrop-blur-sm">
         <div className="menu-category-scroll">
           {categories.map((category) => (
             <button
@@ -188,13 +188,13 @@ export default function MenuGrid({ selectedCategoryId, onAddToCart }: MenuGridPr
         {loading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-              <p className="mt-4 text-lg text-muted-foreground">Loading delicious food...</p>
+              <Loader2 className="w-12 h-12 animate-spin mx-auto text-red-500" />
+              <p className="mt-4 text-lg text-white/80">Loading delicious food...</p>
             </div>
           </div>
         ) : sortedItems.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground">No items found in this category.</p>
+            <p className="text-lg text-white/80">No items found in this category.</p>
           </div>
         ) : (
           <div className="menu-grid">
