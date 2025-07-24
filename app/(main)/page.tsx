@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Utensils, Download, Bell, Star, Users, MapPin, Truck, ExternalLink } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
@@ -34,6 +35,7 @@ const NotificationIndicatorFallback = () => (
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
   const { location } = useLocationState();
 
   // Wait for component to mount to ensure client-side rendering
@@ -79,7 +81,7 @@ export default function Page() {
               </Button>
             </Link>
             <button
-              onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/', '_blank')}
+              onClick={() => setShowDeliveryDialog(true)}
               className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-10 py-4 text-xl font-semibold rounded-full border-2 border-white/30 hover:border-white/50 transition-all shadow-lg hover:shadow-xl"
             >
               Order Online
@@ -351,6 +353,80 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* Delivery Services Dialog */}
+      <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Order Online</DialogTitle>
+            <DialogDescription>
+              Choose your preferred delivery service
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button
+              onClick={() => {
+                window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/', '_blank');
+                setShowDeliveryDialog(false);
+              }}
+              className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/doordash_icon.png" 
+                    alt="DoorDash" 
+                    width={24} 
+                    height={24} 
+                    className="object-contain"
+                  />
+                </div>
+                <span>Order on DoorDash</span>
+              </div>
+            </Button>
+            <Button
+              onClick={() => {
+                window.open('https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank');
+                setShowDeliveryDialog(false);
+              }}
+              className="w-full justify-start bg-black hover:bg-zinc-900 text-white border-2 border-white"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/uber-eats.png" 
+                    alt="Uber Eats" 
+                    width={24} 
+                    height={24} 
+                    className="object-contain"
+                  />
+                </div>
+                <span>Order on Uber Eats</span>
+              </div>
+            </Button>
+            <Button
+              onClick={() => {
+                window.open('https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank');
+                setShowDeliveryDialog(false);
+              }}
+              className="w-full justify-start bg-yellow-500 hover:bg-yellow-600 text-black"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/postmates.png" 
+                    alt="Postmates" 
+                    width={24} 
+                    height={24} 
+                    className="object-contain"
+                  />
+                </div>
+                <span>Order on Postmates</span>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
