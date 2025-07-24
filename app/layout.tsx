@@ -13,6 +13,7 @@ import { PwaInitializer } from '@/components/shared/PwaInitializer';
 import { LogoPreloader } from '@/components/shared/LogoPreloader';
 import { LocationProvider } from '@/lib/hooks/useLocationState';
 import { TopNav } from '@/components/shared/TopNav';
+import { Footer } from '@/components/shared/Footer';
 
 // Configure fonts
 const playfair = Playfair_Display({ 
@@ -295,7 +296,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
         />
       </head>
-      <body className={`${inter.variable} ${playfair.variable} min-h-screen font-sans antialiased bg-black`}>
+      <body className={`${inter.variable} ${playfair.variable} min-h-screen font-sans antialiased bg-black m-0 p-0`}>
         <AuthProvider>
           <LocationProvider>
             <CartProvider>
@@ -306,9 +307,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     <PwaInitializer />
                     <UnifiedNotificationInit />
                     <TopNav />
-                    <div className="pt-16">
+                    <main className="pt-16">
                       {children}
-                    </div>
+                    </main>
+                    <Footer />
                   </NuqsAdapter>
                 </NotificationProvider>
               {/* </CommentsProvider> */}

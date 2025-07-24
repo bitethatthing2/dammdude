@@ -6,6 +6,20 @@
 /* Import consolidated menu styles */
 @import '../styles/consolidated-menu.css';
 
+/* Remove default margins and ensure full coverage */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #000;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 /* TikTok-style feed scrollbar hiding */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

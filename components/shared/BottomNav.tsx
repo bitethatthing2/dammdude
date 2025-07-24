@@ -185,8 +185,9 @@ export const BottomNav = () => {
   const isChatPage = pathname.startsWith('/wolfpack/chat');
   const isWolfpackPage = pathname.startsWith('/wolfpack');
 
-  // Hide BottomNav on chat pages, feed page, and when comments are open
-  const shouldHideBottomNav = pathname.startsWith('/wolfpack/chat') || 
+  // Hide BottomNav on chat pages, feed page, main page, and when comments are open
+  const shouldHideBottomNav = pathname === '/' || 
+                             pathname.startsWith('/wolfpack/chat') || 
                              pathname === '/wolfpack/feed' || 
                              pathname.includes('/wolfpack/feed');
   

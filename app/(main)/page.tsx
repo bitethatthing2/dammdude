@@ -388,29 +388,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* Quick Actions */}
-      <section className="py-12 px-4 bg-zinc-900">
-        <div className="container mx-auto max-w-4xl">
-          <div className="grid grid-cols-2 gap-6">
-            <Link href="/menu">
-              <Card className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-700 transition-all duration-200 group">
-                <CardContent className="p-8 flex flex-col items-center justify-center">
-                  <Utensils className="h-12 w-12 text-red-500 mb-4 group-hover:scale-110 transition-transform" />
-                  <span className="text-xl font-medium text-white">View Menu</span>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/wolfpack/feed">
-              <Card className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-700 transition-all duration-200 group">
-                <CardContent className="p-8 flex flex-col items-center justify-center">
-                  <Users className="h-12 w-12 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
-                  <span className="text-xl font-medium text-white">Join Wolf Pack</span>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-      </section>
       {/* Find Us Section */}
       <section className="py-20 px-4 bg-black">
         <div className="container mx-auto">
