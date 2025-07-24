@@ -66,9 +66,9 @@ export default function Page() {
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-36 overflow-visible">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-40 md:pt-48 overflow-visible">
           {/* Combined Logo with Wolf and Title */}
-          <div className="mb-6 animate-fade-in">
+          <div className="mb-6 mt-8 md:mt-12 animate-fade-in">
             <Image 
               src={`/icons/wolf-and-title.png?v=${Date.now()}`}
               alt="Side Hustle Bar"
