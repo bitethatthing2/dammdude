@@ -55,7 +55,7 @@ export default function Page() {
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-20">
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-12 animate-fade-in">
             <Image 
