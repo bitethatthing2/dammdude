@@ -35,7 +35,7 @@ function MenuLoading() {
 
 export default function MenuPage() {
   return (
-    <main className="main-content bg-background">
+    <main className="main-content">
       <Suspense fallback={<MenuLoading />}>
         <MenuServer />
       </Suspense>

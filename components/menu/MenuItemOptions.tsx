@@ -131,7 +131,7 @@ const MenuItemOptions = ({
 
       {/* Show message if no options available */}
       {!showWingFlavors && !showMeatChoices && !showChefaSauce && (
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+        <div className="text-center py-8 text-gray-400 bg-gray-900 rounded-lg border-2 border-dashed border-gray-700">
           <div className="text-4xl mb-2">🍽️</div>
           <p className="font-medium">Ready to add to cart!</p>
           <p className="text-sm mt-1">No additional options needed for this item</p>

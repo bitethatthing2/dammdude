@@ -242,7 +242,7 @@ export default function MenuClient({
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen p-4">
         <Alert variant="destructive" className="mx-auto max-w-lg">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex flex-col gap-3">
@@ -265,9 +265,9 @@ export default function MenuClient({
   // Debug info removed to reduce console noise
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Mobile-First Header */}
-      <header className="sticky top-0 z-40 bg-background border-b">
+      <header className="sticky top-0 z-40 bg-black/95 backdrop-blur border-b">
         <div className="flex items-center justify-between p-4">
           <Button
             variant="ghost"

@@ -433,7 +433,7 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
           <div className="md:flex gap-4">
             {/* Image with mobile-first sizing constraints */}
             {foodImageUrl && !imageError ? (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-18 lg:w-28 lg:h-20 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-18 lg:w-28 lg:h-20 rounded-md overflow-hidden bg-gray-800 relative flex-shrink-0">
                 <Image
                   src={foodImageUrl}
                   alt={item.name}
@@ -619,7 +619,7 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
       <div className="menu-item-compact flex items-center gap-3 p-2">
         {/* Small image/color indicator with mobile-first constraints */}
         {foodImageUrl && !imageError ? (
-          <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800 relative">
             <Image
               src={foodImageUrl}
               alt={item.name}

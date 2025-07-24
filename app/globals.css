@@ -84,6 +84,20 @@ html {
 /* Import consolidated menu styles - single source of truth */
 @import '../styles/consolidated-menu.css';
 
+/* Content container for proper framing */
+.content-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .content-container {
+    padding: 0 2rem;
+  }
+}
+
 /* Force transparent navigation */
 nav[class*="fixed top-0"], 
 .transparent-nav,
@@ -104,7 +118,7 @@ nav[class*="fixed top-0"],
 /* Typography System */
 @layer base {
   html, body {
-    background: transparent !important;
+    background: black !important;
     font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   
@@ -352,7 +366,7 @@ nav[class*="fixed top-0"],
 @layer base {
   /* Transparent Background */
   :root {
-    --background: transparent;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
