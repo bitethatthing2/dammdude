@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Utensils, Download, Bell, Star, Users, MapPin } from "lucide-react";
+import { Utensils, Download, Bell, Star, Users, MapPin, Clock } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
 import { NotificationErrorBoundary } from '@/components/shared/NotificationErrorBoundary';
@@ -185,7 +185,7 @@ export default function Page() {
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Signature Tacos & Craft Cocktails</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {/* Featured Item 1 - Video */}
             <div className="group relative overflow-hidden rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer">
               <div className="aspect-square relative">
@@ -232,91 +232,353 @@ export default function Page() {
               </div>
             </div>
           </div>
+
+          {/* Text Content - Salem Flagship */}
+          <div className="max-w-4xl mx-auto text-center mb-20">
+            <h3 className="text-3xl font-serif text-red-400 mb-6">Salem's Premier Entertainment Destination</h3>
+            <p className="text-lg text-white/90 leading-relaxed mb-6">
+              Since opening in late 2023, our flagship Salem location at 145 Liberty St NE has redefined Oregon's bar scene. 
+              Executive Chef Rebecca Sanchez leads our kitchen with an innovative Mexican menu that goes far beyond typical bar food. 
+              From our legendary birria tacos that locals can't stop raving about to our house-made salsas crafted fresh daily, 
+              every dish reflects our commitment to authentic flavors and quality ingredients.
+            </p>
+            <p className="text-lg text-white/80 leading-relaxed">
+              With over <span className="text-red-400 font-semibold">750+ five-star reviews</span> and a growing community of 
+              <span className="text-red-400 font-semibold"> 101,000+ Instagram followers</span>, we've proven that Salem was ready 
+              for something different - a place where exceptional food meets high-energy entertainment.
+            </p>
+          </div>
         </div>
       </section>
-      {/* Welcome Story Section */}
+      {/* Oregon's UFC House Section */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 bg-black">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif mb-6 sm:mb-8 text-white leading-tight">Where High-Energy Entertainment Meets Authentic Mexican Cuisine</h2>
-          <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed">
-            Side Hustle Bar embodies the entrepreneurial spirit of the modern "side hustle" - creating a space where you can unlock your potential while enjoying exceptional food and entertainment in the heart of Oregon.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-8 sm:mt-12">
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Utensils className="h-8 w-8 text-white" />
+        <div className="container mx-auto">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+                  Oregon's Premier <span className="text-red-400">UFC House</span>
+                </h2>
+                <p className="text-lg text-white/90 mb-6 leading-relaxed">
+                  We've earned our reputation as the ultimate fight destination with multiple large screens, 
+                  no cover charges, and an electric atmosphere that draws capacity crowds for every major event. 
+                  Whether it's UFC, boxing, or your favorite team's big game, our state-of-the-art viewing setup 
+                  ensures you won't miss a second of the action.
+                </p>
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-lg">Multiple 75" screens throughout the venue</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-lg">No cover charge for UFC events</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-lg">Premium sound system for full immersion</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-lg">VIP table reservations available</span>
+                  </div>
+                </div>
+                <Link href="/wolfpack">
+                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg font-semibold rounded-full">
+                    Join the Wolf Pack
+                  </Button>
+                </Link>
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Legendary Birria Tacos</h3>
-              <p className="text-sm sm:text-base text-white/80">Executive Chef Rebecca Sanchez crafts signature birria tacos that have become legendary among locals, with house-made salsas customers describe as "bomb."</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-white" />
+              <div className="relative h-[400px] rounded-xl overflow-hidden shadow-2xl">
+                <Image 
+                  src="/icons/side-hustle-exterior.jpg"
+                  alt="UFC Night at Side Hustle Bar"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-white font-semibold text-lg">Experience the Energy</p>
+                  <p className="text-white/80">Every fight, every round, every knockout</p>
+                </div>
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Oregon's UFC House</h3>
-              <p className="text-sm sm:text-base text-white/80">Multiple large screens, no cover charge, and an electric atmosphere make us the premier destination for UFC and boxing events with capacity crowds.</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Two Locations</h3>
-              <p className="text-sm sm:text-base text-white/80">From our flagship Salem location in historic downtown to our expanding Portland presence, each venue brings the same Wolf Pack community spirit.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Community & Atmosphere Section */}
+      {/* Chef Rebecca's Kitchen Section */}
       <section className="py-20 px-4 bg-zinc-900">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+            Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
+          </h2>
+          <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto">
+            Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
+            from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
+            With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
+            we're not just serving food – we're creating experiences.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-12">
+            <div className="text-center p-4">
+              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Utensils className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Legendary Birria</h3>
+              <p className="text-sm sm:text-base text-white/80">
+                Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
+                slow-cooked to perfection in our secret blend of spices.
+              </p>
+            </div>
+            <div className="text-center p-4">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">House-Made Everything</h3>
+              <p className="text-sm sm:text-base text-white/80">
+                From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
+                we believe authentic flavor comes from doing things the right way.
+              </p>
+            </div>
+            <div className="text-center p-4">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Value Meets Quality</h3>
+              <p className="text-sm sm:text-base text-white/80">
+                With most dishes between $10-20, we prove that exceptional Mexican cuisine 
+                doesn't have to break the bank.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Wolf Pack Community Section */}
+      <section className="py-20 px-4 bg-black">
         <div className="container mx-auto">
+          <div className="max-w-4xl mx-auto text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+              Join the <span className="text-red-400">Wolf Pack</span> Community
+            </h2>
+            <p className="text-lg sm:text-xl text-white/90 leading-relaxed">
+              More than just a bar, Side Hustle is where the Wolf Pack comes together. 
+              Our community of over 101,000 Instagram followers knows that this is where 
+              you unlock your potential, reach your goals, and live your best life. 
+              From daily regulars to weekend warriors, everyone finds their place in the pack.
+            </p>
+          </div>
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="relative h-[500px] rounded-lg overflow-hidden">
+            <div className="relative h-[500px] rounded-xl overflow-hidden shadow-2xl">
               <Image 
                 src="/icons/side-hustle-exterior.jpg"
-                alt="Side Hustle Bar Interior"
+                alt="Wolf Pack Community at Side Hustle Bar"
                 fill
                 className="object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-6 left-6 right-6">
+                <h3 className="text-white font-bold text-2xl mb-2">Every Day, Every Night</h3>
+                <p className="text-white/90">From lunch meetings to late-night celebrations</p>
+              </div>
             </div>
+            
             <div>
-              <h2 className="text-4xl md:text-5xl font-serif mb-6 text-white">From Family-Friendly to Nightlife Destination</h2>
-              <p className="text-xl text-white/80 mb-6 leading-relaxed">
-                Our multi-level venue seamlessly transitions from family-friendly restaurant by day to vibrant nightclub by night. With gaming areas, outdoor parklet seating, and intimate lounges, there's a perfect spot for every occasion.
+              <h3 className="text-3xl font-serif mb-6 text-white">From Family-Friendly to Nightlife Destination</h3>
+              <p className="text-lg text-white/80 mb-8 leading-relaxed">
+                Our multi-level venue seamlessly transitions from family-friendly restaurant by day to vibrant nightclub by night. 
+                With gaming areas, outdoor parklet seating, and intimate lounges, there's a perfect spot for every occasion and every member of the pack.
               </p>
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-white/90">Game Night Live with trivia and R0CK'N Bingo</span>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-white/90 text-lg">Game Night Live with trivia and R0CK'N Bingo</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-white/90">Live music Thursday through Sunday evenings</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-white/90 text-lg">Live music Thursday through Sunday evenings</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-white/90">Notable concerts featuring Trinidad James & ILOVEMAKONNEN</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-white/90 text-lg">Major acts: Trinidad James, ILOVEMAKONNEN, Kirko Bangz & Casey Veggies</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-white/90">Pool, giant Jenga, and giant Connect Four gaming area</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-white/90 text-lg">Pool, giant Jenga, and giant Connect Four gaming</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4 mb-6">
-                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-                <span className="text-white/80 font-medium">4.7 stars across 750+ Google reviews</span>
-              </div>
-              <div className="flex justify-start">
-                <LocationSwitcher />
+              
+              <div className="flex items-center gap-2 mb-8">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-6 w-6 text-amber-400 fill-amber-400" />
+                ))}
+                <span className="text-white/80 font-semibold text-lg ml-2">4.7 stars • 750+ reviews</span>
               </div>
             </div>
           </div>
         </div>
       </section>
+      {/* Portland Expansion Section */}
+      <section className="py-20 px-4 bg-zinc-900">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+              Expanding to <span className="text-red-400">Portland</span>
+            </h2>
+            <p className="text-lg sm:text-xl text-white/90 leading-relaxed max-w-3xl mx-auto">
+              The Wolf Pack is growing. Our Portland location at 327 SW Morrison Street brings the same legendary food, 
+              electric atmosphere, and community spirit to Oregon's biggest city. With extended late-night hours and 
+              an even bigger stage for live music, Portland is ready for the Side Hustle experience.
+            </p>
+          </div>
+
+          {/* Portland Location Image */}
+          <div className="mb-16">
+            <div className="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-2xl mx-auto max-w-4xl">
+              <Image 
+                src="/icons/portland-side-hustle.jpg"
+                alt="Side Hustle Bar Portland Location"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-6 left-6 right-6">
+                <h3 className="text-white font-bold text-2xl mb-2">327 SW Morrison Street</h3>
+                <p className="text-white/90 text-lg">Downtown Portland's newest entertainment destination</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-white">Prime Downtown Location</h3>
+              <p className="text-white/80">
+                327 SW Morrison Street puts us in the heart of Portland's entertainment district, 
+                perfect for pre-game drinks or post-work celebrations.
+              </p>
+            </div>
+
+            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-white">Extended Hours</h3>
+              <p className="text-white/80">
+                Open until 3 AM on weekends, we're here for Portland's night owls who want 
+                authentic Mexican food and craft cocktails until the early hours.
+              </p>
+            </div>
+
+            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-white">Hip-Hop Music Hub</h3>
+              <p className="text-white/80">
+                Our Rhythm & Flow partnership brings West Coast hip-hop vibes with 
+                resident DJs like DJ Inferno and touring acts from LA to Portland.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-lg text-white/80 mb-6">
+              Same legendary birria, same Wolf Pack energy, now in two locations
+            </p>
+            <LocationSwitcher />
+          </div>
+        </div>
+      </section>
+
+      {/* Music & Entertainment Hub Section */}
+      <section className="py-20 px-4 bg-black">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+              Salem's Premier <span className="text-red-400">Hip-Hop Venue</span>
+            </h2>
+            <p className="text-lg sm:text-xl text-white/90 leading-relaxed max-w-3xl mx-auto mb-8">
+              Since 2023, we've brought major touring artists to Oregon's capital through our Rhythm & Flow partnership. 
+              From coast-to-coast headliners to the hottest DJs, Side Hustle Bar has become the Pacific Northwest's 
+              destination for authentic hip-hop and R&B experiences.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+            {/* Major Artists */}
+            <div className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-8">
+              <h3 className="text-2xl font-bold text-red-400 mb-6">Major Headliners</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>ILOVEMAKONNEN</strong> - First-ever Salem show (April 27, 2024)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Trinidad James</strong> - October 4, 2024</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Kirko Bangz</strong> - Summer 24 kickoff (June 22, 2024)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Casey Veggies</strong> - Oregon tour (August 16, 2024)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Adrian Marcel</strong> - R&B showcase</span>
+                </div>
+              </div>
+            </div>
+
+            {/* DJ Lineup */}
+            <div className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-8">
+              <h3 className="text-2xl font-bold text-red-400 mb-6">Resident DJ Lineup</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>DJ Inferno</strong> - Rhythm & Flow co-founder</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Kaniel The One & Finxx Live</strong> - Portland's hottest</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>DJ Infamous</strong> - Ludacris's tour DJ</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>DJ New Era</strong> - Alabama Crimson Tide official</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>DJ Carlos PDX</strong> - TikTok viral sets</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          <div className="text-center mt-12">
+            <p className="text-lg text-white/80 mb-6">
+              "Infusing the Pacific Northwest with West Coast hip-hop vibes"
+            </p>
+            <Link href="/wolfpack">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg font-semibold rounded-full">
+                Experience the Music
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Get Full Experience Section - Compact */}
       <section className="py-12 px-4 bg-zinc-900">
         <div className="container mx-auto max-w-4xl">
