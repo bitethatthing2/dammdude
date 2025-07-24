@@ -21,67 +21,76 @@ export function Footer() {
           
           {/* Brand Section */}
           <div className="space-y-6 lg:col-span-1">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center lg:justify-start space-x-3">
               <Image 
                 src="/icons/wolf-and-title.png"
                 alt="Side Hustle Bar"
-                width={180}
-                height={72}
-                className="h-14 w-auto brightness-110"
+                width={200}
+                height={80}
+                className="h-16 w-auto brightness-110"
               />
             </div>
-            <p className="text-base text-gray-300 leading-relaxed text-center">
-              Oregon's premier UFC House • Legendary Birria • Live Music
+            <p className="text-lg text-gray-300 leading-relaxed text-center lg:text-left">
+              Oregon's premier <span className="text-red-400 font-semibold">UFC House</span> • 
+              Legendary <span className="text-red-400 font-semibold">Birria</span> • 
+              <span className="text-red-400 font-semibold">Live Music</span>
             </p>
-            <div className="flex justify-center space-x-3">
+            <div className="flex justify-center lg:justify-start space-x-4">
               <a 
                 href="https://instagram.com/sidehustle_bar" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-red-400 transition-colors"
+                className="text-gray-400 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-lg"
                 aria-label="Follow us on Instagram"
               >
-                <Instagram className="h-5 w-5" />
+                <Instagram className="h-6 w-6" />
               </a>
               <a 
                 href="mailto:info@sidehustlelounge.com" 
                 aria-label="Email us"
-                className="text-gray-400 hover:text-red-400 transition-colors"
+                className="text-gray-400 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-lg"
               >
-                <Mail className="h-5 w-5" />
+                <Mail className="h-6 w-6" />
               </a>
             </div>
           </div>
 
           {/* Salem Location */}
           <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center lg:text-left">
               <h3 className="text-2xl font-bold text-white mb-3">Salem Location</h3>
-              <div className="h-1 w-16 bg-gradient-to-r from-red-600 to-red-400 rounded-full mx-auto"></div>
+              <div className="h-1 w-16 bg-gradient-to-r from-red-600 to-red-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-red-500" />
-                <address className="not-italic text-gray-300 text-sm">
-                  145 Liberty St NE #101, Salem
+            <div className="space-y-5">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-5 w-5 text-red-500" />
+                </div>
+                <address className="not-italic text-gray-300 text-base">
+                  <div className="font-semibold text-white">Historic Downtown</div>
+                  <div>145 Liberty St NE #101, Salem</div>
                 </address>
               </div>
-              <div className="flex items-center space-x-2">
-                <Phone className="h-4 w-4 text-red-500" />
-                <a href="tel:+15033919977" className="text-gray-300 hover:text-red-400 text-sm">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-5 w-5 text-red-500" />
+                </div>
+                <a href="tel:+15033919977" className="text-gray-300 hover:text-red-400 text-lg font-semibold">
                   (503) 391-9977
                 </a>
               </div>
-              <div className="space-y-1 text-sm text-gray-300">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-red-500" />
-                  <span className="font-medium">Hours:</span>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-red-500" />
+                  </div>
+                  <span className="font-semibold text-white text-base">Hours</span>
                 </div>
-                <div className="pl-6 space-y-1">
-                  <div>Mon-Wed: 10AM-11PM</div>
-                  <div>Thu: 10AM-12AM</div>
-                  <div className="text-red-400 font-medium">Fri-Sat: 10AM-2AM</div>
-                  <div>Sun: 10AM-11PM</div>
+                <div className="pl-14 space-y-1 text-base text-gray-300">
+                  <div>Mon-Wed: <span className="text-white">10AM-11PM</span></div>
+                  <div>Thursday: <span className="text-white">10AM-12AM</span></div>
+                  <div>Fri-Sat: <span className="text-red-400 font-semibold">10AM-2AM</span></div>
+                  <div>Sunday: <span className="text-white">10AM-11PM</span></div>
                 </div>
               </div>
             </div>
@@ -89,30 +98,37 @@ export function Footer() {
 
           {/* Portland Location */}
           <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center lg:text-left">
               <h3 className="text-2xl font-bold text-white mb-3">Portland Location</h3>
-              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mx-auto"></div>
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-blue-500" />
-                <address className="not-italic text-gray-300 text-sm">
-                  327 SW Morrison St, Portland
+            <div className="space-y-5">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-5 w-5 text-blue-500" />
+                </div>
+                <address className="not-italic text-gray-300 text-base">
+                  <div className="font-semibold text-white">Downtown Portland</div>
+                  <div>327 SW Morrison St, Portland</div>
                 </address>
               </div>
-              <div className="flex items-center space-x-2">
-                <Phone className="h-4 w-4 text-blue-500" />
-                <span className="text-gray-300 text-sm">Coming Soon</span>
-              </div>
-              <div className="space-y-1 text-sm text-gray-300">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">Hours:</span>
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="pl-6 space-y-1">
-                  <div>Mon-Wed & Sun: 10AM-1AM</div>
-                  <div>Thu: 10AM-1AM</div>
-                  <div className="text-blue-400 font-medium">Fri-Sat: 10AM-3AM</div>
+                <span className="text-gray-300 text-lg font-semibold">Coming Soon</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <span className="font-semibold text-white text-base">Hours</span>
+                </div>
+                <div className="pl-14 space-y-1 text-base text-gray-300">
+                  <div>Mon-Wed & Sun: <span className="text-white">10AM-1AM</span></div>
+                  <div>Thursday: <span className="text-white">10AM-1AM</span></div>
+                  <div>Fri-Sat: <span className="text-blue-400 font-semibold">10AM-3AM</span></div>
                 </div>
               </div>
             </div>
@@ -120,66 +136,75 @@ export function Footer() {
 
           {/* Experience & Links */}
           <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-white mb-3">The Experience</h3>
-              <div className="h-1 w-16 bg-gradient-to-r from-green-600 to-green-400 rounded-full mx-auto"></div>
+            <div className="text-center lg:text-left">
+              <h3 className="text-2xl font-bold text-white mb-3">Order Online</h3>
+              <div className="h-1 w-16 bg-gradient-to-r from-green-600 to-green-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
             
             {/* Quick Order Online */}
-            <div className="flex items-center justify-center space-x-4 mb-4">
-              <a 
-                href="https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-red-600/20 transition-all group"
-                aria-label="Order on DoorDash"
-              >
-                <svg className="h-6 w-6 text-gray-400 group-hover:text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.91 8.31c-.12-.54-.42-1.02-.86-1.37-.45-.35-1-.54-1.57-.54H12.8l.08-.37c.17-.78.26-1.58.26-2.38 0-.53-.43-.96-.96-.96s-.96.43-.96.96c0 .69-.08 1.38-.22 2.04l-.1.46H2.52c-.57 0-1.12.19-1.57.54-.44.35-.74.83-.86 1.37-.11.49-.07 1 .11 1.46l2.58 6.55c.36.91 1.24 1.51 2.22 1.51h14c.98 0 1.86-.6 2.22-1.51l2.58-6.55c.18-.46.22-.97.11-1.46z"/>
-                </svg>
-              </a>
-              <a 
-                href="https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-green-600/20 transition-all group"
-                aria-label="Order on Uber Eats"
-              >
-                <svg className="h-6 w-6 text-gray-400 group-hover:text-green-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 6L12 10.5 8.5 8 8 8.5V14l.5.5 3.5-2.5 3.5 2.5.5-.5V8.5L15.5 8z"/>
-                </svg>
-              </a>
-              <a 
-                href="https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-orange-600/20 transition-all group"
-                aria-label="Order on Postmates"
-              >
-                <svg className="h-6 w-6 text-gray-400 group-hover:text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7v10c0 5.52 3.84 10.01 9 11 5.16-.99 9-5.48 9-11V7l-10-5z"/>
-                </svg>
-              </a>
+            <div className="space-y-4">
+              <p className="text-base text-gray-300 text-center lg:text-left">Get your favorite dishes delivered</p>
+              <div className="flex items-center justify-center lg:justify-start space-x-3">
+                <a 
+                  href="https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-14 w-14 bg-white rounded-xl flex items-center justify-center hover:bg-red-50 transition-all group border border-zinc-600 shadow-lg hover:shadow-xl"
+                  aria-label="Order on DoorDash"
+                >
+                  <Image 
+                    src="/icons/doordash_icon.png" 
+                    alt="DoorDash" 
+                    width={36} 
+                    height={36}
+                    className="group-hover:scale-110 transition-transform"
+                  />
+                </a>
+                <a 
+                  href="https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-14 w-14 bg-white rounded-xl flex items-center justify-center hover:bg-green-50 transition-all group border border-zinc-600 shadow-lg hover:shadow-xl"
+                  aria-label="Order on Uber Eats"
+                >
+                  <Image 
+                    src="/icons/uber-eats.png" 
+                    alt="Uber Eats" 
+                    width={36} 
+                    height={36}
+                    className="group-hover:scale-110 transition-transform"
+                  />
+                </a>
+                <a 
+                  href="https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-14 w-14 bg-white rounded-xl flex items-center justify-center hover:bg-orange-50 transition-all group border border-zinc-600 shadow-lg hover:shadow-xl"
+                  aria-label="Order on Postmates"
+                >
+                  <Image 
+                    src="/icons/postmates.png" 
+                    alt="Postmates" 
+                    width={36} 
+                    height={36}
+                    className="group-hover:scale-110 transition-transform"
+                  />
+                </a>
+              </div>
             </div>
 
             {/* Key Features */}
-            <div className="text-center space-y-3">
-              <div className="flex items-center justify-center space-x-6 text-sm text-gray-300">
-                <div className="flex items-center space-x-1">
-                  <span className="text-yellow-500">★</span>
-                  <span>4.7 Rating</span>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-base text-gray-300">
+                <div className="flex items-center space-x-2">
+                  <span className="text-yellow-500 text-xl">★</span>
+                  <span className="font-semibold">4.7 Rating</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-red-500">•</span>
-                  <span>UFC House</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-red-500">•</span>
-                  <span>Live Music</span>
-                </div>
+                <div className="text-red-400 font-semibold">UFC House</div>
+                <div className="text-red-400 font-semibold">Live Music</div>
               </div>
-              <div className="text-sm text-gray-400">
-                Executive Chef Rebecca Sanchez
+              <div className="text-base text-gray-300 text-center lg:text-left">
+                Executive Chef <span className="text-red-400 font-semibold">Rebecca Sanchez</span>
               </div>
             </div>
           </div>
@@ -189,23 +214,28 @@ export function Footer() {
       <Separator className="bg-gradient-to-r from-transparent via-zinc-600 to-transparent" />
 
       {/* Bottom Footer */}
-      <div className="container mx-auto px-4 py-8 relative z-10">
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-            <p className="text-sm text-gray-400">© {currentYear} Side Hustle Bar. All rights reserved.</p>
+      <div className="container mx-auto px-4 py-10 relative z-10">
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
+            <p className="text-base text-gray-300">© {currentYear} Side Hustle Bar. All rights reserved.</p>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-6 text-sm">
-            <Link href="/privacy" className="text-gray-500 hover:text-red-400 transition-colors">
-              Privacy
+          <div className="flex flex-wrap justify-center gap-8 text-base">
+            <Link href="/privacy" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+              Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-500 hover:text-red-400 transition-colors">
-              Terms
+            <Link href="/terms" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+              Terms of Service
             </Link>
-            <Link href="/accessibility" className="text-gray-500 hover:text-red-400 transition-colors">
+            <Link href="/accessibility" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
               Accessibility
             </Link>
+          </div>
+          
+          <div className="text-base text-gray-500">
+            Founded by <span className="text-white font-semibold">James Mullins</span> • 
+            Crafted with <span className="text-red-500">❤️</span> for the Wolf Pack
           </div>
         </div>
 
