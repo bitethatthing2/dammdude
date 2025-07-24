@@ -6747,6 +6747,85 @@ export type Database = {
           },
         ]
       }
+      my_comment_reactions: {
+        Row: {
+          comment_id: string | null
+          created_at: string | null
+          id: string | null
+          reaction_type: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bartender_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_fcm_tokens: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          id: string | null
+          is_active: boolean | null
+          last_used_at: string | null
+          platform: string | null
+          token: string | null
+        }
+        Relationships: []
+      }
       my_videos: {
         Row: {
           algorithm_boost: number | null
@@ -8880,6 +8959,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_comment: {
+        Args: { p_video_id: string; p_content: string; p_parent_id?: string }
+        Returns: Json
+      }
       create_community_event: {
         Args:
           | {
@@ -10361,6 +10444,10 @@ export type Database = {
           is_free: boolean
           min_price: number
         }[]
+      }
+      get_my_public_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_my_tab_orders: {
         Args: { p_user_id: string }
@@ -12109,6 +12196,10 @@ export type Database = {
           auth_srid: number
         }[]
       }
+      save_fcm_token: {
+        Args: { p_token: string; p_platform?: string; p_device_info?: Json }
+        Returns: Json
+      }
       schedule_event_notifications: {
         Args: { p_event_id: string }
         Returns: undefined
@@ -13528,6 +13619,10 @@ export type Database = {
       }
       toggle_block_user: {
         Args: { p_user_id: string }
+        Returns: Json
+      }
+      toggle_comment_reaction: {
+        Args: { p_comment_id: string; p_reaction_type: string }
         Returns: Json
       }
       toggle_feature_for_testing: {

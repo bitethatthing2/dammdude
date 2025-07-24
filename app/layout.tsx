@@ -3,16 +3,29 @@ import type { ReactNode } from 'react';
 import { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { Playfair_Display, Inter } from 'next/font/google';
 import { NotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { UnifiedNotificationInit } from '@/components/notifications/UnifiedNotificationInit';
 import { CartProvider } from '@/components/cart/CartContext';
 // import { CommentsProvider } from '@/lib/contexts/CommentsContext';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { PwaInitializer } from '@/components/shared/PwaInitializer';
 import { LogoPreloader } from '@/components/shared/LogoPreloader';
-import { ThemeProviderWrapper } from '@/components/shared/ThemeProviderWrapper';
 import { LocationProvider } from '@/lib/hooks/useLocationState';
+import { TopNav } from '@/components/shared/TopNav';
+
+// Configure fonts
+const playfair = Playfair_Display({ 
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+});
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 // Define metadata for the app, including PWA-related tags
 export const metadata: Metadata = {
@@ -282,26 +295,26 @@ export default function RootLayout({ children }: RootLayoutProps) {
           media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
         />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ThemeProviderWrapper>
-          <AuthProvider>
-            <LocationProvider>
-              <CartProvider>
-                {/* <CommentsProvider> */}
-                  <NotificationProvider>
-                    <NuqsAdapter>
-                      <LogoPreloader />
-                      <PwaInitializer />
-                      <UnifiedNotificationInit />
+      <body className={`${inter.variable} ${playfair.variable} min-h-screen bg-background font-sans antialiased`}>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              {/* <CommentsProvider> */}
+                <NotificationProvider>
+                  <NuqsAdapter>
+                    <LogoPreloader />
+                    <PwaInitializer />
+                    <UnifiedNotificationInit />
+                    <TopNav />
+                    <div className="pt-16">
                       {children}
-                      <BottomNav />
-                    </NuqsAdapter>
-                  </NotificationProvider>
-                {/* </CommentsProvider> */}
-              </CartProvider>
-            </LocationProvider>
-          </AuthProvider>
-        </ThemeProviderWrapper>
+                    </div>
+                  </NuqsAdapter>
+                </NotificationProvider>
+              {/* </CommentsProvider> */}
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
         
         {/* Service Worker Registration */}
         <ServiceWorkerScript />

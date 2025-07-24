@@ -139,7 +139,7 @@ export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4 pb-20">
+    <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg max-h-[calc(100vh-8rem)] flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="flex items-center gap-2">

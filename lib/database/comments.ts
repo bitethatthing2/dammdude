@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/types/database.types";
+import { UserService } from "@/lib/services/user.service";
 
 type Comment = Database["public"]["Tables"]["wolfpack_comments"]["Row"] & {
   user?: Pick<
@@ -68,17 +69,19 @@ export async function createComment(
   content: string,
   parentId?: string,
 ): Promise<Comment> {
-  const { data: { user } } = await supabase.auth.getUser();
+  // Use the centralized UserService to get public user ID
+  const userService = new UserService(supabase);
+  const publicUserId = await userService.getPublicUserId();
 
-  if (!user) {
-    throw new Error("User not authenticated");
+  if (!publicUserId) {
+    throw new Error("User not authenticated or profile not found");
   }
 
   const commentData: CommentInsert = {
     video_id: postId,
     content: content.trim(),
     parent_comment_id: parentId || null,
-    user_id: user.id,
+    user_id: publicUserId, // Always use public user ID for foreign keys
   };
 
   const { data, error } = await supabase

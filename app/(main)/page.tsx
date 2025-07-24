@@ -15,8 +15,7 @@ import { DynamicLogo } from '@/components/shared/DynamicLogo';
 import { DynamicGoogleMaps } from '@/components/shared/DynamicGoogleMaps';
 import { InstagramEmbed } from '@/components/shared/InstagramEmbed';
 import React, { Suspense } from 'react';
-import { MainPageThemeControl } from '@/components/shared/MainPageThemeControl';
-import { ThemeControl } from '@/components/shared/ThemeControl';
+import { VideoBackground } from '@/components/shared/VideoBackground';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
@@ -45,223 +44,313 @@ export default function Page() {
   // Theme-based images are handled by DynamicLogo component
 
   return (
-    <div className="main-content bg-gradient-to-br from-background to-muted">
-      {/* Side Hustle Logo - top-left */}
-      <div className="absolute left-4 top-4 z-10">
-        <DynamicLogo type="brand" width={160} height={40} className="rounded-md" />
-      </div>
-      
-      {/* Theme Control - top-right */}
-      <div className="absolute right-4 top-4 z-10">
-        <ThemeControl />
-      </div>
-
-      <div className="container mx-auto px-4 space-y-1 sm:space-y-2" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 60px)', paddingBottom: '8px' }}>
-        {/* Original Home Page Content */}
-        <div className="flex flex-col items-center relative">
-
-
-          {/* Wolf Icon - centered - DO NOT TOUCH THIS WOLF LOGO */}
-          <div className="w-full flex justify-center items-center px-4 mt-2 sm:mt-4"> 
-            {mounted ? (
-              <DynamicLogo type="wolf" width={400} height={400} className="w-[18rem] h-[18rem] sm:w-[20rem] sm:h-[20rem] md:w-[22rem] md:h-[22rem] lg:w-[24rem] lg:h-[24rem] xl:w-[26rem] xl:h-[26rem] object-contain" alt="Side Hustle Wolf Icon" />
-            ) : (
-              <div className="w-[18rem] h-[18rem] sm:w-[20rem] sm:h-[20rem] md:w-[22rem] md:h-[22rem] bg-muted animate-pulse rounded-full" />
-            )}
-          </div>
-          
-          {/* Centered Location Switcher - Constrained width */}
-          <div className="flex justify-center mt-0 mb-1 w-full max-w-md sm:max-w-lg px-4"> 
-            <LocationSwitcher />
-          </div>
-          
-          {/* Enhanced Bar Description Card - Wrapped for padding */}
-          <div className="w-full max-w-md sm:max-w-lg px-4 mt-1 mb-1 sm:mt-2 sm:mb-2"> 
-            <Card className="bg-card/90 backdrop-blur-sm border border-primary shadow-lg"> 
-              <CardContent className="p-3 sm:p-4 text-center space-y-1 sm:space-y-2"> 
-                <h2 className="text-lg font-semibold tracking-tight text-card-foreground"> 
-                  High Energy Sports Bar
-                </h2>
-                {/* Location Display */}
-                {location && (
-                  <p className="text-sm text-card-foreground/80 font-medium">
-                    📍 {location}
-                  </p>
-                )}
-                {/* Chef Section with Stars */}
-                <div className="flex items-center justify-center gap-1.5 text-sm text-card-foreground/80"> 
-                  <span>Featuring</span>
-                  <Star className="h-4 w-4 text-amber-400 fill-amber-400" /> 
-                  <span>5 Star Chef Rebecca Sanchez</span>
-                </div>
-                {/* Tacos Section */}
-                <p className="text-sm font-medium text-primary"> 
-                  🔥 Home of the Best Tacos in {location || 'Salem'}! 🔥
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Get Full Experience Card - Wrapped for padding */}
-          <div className="w-full max-w-md sm:max-w-lg px-4 mt-2 mb-1"> 
-            <Card className="bg-card/90 backdrop-blur-sm border border-primary shadow-lg"> 
-              <CardHeader className="pb-1 px-3 pt-3 sm:pb-2 sm:px-4 sm:pt-4">
-                <CardTitle className="text-sm sm:text-base font-semibold text-card-foreground">Get the Full Experience</CardTitle>
-                <CardDescription className="text-xs sm:text-sm text-card-foreground/70 hidden sm:block">
-                  Install app & enable notifications for updates
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-                <div className="flex flex-col gap-3 sm:gap-4">
-                  {/* Installation Section */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"> 
-                    <div className="flex items-center gap-2 sm:gap-3 flex-grow min-w-0">
-                      <Download className="h-5 w-5 flex-shrink-0 text-card-foreground" />
-                      <div className="flex-grow min-w-0">
-                        <p className="text-sm font-medium text-card-foreground">Install the App</p>
-                        <p className="text-xs text-card-foreground/70">Offline access, faster loads.</p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 mt-1 sm:mt-0">
-                      <PwaInstallGuide className="w-full sm:w-auto h-9 text-sm px-4" /> 
-                    </div>
-                  </div>
-
-                  <hr className="border-border/50" /> 
-
-                  {/* Notification Section */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"> 
-                    <div className="flex items-center gap-2 sm:gap-3 flex-grow min-w-0">
-                      <Bell className="h-5 w-5 flex-shrink-0 text-card-foreground" />
-                      <div className="flex-grow min-w-0">
-                        <p className="text-sm font-medium text-card-foreground">Enable Notifications</p>
-                        <p className="text-xs text-card-foreground/70">Order updates & offers.</p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 mt-1 sm:mt-0">
-                      <NotificationErrorBoundary fallback={<NotificationIndicatorFallback />}>
-                        <Suspense fallback={<NotificationIndicatorFallback />}>
-                          <NotificationIndicator variant="outline" /> 
-                        </Suspense>
-                      </NotificationErrorBoundary>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Online Section */}
-          <div className="w-full max-w-md px-4 mt-4 mb-8">
-            <h2 className="text-lg font-semibold mb-3 text-center text-foreground">Order Online</h2>
-            <div className="space-y-2">
-              {/* DoorDash Button */}
-              <button
-                onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/?rwg_token=ACgRB3exS_UE0v2-5IhbmqYOfovUT1i9W1wAY2C48dJqakkaWX27DmNOgUyGwJNV1F7TdH9ezS8mhE5LxjaxGq-Evp9grjMhmA==&utm_campaign=gpa', '_blank', 'noopener,noreferrer')}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
-                aria-label="Order food on DoorDash"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
-                    <Image 
-                      src="/icons/doordash_icon.png" 
-                      alt="DoorDash" 
-                      width={32} 
-                      height={32} 
-                      className="object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
-                    />
-                  </div>
-                  <span className="text-base">Order on DoorDash</span>
-                </div>
-                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              {/* Uber Eats Button */}
-              <button
-                onClick={() => window.open('https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw?utm_campaign=CM2508147-search-free-nonbrand-google-pas_e_all_acq_Global&utm_medium=search-free-nonbrand&utm_source=google-pas', '_blank', 'noopener,noreferrer')}
-                className="w-full bg-black hover:bg-gray-800 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
-                aria-label="Order food on Uber Eats"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
-                    <Image 
-                      src="/icons/uber-eats.png" 
-                      alt="Uber Eats" 
-                      width={32} 
-                      height={32} 
-                      className="object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
-                    />
-                  </div>
-                  <span className="text-base">Order on Uber Eats</span>
-                </div>
-                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              {/* Postmates Button */}
-              <button
-                onClick={() => window.open('https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw?utm_campaign=CM2508147-search-free-nonbrand-google-pas_e_all_acq_Global&utm_medium=search-free-nonbrand&utm_source=google-pas', '_blank', 'noopener,noreferrer')}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-between group"
-                aria-label="Order food on Postmates"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded p-0 flex items-center justify-center overflow-hidden">
-                    <Image 
-                      src="/icons/postmates.png" 
-                      alt="Postmates" 
-                      width={32} 
-                      height={32} 
-                      className="object-contain"
-                      style={{ width: 'auto', height: 'auto' }}
-                    />
-                  </div>
-                  <span className="text-base">Order on Postmates</span>
-                </div>
-                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-
-            {/* Additional Quick Actions */}
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <Link href="/menu">
-                <Card className="bg-card/90 backdrop-blur-sm border border-primary shadow-lg cursor-pointer hover:bg-card/95 transition-colors">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <Utensils className="h-5 w-5 text-primary mb-1" />
-                    <span className="text-sm font-medium text-card-foreground">View Menu</span>
-                  </CardContent>
-                </Card>
-              </Link>
-              <Link href="/wolfpack/feed">
-                <Card className="bg-card/90 backdrop-blur-sm border border-primary shadow-lg cursor-pointer hover:bg-card/95 transition-colors">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <Users className="h-5 w-5 text-primary mb-1" />
-                    <span className="text-sm font-medium text-card-foreground">Join Wolf Pack</span>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-          </div>
-
-          {/* Google Maps Section */}
-          <div className="w-full max-w-4xl px-4 mt-6 mb-4">
-            <h2 className="text-xl font-semibold text-center mb-3 text-foreground">Find Us</h2>
-            <DynamicGoogleMaps 
-              className="w-full" 
-              height="400px" 
-              showLocationSwitcher={true}
+    <div className="main-content bg-black text-white min-h-screen">
+      {/* Hero Section with Video Background */}
+      <div className="relative h-screen w-full overflow-hidden">
+        <VideoBackground 
+          videoSrc="/icons/main-page-only.mp4"
+          overlayOpacity={0.4}
+        />
+        
+        {/* Hero Content */}
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center">
+          {/* Combined Logo with Wolf and Title */}
+          <div className="mb-8 animate-fade-in">
+            <Image 
+              src="/icons/wolf-and-title.png"
+              alt="Side Hustle Bar"
+              width={400}
+              height={200}
+              className="mx-auto w-full max-w-[250px] md:max-w-[350px] lg:max-w-[400px] h-auto"
+              priority
             />
           </div>
+          
+          {/* Tagline */}
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-12 max-w-4xl leading-tight">
+            Salem & Portland's Premier Sports Bar & Mexican Kitchen
+          </h1>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link href="/menu">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 text-xl font-semibold rounded-full shadow-lg hover:shadow-xl transition-all">
+                View Menu
+              </Button>
+            </Link>
+            <button
+              onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/', '_blank')}
+              className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-10 py-4 text-xl font-semibold rounded-full border-2 border-white/30 hover:border-white/50 transition-all shadow-lg hover:shadow-xl"
+            >
+              Order Online
+            </button>
+          </div>
+        </div>
+        
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
+      </div>
 
-          {/* Instagram Section */}
-          <div className="w-full max-w-2xl px-4 mt-3 mb-16 relative z-[1]">
-            <h2 className="text-lg font-semibold text-center mb-2 text-foreground">Follow @sidehustle_bar</h2>
-            <div className="overflow-hidden rounded-lg relative">
-              <InstagramEmbed className="w-full" />
+      {/* Featured Section */}
+      <section className="py-20 px-4 bg-zinc-900">
+        <div className="container mx-auto">
+          <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Featured Cocktails & Dishes</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Featured Item 1 - Video */}
+            <div className="group relative overflow-hidden rounded-lg cursor-pointer">
+              <div className="aspect-square relative">
+                <video
+                  className="absolute inset-0 w-full h-full object-cover"
+                  src="/icons/first-box.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  style={{ 
+                    minWidth: '100%',
+                    minHeight: '100%',
+                    width: 'auto',
+                    height: 'auto'
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <p className="text-white text-lg md:text-xl font-serif leading-relaxed">
+                      Towering margaritas, legendary flavors. Share the moment, raise your glass, and let the good times flow.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Featured Item 2 - Video */}
+            <div className="group relative overflow-hidden rounded-lg cursor-pointer">
+              <div className="aspect-square relative">
+                <video
+                  className="absolute inset-0 w-full h-full object-cover"
+                  src="/icons/video-food.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <p className="text-white text-lg md:text-xl font-serif leading-relaxed">
+                      At Side Hustle Bar, you're part of the pack. Unwind, savor, and let the energy of good food and great company take over.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Featured Item 3 */}
+            <div className="group relative overflow-hidden rounded-lg cursor-pointer">
+              <div className="aspect-square bg-gradient-to-br from-blue-900 to-purple-900 p-8 flex items-center justify-center">
+                <div className="text-center">
+                  <h3 className="text-2xl font-serif mb-2">Loaded Nachos</h3>
+                  <p className="text-white/80">Perfect for sharing</p>
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="text-white text-lg">View Details</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+      {/* About Section with Instagram Images */}
+      <section className="py-20 px-4 bg-black">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-serif mb-6">Welcome to Side Hustle</h2>
+              <p className="text-xl text-white/80 mb-6">
+                Experience the perfect blend of high-energy sports bar atmosphere with authentic Mexican cuisine. 
+                Our 5-star Chef Rebecca Sanchez brings you the best tacos in Salem.
+              </p>
+              <div className="flex items-center gap-4 mb-6">
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+              </div>
+              <div className="flex justify-start mb-4">
+                <LocationSwitcher />
+              </div>
+            </div>
+            
+            <div className="relative h-[500px] rounded-lg overflow-hidden">
+              <Image 
+                src="/icons/side-hustle-exterior.jpg"
+                alt="Side Hustle Bar Food"
+                fill
+                className="object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* Get Full Experience Section */}
+      <section className="py-20 px-4 bg-zinc-900">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-zinc-800 border-zinc-700"> 
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-serif text-white">Get the Full Experience</CardTitle>
+              <CardDescription className="text-lg text-zinc-400">
+                Install our app & enable notifications for exclusive offers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Installation Section */}
+                <div className="flex items-center gap-4 p-6 bg-zinc-700/50 rounded-lg"> 
+                  <Download className="h-8 w-8 flex-shrink-0 text-red-500" />
+                  <div className="flex-grow">
+                    <p className="text-lg font-medium text-white">Install the App</p>
+                    <p className="text-zinc-400">Offline access, faster loads, exclusive features</p>
+                  </div>
+                  <PwaInstallGuide className="bg-red-600 hover:bg-red-700 text-white" />
+                </div>
+
+                {/* Notification Section */}
+                <div className="flex items-center gap-4 p-6 bg-zinc-700/50 rounded-lg"> 
+                  <Bell className="h-8 w-8 flex-shrink-0 text-green-500" />
+                  <div className="flex-grow">
+                    <p className="text-lg font-medium text-white">Enable Notifications</p>
+                    <p className="text-zinc-400">Order updates & special offers</p>
+                  </div>
+                  <NotificationErrorBoundary fallback={<NotificationIndicatorFallback />}>
+                    <Suspense fallback={<NotificationIndicatorFallback />}>
+                      <NotificationIndicator className="bg-green-600 hover:bg-green-700 text-white" /> 
+                    </Suspense>
+                  </NotificationErrorBoundary>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Order Online Section */}
+      <section className="py-20 px-4 bg-black">
+        <div className="container mx-auto max-w-2xl">
+          <h2 className="text-4xl font-serif mb-8 text-center">Order Online</h2>
+          <div className="space-y-4">
+            {/* DoorDash Button */}
+            <button
+              onClick={() => window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/', '_blank')}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-5 px-8 rounded-lg transition-all duration-200 flex items-center justify-between group transform hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/doordash_icon.png" 
+                    alt="DoorDash" 
+                    width={32} 
+                    height={32} 
+                    className="object-contain"
+                  />
+                </div>
+                <span className="text-xl">Order on DoorDash</span>
+              </div>
+              <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            {/* Uber Eats Button */}
+            <button
+              onClick={() => window.open('https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank')}
+              className="w-full bg-black border-2 border-white hover:bg-zinc-900 text-white font-medium py-5 px-8 rounded-lg transition-all duration-200 flex items-center justify-between group transform hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/uber-eats.png" 
+                    alt="Uber Eats" 
+                    width={32} 
+                    height={32} 
+                    className="object-contain"
+                  />
+                </div>
+                <span className="text-xl">Order on Uber Eats</span>
+              </div>
+              <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            {/* Postmates Button */}
+            <button
+              onClick={() => window.open('https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank')}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-5 px-8 rounded-lg transition-all duration-200 flex items-center justify-between group transform hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <Image 
+                    src="/icons/postmates.png" 
+                    alt="Postmates" 
+                    width={32} 
+                    height={32} 
+                    className="object-contain"
+                  />
+                </div>
+                <span className="text-xl">Order on Postmates</span>
+              </div>
+              <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </section>
+      {/* Quick Actions */}
+      <section className="py-12 px-4 bg-zinc-900">
+        <div className="container mx-auto max-w-4xl">
+          <div className="grid grid-cols-2 gap-6">
+            <Link href="/menu">
+              <Card className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-700 transition-all duration-200 group">
+                <CardContent className="p-8 flex flex-col items-center justify-center">
+                  <Utensils className="h-12 w-12 text-red-500 mb-4 group-hover:scale-110 transition-transform" />
+                  <span className="text-xl font-medium text-white">View Menu</span>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/wolfpack/feed">
+              <Card className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-700 transition-all duration-200 group">
+                <CardContent className="p-8 flex flex-col items-center justify-center">
+                  <Users className="h-12 w-12 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
+                  <span className="text-xl font-medium text-white">Join Wolf Pack</span>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
+      {/* Find Us Section */}
+      <section className="py-20 px-4 bg-black">
+        <div className="container mx-auto">
+          <h2 className="text-4xl font-serif text-center mb-12">Find Us</h2>
+          <div className="max-w-5xl mx-auto rounded-lg overflow-hidden">
+            <DynamicGoogleMaps 
+              className="w-full" 
+              height="500px" 
+              showLocationSwitcher={true}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Instagram Section */}
+      <section className="py-20 px-4 bg-zinc-900">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-4xl font-serif text-center mb-12">Follow @sidehustle_bar</h2>
+          <div className="bg-black p-8 rounded-lg">
+            <InstagramEmbed className="w-full" />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -62,7 +62,7 @@ export async function fetchFeedItems(
           profile_image_url,
           wolf_emoji
         ),
-        likes:wolfpack_likes(count),
+        likes:wolfpack_post_likes(count),
         comments:wolfpack_comments(count)
       `,
         { count: "exact" },
@@ -162,7 +162,7 @@ export async function fetchFollowingFeed(
           profile_image_url,
           wolf_emoji
         ),
-        likes:wolfpack_likes(count),
+        likes:wolfpack_post_likes(count),
         comments:wolfpack_comments(count)
       `,
         { count: "exact" },
