@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Phone, Clock, Instagram, Mail, ExternalLink } from 'lucide-react';
+import { MapPin, Phone, Clock, Instagram, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -16,8 +16,8 @@ export function Footer() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/5 via-transparent to-transparent"></div>
       
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="container mx-auto px-4 py-12 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           
           {/* Brand Section */}
           <div className="space-y-6 lg:col-span-1">
@@ -30,233 +30,156 @@ export function Footer() {
                 className="h-14 w-auto brightness-110"
               />
             </div>
-            <p className="text-base text-gray-300 leading-relaxed max-w-sm">
-              Where high-energy entertainment meets authentic Mexican cuisine. 
-              <span className="text-red-400 font-medium"> Unlock your potential and live your best life with the Wolf Pack.</span>
+            <p className="text-base text-gray-300 leading-relaxed text-center">
+              Oregon's premier UFC House • Legendary Birria • Live Music
             </p>
-            <div className="flex space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 text-gray-400 hover:text-red-400 hover:bg-red-600/10 border border-zinc-700 hover:border-red-600/30 transition-all duration-300 rounded-xl"
-                asChild
+            <div className="flex justify-center space-x-3">
+              <a 
+                href="https://instagram.com/sidehustle_bar" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-red-400 transition-colors"
+                aria-label="Follow us on Instagram"
               >
-                <a 
-                  href="https://instagram.com/sidehustle_bar" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="Follow us on Instagram"
-                >
-                  <Instagram className="h-5 w-5" />
-                </a>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 text-gray-400 hover:text-red-400 hover:bg-red-600/10 border border-zinc-700 hover:border-red-600/30 transition-all duration-300 rounded-xl"
-                asChild
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a 
+                href="mailto:info@sidehustlelounge.com" 
+                aria-label="Email us"
+                className="text-gray-400 hover:text-red-400 transition-colors"
               >
-                <a 
-                  href="mailto:info@sidehustlelounge.com" 
-                  aria-label="Email us"
-                >
-                  <Mail className="h-5 w-5" />
-                </a>
-              </Button>
-            </div>
-            <div className="text-sm text-gray-400">
-              <span className="font-semibold text-white">101K+</span> followers on Instagram
+                <Mail className="h-5 w-5" />
+              </a>
             </div>
           </div>
 
           {/* Salem Location */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">Salem Location</h3>
-              <div className="h-1 w-12 bg-gradient-to-r from-red-600 to-red-400 rounded-full"></div>
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-white mb-3">Salem Location</h3>
+              <div className="h-1 w-16 bg-gradient-to-r from-red-600 to-red-400 rounded-full mx-auto"></div>
             </div>
-            <div className="space-y-4 text-sm">
-              <div className="flex items-start space-x-3 group">
-                <div className="h-8 w-8 bg-red-600/20 rounded-lg flex items-center justify-center mt-0.5">
-                  <MapPin className="h-4 w-4 text-red-500" />
-                </div>
-                <div>
-                  <address className="not-italic text-gray-300 leading-relaxed">
-                    <div className="font-medium text-white">Historic Downtown</div>
-                    145 Liberty St NE, Suite #101<br />
-                    Salem, OR 97301
-                  </address>
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 text-red-500" />
+                <address className="not-italic text-gray-300 text-sm">
+                  145 Liberty St NE #101, Salem
+                </address>
               </div>
-              <div className="flex items-center space-x-3 group">
-                <div className="h-8 w-8 bg-red-600/20 rounded-lg flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-red-500" />
-                </div>
-                <a 
-                  href="tel:+15033919977"
-                  className="text-gray-300 hover:text-red-400 transition-colors font-medium"
-                >
+              <div className="flex items-center space-x-2">
+                <Phone className="h-4 w-4 text-red-500" />
+                <a href="tel:+15033919977" className="text-gray-300 hover:text-red-400 text-sm">
                   (503) 391-9977
                 </a>
               </div>
-              <div className="flex items-start space-x-3 group">
-                <div className="h-8 w-8 bg-red-600/20 rounded-lg flex items-center justify-center mt-0.5">
+              <div className="space-y-1 text-sm text-gray-300">
+                <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-red-500" />
+                  <span className="font-medium">Hours:</span>
                 </div>
-                <div className="text-gray-300">
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between"><span>Mon-Wed:</span><span className="font-medium">10AM - 11PM</span></div>
-                    <div className="flex justify-between"><span>Thursday:</span><span className="font-medium">10AM - 12AM</span></div>
-                    <div className="flex justify-between"><span>Fri-Sat:</span><span className="font-medium text-red-400">10AM - 2AM</span></div>
-                    <div className="flex justify-between"><span>Sunday:</span><span className="font-medium">10AM - 11PM</span></div>
-                  </div>
+                <div className="pl-6 space-y-1">
+                  <div>Mon-Wed: 10AM-11PM</div>
+                  <div>Thu: 10AM-12AM</div>
+                  <div className="text-red-400 font-medium">Fri-Sat: 10AM-2AM</div>
+                  <div>Sun: 10AM-11PM</div>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 border-red-600/30 text-red-400 hover:text-white hover:bg-red-600 hover:border-red-600 transition-all duration-300 rounded-lg"
-                asChild
-              >
-                <a 
-                  href="https://maps.google.com/?q=145+Liberty+St+NE+Suite+101+Salem+OR+97301"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Get Directions <ExternalLink className="h-3 w-3 ml-1" />
-                </a>
-              </Button>
             </div>
           </div>
 
           {/* Portland Location */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">Portland Location</h3>
-              <div className="h-1 w-12 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full"></div>
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-white mb-3">Portland Location</h3>
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mx-auto"></div>
             </div>
-            <div className="space-y-4 text-sm">
-              <div className="flex items-start space-x-3 group">
-                <div className="h-8 w-8 bg-blue-600/20 rounded-lg flex items-center justify-center mt-0.5">
-                  <MapPin className="h-4 w-4 text-blue-500" />
-                </div>
-                <div>
-                  <address className="not-italic text-gray-300 leading-relaxed">
-                    <div className="font-medium text-white">Downtown Portland</div>
-                    327 SW Morrison Street<br />
-                    Portland, OR 97204
-                  </address>
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 text-blue-500" />
+                <address className="not-italic text-gray-300 text-sm">
+                  327 SW Morrison St, Portland
+                </address>
               </div>
-              <div className="flex items-center space-x-3 group">
-                <div className="h-8 w-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-blue-500" />
-                </div>
-                <span className="text-gray-300 font-medium">Coming Soon</span>
+              <div className="flex items-center space-x-2">
+                <Phone className="h-4 w-4 text-blue-500" />
+                <span className="text-gray-300 text-sm">Coming Soon</span>
               </div>
-              <div className="flex items-start space-x-3 group">
-                <div className="h-8 w-8 bg-blue-600/20 rounded-lg flex items-center justify-center mt-0.5">
+              <div className="space-y-1 text-sm text-gray-300">
+                <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-blue-500" />
+                  <span className="font-medium">Hours:</span>
                 </div>
-                <div className="text-gray-300">
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between"><span>Mon-Wed & Sun:</span><span className="font-medium">10AM - 1AM</span></div>
-                    <div className="flex justify-between"><span>Thursday:</span><span className="font-medium">10AM - 1AM</span></div>
-                    <div className="flex justify-between"><span>Fri-Sat:</span><span className="font-medium text-blue-400">10AM - 3AM</span></div>
-                  </div>
+                <div className="pl-6 space-y-1">
+                  <div>Mon-Wed & Sun: 10AM-1AM</div>
+                  <div>Thu: 10AM-1AM</div>
+                  <div className="text-blue-400 font-medium">Fri-Sat: 10AM-3AM</div>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 border-blue-600/30 text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all duration-300 rounded-lg"
-                asChild
-              >
-                <a 
-                  href="https://maps.google.com/?q=327+SW+Morrison+Street+Portland+OR+97204"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Get Directions <ExternalLink className="h-3 w-3 ml-1" />
-                </a>
-              </Button>
             </div>
           </div>
 
           {/* Experience & Links */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">The Experience</h3>
-              <div className="h-1 w-12 bg-gradient-to-r from-green-600 to-green-400 rounded-full"></div>
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-white mb-3">The Experience</h3>
+              <div className="h-1 w-16 bg-gradient-to-r from-green-600 to-green-400 rounded-full mx-auto"></div>
             </div>
             
-            {/* Key Features */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Oregon's UFC House</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Legendary Birria</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Live Music</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Gaming Area</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Family-Friendly</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-gray-300">4.7★ Rating</span>
-                </div>
-              </div>
+            {/* Quick Order Online */}
+            <div className="flex items-center justify-center space-x-4 mb-4">
+              <a 
+                href="https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-red-600/20 transition-all group"
+                aria-label="Order on DoorDash"
+              >
+                <svg className="h-6 w-6 text-gray-400 group-hover:text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.91 8.31c-.12-.54-.42-1.02-.86-1.37-.45-.35-1-.54-1.57-.54H12.8l.08-.37c.17-.78.26-1.58.26-2.38 0-.53-.43-.96-.96-.96s-.96.43-.96.96c0 .69-.08 1.38-.22 2.04l-.1.46H2.52c-.57 0-1.12.19-1.57.54-.44.35-.74.83-.86 1.37-.11.49-.07 1 .11 1.46l2.58 6.55c.36.91 1.24 1.51 2.22 1.51h14c.98 0 1.86-.6 2.22-1.51l2.58-6.55c.18-.46.22-.97.11-1.46z"/>
+                </svg>
+              </a>
+              <a 
+                href="https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-green-600/20 transition-all group"
+                aria-label="Order on Uber Eats"
+              >
+                <svg className="h-6 w-6 text-gray-400 group-hover:text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 6L12 10.5 8.5 8 8 8.5V14l.5.5 3.5-2.5 3.5 2.5.5-.5V8.5L15.5 8z"/>
+                </svg>
+              </a>
+              <a 
+                href="https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-10 w-10 bg-zinc-800 rounded-lg flex items-center justify-center hover:bg-orange-600/20 transition-all group"
+                aria-label="Order on Postmates"
+              >
+                <svg className="h-6 w-6 text-gray-400 group-hover:text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7v10c0 5.52 3.84 10.01 9 11 5.16-.99 9-5.48 9-11V7l-10-5z"/>
+                </svg>
+              </a>
             </div>
 
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-white text-sm">Quick Order</h4>
-              <div className="flex flex-col space-y-2">
-                <a 
-                  href="https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-red-400 transition-colors text-sm py-1 px-2 rounded-lg hover:bg-red-600/10"
-                >
-                  <div className="h-6 w-6 bg-red-600 rounded-md flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">D</span>
-                  </div>
-                  <span>DoorDash</span>
-                </a>
-                <a 
-                  href="https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-green-400 transition-colors text-sm py-1 px-2 rounded-lg hover:bg-green-600/10"
-                >
-                  <div className="h-6 w-6 bg-green-600 rounded-md flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">U</span>
-                  </div>
-                  <span>Uber Eats</span>
-                </a>
-                <a 
-                  href="https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-orange-400 transition-colors text-sm py-1 px-2 rounded-lg hover:bg-orange-600/10"
-                >
-                  <div className="h-6 w-6 bg-orange-600 rounded-md flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">P</span>
-                  </div>
-                  <span>Postmates</span>
-                </a>
+            {/* Key Features */}
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center space-x-6 text-sm text-gray-300">
+                <div className="flex items-center space-x-1">
+                  <span className="text-yellow-500">★</span>
+                  <span>4.7 Rating</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-red-500">•</span>
+                  <span>UFC House</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-red-500">•</span>
+                  <span>Live Music</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-400">
+                Executive Chef Rebecca Sanchez
               </div>
             </div>
           </div>
@@ -267,42 +190,22 @@ export function Footer() {
 
       {/* Bottom Footer */}
       <div className="container mx-auto px-4 py-8 relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
-          <div className="text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start space-x-2 mb-3">
-              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-              <p className="text-sm font-medium text-white">© {currentYear} Side Hustle Bar. All rights reserved.</p>
-            </div>
-            <div className="text-sm text-gray-400 space-y-1">
-              <p>Founded by <span className="text-white font-medium">James Mullins</span></p>
-              <p>Executive Chef <span className="text-red-400 font-medium">Rebecca Sanchez</span></p>
-            </div>
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
+            <p className="text-sm text-gray-400">© {currentYear} Side Hustle Bar. All rights reserved.</p>
           </div>
           
-          <div className="flex flex-col items-center md:items-end space-y-3">
-            <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
-              <Link 
-                href="/privacy" 
-                className="text-gray-400 hover:text-red-400 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link 
-                href="/terms" 
-                className="text-gray-400 hover:text-red-400 transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link 
-                href="/accessibility" 
-                className="text-gray-400 hover:text-red-400 transition-colors"
-              >
-                Accessibility
-              </Link>
-            </div>
-            <div className="text-xs text-gray-500 text-center md:text-right">
-              <p>Crafted with ❤️ for the Wolf Pack</p>
-            </div>
+          <div className="flex flex-wrap justify-center gap-6 text-sm">
+            <Link href="/privacy" className="text-gray-500 hover:text-red-400 transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-gray-500 hover:text-red-400 transition-colors">
+              Terms
+            </Link>
+            <Link href="/accessibility" className="text-gray-500 hover:text-red-400 transition-colors">
+              Accessibility
+            </Link>
           </div>
         </div>
 
