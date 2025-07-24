@@ -458,12 +458,12 @@ export default function MenuItemCard({ item, onAddToCart, locationId }: MenuItem
             
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline gap-2">
-                <h3 className="font-medium text-sm sm:text-base line-clamp-1 sm:line-clamp-none">{item.name}</h3>
-                <span className="font-semibold text-sm sm:text-base">${Number(item.price).toFixed(2)}</span>
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <h3 className="font-semibold text-base sm:text-lg leading-tight flex-1">{item.name}</h3>
+                <span className="font-bold text-base sm:text-lg text-green-600 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
               </div>
               {item.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 sm:line-clamp-none">
                   {item.description}
                 </p>
               )}
@@ -642,12 +642,12 @@ export function CompactMenuItemCard({ item, onAddToCart, locationId }: MenuItemC
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-baseline gap-2">
-            <h3 className="font-medium text-sm truncate">{item.name}</h3>
-            <span className="font-semibold text-sm">${Number(item.price).toFixed(2)}</span>
+          <div className="flex justify-between items-start gap-2 mb-1">
+            <h3 className="font-semibold text-sm leading-tight">{item.name}</h3>
+            <span className="font-bold text-sm text-green-600 flex-shrink-0">${Number(item.price).toFixed(2)}</span>
           </div>
           {item.description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
+            <p className="text-xs text-muted-foreground line-clamp-2">
               {item.description}
             </p>
           )}

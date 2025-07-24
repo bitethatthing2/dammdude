@@ -82,7 +82,9 @@
       "Bash(git diff:*)",
       "Bash(nslookup:*)",
       "Bash(ping:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:www.themargaritafactory.com)",
+      "WebFetch(domain:www.margaritafactory.com)"
     ]
   },
   "enableAllProjectMcpServers": false
