@@ -28,7 +28,7 @@ export function TopNav() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-zinc-800">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/20 backdrop-blur-lg border-b border-white/30" style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)' }}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -36,9 +36,9 @@ export function TopNav() {
             <Image
               src="/icons/wolf-icon.png"
               alt="Side Hustle"
-              width={40}
-              height={40}
-              className="w-10 h-10"
+              width={56}
+              height={56}
+              className="w-14 h-14"
             />
             <span className="text-xl font-bold text-white hidden sm:block">Side Hustle</span>
           </Link>
@@ -64,7 +64,7 @@ export function TopNav() {
                   More <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
+              <DropdownMenuContent className="bg-white/20 backdrop-blur-lg border-white/30 shadow-2xl">
                 <DropdownMenuItem asChild>
                   <Link href="/about" className="text-white hover:text-red-500">
                     About Us
@@ -97,7 +97,7 @@ export function TopNav() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-zinc-800">
+          <div className="md:hidden py-4 border-t border-white/30 bg-white/20 backdrop-blur-lg rounded-b-lg shadow-xl">
             {menuItems.map((item) => (
               <Link
                 key={item.href}

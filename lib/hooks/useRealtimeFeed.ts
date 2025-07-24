@@ -67,6 +67,20 @@ export function useRealtimeFeed({
 
       const offset = (page - 1) * limit;
 
+      // First check if we have any data at all
+      const { count } = await supabase
+        .from('wolfpack_videos')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // If offset is beyond available data, set hasMore to false and return empty
+      if (count !== null && offset >= count) {
+        if (!mountedRef.current) return;
+        setHasMore(false);
+        if (page === 1) setVideos([]);
+        return;
+      }
+
       // Query videos with user data
       const { data: videoData, error: videoError } = await supabase
         .from('wolfpack_videos')
@@ -121,7 +135,9 @@ export function useRealtimeFeed({
         setVideos(transformedVideos);
       }
 
-      setHasMore(transformedVideos.length === limit);
+      // Update hasMore based on whether we got a full page and there's more data
+      const totalFetched = page === 1 ? transformedVideos.length : offset + transformedVideos.length;
+      setHasMore(transformedVideos.length === limit && (count === null || totalFetched < count));
       setCurrentPage(page);
       setError(null);
 

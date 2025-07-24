@@ -47,8 +47,8 @@ export default function Page() {
 
   return (
     <div className="main-content bg-black text-white min-h-screen">
-      {/* Hero Section with Video Background */}
-      <div className="relative h-screen w-full overflow-hidden">
+      {/* Hero Section with Video Background - Full Screen */}
+      <div className="relative h-screen w-full overflow-hidden -mt-16">
         <VideoBackground 
           videoSrc="/icons/main-page-only.mp4"
           overlayOpacity={0.4}
@@ -57,21 +57,29 @@ export default function Page() {
         {/* Hero Content */}
         <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center">
           {/* Combined Logo with Wolf and Title */}
-          <div className="mb-8 animate-fade-in">
+          <div className="mb-12 animate-fade-in">
             <Image 
               src="/icons/wolf-and-title.png"
               alt="Side Hustle Bar"
               width={400}
               height={200}
-              className="mx-auto w-full max-w-[250px] md:max-w-[350px] lg:max-w-[400px] h-auto"
+              className="mx-auto w-full max-w-[200px] md:max-w-[250px] lg:max-w-[300px] h-auto"
               priority
             />
           </div>
           
-          {/* Tagline */}
-          <h1 className="text-3xl md:text-5xl font-bold text-white mb-12 max-w-4xl leading-tight">
-            Salem & Portland's Premier Sports Bar & Mexican Kitchen
+          {/* Main Hero Text */}
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 max-w-5xl leading-tight drop-shadow-2xl">
+            Enjoy Happy Hour 7 Days a Week at
+            <br />
+            <span className="text-red-500">All Locations!</span>
           </h1>
+          
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl lg:text-3xl text-white/90 mb-12 max-w-4xl leading-relaxed drop-shadow-lg">
+            Monday through Saturday, 3pm to 6pm and 9pm to Close<br />
+            Sunday All Day!
+          </p>
           
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4">

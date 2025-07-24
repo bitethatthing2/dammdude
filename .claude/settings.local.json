@@ -81,7 +81,8 @@
       "Bash(git push:*)",
       "Bash(git diff:*)",
       "Bash(nslookup:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": false
