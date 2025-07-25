@@ -59,6 +59,28 @@ export default function TikTokStyleFeed({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
+
+  // Enable user interaction on first document interaction
+  useEffect(() => {
+    const enableInteraction = () => {
+      setUserInteracted(true);
+      document.removeEventListener('click', enableInteraction);
+      document.removeEventListener('touchstart', enableInteraction);
+      document.removeEventListener('keydown', enableInteraction);
+    };
+
+    if (!userInteracted) {
+      document.addEventListener('click', enableInteraction);
+      document.addEventListener('touchstart', enableInteraction);
+      document.addEventListener('keydown', enableInteraction);
+    }
+
+    return () => {
+      document.removeEventListener('click', enableInteraction);
+      document.removeEventListener('touchstart', enableInteraction);
+      document.removeEventListener('keydown', enableInteraction);
+    };
+  }, [userInteracted]);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [showComments, setShowComments] = useState(false);
   const [videoStats, setVideoStats] = useState<Map<string, { likes_count: number; comments_count: number; user_liked: boolean }>>(new Map());
@@ -176,11 +198,20 @@ export default function TikTokStyleFeed({
     const currentVideo = videoRefs.current[currentIndex];
     if (currentVideo && userInteracted) {
       currentVideo.play().catch((error) => {
+        // Check if it's an autoplay policy violation
+        if (error.name === 'NotAllowedError') {
+          console.info('Video autoplay blocked by browser policy - user interaction required');
+          // Don't retry for autoplay policy violations
+          return;
+        }
+        
         console.warn('Video playback failed:', error);
-        // Try to play again after a short delay
+        // Only retry for non-autoplay errors
         setTimeout(() => {
           currentVideo.play().catch((e) => {
-            console.error('Video playback retry failed:', e);
+            if (e.name !== 'NotAllowedError') {
+              console.error('Video playback retry failed:', e);
+            }
           });
         }, 100);
       });

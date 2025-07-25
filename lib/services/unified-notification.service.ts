@@ -212,21 +212,45 @@ class UnifiedNotificationService {
   }
 
   /**
+   * Map notification types to database constraint values
+   */
+  private mapNotificationType(type: string): string {
+    const typeMap: Record<string, string> = {
+      'wolfpack_message': 'info',
+      'order_update': 'order_ready',
+      'dj_event': 'info',
+      'like': 'info',
+      'comment': 'info',
+      'follow': 'info',
+      'mention': 'info'
+    };
+    
+    // Return mapped type or default to 'info' if not found
+    return typeMap[type] || 'info';
+  }
+
+  /**
    * Create notification in database
    */
   async createNotification(recipientId: string, payload: NotificationPayload) {
     try {
+      // Ensure message is provided
+      if (!payload.body || payload.body.trim() === '') {
+        console.error('Notification message cannot be empty');
+        return null;
+      }
+
       // Create notification in database
       const { data, error } = await supabase
         .from("wolfpack_activity_notifications")
         .insert({
           recipient_id: recipientId,
-          message: payload.body,
-          type: payload.type,
+          message: payload.body.trim(),
+          type: this.mapNotificationType(payload.type), // Use mapped type
           link: payload.link,
           status: "unread",
           metadata: payload.data || {},
-          notification_type: payload.type,
+          notification_type: payload.type, // Keep original type in notification_type
         })
         .select()
         .single();

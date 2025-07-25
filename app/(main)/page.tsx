@@ -187,7 +187,48 @@ export default function Page() {
       {/* Featured Section */}
       <section className="pt-16 pb-16 px-4 bg-zinc-900">
         <div className="container mx-auto">
-          <h2 className="text-3xl md:text-4xl font-serif text-center mb-8">Signature Tacos & Craft Cocktails</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-center mb-4 text-white leading-tight">
+            Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
+          </h2>
+          <p className="text-base sm:text-lg text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto text-center">
+            Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
+            from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
+            With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
+            we're not just serving food – we're creating experiences.
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-16">
+            <div className="text-center p-3">
+              <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Utensils className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Legendary Birria</h3>
+              <p className="text-xs sm:text-sm text-white/80">
+                Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
+                slow-cooked to perfection in our secret blend of spices.
+              </p>
+            </div>
+            <div className="text-center p-3">
+              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Star className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">House-Made Everything</h3>
+              <p className="text-xs sm:text-sm text-white/80">
+                From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
+                we believe authentic flavor comes from doing things the right way.
+              </p>
+            </div>
+            <div className="text-center p-3">
+              <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Value Meets Quality</h3>
+              <p className="text-xs sm:text-sm text-white/80">
+                With most dishes between $10-20, we prove that exceptional Mexican cuisine 
+                doesn't have to break the bank.
+              </p>
+            </div>
+          </div>
           
           {/* Food & Drink Carousel */}
           <div className="mb-16">
@@ -196,8 +237,8 @@ export default function Page() {
 
           {/* Text Content - Salem Flagship */}
           <div className="max-w-6xl mx-auto mb-20">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="text-center lg:text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+              <div className="lg:col-span-2 text-center lg:text-left">
                 <h3 className="text-3xl font-serif text-red-400 mb-6">Salem's Premier Entertainment Destination</h3>
                 <p className="text-lg text-white/90 leading-relaxed mb-6">
                   Since opening in late 2023, our flagship Salem location at 145 Liberty St NE has redefined Oregon's bar scene. 
@@ -211,15 +252,15 @@ export default function Page() {
                   for something different - a place where exceptional food meets high-energy entertainment.
                 </p>
               </div>
-              <div className="relative">
-                <div className="aspect-video rounded-xl overflow-hidden shadow-2xl">
+              <div className="lg:col-span-3 relative">
+                <div className="aspect-[4/3] lg:aspect-video rounded-xl overflow-hidden shadow-2xl">
                   <video 
                     autoPlay 
                     muted 
                     loop 
                     playsInline
                     className="w-full h-full object-cover"
-                    style={{ objectPosition: '50% 30%' }}
+                    style={{ objectPosition: '50% 50%' }}
                   >
                     <source src="/icons/priemer-destination.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
@@ -229,50 +270,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Chef Rebecca's Culinary Leadership */}
-          <div className="max-w-4xl mx-auto text-center mb-20">
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif mb-4 text-white leading-tight">
-              Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
-            </h3>
-            <p className="text-base sm:text-lg text-white/90 mb-6 leading-relaxed max-w-3xl mx-auto">
-              Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
-              from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
-              With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
-              we're not just serving food – we're creating experiences.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-8">
-              <div className="text-center p-3">
-                <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Utensils className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Legendary Birria</h3>
-                <p className="text-xs sm:text-sm text-white/80">
-                  Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
-                  slow-cooked to perfection in our secret blend of spices.
-                </p>
-              </div>
-              <div className="text-center p-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Star className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">House-Made Everything</h3>
-                <p className="text-xs sm:text-sm text-white/80">
-                  From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
-                  we believe authentic flavor comes from doing things the right way.
-                </p>
-              </div>
-              <div className="text-center p-3">
-                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Value Meets Quality</h3>
-                <p className="text-xs sm:text-sm text-white/80">
-                  With most dishes between $10-20, we prove that exceptional Mexican cuisine 
-                  doesn't have to break the bank.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
       {/* Oregon's UFC House Section */}
@@ -498,15 +495,39 @@ export default function Page() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>MARIO</strong> - R&B Icon</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>KIRKO BANGZ</strong> - Bringing the vibes</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>JOHN HART</strong> - Setting the mood</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>LUNIZ</strong> - "I Got 5 on It" (Dec 6, 2024)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>ATM Danny</strong> - Portland (April 26)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>J Balvin After Party</strong> - Portland (May 17)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-white text-lg"><strong>Shawty Bae Day Fade</strong> - Salem (May 25)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                   <span className="text-white text-lg"><strong>ILOVEMAKONNEN</strong> - First-ever Salem show (April 27, 2024)</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                   <span className="text-white text-lg"><strong>Trinidad James</strong> - October 4, 2024</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Kirko Bangz</strong> - Summer 24 kickoff (June 22, 2024)</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -541,7 +562,7 @@ export default function Page() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>DJ Carlos PDX</strong> - TikTok viral sets</span>
+                  <span className="text-white text-lg"><strong>DJ Denver PDX</strong> - Opening for major acts</span>
                 </div>
               </div>
             </div>

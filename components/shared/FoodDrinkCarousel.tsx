@@ -520,7 +520,7 @@ export function FoodDrinkCarousel() {
       <div className="flex justify-center gap-3 mb-8">
         <button
           onClick={() => handleFilterChange('all')}
-          className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm border ${
             activeFilter === 'all'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
@@ -530,7 +530,7 @@ export function FoodDrinkCarousel() {
         </button>
         <button
           onClick={() => handleFilterChange('food')}
-          className={`px-8 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm border ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm border ${
             activeFilter === 'food'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
@@ -541,7 +541,7 @@ export function FoodDrinkCarousel() {
         </button>
         <button
           onClick={() => handleFilterChange('drink')}
-          className={`px-8 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm border ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm border ${
             activeFilter === 'drink'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'

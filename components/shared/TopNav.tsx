@@ -22,7 +22,7 @@ export function TopNav() {
     { href: '/', label: 'Home' },
     { href: '/menu', label: 'Menu' },
     { href: '/wolfpack/feed', label: 'Wolf Pack' },
-    { href: '/events', label: 'Events' },
+    { href: '/blog', label: 'Blog' },
   ];
 
   const isActive = (href: string) => pathname === href;

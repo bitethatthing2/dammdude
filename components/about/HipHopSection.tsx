@@ -122,10 +122,10 @@ export function HipHopSection() {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <a 
-              href="/events" 
+              href="/blog" 
               className="bg-white text-red-600 hover:bg-gray-100 font-bold py-3 px-6 rounded-lg transition-colors"
             >
-              View Upcoming Events
+              Read Our Blog
             </a>
             <a 
               href="/contact" 
