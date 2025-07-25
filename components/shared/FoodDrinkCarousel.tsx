@@ -19,495 +19,527 @@ const carouselItems: CarouselItem[] = [
   // Birria Specialties
   { 
     id: '1', 
-    name: 'Birria Tacos', 
+    name: 'Birria Queso Tacos', 
     image: '/food-menu-images/birria-tacos.png', 
     type: 'food', 
-    description: 'Our signature slow-cooked birria beef served in handmade corn tortillas with onions, cilantro, and melted cheese. Served with consommé for dipping.',
-    price: '$14.99',
+    description: '3 queso birria tacos with queso oaxaca, onions, and cilantro. Served with consommé for dipping.',
+    price: '$16.75',
     category: 'Birria Specialties',
-    features: ['Signature Item', 'Gluten-Free Tortillas Available']
+    features: ['Signature Item', '3 Tacos Included']
   },
   { 
     id: '2', 
     name: 'Birria Consommé', 
     image: '/food-menu-images/birria-consume.png', 
     type: 'food', 
-    description: 'Rich, flavorful birria broth perfect for dipping or enjoying on its own. Made from our slow-cooked beef and aromatic spices.',
-    price: '$6.99',
-    category: 'Birria Specialties',
+    description: 'Rich, flavorful birria broth perfect for dipping or enjoying on its own.',
+    price: '$2.00',
+    category: 'Sides',
     features: ['Traditional Recipe', 'Perfect for Dipping']
   },
-
-  // Tacos & Mexican Classics
   { 
     id: '3', 
-    name: 'Three Tacos with Beans & Rice', 
-    image: '/food-menu-images/3-tacos-beans-rice.png', 
+    name: 'Birria Pizza', 
+    image: '/food-menu-images/birria-tacos.png', 
     type: 'food', 
-    description: 'Three authentic tacos with your choice of meat, served with seasoned black beans and Mexican rice. A complete meal.',
-    price: '$13.99',
-    category: 'Taco Combos',
-    features: ['Complete Meal', 'Choice of Meat']
+    description: 'Two flour tortillas with birria, cilantro, onions, and queso oaxaca.',
+    price: '$29.00',
+    category: 'Birria Specialties',
+    features: ['Unique Creation', 'Shareable']
   },
   { 
     id: '4', 
-    name: 'Classic Tacos', 
-    image: '/food-menu-images/tacos.png', 
+    name: 'Birria Flautas', 
+    image: '/food-menu-images/flautas.png', 
     type: 'food', 
-    description: 'Authentic Mexican tacos with your choice of carne asada, carnitas, chicken, or al pastor. Served with onions and cilantro.',
-    price: '$3.99',
-    category: 'Tacos',
-    features: ['Authentic', 'Multiple Meats Available']
+    description: 'Corn tortilla filled with birria, served with consommé.',
+    price: '$12.00',
+    category: 'Birria Specialties',
+    features: ['Crispy Corn Tortilla', 'With Consommé']
   },
   { 
     id: '5', 
-    name: 'Fish Tacos', 
-    image: '/food-menu-images/fish-tacos.png', 
+    name: 'Birria Ramen Bowl', 
+    image: '/food-menu-images/hustle-bowl.png', 
     type: 'food', 
-    description: 'Fresh white fish, beer-battered or grilled, served in corn tortillas with cabbage slaw, pico de gallo, and chipotle crema.',
-    price: '$14.99',
-    category: 'Seafood',
-    features: ['Fresh Fish', 'Beer Battered or Grilled']
+    description: 'Birria tapatío noodles with cilantro and onions.',
+    price: '$14.75',
+    category: 'Birria Specialties',
+    features: ['Fusion Dish', 'Hearty Bowl']
   },
+
+  // Breakfast Items
   { 
     id: '6', 
-    name: 'Shrimp Tacos', 
-    image: '/food-menu-images/shrimp-tacos.png', 
+    name: 'Chicken & Waffles', 
+    image: '/food-menu-images/chicken-and-waffles.png', 
     type: 'food', 
-    description: 'Grilled shrimp tacos with mango salsa, cabbage slaw, and chipotle aioli on corn tortillas.',
-    price: '$15.99',
-    category: 'Seafood',
-    features: ['Grilled Shrimp', 'Mango Salsa']
+    description: 'Crispy fried chicken served on golden waffles with maple syrup and butter.',
+    price: '$19.00',
+    category: 'Breakfast All Day',
+    features: ['Southern Style', 'Sweet & Savory']
   },
   { 
     id: '7', 
-    name: 'Keto Tacos', 
-    image: '/food-menu-images/keto-tacos.png', 
+    name: 'Chilaquiles Green', 
+    image: '/food-menu-images/CHILAQUILES.PNG', 
     type: 'food', 
-    description: 'Low-carb tacos served in crispy cheese shells with your choice of protein and keto-friendly toppings.',
-    price: '$16.99',
-    category: 'Healthy Options',
-    features: ['Keto-Friendly', 'Cheese Shell']
+    description: 'Traditional Mexican breakfast with crispy tortilla chips simmered in green salsa, topped with cheese and crema.',
+    price: '$17.00',
+    category: 'Breakfast All Day',
+    features: ['Traditional Recipe', 'Green Salsa']
   },
   { 
     id: '8', 
-    name: 'Queso Tacos', 
-    image: '/food-menu-images/queso-tacos.png', 
+    name: 'Chilaquiles Red', 
+    image: '/food-menu-images/CHILAQUILES.PNG', 
     type: 'food', 
-    description: 'Tacos filled with melted cheese and your choice of meat, grilled until crispy and golden.',
-    price: '$13.99',
-    category: 'Specialty Tacos',
-    features: ['Extra Cheesy', 'Grilled Crispy']
+    description: 'Traditional Mexican breakfast with crispy tortilla chips simmered in red salsa, topped with cheese and crema.',
+    price: '$17.00',
+    category: 'Breakfast All Day',
+    features: ['Traditional Recipe', 'Red Salsa']
   },
-
-  // Burritos & Wraps
   { 
     id: '9', 
-    name: 'Carne Asada Burrito', 
-    image: '/food-menu-images/asada-burrito.png', 
+    name: 'Chorizo & Potato Breakfast Burrito', 
+    image: '/food-menu-images/ham-and-potatoe-burrito.png', 
     type: 'food', 
-    description: 'Grilled steak wrapped in a flour tortilla with rice, beans, cheese, salsa, and guacamole. A hearty meal in every bite.',
-    price: '$13.99',
-    category: 'Burritos',
-    features: ['Protein Packed', 'Customer Favorite']
+    description: 'Breakfast burrito with scrambled eggs, chorizo, seasoned potatoes, cheese, and salsa.',
+    price: '$15.00',
+    category: 'Breakfast All Day',
+    features: ['Breakfast Item', 'Spicy Chorizo']
   },
   { 
     id: '10', 
-    name: 'Classic Burrito', 
-    image: '/food-menu-images/burrito.png', 
+    name: 'Ham & Potato Breakfast Burrito', 
+    image: '/food-menu-images/ham-and-potatoe-burrito.png', 
     type: 'food', 
-    description: 'Large flour tortilla filled with your choice of meat, rice, beans, cheese, lettuce, and salsa.',
-    price: '$11.99',
-    category: 'Burritos',
-    features: ['Filling', 'Customizable']
+    description: 'Breakfast burrito with scrambled eggs, ham, seasoned potatoes, cheese, and salsa.',
+    price: '$15.00',
+    category: 'Breakfast All Day',
+    features: ['Breakfast Item', 'Hearty']
   },
   { 
     id: '11', 
-    name: 'Ham & Potato Burrito', 
-    image: '/food-menu-images/ham-and-potatoe-burrito.png', 
+    name: 'Monchi Pancakes', 
+    image: '/food-menu-images/pancakes.jpg', 
     type: 'food', 
-    description: 'Breakfast burrito with scrambled eggs, ham, seasoned potatoes, cheese, and salsa verde.',
-    price: '$10.99',
-    category: 'Breakfast Burritos',
-    features: ['Breakfast Item', 'Hearty']
+    description: 'Fluffy pancakes served with butter and maple syrup.',
+    price: '$15.00',
+    category: 'Breakfast All Day',
+    features: ['Fluffy', 'House Special']
   },
-
-  // Appetizers & Shareable
   { 
     id: '12', 
-    name: 'Loaded Nachos', 
-    image: '/food-menu-images/loaded-nacho.png', 
+    name: 'Asada & Bacon', 
+    image: '/food-menu-images/asada-burrito.png', 
     type: 'food', 
-    description: 'Fresh tortilla chips loaded with cheese, beans, jalapeños, sour cream, guacamole, and your choice of meat. Perfect for sharing!',
-    price: '$16.99',
-    category: 'Appetizers',
-    features: ['Shareable', 'Vegetarian Option']
+    description: 'Carne asada with crispy bacon, perfect breakfast combination.',
+    price: '$13.00',
+    category: 'Breakfast All Day',
+    features: ['Protein Packed', 'Breakfast Combo']
   },
+
+  // Main Dishes
   { 
     id: '13', 
-    name: 'Classic Nachos', 
-    image: '/food-menu-images/nacho.png', 
+    name: 'Tacos', 
+    image: '/food-menu-images/tacos.png', 
     type: 'food', 
-    description: 'Crispy tortilla chips topped with melted cheese, jalapeños, and salsa. Add meat or guacamole.',
-    price: '$12.99',
-    category: 'Appetizers',
-    features: ['Classic', 'Add-ons Available']
+    description: 'Authentic Mexican tacos with your choice of meat, served with onions and cilantro.',
+    price: '$3.75',
+    category: 'Main Dishes',
+    features: ['Authentic', 'Multiple Meats Available']
   },
   { 
     id: '14', 
-    name: 'Loaded Fries', 
-    image: '/food-menu-images/loaded-fries.png', 
+    name: 'Single Queso Taco', 
+    image: '/food-menu-images/queso-tacos.png', 
     type: 'food', 
-    description: 'Crispy fries topped with cheese, bacon, jalapeños, sour cream, and green onions. Add carnitas or carne asada for extra protein.',
-    price: '$11.99',
-    category: 'Appetizers',
-    features: ['Fully Loaded', 'Add Protein']
+    description: 'Taco filled with melted cheese and your choice of meat, grilled until crispy and golden.',
+    price: '$6.90',
+    category: 'Main Dishes',
+    features: ['Extra Cheesy', 'Grilled Crispy']
   },
   { 
     id: '15', 
-    name: 'Basket of Fries', 
-    image: '/food-menu-images/basket-of-fries.png', 
+    name: 'Mulita', 
+    image: '/food-menu-images/mulitas.png', 
     type: 'food', 
-    description: 'Golden crispy french fries served hot with your choice of dipping sauce.',
-    price: '$6.99',
-    category: 'Sides',
-    features: ['Crispy', 'Choice of Sauce']
+    description: 'Grilled tortilla sandwich filled with cheese and your choice of meat, served crispy and golden.',
+    price: '$7.75',
+    category: 'Main Dishes',
+    features: ['Crispy & Golden', 'Comfort Food']
   },
   { 
     id: '16', 
-    name: 'Basket of Tots', 
-    image: '/food-menu-images/basket-of-tots.png', 
+    name: 'Vampiros', 
+    image: '/food-menu-images/vampiros.png', 
     type: 'food', 
-    description: 'Crispy tater tots served hot with ketchup or your favorite dipping sauce.',
-    price: '$7.99',
-    category: 'Sides',
-    features: ['Crispy', 'Popular Side']
+    description: 'Crispy tortillas topped with beans, cheese, meat, lettuce, tomato, and crema.',
+    price: '$7.75',
+    category: 'Main Dishes',
+    features: ['Street Food Style', 'Crispy Base']
   },
   { 
     id: '17', 
-    name: 'Chips, Guac & Salsa', 
-    image: '/food-menu-images/chips-guac-salsa.png', 
+    name: 'Empanadas', 
+    image: '/food-menu-images/empanadas.png', 
     type: 'food', 
-    description: 'Fresh tortilla chips served with house-made guacamole and our signature salsa.',
-    price: '$9.99',
-    category: 'Appetizers',
-    features: ['House-Made', 'Fresh Daily']
+    description: 'Golden pastries filled with seasoned beef, chicken, or cheese. Served with salsa for dipping.',
+    price: '$7.00',
+    category: 'Main Dishes',
+    features: ['Golden Pastry', 'Multiple Fillings']
   },
   { 
     id: '18', 
-    name: 'Hot Wings', 
-    image: '/food-menu-images/hot-wings.png', 
+    name: 'Flautas (4)', 
+    image: '/food-menu-images/flautas.png', 
     type: 'food', 
-    description: 'Crispy chicken wings tossed in your choice of buffalo, BBQ, or mango habanero sauce.',
-    price: '$13.99',
-    category: 'Wings',
-    features: ['Multiple Sauces', 'Crispy']
+    description: 'Four crispy rolled tortillas filled with chicken or beef, served with guacamole, sour cream, and salsa verde.',
+    price: '$10.00',
+    category: 'Main Dishes',
+    features: ['Crispy Rolled', '4 Pieces']
   },
-
-  // Mexican Specialties
   { 
     id: '19', 
     name: 'Quesadilla', 
     image: '/food-menu-images/quesadilla.png', 
     type: 'food', 
-    description: 'Large flour tortilla filled with melted cheese and your choice of meat, grilled to perfection and served with salsa and sour cream.',
-    price: '$10.99',
-    category: 'Mexican Classics',
+    description: 'Large flour tortilla filled with melted cheese and your choice of meat, grilled to perfection.',
+    price: '$14.00',
+    category: 'Main Dishes',
     features: ['Kid Friendly', 'Customizable']
   },
   { 
     id: '20', 
-    name: 'Mulitas', 
-    image: '/food-menu-images/mulitas.png', 
-    type: 'food', 
-    description: 'Grilled tortilla sandwiches filled with cheese and your choice of meat, served crispy and golden with salsa and crema.',
-    price: '$12.99',
-    category: 'Mexican Classics',
-    features: ['Crispy & Golden', 'Comfort Food']
-  },
-  { 
-    id: '21', 
-    name: 'Vampiros', 
-    image: '/food-menu-images/vampiros.png', 
-    type: 'food', 
-    description: 'Crispy tortillas topped with beans, cheese, meat, lettuce, tomato, and crema. A Mexican street food favorite.',
-    price: '$14.99',
-    category: 'Street Food',
-    features: ['Street Food Style', 'Crispy Base']
-  },
-  { 
-    id: '22', 
-    name: 'Flautas', 
-    image: '/food-menu-images/flautas.png', 
-    type: 'food', 
-    description: 'Crispy rolled tortillas filled with chicken or beef, served with guacamole, sour cream, and salsa verde.',
-    price: '$12.99',
-    category: 'Mexican Classics',
-    features: ['Crispy Rolled', 'Traditional']
-  },
-  { 
-    id: '23', 
-    name: 'Empanadas', 
-    image: '/food-menu-images/empanadas.png', 
-    type: 'food', 
-    description: 'Golden pastries filled with seasoned beef, chicken, or cheese. Served with salsa for dipping.',
-    price: '$8.99',
-    category: 'Latin Specialties',
-    features: ['Golden Pastry', 'Multiple Fillings']
-  },
-  { 
-    id: '24', 
     name: 'Torta', 
     image: '/food-menu-images/torta.png', 
     type: 'food', 
     description: 'Mexican sandwich on toasted bread with your choice of meat, beans, lettuce, tomato, avocado, and chipotle mayo.',
-    price: '$13.99',
-    category: 'Sandwiches',
+    price: '$15.50',
+    category: 'Main Dishes',
     features: ['Mexican Sandwich', 'Toasted Bread']
   },
-
-  // Bowls & Healthy Options
   { 
-    id: '25', 
+    id: '21', 
     name: 'Hustle Bowl', 
     image: '/food-menu-images/hustle-bowl.png', 
     type: 'food', 
     description: 'Our signature bowl with rice, beans, your choice of protein, cheese, salsa, guacamole, and all the fixings.',
-    price: '$13.99',
-    category: 'Signature Bowls',
+    price: '$15.00',
+    category: 'Main Dishes',
     features: ['Build Your Own', 'Healthy Options']
   },
   { 
-    id: '26', 
+    id: '22', 
     name: 'Taco Salad', 
     image: '/food-menu-images/taco-salad.png', 
     type: 'food', 
     description: 'Fresh lettuce topped with your choice of meat, beans, cheese, tomatoes, and avocado in a crispy tortilla bowl.',
-    price: '$12.99',
-    category: 'Salads',
+    price: '$14.00',
+    category: 'Main Dishes',
     features: ['Fresh', 'Crispy Bowl']
   },
-
-  // Breakfast All Day
   { 
-    id: '27', 
-    name: 'Chilaquiles', 
-    image: '/food-menu-images/CHILAQUILES.PNG', 
+    id: '23', 
+    name: 'Loaded Nachos', 
+    image: '/food-menu-images/loaded-nacho.png', 
     type: 'food', 
-    description: 'Traditional Mexican breakfast with crispy tortilla chips simmered in red or green salsa, topped with cheese, crema, and your choice of protein.',
-    price: '$12.99',
-    category: 'Breakfast All Day',
-    features: ['Traditional Recipe', 'Breakfast Favorite']
+    description: 'Fresh tortilla chips loaded with cheese, beans, jalapeños, sour cream, guacamole, and your choice of meat. Perfect for sharing!',
+    price: '$19.00',
+    category: 'Main Dishes',
+    features: ['Shareable', 'Half Order $11.00']
   },
   { 
-    id: '28', 
-    name: 'Chicken & Waffles', 
-    image: '/food-menu-images/chicken-and-waffles.png', 
+    id: '24', 
+    name: 'Loaded Nachos (Cheese Only)', 
+    image: '/food-menu-images/loaded-nacho.png', 
     type: 'food', 
-    description: 'Crispy fried chicken served on golden waffles with maple syrup and butter.',
-    price: '$15.99',
-    category: 'Breakfast All Day',
-    features: ['Southern Style', 'Sweet & Savory']
+    description: 'Fresh tortilla chips loaded with cheese, beans, jalapeños, sour cream, and guacamole.',
+    price: '$14.00',
+    category: 'Main Dishes',
+    features: ['Vegetarian', 'Cheese Only']
+  },
+  { 
+    id: '25', 
+    name: 'Loaded Fries', 
+    image: '/food-menu-images/loaded-fries.png', 
+    type: 'food', 
+    description: 'Crispy fries topped with cheese, bacon, jalapeños, sour cream, and green onions.',
+    price: '$19.00',
+    category: 'Main Dishes',
+    features: ['Fully Loaded', 'Half Order $11.00']
+  },
+
+  // Seafood
+  { 
+    id: '26', 
+    name: 'Fried Fish Tacos (2)', 
+    image: '/food-menu-images/fish-tacos.png', 
+    type: 'food', 
+    description: 'Two fresh white fish tacos, beer-battered and fried, served in corn tortillas with cabbage slaw and chipotle crema.',
+    price: '$11.00',
+    category: 'Seafood',
+    features: ['Fresh Fish', '2 Tacos']
+  },
+  { 
+    id: '27', 
+    name: 'Fried Shrimp Tacos (2)', 
+    image: '/food-menu-images/shrimp-tacos.png', 
+    type: 'food', 
+    description: 'Two fried shrimp tacos with cabbage slaw and chipotle aioli on corn tortillas.',
+    price: '$11.00',
+    category: 'Seafood',
+    features: ['Fried Shrimp', '2 Tacos']
+  },
+
+  // Wings
+  { 
+    id: '28', 
+    name: '4 Wings', 
+    image: '/food-menu-images/hot-wings.png', 
+    type: 'food', 
+    description: 'Four crispy chicken wings tossed in your choice of buffalo, BBQ, or mango habanero sauce.',
+    price: '$8.00',
+    category: 'Wings',
+    features: ['Multiple Sauces', '4 Pieces']
   },
   { 
     id: '29', 
-    name: 'Pancakes', 
-    image: '/food-menu-images/pancakes.jpg', 
+    name: '8 Wings', 
+    image: '/food-menu-images/hot-wings.png', 
     type: 'food', 
-    description: 'Fluffy pancakes served with butter and maple syrup. Add blueberries or chocolate chips.',
-    price: '$9.99',
-    category: 'Breakfast All Day',
-    features: ['Fluffy', 'Add-ons Available']
+    description: 'Eight crispy chicken wings tossed in your choice of buffalo, BBQ, or mango habanero sauce.',
+    price: '$15.00',
+    category: 'Wings',
+    features: ['Multiple Sauces', '8 Pieces']
   },
-
-  // Platters & Combos
   { 
     id: '30', 
-    name: 'Pork Chop Platter', 
-    image: '/food-menu-images/porkchop-platter.png', 
+    name: 'Family Wing Pack (20 Wings)', 
+    image: '/food-menu-images/hot-wings.png', 
     type: 'food', 
-    description: 'Grilled pork chop served with rice, beans, and tortillas. A hearty traditional meal.',
-    price: '$17.99',
-    category: 'Platters',
-    features: ['Hearty Meal', 'Traditional']
+    description: 'Twenty crispy chicken wings tossed in your choice of buffalo, BBQ, or mango habanero sauce.',
+    price: '$35.00',
+    category: 'Wings',
+    features: ['Family Size', '20 Pieces']
   },
 
-  // Seafood Specialties
+  // Keto
   { 
     id: '31', 
+    name: 'Keto Taco', 
+    image: '/food-menu-images/keto-tacos.png', 
+    type: 'food', 
+    description: 'Low-carb taco served in a crispy cheese shell with your choice of protein and keto-friendly toppings.',
+    price: '$7.00',
+    category: 'Keto',
+    features: ['Keto-Friendly', 'Cheese Shell']
+  },
+
+  // Specials
+  { 
+    id: '32', 
+    name: '3 Tacos Beans and Rice', 
+    image: '/food-menu-images/3-tacos-beans-rice.png', 
+    type: 'food', 
+    description: 'Three authentic tacos with your choice of meat, served with seasoned black beans and Mexican rice.',
+    price: '$15.00',
+    category: 'Specials',
+    features: ['Complete Meal', 'Choice of Meat']
+  },
+  { 
+    id: '33', 
     name: 'Mango Ceviche', 
     image: '/food-menu-images/mango-civeche.png', 
     type: 'food', 
     description: 'Fresh fish marinated in lime juice with mango, red onion, cilantro, and jalapeños. Served with tortilla chips.',
-    price: '$16.99',
-    category: 'Seafood',
+    price: '$18.99',
+    category: 'Specials',
     features: ['Fresh', 'Citrus Marinated']
+  },
+  { 
+    id: '34', 
+    name: 'Pork Chop Platter', 
+    image: '/food-menu-images/porkchop-platter.png', 
+    type: 'food', 
+    description: 'Grilled pork chop served with rice, beans, and tortillas. A hearty traditional meal.',
+    price: '$18.00',
+    category: 'Specials',
+    features: ['Hearty Meal', 'Traditional']
+  },
+
+  // Small Bites
+  { 
+    id: '35', 
+    name: 'Basket of Fries', 
+    image: '/food-menu-images/basket-of-fries.png', 
+    type: 'food', 
+    description: 'Golden crispy french fries served hot with your choice of dipping sauce.',
+    price: '$7.00',
+    category: 'Small Bites',
+    features: ['Crispy', 'Choice of Sauce']
+  },
+  { 
+    id: '36', 
+    name: 'Basket of Tots', 
+    image: '/food-menu-images/basket-of-tots.png', 
+    type: 'food', 
+    description: 'Crispy tater tots served hot with ketchup or your favorite dipping sauce.',
+    price: '$7.00',
+    category: 'Small Bites',
+    features: ['Crispy', 'Popular Side']
+  },
+  { 
+    id: '37', 
+    name: 'Chips, Guac and Salsa', 
+    image: '/food-menu-images/chips-guac-salsa.png', 
+    type: 'food', 
+    description: 'Fresh tortilla chips served with house-made guacamole and our signature salsa.',
+    price: '$12.00',
+    category: 'Small Bites',
+    features: ['House-Made', 'Fresh Daily']
   },
 
   // Sides
   { 
-    id: '32', 
-    name: 'Beans & Rice', 
-    image: '/food-menu-images/beans-and-rice.png', 
+    id: '38', 
+    name: 'Rice', 
+    image: '/food-menu-images/rice.png', 
     type: 'food', 
-    description: 'Seasoned black beans and Mexican rice - the perfect complement to any meal.',
-    price: '$5.99',
+    description: 'Fluffy Mexican rice cooked with tomatoes, onions, and spices.',
+    price: '$3.60',
     category: 'Sides',
-    features: ['Traditional', 'Perfect Side']
+    features: ['Fluffy', 'Flavorful']
   },
   { 
-    id: '33', 
-    name: 'Black Beans', 
+    id: '39', 
+    name: 'Beans', 
     image: '/food-menu-images/beans.png', 
     type: 'food', 
     description: 'Seasoned black beans cooked with onions, garlic, and Mexican spices.',
-    price: '$3.99',
+    price: '$3.60',
     category: 'Sides',
     features: ['Seasoned', 'Traditional']
   },
   { 
-    id: '34', 
-    name: 'Mexican Rice', 
-    image: '/food-menu-images/rice.png', 
+    id: '40', 
+    name: 'Beans and Rice', 
+    image: '/food-menu-images/beans-and-rice.png', 
     type: 'food', 
-    description: 'Fluffy rice cooked with tomatoes, onions, and spices.',
-    price: '$3.99',
+    description: 'Seasoned black beans and Mexican rice - the perfect complement to any meal.',
+    price: '$7.20',
     category: 'Sides',
-    features: ['Fluffy', 'Flavorful']
+    features: ['Traditional', 'Perfect Side']
   },
 
-  // Sauces & Extras
+  // DRINKS - Margaritas
   { 
-    id: '35', 
-    name: 'Chefa Sauce', 
-    image: '/food-menu-images/chefa-sauce.png', 
-    type: 'food', 
-    description: 'Our signature house-made sauce - a perfect blend of spices and flavor. Great on everything!',
-    price: '$2.99',
-    category: 'Sauces',
-    features: ['House-Made', 'Signature Blend']
-  },
-
-  // Drinks
-  { 
-    id: '36', 
-    name: 'Craft Margarita', 
+    id: '41', 
+    name: 'Hustle Margarita', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
-    description: 'House-made margaritas with premium tequila, fresh lime juice, and agave nectar. Choose from classic, strawberry, or mango flavors.',
-    price: '$12.99',
-    category: 'Craft Cocktails',
-    features: ['Made to Order', 'Multiple Flavors']
+    description: 'Our signature margarita made with premium tequila, fresh lime juice, and agave nectar.',
+    price: '$15.00',
+    category: 'Margaritas',
+    features: ['Signature Drink', 'Premium Tequila']
   },
   { 
-    id: '37', 
-    name: 'Flight Boards', 
-    image: '/drink-menu-images/boards.png', 
+    id: '42', 
+    name: 'Skinny Margarita', 
+    image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
-    description: 'Curated tasting flights featuring craft beers, tequilas, or whiskeys. Perfect for discovering new favorites.',
-    price: '$18.99',
-    category: 'Tastings',
-    features: ['Educational', 'Great for Groups']
+    description: 'Low-calorie margarita with fresh lime juice and agave nectar.',
+    price: '$14.00',
+    category: 'Margaritas',
+    features: ['Low Calorie', 'Fresh Lime']
   },
   { 
-    id: '38', 
+    id: '43', 
     name: 'Spicy Margarita', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
-    description: 'Our signature margarita with jalapeño-infused tequila, fresh lime, and a chili-salt rim for the perfect kick.',
-    price: '$13.99',
-    category: 'Craft Cocktails',
-    features: ['Signature Drink', 'Spicy Heat']
+    description: 'Our signature margarita with jalapeño-infused tequila and a chili-salt rim for the perfect kick.',
+    price: '$14.00',
+    category: 'Margaritas',
+    features: ['Spicy Heat', 'Jalapeño Infused']
   },
+
+  // House Favorites
   { 
-    id: '39', 
-    name: 'Craft Beer Selection', 
-    image: '/drink-menu-images/boards.png', 
-    type: 'drink', 
-    description: 'Rotating selection of local Oregon craft beers on tap, featuring IPAs, lagers, and seasonal favorites.',
-    price: '$6.99',
-    category: 'Beer',
-    features: ['Local Breweries', 'Rotating Selection']
-  },
-  { 
-    id: '40', 
+    id: '44', 
     name: 'Paloma', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
     description: 'Refreshing cocktail with tequila, fresh grapefruit juice, lime, and a splash of soda water.',
-    price: '$11.99',
-    category: 'Craft Cocktails',
+    price: '$11.00',
+    category: 'House Favorites',
     features: ['Refreshing', 'Citrus Forward']
   },
   { 
-    id: '41', 
-    name: 'Whiskey Flight', 
-    image: '/drink-menu-images/boards.png', 
-    type: 'drink', 
-    description: 'Curated selection of three premium whiskeys including bourbon, rye, and single malt scotch.',
-    price: '$22.99',
-    category: 'Tastings',
-    features: ['Premium Spirits', 'Educational Tasting']
-  },
-  { 
-    id: '42', 
+    id: '45', 
     name: 'Michelada', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
     description: 'Mexican beer cocktail with lime juice, hot sauce, Worcestershire, and spices, served with a chili-lime rim.',
-    price: '$8.99',
-    category: 'Beer Cocktails',
+    price: '$12.00',
+    category: 'House Favorites',
     features: ['Authentic Mexican', 'Savory & Spicy']
   },
   { 
-    id: '43', 
-    name: 'Old Fashioned', 
-    image: '/drink-menu-images/boards.png', 
-    type: 'drink', 
-    description: 'Classic whiskey cocktail with muddled sugar, aromatic bitters, and an orange peel garnish.',
-    price: '$14.99',
-    category: 'Classic Cocktails',
-    features: ['Timeless Classic', 'Hand Crafted']
-  },
-  { 
-    id: '44', 
-    name: 'Moscow Mule', 
-    image: '/drink-menu-images/margarita-boards.png', 
-    type: 'drink', 
-    description: 'Vodka, ginger beer, and fresh lime juice served in a traditional copper mug with ice.',
-    price: '$10.99',
-    category: 'Classic Cocktails',
-    features: ['Copper Mug', 'Refreshing']
-  },
-  { 
-    id: '45', 
-    name: 'Tequila Flight', 
-    image: '/drink-menu-images/boards.png', 
-    type: 'drink', 
-    description: 'Sample three premium tequilas: blanco, reposado, and añejo, each with distinct flavor profiles.',
-    price: '$19.99',
-    category: 'Tastings',
-    features: ['Premium Tequilas', 'Educational']
-  },
-  { 
     id: '46', 
-    name: 'Ranch Water', 
+    name: 'Bloody Mary', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
-    description: 'West Texas favorite with tequila, fresh lime juice, and Topo Chico mineral water over ice.',
-    price: '$9.99',
-    category: 'Refreshing Cocktails',
-    features: ['Low Calorie', 'Ultra Refreshing']
+    description: 'Classic brunch cocktail with vodka, tomato juice, and a blend of spices.',
+    price: '$12.00',
+    category: 'House Favorites',
+    features: ['Brunch Classic', 'Savory']
   },
+
+  // Beer
   { 
     id: '47', 
-    name: 'Sangria', 
-    image: '/drink-menu-images/margarita-boards.png', 
+    name: 'Corona', 
+    image: '/drink-menu-images/boards.png', 
     type: 'drink', 
-    description: 'House-made red wine sangria with fresh fruit, brandy, and a splash of orange juice.',
-    price: '$11.99',
-    category: 'Wine Cocktails',
-    features: ['House-Made', 'Fruit Infused']
+    description: 'Classic Mexican lager beer served ice cold.',
+    price: '$5.00',
+    category: 'Beer',
+    features: ['Mexican Lager', 'Ice Cold']
+  },
+  { 
+    id: '48', 
+    name: 'Modelo', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Premium Mexican beer with a rich, full flavor.',
+    price: '$5.00',
+    category: 'Beer',
+    features: ['Premium Mexican', 'Full Flavor']
+  },
+
+  // Boards & Towers
+  { 
+    id: '49', 
+    name: 'Margarita Board', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Shareable board featuring multiple margarita flavors for the perfect group experience.',
+    price: '$35.00',
+    category: 'Boards & Towers',
+    features: ['Shareable', 'Multiple Flavors']
+  },
+  { 
+    id: '50', 
+    name: 'Hustle Margarita Tower', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Large tower of our signature Hustle Margaritas, perfect for celebrations.',
+    price: '$50.00',
+    category: 'Boards & Towers',
+    features: ['Party Size', 'Signature Recipe']
   }
 ];
 
@@ -528,13 +560,15 @@ export function FoodDrinkCarousel() {
     return item.type === activeFilter;
   });
 
-  // Responsive items per view - showing larger items now
+  // Responsive items per view - more items on desktop for smaller cards
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setItemsPerView(1);
+      } else if (window.innerWidth < 1200) {
+        setItemsPerView(3);
       } else {
-        setItemsPerView(2);
+        setItemsPerView(4);
       }
     };
 
@@ -669,7 +703,7 @@ export function FoodDrinkCarousel() {
           {filteredItems.map((item) => (
             <div 
               key={item.id}
-              className="flex-shrink-0 px-3"
+              className="flex-shrink-0 px-2"
               style={{ width: `${100 / filteredItems.length}%` }}
             >
               <div 
@@ -677,7 +711,7 @@ export function FoodDrinkCarousel() {
                 onClick={() => setSelectedItem(item)}
               >
                 {/* Compact Featured Image */}
-                <div className="aspect-[4/3] sm:aspect-[4/3] md:aspect-[4/3] relative overflow-hidden">
+                <div className="aspect-[3/2] sm:aspect-[3/2] md:aspect-[5/4] relative overflow-hidden">
                   <Image 
                     src={item.image}
                     alt={item.name}
@@ -688,7 +722,7 @@ export function FoodDrinkCarousel() {
                 </div>
                 
                 {/* Compact Content Section */}
-                <div className="p-2 sm:p-3">
+                <div className="p-2 sm:p-2 md:p-3">
                   {/* Category Label */}
                   <div className="mb-1">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -698,10 +732,10 @@ export function FoodDrinkCarousel() {
                   
                   {/* Item Name & Price */}
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm sm:text-base font-bold text-gray-900 leading-tight">
+                    <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 leading-tight">
                       {item.name}
                     </h3>
-                    <span className="text-sm sm:text-base font-bold text-red-600 ml-2">
+                    <span className="text-xs sm:text-sm md:text-base font-bold text-red-600 ml-2">
                       {item.price}
                     </span>
                   </div>
