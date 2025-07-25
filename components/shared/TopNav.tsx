@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LocationSwitcher } from '@/components/shared/LocationSwitcher';
 import { usePathname } from 'next/navigation';
+import { getSmartCacheBustedUrl } from '@/lib/utils/image-cache';
 
 export function TopNav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,14 +35,14 @@ export function TopNav() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/icons/wolf-icon.png"
+              src={getSmartCacheBustedUrl('/icons/wolf-icon.png')}
               alt="Side Hustle"
               width={56}
               height={56}
               className="w-14 h-14"
             />
             <Image
-              src="/icons/sidehustle.png"
+              src={getSmartCacheBustedUrl('/icons/sidehustle.png')}
               alt="Side Hustle"
               width={100}
               height={32}

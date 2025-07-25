@@ -5,6 +5,8 @@
  * to prevent code duplication across components.
  */
 
+import { getSmartCacheBustedUrl } from './image-cache';
+
 // Types for avatar sources
 interface AvatarSource {
   profile_image_url?: string | null;
@@ -19,6 +21,13 @@ interface AvatarOptions {
 
 // Default fallback icon
 export const DEFAULT_AVATAR_ICON = '/icons/wolf-icon-light-screen.png';
+
+/**
+ * Get cache-busted version of default avatar icon
+ */
+export function getDefaultAvatarIcon(): string {
+  return getSmartCacheBustedUrl(DEFAULT_AVATAR_ICON);
+}
 
 /**
  * Resolves avatar URL with fallback chain
@@ -37,16 +46,23 @@ export function resolveAvatarUrl(
   
   // Handle null/undefined
   if (!source || typeof source !== 'object') {
-    return fallbackIcon;
+    return getSmartCacheBustedUrl(fallbackIcon);
   }
   
   // Apply fallback chain
-  return (
+  const avatarUrl = (
     source.profile_image_url ||
     source.profile_pic_url ||
     source.avatar_url ||
     fallbackIcon
   );
+  
+  // Apply cache busting to fallback icons only (not user-uploaded images)
+  if (avatarUrl === fallbackIcon) {
+    return getSmartCacheBustedUrl(avatarUrl);
+  }
+  
+  return avatarUrl;
 }
 
 /**
@@ -58,7 +74,14 @@ export function resolveChatAvatarUrl(
   memberAvatar?: string | null,
   fallback: string = DEFAULT_AVATAR_ICON
 ): string {
-  return messageAvatar || memberAvatar || fallback;
+  const avatarUrl = messageAvatar || memberAvatar || fallback;
+  
+  // Apply cache busting to fallback icons only
+  if (avatarUrl === fallback) {
+    return getSmartCacheBustedUrl(avatarUrl);
+  }
+  
+  return avatarUrl;
 }
 
 /**
@@ -69,7 +92,14 @@ export function resolveWolfpackMemberAvatar(
   member: { avatar_url?: string | null } | null | undefined,
   fallback: string = DEFAULT_AVATAR_ICON
 ): string {
-  return member?.avatar_url || fallback;
+  const avatarUrl = member?.avatar_url || fallback;
+  
+  // Apply cache busting to fallback icons only
+  if (avatarUrl === fallback) {
+    return getSmartCacheBustedUrl(avatarUrl);
+  }
+  
+  return avatarUrl;
 }
 
 /**

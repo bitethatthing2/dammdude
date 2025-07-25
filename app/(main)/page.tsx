@@ -18,6 +18,7 @@ import { VideoBackground } from '@/components/shared/VideoBackground';
 import { FoodDrinkCarousel } from '@/components/shared/FoodDrinkCarousel';
 import { Footer } from '@/components/shared/Footer';
 import { TopNav } from '@/components/shared/TopNav';
+import { getSmartCacheBustedUrl } from '@/lib/utils/image-cache';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
@@ -73,7 +74,7 @@ export default function Page() {
           {/* Combined Logo with Wolf and Title */}
           <div className="mb-2 sm:mb-4 mt-4 sm:mt-8 md:mt-12 animate-fade-in">
             <Image 
-              src={`/icons/wolf-and-title.png?v=${Date.now()}`}
+              src={getSmartCacheBustedUrl('/icons/wolf-and-title.png')}
               alt="Side Hustle Bar"
               width={400}
               height={200}
@@ -170,7 +171,7 @@ export default function Page() {
                       className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
                       <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/doordash_icon.png" alt="DoorDash" width={16} height={16} className="rounded" />
+                        <Image src={getSmartCacheBustedUrl('/icons/doordash_icon.png')} alt="DoorDash" width={16} height={16} className="rounded" />
                       </div>
                       <span className="text-sm text-white">DoorDash</span>
                     </div>
@@ -182,7 +183,7 @@ export default function Page() {
                       className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
                       <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/uber-eats.png" alt="Uber Eats" width={16} height={16} className="rounded" />
+                        <Image src={getSmartCacheBustedUrl('/icons/uber-eats.png')} alt="Uber Eats" width={16} height={16} className="rounded" />
                       </div>
                       <span className="text-sm text-white">Uber Eats</span>
                     </div>
@@ -194,7 +195,7 @@ export default function Page() {
                       className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
                       <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/postmates.png" alt="Postmates" width={16} height={16} className="rounded" />
+                        <Image src={getSmartCacheBustedUrl('/icons/postmates.png')} alt="Postmates" width={16} height={16} className="rounded" />
                       </div>
                       <span className="text-sm text-white">Postmates</span>
                     </div>
@@ -343,7 +344,7 @@ export default function Page() {
               </div>
               <div className="relative h-[350px] rounded-xl overflow-hidden shadow-2xl">
                 <Image 
-                  src="/icons/ufc-section.jpeg"
+                  src={getSmartCacheBustedUrl('/icons/ufc-section.jpeg')}
                   alt="UFC Night at Side Hustle Bar"
                   fill
                   className="object-cover"
@@ -446,7 +447,7 @@ export default function Page() {
           <div className="mb-16">
             <div className="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-2xl mx-auto max-w-4xl">
               <Image 
-                src="/icons/portland-side-hustle.jpg"
+                src={getSmartCacheBustedUrl('/icons/portland-side-hustle.jpg')}
                 alt="Side Hustle Bar Portland Location"
                 fill
                 className="object-cover"
