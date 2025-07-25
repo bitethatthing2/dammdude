@@ -277,14 +277,21 @@ export default function Page() {
                 </p>
               </div>
               <div className="lg:col-span-3 relative">
-                <div className="aspect-[4/3] lg:aspect-video rounded-xl overflow-hidden shadow-2xl">
+                <div className="aspect-[4/3] lg:aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
                   <video 
                     autoPlay 
                     muted 
                     loop 
                     playsInline
-                    className="w-full h-full object-cover"
-                    style={{ objectPosition: '50% 50%' }}
+                    className="absolute inset-0 w-full h-full"
+                    style={{ 
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                      width: '100%',
+                      height: '100%',
+                      minWidth: '100%',
+                      minHeight: '100%'
+                    }}
                   >
                     <source src="/icons/priemer-destination.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
