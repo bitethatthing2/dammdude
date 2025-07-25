@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useLocationState } from '@/lib/hooks/useLocationState';
-import { LocationSwitcher } from '@/components/shared/LocationSwitcher';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -499,7 +498,6 @@ export default function Page() {
             <p className="text-lg text-white/80 mb-6">
               Same legendary birria, same Wolf Pack energy, now in two locations
             </p>
-            <LocationSwitcher />
           </div>
         </div>
       </section>
