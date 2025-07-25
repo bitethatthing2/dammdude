@@ -10,10 +10,10 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-zinc-950 text-white border-t border-red-600/20 mt-0 relative overflow-hidden">
+    <footer className="bg-zinc-950 text-white border-t border-orange-600/20 mt-0 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black opacity-60"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/5 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-600/5 via-transparent to-transparent"></div>
       
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-12 relative z-10">
@@ -31,16 +31,16 @@ export function Footer() {
               />
             </div>
             <p className="text-lg text-gray-300 leading-relaxed text-center lg:text-left">
-              Oregon's premier <span className="text-red-400 font-semibold">UFC House</span> • 
-              Legendary <span className="text-red-400 font-semibold">Birria</span> • 
-              <span className="text-red-400 font-semibold">Live Music</span>
+              Oregon's premier <span className="text-orange-400 font-semibold">UFC House</span> • 
+              Legendary <span className="text-orange-400 font-semibold">Birria</span> • 
+              <span className="text-orange-400 font-semibold">Live Music</span>
             </p>
             <div className="flex justify-center lg:justify-start space-x-4">
               <a 
                 href="https://instagram.com/sidehustle_bar" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-lg"
+                className="text-gray-400 hover:text-orange-400 transition-colors p-2 hover:bg-orange-400/10 rounded-lg"
                 aria-label="Follow us on Instagram"
               >
                 <Instagram className="h-6 w-6" />
@@ -48,7 +48,7 @@ export function Footer() {
               <a 
                 href="mailto:info@sidehustlelounge.com" 
                 aria-label="Email us"
-                className="text-gray-400 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-lg"
+                className="text-gray-400 hover:text-orange-400 transition-colors p-2 hover:bg-orange-400/10 rounded-lg"
               >
                 <Mail className="h-6 w-6" />
               </a>
@@ -59,12 +59,12 @@ export function Footer() {
           <div className="space-y-6">
             <div className="text-center lg:text-left">
               <h3 className="text-2xl font-bold text-white mb-3">Salem Location</h3>
-              <div className="h-1 w-16 bg-gradient-to-r from-red-600 to-red-400 rounded-full mx-auto lg:mx-0"></div>
+              <div className="h-1 w-16 bg-gradient-to-r from-orange-600 to-orange-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
             <div className="space-y-5">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <MapPin className="h-5 w-5 text-red-500" />
+                <div className="h-10 w-10 bg-orange-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-5 w-5 text-orange-500" />
                 </div>
                 <address className="not-italic text-gray-300 text-base">
                   <div className="font-semibold text-white">Historic Downtown</div>
@@ -72,24 +72,24 @@ export function Footer() {
                 </address>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Phone className="h-5 w-5 text-red-500" />
+                <div className="h-10 w-10 bg-orange-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-5 w-5 text-orange-500" />
                 </div>
-                <a href="tel:+15033919977" className="text-gray-300 hover:text-red-400 text-lg font-semibold">
+                <a href="tel:+15033919977" className="text-gray-300 hover:text-orange-400 text-lg font-semibold">
                   (503) 391-9977
                 </a>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 bg-red-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-5 w-5 text-red-500" />
+                  <div className="h-10 w-10 bg-orange-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-orange-500" />
                   </div>
                   <span className="font-semibold text-white text-base">Hours</span>
                 </div>
                 <div className="pl-14 space-y-1 text-base text-gray-300">
                   <div>Mon-Wed: <span className="text-white">10AM-11PM</span></div>
                   <div>Thursday: <span className="text-white">10AM-12AM</span></div>
-                  <div>Fri-Sat: <span className="text-red-400 font-semibold">10AM-2AM</span></div>
+                  <div>Fri-Sat: <span className="text-orange-400 font-semibold">10AM-2AM</span></div>
                   <div>Sunday: <span className="text-white">10AM-11PM</span></div>
                 </div>
               </div>
@@ -200,11 +200,11 @@ export function Footer() {
                   <span className="text-yellow-500 text-xl">★</span>
                   <span className="font-semibold">4.7 Rating</span>
                 </div>
-                <div className="text-red-400 font-semibold">UFC House</div>
-                <div className="text-red-400 font-semibold">Live Music</div>
+                <div className="text-orange-400 font-semibold">UFC House</div>
+                <div className="text-orange-400 font-semibold">Live Music</div>
               </div>
               <div className="text-base text-gray-300 text-center lg:text-left">
-                Executive Chef <span className="text-red-400 font-semibold">Rebecca Sanchez</span>
+                Executive Chef <span className="text-orange-400 font-semibold">Rebecca Sanchez</span>
               </div>
             </div>
           </div>
@@ -217,25 +217,25 @@ export function Footer() {
       <div className="container mx-auto px-4 py-10 relative z-10">
         <div className="text-center space-y-6">
           <div className="flex items-center justify-center space-x-3">
-            <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
+            <div className="h-3 w-3 bg-orange-500 rounded-full animate-pulse"></div>
             <p className="text-base text-gray-300">© {currentYear} Side Hustle Bar. All rights reserved.</p>
           </div>
           
           <div className="flex flex-wrap justify-center gap-8 text-base">
-            <Link href="/privacy" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+            <Link href="/privacy" className="text-gray-400 hover:text-orange-400 transition-colors font-medium">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+            <Link href="/terms" className="text-gray-400 hover:text-orange-400 transition-colors font-medium">
               Terms of Service
             </Link>
-            <Link href="/accessibility" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+            <Link href="/accessibility" className="text-gray-400 hover:text-orange-400 transition-colors font-medium">
               Accessibility
             </Link>
           </div>
           
           <div className="text-base text-gray-500">
             Founded by <span className="text-white font-semibold">James Mullins</span> • 
-            Crafted with <span className="text-red-500">❤️</span> for the Wolf Pack
+            Crafted with <span className="text-orange-500">❤️</span> for the Wolf Pack
           </div>
         </div>
 

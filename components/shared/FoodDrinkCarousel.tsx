@@ -408,6 +408,106 @@ const carouselItems: CarouselItem[] = [
     price: '$18.99',
     category: 'Tastings',
     features: ['Educational', 'Great for Groups']
+  },
+  { 
+    id: '38', 
+    name: 'Spicy Margarita', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'Our signature margarita with jalapeño-infused tequila, fresh lime, and a chili-salt rim for the perfect kick.',
+    price: '$13.99',
+    category: 'Craft Cocktails',
+    features: ['Signature Drink', 'Spicy Heat']
+  },
+  { 
+    id: '39', 
+    name: 'Craft Beer Selection', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Rotating selection of local Oregon craft beers on tap, featuring IPAs, lagers, and seasonal favorites.',
+    price: '$6.99',
+    category: 'Beer',
+    features: ['Local Breweries', 'Rotating Selection']
+  },
+  { 
+    id: '40', 
+    name: 'Paloma', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'Refreshing cocktail with tequila, fresh grapefruit juice, lime, and a splash of soda water.',
+    price: '$11.99',
+    category: 'Craft Cocktails',
+    features: ['Refreshing', 'Citrus Forward']
+  },
+  { 
+    id: '41', 
+    name: 'Whiskey Flight', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Curated selection of three premium whiskeys including bourbon, rye, and single malt scotch.',
+    price: '$22.99',
+    category: 'Tastings',
+    features: ['Premium Spirits', 'Educational Tasting']
+  },
+  { 
+    id: '42', 
+    name: 'Michelada', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'Mexican beer cocktail with lime juice, hot sauce, Worcestershire, and spices, served with a chili-lime rim.',
+    price: '$8.99',
+    category: 'Beer Cocktails',
+    features: ['Authentic Mexican', 'Savory & Spicy']
+  },
+  { 
+    id: '43', 
+    name: 'Old Fashioned', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Classic whiskey cocktail with muddled sugar, aromatic bitters, and an orange peel garnish.',
+    price: '$14.99',
+    category: 'Classic Cocktails',
+    features: ['Timeless Classic', 'Hand Crafted']
+  },
+  { 
+    id: '44', 
+    name: 'Moscow Mule', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'Vodka, ginger beer, and fresh lime juice served in a traditional copper mug with ice.',
+    price: '$10.99',
+    category: 'Classic Cocktails',
+    features: ['Copper Mug', 'Refreshing']
+  },
+  { 
+    id: '45', 
+    name: 'Tequila Flight', 
+    image: '/drink-menu-images/boards.png', 
+    type: 'drink', 
+    description: 'Sample three premium tequilas: blanco, reposado, and añejo, each with distinct flavor profiles.',
+    price: '$19.99',
+    category: 'Tastings',
+    features: ['Premium Tequilas', 'Educational']
+  },
+  { 
+    id: '46', 
+    name: 'Ranch Water', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'West Texas favorite with tequila, fresh lime juice, and Topo Chico mineral water over ice.',
+    price: '$9.99',
+    category: 'Refreshing Cocktails',
+    features: ['Low Calorie', 'Ultra Refreshing']
+  },
+  { 
+    id: '47', 
+    name: 'Sangria', 
+    image: '/drink-menu-images/margarita-boards.png', 
+    type: 'drink', 
+    description: 'House-made red wine sangria with fresh fruit, brandy, and a splash of orange juice.',
+    price: '$11.99',
+    category: 'Wine Cocktails',
+    features: ['House-Made', 'Fruit Infused']
   }
 ];
 

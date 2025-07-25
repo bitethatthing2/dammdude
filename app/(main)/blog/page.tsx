@@ -29,7 +29,7 @@ export default function BlogPage() {
               </h1>
             </div>
             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              Salem's Premier Hip-Hop & R&B Destination - Artist Spotlights, Event Coverage & Music Scene Updates
+              Salem's Premier Entertainment Destination - Artist Spotlights, Event Coverage & Music Scene Updates
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Badge variant="secondary" className="bg-red-600/20 text-red-300 border-red-600/30">

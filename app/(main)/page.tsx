@@ -96,22 +96,44 @@ export default function Page() {
             Authentic flavors, vibrant atmosphere, and unforgettable experiences at both locations
           </p>
           
-          {/* Location & Hours Card */}
-          <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 max-w-3xl mb-6 shadow-2xl border border-white/20 mx-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="text-white text-center sm:text-left">
-                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-2">Salem Location</h3>
-                <p className="text-xs sm:text-sm mb-1">145 Liberty St NE Suite #101</p>
-                <p className="text-xs sm:text-sm mb-2">Salem, OR 97301</p>
-                <p className="text-xs sm:text-sm font-semibold">📞 (503) 391-9977</p>
+          {/* Dual Location & Hours Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mb-6 mx-4">
+            {/* Salem Location Card */}
+            <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl border border-white/20">
+              <div className="text-white text-center">
+                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-3">Salem Location</h3>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <p className="font-medium">145 Liberty St NE Suite #101</p>
+                  <p className="font-medium">Salem, OR 97301</p>
+                  <p className="font-semibold text-yellow-400">📞 (503) 391-9977</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                  <h4 className="text-sm font-bold text-red-400 mb-2">Hours</h4>
+                  <div className="space-y-1 text-xs">
+                    <p><span className="font-medium">Mon-Thu:</span> 10AM - 12AM</p>
+                    <p><span className="font-medium">Fri-Sat:</span> 10AM - 2AM</p>
+                    <p><span className="font-medium">Sunday:</span> 10AM - 12AM</p>
+                  </div>
+                </div>
               </div>
-              
-              <div className="text-white text-center sm:text-left">
-                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-2">Hours</h3>
-                <div className="space-y-0.5 text-xs sm:text-sm">
-                  <p><span className="font-medium">Mon-Thu:</span> 10AM - 12AM</p>
-                  <p><span className="font-medium">Fri-Sat:</span> 10AM - 2AM</p>
-                  <p><span className="font-medium">Sunday:</span> 10AM - 12AM</p>
+            </div>
+
+            {/* Portland Location Card */}
+            <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl border border-white/20">
+              <div className="text-white text-center">
+                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-3">Portland Location</h3>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <p className="font-medium">327 SW Morrison Street</p>
+                  <p className="font-medium">Portland, OR 97204</p>
+                  <p className="font-semibold text-yellow-400">📞 (503) 555-0123</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                  <h4 className="text-sm font-bold text-red-400 mb-2">Hours</h4>
+                  <div className="space-y-1 text-xs">
+                    <p><span className="font-medium">Mon-Thu:</span> 11AM - 1AM</p>
+                    <p><span className="font-medium">Fri-Sat:</span> 11AM - 3AM</p>
+                    <p><span className="font-medium">Sunday:</span> 11AM - 1AM</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -380,7 +402,7 @@ export default function Page() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
-                  <span className="text-white/90 text-lg">Major acts: Trinidad James, ILOVEMAKONNEN, Kirko Bangz & Casey Veggies</span>
+                  <span className="text-white/90 text-lg">Major acts: MARIO, KIRKO BANGZ, JOHN HART, LUNIZ, ATM Danny, J Balvin After Party, Shawty Bae, ILOVEMAKONNEN, Trinidad James, Casey Veggies & Adrian Marcel</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
@@ -456,10 +478,10 @@ export default function Page() {
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white">Hip-Hop Music Hub</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white">Live Entertainment Hub</h3>
               <p className="text-white/80">
-                Our Rhythm & Flow partnership brings West Coast hip-hop vibes with 
-                resident DJs like DJ Inferno and touring acts from LA to Portland.
+                Our Rhythm & Flow partnership brings major touring artists and 
+                resident DJs to create unforgettable live music experiences.
               </p>
             </div>
           </div>
@@ -473,114 +495,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* Music & Entertainment Hub Section */}
-      <section className="py-20 px-4 bg-black">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
-              Salem's Premier <span className="text-red-400">Hip-Hop Venue</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-white/90 leading-relaxed max-w-3xl mx-auto mb-8">
-              Since 2023, we've brought major touring artists to Oregon's capital through our Rhythm & Flow partnership. 
-              From coast-to-coast headliners to the hottest DJs, Side Hustle Bar has become the Pacific Northwest's 
-              destination for authentic hip-hop and R&B experiences.
-            </p>
-          </div>
-
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-            {/* Major Artists */}
-            <div className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-8">
-              <h3 className="text-2xl font-bold text-red-400 mb-6">Major Headliners</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>MARIO</strong> - R&B Icon</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>KIRKO BANGZ</strong> - Bringing the vibes</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>JOHN HART</strong> - Setting the mood</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>LUNIZ</strong> - "I Got 5 on It" (Dec 6, 2024)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>ATM Danny</strong> - Portland (April 26)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>J Balvin After Party</strong> - Portland (May 17)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Shawty Bae Day Fade</strong> - Salem (May 25)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>ILOVEMAKONNEN</strong> - First-ever Salem show (April 27, 2024)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Trinidad James</strong> - October 4, 2024</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Casey Veggies</strong> - Oregon tour (August 16, 2024)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Adrian Marcel</strong> - R&B showcase</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DJ Lineup */}
-            <div className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-8">
-              <h3 className="text-2xl font-bold text-red-400 mb-6">Resident DJ Lineup</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>DJ Inferno</strong> - Rhythm & Flow co-founder</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>Kaniel The One & Finxx Live</strong> - Portland's hottest</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>DJ Infamous</strong> - Ludacris's tour DJ</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>DJ New Era</strong> - Alabama Crimson Tide official</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-white text-lg"><strong>DJ Denver PDX</strong> - Opening for major acts</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-
-          <div className="text-center mt-12">
-            <p className="text-lg text-white/80 mb-6">
-              "Infusing the Pacific Northwest with West Coast hip-hop vibes"
-            </p>
-            <Link href="/wolfpack">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg font-semibold rounded-full">
-                Experience the Music
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Get Full Experience Section - Compact */}
       <section className="py-12 px-4 bg-zinc-900">

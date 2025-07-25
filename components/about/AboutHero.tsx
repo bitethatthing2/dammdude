@@ -1,7 +1,7 @@
 // AboutHero.tsx
 'use client';
 
-import { MapPin, Clock, Phone } from 'lucide-react';
+import { MapPin, Clock, Phone, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -14,7 +14,15 @@ export function AboutHero() {
       <div className="absolute inset-0 bg-black/40" />
       
       <div className="relative container mx-auto px-4 py-32 sm:py-40 pt-40">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto">
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center text-gray-300 hover:text-white mb-8 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back
+          </button>
+          <div className="text-center">
           <div className="mb-6 flex justify-center">
             <Image
               src="/icons/sidehustle.png"
@@ -69,6 +77,7 @@ export function AboutHero() {
             >
               Join the Wolfpack
             </Button>
+          </div>
           </div>
         </div>
       </div>
