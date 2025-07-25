@@ -170,7 +170,7 @@ export default function VideoPage() {
       </div>
 
       {/* Content */}
-      <div className="pt-16 pb-20">
+      <div className="pb-20">
         <div className="max-w-2xl mx-auto">
           {/* Media */}
           <div className="relative bg-black aspect-[9/16] max-h-[calc(100vh-200px)]">

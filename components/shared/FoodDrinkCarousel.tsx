@@ -517,10 +517,10 @@ export function FoodDrinkCarousel() {
   return (
     <div className="relative w-full">
       {/* Filter Buttons */}
-      <div className="flex justify-center gap-4 mb-12">
+      <div className="flex justify-center gap-3 mb-8">
         <button
           onClick={() => handleFilterChange('all')}
-          className={`px-8 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border ${
+          className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border ${
             activeFilter === 'all'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
@@ -588,34 +588,34 @@ export function FoodDrinkCarousel() {
                 </div>
                 
                 {/* Content Section */}
-                <div className="p-6">
+                <div className="p-4">
                   {/* Category Label */}
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                       {item.category}
                     </span>
                   </div>
                   
                   {/* Item Name & Price */}
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
                       {item.name}
                     </h3>
-                    <span className="text-xl font-bold text-red-600 ml-4">
+                    <span className="text-lg font-bold text-red-600 ml-3">
                       {item.price}
                     </span>
                   </div>
                   
                   {/* Description */}
-                  <p className="text-gray-700 text-sm leading-relaxed mb-4 line-clamp-3">
+                  <p className="text-gray-700 text-xs leading-relaxed mb-3 line-clamp-3">
                     {item.description}
                   </p>
                   
                   {/* Features */}
                   {item.features && (
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {item.features.slice(0, 2).map((feature, index) => (
-                        <span key={index} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                        <span key={index} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                           {feature}
                         </span>
                       ))}
@@ -624,7 +624,7 @@ export function FoodDrinkCarousel() {
                   
                   {/* Type Badge */}
                   <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${
                       item.type === 'food' 
                         ? 'bg-orange-100 text-orange-600' 
                         : 'bg-blue-100 text-blue-600'
@@ -649,18 +649,18 @@ export function FoodDrinkCarousel() {
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 p-3 rounded-full transition-all duration-200 z-10 shadow-lg border border-gray-200"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 p-2 rounded-full transition-all duration-200 z-10 shadow-lg border border-gray-200"
             disabled={currentIndex === 0}
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
           
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 p-3 rounded-full transition-all duration-200 z-10 shadow-lg border border-gray-200"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 p-2 rounded-full transition-all duration-200 z-10 shadow-lg border border-gray-200"
             disabled={currentIndex >= maxIndex}
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </>
       )}
@@ -671,21 +671,21 @@ export function FoodDrinkCarousel() {
       {selectedItem && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto border border-white/20">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">{selectedItem.name}</h2>
+                  <h2 className="text-xl font-bold text-white mb-1">{selectedItem.name}</h2>
                   <p className="text-red-400 font-semibold">{selectedItem.category}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedItem(null)}
-                  className="text-white/60 hover:text-white text-2xl"
+                  className="text-white/60 hover:text-white text-xl"
                 >
                   ×
                 </button>
               </div>
               
-              <div className="aspect-video relative rounded-xl overflow-hidden mb-4">
+              <div className="aspect-video relative rounded-xl overflow-hidden mb-3">
                 <Image 
                   src={selectedItem.image}
                   alt={selectedItem.name}
@@ -694,10 +694,10 @@ export function FoodDrinkCarousel() {
                 />
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-3xl font-bold text-white">{selectedItem.price}</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${
+                  <span className="text-2xl font-bold text-white">{selectedItem.price}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${
                     selectedItem.type === 'food' 
                       ? 'bg-red-600 text-white' 
                       : 'bg-blue-600 text-white'
@@ -707,14 +707,14 @@ export function FoodDrinkCarousel() {
                   </span>
                 </div>
                 
-                <p className="text-white/90 leading-relaxed">{selectedItem.description}</p>
+                <p className="text-sm text-white/90 leading-relaxed">{selectedItem.description}</p>
                 
                 {selectedItem.features && (
                   <div>
-                    <h4 className="text-white font-semibold mb-2">Features:</h4>
+                    <h4 className="text-sm text-white font-semibold mb-2">Features:</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedItem.features.map((feature, index) => (
-                        <span key={index} className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/90">
+                        <span key={index} className="px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded-full text-xs text-white/90">
                           {feature}
                         </span>
                       ))}
@@ -722,11 +722,11 @@ export function FoodDrinkCarousel() {
                   </div>
                 )}
                 
-                <div className="flex gap-3 pt-4">
-                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                <div className="flex gap-2 pt-3">
+                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors">
                     View Full Menu
                   </button>
-                  <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 px-6 rounded-lg font-semibold transition-colors backdrop-blur-sm border border-white/20">
+                  <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors backdrop-blur-sm border border-white/20">
                     Order Online
                   </button>
                 </div>

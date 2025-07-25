@@ -30,32 +30,32 @@ export function TopNav() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/20 backdrop-blur-lg border-b border-white/30" style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)' }}>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/icons/wolf-icon.png"
               alt="Side Hustle"
-              width={56}
-              height={56}
-              className="w-14 h-14"
+              width={40}
+              height={40}
+              className="w-10 h-10"
             />
             <Image
               src="/icons/sidehustle.png"
               alt="Side Hustle"
-              width={120}
-              height={40}
-              className="hidden sm:block"
+              width={100}
+              height={32}
+              className="hidden sm:block h-8"
             />
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-4">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-white hover:text-red-500 transition-colors ${
+                className={`text-sm text-white hover:text-red-500 transition-colors ${
                   isActive(item.href) ? 'text-red-500' : ''
                 }`}
               >
@@ -66,8 +66,8 @@ export function TopNav() {
             {/* More Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:text-red-500 gap-1">
-                  More <ChevronDown className="h-4 w-4" />
+                <Button variant="ghost" className="text-sm text-white hover:text-red-500 gap-1 px-3 py-1.5 h-auto">
+                  More <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-white/20 backdrop-blur-lg border-white/30 shadow-2xl">

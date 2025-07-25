@@ -12,8 +12,6 @@ import { CartProvider } from '@/components/cart/CartContext';
 import { PwaInitializer } from '@/components/shared/PwaInitializer';
 import { LogoPreloader } from '@/components/shared/LogoPreloader';
 import { LocationProvider } from '@/lib/hooks/useLocationState';
-import { TopNav } from '@/components/shared/TopNav';
-import { Footer } from '@/components/shared/Footer';
 
 // Configure fonts
 const playfair = Playfair_Display({ 
@@ -306,11 +304,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     <LogoPreloader />
                     <PwaInitializer />
                     <UnifiedNotificationInit />
-                    <TopNav />
-                    <main className="pt-16">
+                    <main>
                       {children}
                     </main>
-                    <Footer />
                   </NuqsAdapter>
                 </NotificationProvider>
               {/* </CommentsProvider> */}

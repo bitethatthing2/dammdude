@@ -17,6 +17,8 @@ import { InstagramEmbed } from '@/components/shared/InstagramEmbed';
 import React, { Suspense } from 'react';
 import { VideoBackground } from '@/components/shared/VideoBackground';
 import { FoodDrinkCarousel } from '@/components/shared/FoodDrinkCarousel';
+import { Footer } from '@/components/shared/Footer';
+import { TopNav } from '@/components/shared/TopNav';
 
 // Dynamically import components that use browser APIs
 const NotificationIndicator = dynamic(
@@ -59,53 +61,54 @@ export default function Page() {
 
   return (
     <div className="main-content bg-black text-white min-h-screen">
+      <TopNav />
       {/* Hero Section with Video Background - Full Screen */}
-      <div className="relative h-screen w-full -mt-16 overflow-visible mb-32">
+      <div className="relative h-screen w-full overflow-visible mb-16 pt-14">
         <VideoBackground 
           videoSrc="/icons/main-page-only.mp4"
           overlayOpacity={0.4}
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-48 md:pt-56 pb-48 overflow-visible">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-32 md:pt-40 pb-32 overflow-visible">
           {/* Combined Logo with Wolf and Title */}
-          <div className="mb-6 mt-16 md:mt-20 animate-fade-in">
+          <div className="mb-4 mt-8 md:mt-12 animate-fade-in">
             <Image 
               src={`/icons/wolf-and-title.png?v=${Date.now()}`}
               alt="Side Hustle Bar"
               width={400}
               height={200}
-              className="mx-auto w-full max-w-[280px] md:max-w-[350px] lg:max-w-[450px] h-auto"
+              className="mx-auto w-full max-w-[200px] md:max-w-[280px] lg:max-w-[350px] h-auto"
               priority
               unoptimized
             />
           </div>
           
           {/* Main Hero Text */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 max-w-4xl leading-tight drop-shadow-2xl px-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 max-w-4xl leading-tight drop-shadow-2xl px-4">
             Experience Salem's Best Tacos
             <br />
             <span className="text-red-500 font-serif">7 Days a Week</span>
           </h1>
           
           {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 max-w-2xl leading-relaxed drop-shadow-lg px-4">
+          <p className="text-sm sm:text-base md:text-lg text-white/90 mb-6 max-w-2xl leading-relaxed drop-shadow-lg px-4">
             Authentic flavors, vibrant atmosphere, and unforgettable experiences at both locations
           </p>
           
           {/* Location & Hours Card */}
-          <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl mb-8 shadow-2xl border border-white/20 mx-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 max-w-3xl mb-6 shadow-2xl border border-white/20 mx-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="text-white text-center sm:text-left">
-                <h3 className="text-lg sm:text-xl font-bold text-red-500 mb-3">Salem Location</h3>
-                <p className="text-sm sm:text-base mb-1">145 Liberty St NE Suite #101</p>
-                <p className="text-sm sm:text-base mb-3">Salem, OR 97301</p>
-                <p className="text-sm sm:text-base font-semibold">📞 (503) 391-9977</p>
+                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-2">Salem Location</h3>
+                <p className="text-xs sm:text-sm mb-1">145 Liberty St NE Suite #101</p>
+                <p className="text-xs sm:text-sm mb-2">Salem, OR 97301</p>
+                <p className="text-xs sm:text-sm font-semibold">📞 (503) 391-9977</p>
               </div>
               
               <div className="text-white text-center sm:text-left">
-                <h3 className="text-lg sm:text-xl font-bold text-red-500 mb-3">Hours</h3>
-                <div className="space-y-1 text-xs sm:text-sm md:text-base">
+                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-2">Hours</h3>
+                <div className="space-y-0.5 text-xs sm:text-sm">
                   <p><span className="font-medium">Mon-Thu:</span> 10AM - 12AM</p>
                   <p><span className="font-medium">Fri-Sat:</span> 10AM - 2AM</p>
                   <p><span className="font-medium">Sunday:</span> 10AM - 12AM</p>
@@ -115,16 +118,16 @@ export default function Page() {
           </div>
           
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 relative z-20 px-4 w-full max-w-md sm:max-w-none">
+          <div className="flex flex-col sm:flex-row gap-3 relative z-20 px-4 w-full max-w-md sm:max-w-none">
             <Link href="/menu" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full bg-red-600 hover:bg-red-700 text-white px-6 sm:px-10 py-3 sm:py-4 text-lg sm:text-xl font-semibold rounded-full shadow-lg hover:shadow-xl transition-all">
+              <Button size="lg" className="w-full bg-red-600 hover:bg-red-700 text-white px-4 sm:px-8 py-2.5 sm:py-3 text-base sm:text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all">
                 View Menu
               </Button>
             </Link>
             <div className="relative order-dropdown w-full sm:w-auto">
               <div 
                 onClick={() => setOrderDropdownOpen(!orderDropdownOpen)}
-                className="w-full bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-6 sm:px-10 py-3 sm:py-4 text-lg sm:text-xl font-semibold rounded-full border-2 border-white/30 hover:border-white/50 transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                className="w-full bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 sm:px-8 py-2.5 sm:py-3 text-base sm:text-lg font-semibold rounded-full border-2 border-white/30 hover:border-white/50 transition-all shadow-lg hover:shadow-xl cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <span>Order Online</span>
@@ -135,42 +138,42 @@ export default function Page() {
               </div>
               {orderDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 backdrop-blur-sm rounded-lg border border-white/20 shadow-xl z-[1000]">
-                  <div className="py-2">
+                  <div className="py-1">
                     <div 
                       onClick={() => {
                         window.open('https://www.doordash.com/store/side-hustle-bar-salem-25388462/27964950/', '_blank');
                         setOrderDropdownOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/doordash_icon.png" alt="DoorDash" width={20} height={20} className="rounded" />
+                      <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
+                        <Image src="/icons/doordash_icon.png" alt="DoorDash" width={16} height={16} className="rounded" />
                       </div>
-                      <span className="text-white">DoorDash</span>
+                      <span className="text-sm text-white">DoorDash</span>
                     </div>
                     <div 
                       onClick={() => {
                         window.open('https://www.ubereats.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank');
                         setOrderDropdownOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/uber-eats.png" alt="Uber Eats" width={20} height={20} className="rounded" />
+                      <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
+                        <Image src="/icons/uber-eats.png" alt="Uber Eats" width={16} height={16} className="rounded" />
                       </div>
-                      <span className="text-white">Uber Eats</span>
+                      <span className="text-sm text-white">Uber Eats</span>
                     </div>
                     <div 
                       onClick={() => {
                         window.open('https://postmates.com/store/side-hustle-bar/n5ak1cjlRvuf0Hefn7Iddw', '_blank');
                         setOrderDropdownOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 bg-white rounded-full p-0.5 flex items-center justify-center">
-                        <Image src="/icons/postmates.png" alt="Postmates" width={20} height={20} className="rounded" />
+                      <div className="w-5 h-5 bg-white rounded-full p-0.5 flex items-center justify-center">
+                        <Image src="/icons/postmates.png" alt="Postmates" width={16} height={16} className="rounded" />
                       </div>
-                      <span className="text-white">Postmates</span>
+                      <span className="text-sm text-white">Postmates</span>
                     </div>
                   </div>
                 </div>
@@ -182,9 +185,9 @@ export default function Page() {
       </div>
 
       {/* Featured Section */}
-      <section className="pt-20 pb-20 px-4 bg-zinc-900">
+      <section className="pt-16 pb-16 px-4 bg-zinc-900">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-serif text-center mb-12">Signature Tacos & Craft Cocktails</h2>
+          <h2 className="text-3xl md:text-4xl font-serif text-center mb-8">Signature Tacos & Craft Cocktails</h2>
           
           {/* Food & Drink Carousel */}
           <div className="mb-16">
@@ -228,42 +231,42 @@ export default function Page() {
 
           {/* Chef Rebecca's Culinary Leadership */}
           <div className="max-w-4xl mx-auto text-center mb-20">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif mb-4 text-white leading-tight">
               Executive Chef Rebecca Sanchez's <span className="text-red-400">Culinary Vision</span>
             </h3>
-            <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg text-white/90 mb-6 leading-relaxed max-w-3xl mx-auto">
               Under Chef Rebecca's leadership, our kitchen has become the talk of Salem. Every dish is crafted with passion, 
               from our signature birria that melts in your mouth to our innovative fusion creations that push boundaries. 
               With house-made salsas prepared fresh daily and locally-sourced ingredients whenever possible, 
               we're not just serving food – we're creating experiences.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-12">
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Utensils className="h-8 w-8 text-white" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-8">
+              <div className="text-center p-3">
+                <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Utensils className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Legendary Birria</h3>
-                <p className="text-sm sm:text-base text-white/80">
+                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Legendary Birria</h3>
+                <p className="text-xs sm:text-sm text-white/80">
                   Our birria tacos, ramen, and burritos have earned a cult following, with tender meat 
                   slow-cooked to perfection in our secret blend of spices.
                 </p>
               </div>
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Star className="h-8 w-8 text-white" />
+              <div className="text-center p-3">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Star className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">House-Made Everything</h3>
-                <p className="text-sm sm:text-base text-white/80">
+                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">House-Made Everything</h3>
+                <p className="text-xs sm:text-sm text-white/80">
                   From our "bomb" salsas to fresh guacamole and hand-pressed tortillas, 
                   we believe authentic flavor comes from doing things the right way.
                 </p>
               </div>
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-white" />
+              <div className="text-center p-3">
+                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-3 text-white">Value Meets Quality</h3>
-                <p className="text-sm sm:text-base text-white/80">
+                <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Value Meets Quality</h3>
+                <p className="text-xs sm:text-sm text-white/80">
                   With most dishes between $10-20, we prove that exceptional Mexican cuisine 
                   doesn't have to break the bank.
                 </p>
@@ -273,45 +276,45 @@ export default function Page() {
         </div>
       </section>
       {/* Oregon's UFC House Section */}
-      <section className="py-12 sm:py-16 lg:py-20 px-4 bg-black">
+      <section className="py-8 sm:py-12 lg:py-16 px-4 bg-black">
         <div className="container mx-auto">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 text-white leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif mb-4 text-white leading-tight">
                   Oregon's Premier <span className="text-red-400">UFC House</span>
                 </h2>
-                <p className="text-lg text-white/90 mb-6 leading-relaxed">
+                <p className="text-base text-white/90 mb-4 leading-relaxed">
                   We've earned our reputation as the ultimate fight destination with multiple large screens, 
                   no cover charges, and an electric atmosphere that draws capacity crowds for every major event. 
                   Whether it's UFC, boxing, or your favorite team's big game, our state-of-the-art viewing setup 
                   ensures you won't miss a second of the action.
                 </p>
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-white/90 text-lg">Multiple 75" screens throughout the venue</span>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-sm">Multiple 75" screens throughout the venue</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-white/90 text-lg">No cover charge for UFC events</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-sm">No cover charge for UFC events</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-white/90 text-lg">Premium sound system for full immersion</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-sm">Premium sound system for full immersion</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-white/90 text-lg">VIP table reservations available</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span className="text-white/90 text-sm">VIP table reservations available</span>
                   </div>
                 </div>
                 <Link href="/wolfpack">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg font-semibold rounded-full">
+                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 text-base font-semibold rounded-full">
                     Join the Wolf Pack
                   </Button>
                 </Link>
               </div>
-              <div className="relative h-[400px] rounded-xl overflow-hidden shadow-2xl">
+              <div className="relative h-[350px] rounded-xl overflow-hidden shadow-2xl">
                 <Image 
                   src="/icons/ufc-section.jpeg"
                   alt="UFC Night at Side Hustle Bar"
@@ -320,8 +323,8 @@ export default function Page() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white font-semibold text-lg">Experience the Energy</p>
-                  <p className="text-white/80">Every fight, every round, every knockout</p>
+                  <p className="text-white font-semibold text-base">Experience the Energy</p>
+                  <p className="text-white/80 text-sm">Every fight, every round, every knockout</p>
                 </div>
               </div>
             </div>
@@ -646,6 +649,9 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* Footer - Only on main page */}
+      <Footer />
 
     </div>
   );
