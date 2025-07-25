@@ -61,6 +61,21 @@ export function Footer() {
               <h3 className="text-2xl font-bold text-white mb-3">Salem Location</h3>
               <div className="h-1 w-16 bg-gradient-to-r from-orange-600 to-orange-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
+            
+            {/* Salem Location Image */}
+            <div className="relative h-48 rounded-xl overflow-hidden">
+              <Image
+                src="/icons/salem-location.jpg"
+                alt="Side Hustle Bar Salem Location"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-2 left-3">
+                <p className="text-white font-semibold text-sm">Historic Downtown Salem</p>
+              </div>
+            </div>
+            
             <div className="space-y-5">
               <div className="flex items-center space-x-3">
                 <div className="h-10 w-10 bg-orange-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -102,6 +117,21 @@ export function Footer() {
               <h3 className="text-2xl font-bold text-white mb-3">Portland Location</h3>
               <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mx-auto lg:mx-0"></div>
             </div>
+            
+            {/* Portland Location Image */}
+            <div className="relative h-64 rounded-xl overflow-hidden">
+              <Image
+                src="/icons/portland-side-hustle.jpg"
+                alt="Side Hustle Bar Portland Location"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-2 left-3">
+                <p className="text-white font-semibold text-sm">Downtown Portland</p>
+              </div>
+            </div>
+            
             <div className="space-y-5">
               <div className="flex items-center space-x-3">
                 <div className="h-10 w-10 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -234,7 +264,7 @@ export function Footer() {
           </div>
           
           <div className="text-base text-gray-500">
-            Founded by <span className="text-white font-semibold">James Mullins</span> • 
+            Founded by <span className="text-white font-semibold">James Mullins</span> & <span className="text-white font-semibold">Becky Sanchez Mullins</span> • 
             Crafted with <span className="text-orange-500">❤️</span> for the Wolf Pack
           </div>
         </div>
