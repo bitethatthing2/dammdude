@@ -70,69 +70,71 @@ export default function Page() {
         />
         
         {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-32 md:pt-40 pb-32 overflow-visible">
+        <div className="absolute inset-0 flex flex-col justify-center items-center z-10 px-4 text-center pt-24 sm:pt-32 md:pt-40 pb-20 sm:pb-32 overflow-y-auto">
           {/* Combined Logo with Wolf and Title */}
-          <div className="mb-4 mt-8 md:mt-12 animate-fade-in">
+          <div className="mb-2 sm:mb-4 mt-4 sm:mt-8 md:mt-12 animate-fade-in">
             <Image 
               src={`/icons/wolf-and-title.png?v=${Date.now()}`}
               alt="Side Hustle Bar"
               width={400}
               height={200}
-              className="mx-auto w-full max-w-[200px] md:max-w-[280px] lg:max-w-[350px] h-auto"
+              className="mx-auto w-full max-w-[160px] sm:max-w-[200px] md:max-w-[280px] lg:max-w-[350px] h-auto"
               priority
               unoptimized
             />
           </div>
           
           {/* Main Hero Text */}
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 max-w-4xl leading-tight drop-shadow-2xl px-4">
+          <h1 className="text-lg sm:text-xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 max-w-4xl leading-tight drop-shadow-2xl px-2 sm:px-4">
             Experience Salem's Best Tacos
             <br />
             <span className="text-red-500 font-serif">7 Days a Week</span>
           </h1>
           
           {/* Subtitle */}
-          <p className="text-sm sm:text-base md:text-lg text-white/90 mb-6 max-w-2xl leading-relaxed drop-shadow-lg px-4">
+          <p className="text-xs sm:text-sm md:text-lg text-white/90 mb-3 sm:mb-6 max-w-2xl leading-relaxed drop-shadow-lg px-2 sm:px-4">
             Authentic flavors, vibrant atmosphere, and unforgettable experiences at both locations
           </p>
           
           {/* Dual Location & Hours Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mb-6 mx-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 max-w-4xl lg:max-w-6xl mb-6 mx-auto px-2">
             {/* Salem Location Card */}
-            <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl border border-white/20">
+            <div className="backdrop-blur-lg bg-black/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-6 shadow-2xl border border-white/20">
               <div className="text-white text-center">
-                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-3">Salem Location</h3>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <p className="font-medium">145 Liberty St NE Suite #101</p>
+                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-red-500 mb-2 lg:mb-3">Salem Location</h3>
+                <div className="space-y-1 lg:space-y-2 text-[10px] sm:text-xs lg:text-sm">
+                  <p className="font-medium hidden sm:block">145 Liberty St NE Suite #101</p>
+                  <p className="font-medium block sm:hidden">145 Liberty St NE</p>
                   <p className="font-medium">Salem, OR 97301</p>
                   <p className="font-semibold text-yellow-400">📞 (503) 391-9977</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/20">
-                  <h4 className="text-sm font-bold text-red-400 mb-2">Hours</h4>
-                  <div className="space-y-1 text-xs">
-                    <p><span className="font-medium">Mon-Thu:</span> 10AM - 12AM</p>
-                    <p><span className="font-medium">Fri-Sat:</span> 10AM - 2AM</p>
-                    <p><span className="font-medium">Sunday:</span> 10AM - 12AM</p>
+                <div className="mt-2 lg:mt-4 pt-2 lg:pt-3 border-t border-white/20">
+                  <h4 className="text-xs sm:text-sm font-bold text-red-400 mb-1 lg:mb-2">Hours</h4>
+                  <div className="space-y-0.5 lg:space-y-1 text-[9px] sm:text-[10px] lg:text-xs">
+                    <p><span className="font-medium">M-Th:</span> 10AM-12AM</p>
+                    <p><span className="font-medium">F-Sa:</span> 10AM-2AM</p>
+                    <p><span className="font-medium">Sun:</span> 10AM-12AM</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Portland Location Card */}
-            <div className="backdrop-blur-lg bg-black/50 rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl border border-white/20">
+            <div className="backdrop-blur-lg bg-black/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-6 shadow-2xl border border-white/20">
               <div className="text-white text-center">
-                <h3 className="text-base sm:text-lg font-bold text-red-500 mb-3">Portland Location</h3>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <p className="font-medium">327 SW Morrison Street</p>
+                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-red-500 mb-2 lg:mb-3">Portland Location</h3>
+                <div className="space-y-1 lg:space-y-2 text-[10px] sm:text-xs lg:text-sm">
+                  <p className="font-medium hidden sm:block">327 SW Morrison Street</p>
+                  <p className="font-medium block sm:hidden">327 SW Morrison</p>
                   <p className="font-medium">Portland, OR 97204</p>
                   <p className="font-semibold text-yellow-400">📞 (503) 555-0123</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/20">
-                  <h4 className="text-sm font-bold text-red-400 mb-2">Hours</h4>
-                  <div className="space-y-1 text-xs">
-                    <p><span className="font-medium">Mon-Thu:</span> 11AM - 1AM</p>
-                    <p><span className="font-medium">Fri-Sat:</span> 11AM - 3AM</p>
-                    <p><span className="font-medium">Sunday:</span> 11AM - 1AM</p>
+                <div className="mt-2 lg:mt-4 pt-2 lg:pt-3 border-t border-white/20">
+                  <h4 className="text-xs sm:text-sm font-bold text-red-400 mb-1 lg:mb-2">Hours</h4>
+                  <div className="space-y-0.5 lg:space-y-1 text-[9px] sm:text-[10px] lg:text-xs">
+                    <p><span className="font-medium">M-Th:</span> 11AM-1AM</p>
+                    <p><span className="font-medium">F-Sa:</span> 11AM-3AM</p>
+                    <p><span className="font-medium">Sun:</span> 11AM-1AM</p>
                   </div>
                 </div>
               </div>
