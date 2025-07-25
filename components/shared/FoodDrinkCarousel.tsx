@@ -516,11 +516,11 @@ export function FoodDrinkCarousel() {
 
   return (
     <div className="relative w-full">
-      {/* Filter Buttons */}
-      <div className="flex justify-center gap-3 mb-8">
+      {/* Compact Filter Buttons */}
+      <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
         <button
           onClick={() => handleFilterChange('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm border ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm border ${
             activeFilter === 'all'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
@@ -530,24 +530,24 @@ export function FoodDrinkCarousel() {
         </button>
         <button
           onClick={() => handleFilterChange('food')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm border ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-1 sm:gap-2 shadow-sm border ${
             activeFilter === 'food'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
           }`}
         >
-          <Utensils className="h-4 w-4" />
+          <Utensils className="h-3 w-3 sm:h-4 sm:w-4" />
           Food
         </button>
         <button
           onClick={() => handleFilterChange('drink')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm border ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-1 sm:gap-2 shadow-sm border ${
             activeFilter === 'drink'
               ? 'bg-red-600 text-white border-red-600 shadow-lg transform scale-105'
               : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-600 hover:shadow-md'
           }`}
         >
-          <Wine className="h-4 w-4" />
+          <Wine className="h-3 w-3 sm:h-4 sm:w-4" />
           Drinks
         </button>
       </div>
@@ -576,8 +576,8 @@ export function FoodDrinkCarousel() {
                 className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={() => setSelectedItem(item)}
               >
-                {/* Large Featured Image */}
-                <div className="aspect-[4/3] relative overflow-hidden">
+                {/* Compact Featured Image */}
+                <div className="aspect-[4/3] sm:aspect-[4/3] md:aspect-[4/3] relative overflow-hidden">
                   <Image 
                     src={item.image}
                     alt={item.name}
@@ -587,33 +587,33 @@ export function FoodDrinkCarousel() {
                   />
                 </div>
                 
-                {/* Content Section */}
-                <div className="p-4">
+                {/* Compact Content Section */}
+                <div className="p-2 sm:p-3">
                   {/* Category Label */}
-                  <div className="mb-2">
+                  <div className="mb-1">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                       {item.category}
                     </span>
                   </div>
                   
                   {/* Item Name & Price */}
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 leading-tight">
                       {item.name}
                     </h3>
-                    <span className="text-lg font-bold text-red-600 ml-3">
+                    <span className="text-sm sm:text-base font-bold text-red-600 ml-2">
                       {item.price}
                     </span>
                   </div>
                   
-                  {/* Description */}
-                  <p className="text-gray-700 text-xs leading-relaxed mb-3 line-clamp-3">
-                    {item.description}
+                  {/* Shortened Description - Mobile Only */}
+                  <p className="text-gray-700 text-xs leading-relaxed mb-2 line-clamp-2 sm:line-clamp-3">
+                    {item.description.length > 80 ? `${item.description.substring(0, 80)}...` : item.description}
                   </p>
                   
-                  {/* Features */}
+                  {/* Features - Hide on mobile */}
                   {item.features && (
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="hidden sm:flex flex-wrap gap-1 mb-2">
                       {item.features.slice(0, 2).map((feature, index) => (
                         <span key={index} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                           {feature}
@@ -622,7 +622,7 @@ export function FoodDrinkCarousel() {
                     </div>
                   )}
                   
-                  {/* Type Badge */}
+                  {/* Type Badge - Compact */}
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${
                       item.type === 'food' 
@@ -633,8 +633,8 @@ export function FoodDrinkCarousel() {
                       {item.type === 'food' ? 'Food' : 'Drink'}
                     </span>
                     
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-                      View Details
+                    <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-red-600 hover:bg-red-700 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold">
+                      Details
                     </button>
                   </div>
                 </div>
