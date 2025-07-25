@@ -78,7 +78,7 @@ export default function Page() {
               alt="Side Hustle Bar"
               width={400}
               height={200}
-              className="mx-auto w-full max-w-[160px] sm:max-w-[200px] md:max-w-[280px] lg:max-w-[350px] h-auto"
+              className="mx-auto w-full max-w-[240px] sm:max-w-[280px] md:max-w-[350px] lg:max-w-[450px] h-auto"
               priority
               unoptimized
             />

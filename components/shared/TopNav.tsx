@@ -36,9 +36,9 @@ export function TopNav() {
             <Image
               src="/icons/wolf-icon.png"
               alt="Side Hustle"
-              width={40}
-              height={40}
-              className="w-10 h-10"
+              width={56}
+              height={56}
+              className="w-14 h-14"
             />
             <Image
               src="/icons/sidehustle.png"
