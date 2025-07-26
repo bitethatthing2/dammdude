@@ -87,7 +87,8 @@
       "WebFetch(domain:www.margaritafactory.com)",
       "Bash(timeout 90s npm run build:*)",
       "Bash(git remote set-url:*)"
-    ]
+    ],
+    "deny": []
   },
   "enableAllProjectMcpServers": false
 }
