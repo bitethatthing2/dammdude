@@ -94,6 +94,7 @@ const itemImageMapping: { [key: string]: string } = {
   'keto taco': 'keto-tacos.png',
   'queso tacos': 'queso-tacos.png',
   'queso taco': 'queso-tacos.png',
+  'single queso taco': 'single-queso-taco.png',
   'chefa sauce': 'chefa-sauce.png',
   'chicken and waffles': 'chicken-and-waffles.png',
   'hot wings': 'hot-wings.png',
@@ -248,7 +249,18 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     return '/food-menu-images/tacos.png'; // Fallback for food
   };
   
-  const foodImageUrl = baseImageUrl || getFallbackImageUrl(item.category?.type);
+  // Ensure we always have a valid URL, filter out empty strings and normalize path separators
+  let normalizedImageUrl = baseImageUrl;
+  if (normalizedImageUrl && normalizedImageUrl.trim() !== '') {
+    // Normalize backslashes to forward slashes for web URLs
+    normalizedImageUrl = normalizedImageUrl.replace(/\\/g, '/');
+    // Ensure it starts with a forward slash for absolute paths
+    if (!normalizedImageUrl.startsWith('/')) {
+      normalizedImageUrl = '/' + normalizedImageUrl;
+    }
+  }
+  
+  const foodImageUrl = normalizedImageUrl || getFallbackImageUrl(item.category?.type);
   
   // Check if item has a watch-it-made video
   const watchItMadeVideoUrl = getWatchItMadeVideo(item.name, item.description || '');
@@ -265,30 +277,28 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           <div className="md:flex gap-4">
             {/* Image/Video with mobile-first sizing constraints */}
             {foodImageUrl && !imageError ? (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-18 lg:w-28 lg:h-20 rounded-md bg-gray-800 relative flex-shrink-0 p-1 border border-gray-600">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-md overflow-hidden bg-gray-800 relative flex-shrink-0 border border-gray-600">
                 {foodImageUrl.endsWith('.mp4') || foodImageUrl.endsWith('.webm') ? (
                   <VideoPlayer
                     src={foodImageUrl}
-                    className="w-full h-full rounded-sm"
+                    className="w-full h-full object-cover"
                     showControls={false}
                     autoPlay
                     loop
                     muted
                   />
                 ) : (
-                  <div className="w-full h-full rounded-sm overflow-hidden bg-white/5">
-                    <Image
-                      src={foodImageUrl}
-                      alt={item.name}
-                      fill
-                      sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
-                      className="object-contain object-center w-full h-full"
-                      loading="lazy"
-                      placeholder="blur"
-                      blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(64, 64))}`}
-                      onError={() => setImageError(true)}
-                    />
-                  </div>
+                  <Image
+                    src={foodImageUrl}
+                    alt={item.name}
+                    fill
+                    sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
+                    className="object-cover"
+                    loading="lazy"
+                    placeholder="blur"
+                    blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(64, 64))}`}
+                    onError={() => setImageError(true)}
+                  />
                 )}
               </div>
             ) : (
@@ -384,7 +394,18 @@ export function CompactMenuItemCard({ item }: MenuItemCardProps) {
     return '/food-menu-images/tacos.png'; // Fallback for food
   };
   
-  const foodImageUrl = baseImageUrl || getFallbackImageUrl(item.category?.type);
+  // Ensure we always have a valid URL, filter out empty strings and normalize path separators
+  let normalizedImageUrl = baseImageUrl;
+  if (normalizedImageUrl && normalizedImageUrl.trim() !== '') {
+    // Normalize backslashes to forward slashes for web URLs
+    normalizedImageUrl = normalizedImageUrl.replace(/\\/g, '/');
+    // Ensure it starts with a forward slash for absolute paths
+    if (!normalizedImageUrl.startsWith('/')) {
+      normalizedImageUrl = '/' + normalizedImageUrl;
+    }
+  }
+  
+  const foodImageUrl = normalizedImageUrl || getFallbackImageUrl(item.category?.type);
   
   // Check if item has a watch-it-made video
   const watchItMadeVideoUrl = getWatchItMadeVideo(item.name, item.description || '');
@@ -394,28 +415,32 @@ export function CompactMenuItemCard({ item }: MenuItemCardProps) {
       <div className="menu-item-compact flex items-center gap-3 p-2 bg-zinc-800 rounded-lg border border-zinc-600 hover:border-zinc-500 transition-colors">
         {/* Small image/video/color indicator with mobile-first constraints */}
         {foodImageUrl && !imageError ? (
-          <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg bg-gray-800 relative p-1 border border-gray-600">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800 border border-gray-600">
             {foodImageUrl.endsWith('.mp4') || foodImageUrl.endsWith('.webm') ? (
               <VideoPlayer
                 src={foodImageUrl}
-                className="w-full h-full rounded-sm"
+                className="w-full h-full object-cover"
                 showControls={false}
                 autoPlay
                 loop
                 muted
               />
             ) : (
-              <div className="w-full h-full rounded-sm overflow-hidden bg-white/5">
-                <Image
-                  src={foodImageUrl}
-                  alt={item.name}
-                  width={40}
-                  height={40}
-                  className="object-contain object-center w-full h-full"
-                  loading="lazy"
-                  onError={() => setImageError(true)}
-                />
-              </div>
+              <>
+                {foodImageUrl && foodImageUrl.startsWith('/') ? (
+                  <Image
+                    src={foodImageUrl}
+                    alt={item.name}
+                    width={64}
+                    height={64}
+                    className="object-cover w-full h-full"
+                    loading="lazy"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-700" />
+                )}
+              </>
             )}
           </div>
         ) : (

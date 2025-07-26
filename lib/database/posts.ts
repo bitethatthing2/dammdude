@@ -199,7 +199,7 @@ export async function updatePost(
   return data;
 }
 
-export async function deletePost(postId: string): Promise<void> {
+export async function deletePost(postId: string): Promise<boolean> {
   const { data: { user: authUser } } = await supabase.auth.getUser();
 
   if (!authUser) {
@@ -231,6 +231,8 @@ export async function deletePost(postId: string): Promise<void> {
     console.error("Error deleting post:", error);
     throw new Error(`Failed to delete post: ${error.message}`);
   }
+  
+  return true;
 }
 
 export async function incrementViewCount(postId: string): Promise<void> {

@@ -111,13 +111,13 @@ export function useRealtimeFeed({
                   `${video.users?.first_name || ''} ${video.users?.last_name || ''}`.trim() || 
                   'Anonymous',
         avatar_url: video.users?.avatar_url,
-        caption: video.caption || video.description || video.title || '',
+        caption: video.description || video.title || '',
         video_url: video.video_url,
         thumbnail_url: video.thumbnail_url,
         created_at: video.created_at,
         likes_count: video.like_count || 0,
         comments_count: video.comments_count || 0,
-        shares_count: video.shares_count || 0,
+        shares_count: 0, // shares_count not tracked in database yet
         music_name: 'Original Sound',
         hashtags: video.hashtags || [],
         title: video.title,
@@ -193,13 +193,13 @@ export function useRealtimeFeed({
                         `${newVideoData.users?.first_name || ''} ${newVideoData.users?.last_name || ''}`.trim() || 
                         'Anonymous',
               avatar_url: newVideoData.users?.avatar_url,
-              caption: newVideoData.caption || newVideoData.description || newVideoData.title || '',
+              caption: newVideoData.description || newVideoData.title || '',
               video_url: newVideoData.video_url,
               thumbnail_url: newVideoData.thumbnail_url,
               created_at: newVideoData.created_at,
               likes_count: newVideoData.like_count || 0,
               comments_count: newVideoData.comments_count || 0,
-              shares_count: newVideoData.shares_count || 0,
+              shares_count: 0, // shares_count not tracked in database yet
               music_name: 'Original Sound',
               hashtags: newVideoData.hashtags || [],
               title: newVideoData.title,
@@ -231,7 +231,7 @@ export function useRealtimeFeed({
                     ...video,
                     likes_count: payload.new.like_count || video.likes_count,
                     comments_count: payload.new.comments_count || video.comments_count,
-                    shares_count: payload.new.shares_count || video.shares_count,
+                    shares_count: 0, // shares_count not tracked in database yet
                     view_count: payload.new.view_count || video.view_count
                   }
                 : video
