@@ -18,6 +18,9 @@ export default function OptimizedWolfpackFeedPage() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useConsistentAuth();
   const { isMember: isInPack, isLoading: packLoading } = useConsistentWolfpackAccess();
+
+  // Add a key to force remount when user changes
+  const feedKey = user?.id || 'no-user';
   
   // Real-time feed hook
   const {
@@ -276,6 +279,7 @@ export default function OptimizedWolfpackFeedPage() {
   return (
     <>
       <TikTokStyleFeed
+        key={feedKey} // Force remount when user changes
         videos={videos.map(video => {
           // Apply optimistic updates
           const optimisticState = getOptimisticVideoState(video.id, video.likes_count, video.comments_count);

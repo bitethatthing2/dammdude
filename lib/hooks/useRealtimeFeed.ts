@@ -152,13 +152,26 @@ export function useRealtimeFeed({
     }
   }, []);
 
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions - removed loadFeed dependency to prevent re-subscriptions
   useEffect(() => {
     if (!mountedRef.current) return;
 
+    // Clean up any existing channel first
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Reset state when setting up fresh subscription
+    setVideos([]);
+    setLoading(true);
+    setError(null);
+    setCurrentPage(1);
+    setHasMore(true);
+
     // Create channel for real-time updates
     const channel = supabase
-      .channel('wolfpack_feed_updates')
+      .channel(`wolfpack_feed_updates_${Date.now()}`) // Unique channel name to prevent conflicts
       .on(
         'postgres_changes',
         {
@@ -258,15 +271,22 @@ export function useRealtimeFeed({
 
     channelRef.current = channel;
 
-    // Load initial data
-    loadFeed(1);
+    // Load initial data immediately
+    loadFeed(1).catch(err => {
+      console.error('Failed to load initial feed:', err);
+      if (mountedRef.current) {
+        setError('Failed to load feed');
+        setLoading(false);
+      }
+    });
 
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
-  }, [loadFeed]);
+  }, []); // Empty dependency array to only run once per mount
 
   // Cleanup on unmount
   useEffect(() => {
@@ -297,6 +317,13 @@ export function useRealtimeFeed({
   }, []);
 
   const refreshFeed = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
+    // Reset state for fresh load
+    setCurrentPage(1);
+    setHasMore(true);
+    setError(null);
+    
     await loadFeed(1);
   }, [loadFeed]);
 

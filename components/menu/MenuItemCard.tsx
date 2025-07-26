@@ -349,10 +349,10 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 <Button
                   onClick={() => setShowWatchItMadeModal(true)}
                   variant="outline"
-                  className="w-full h-10 sm:h-9 text-sm sm:text-base font-medium touch-manipulation border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500"
+                  className="w-full h-12 sm:h-10 text-sm sm:text-base font-semibold touch-manipulation border-2 border-orange-500/70 text-orange-400 hover:bg-orange-500/15 hover:border-orange-500 hover:text-orange-300 active:scale-95 transition-all duration-200 bg-orange-500/5 shadow-lg shadow-orange-500/20"
                 >
-                  <Play className="w-4 h-4 mr-1.5" />
-                  Watch It Made
+                  <Play className="w-5 h-5 mr-2 sm:w-4 sm:h-4 sm:mr-1.5 fill-current" />
+                  <span className="tracking-wide">Watch It Made</span>
                 </Button>
               )}
             </div>
@@ -465,9 +465,9 @@ export function CompactMenuItemCard({ item }: MenuItemCardProps) {
           <Button
             onClick={() => setShowWatchItMadeModal(true)}
             variant="outline"
-            className="w-8 h-8 p-0 border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500"
+            className="w-10 h-10 sm:w-8 sm:h-8 p-0 border-2 border-orange-500/70 text-orange-400 hover:bg-orange-500/15 hover:border-orange-500 hover:text-orange-300 active:scale-90 transition-all duration-200 bg-orange-500/5 shadow-md shadow-orange-500/20 touch-manipulation"
           >
-            <Play className="w-3 h-3" />
+            <Play className="w-4 h-4 sm:w-3 sm:h-3 fill-current" />
           </Button>
         )}
       </div>
