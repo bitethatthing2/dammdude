@@ -103,30 +103,38 @@ export default function TikTokStyleFeed({
     setLoadedVideos(videos);
   }, [videos]);
 
-  // Load initial stats for videos
+  // Load initial stats for videos - don't block rendering if this fails
   useEffect(() => {
     const loadStats = async () => {
       if (!loadedVideos?.length || !user) return;
       
-      const statsPromises = loadedVideos.map(video => 
-        wolfpackSocialService.getVideoStats(video.id, user.id)
-      );
-      
-      try {
-        const stats = await Promise.all(statsPromises);
-        
-        const newStatsMap = new Map();
-        loadedVideos.forEach((video, index) => {
-          newStatsMap.set(video.id, stats[index]);
-        });
-        
-        setVideoStats(newStatsMap);
-      } catch (error) {
-        console.error('Error loading video stats:', error);
+      // Load stats one by one to avoid blocking on any single failure
+      for (const video of loadedVideos) {
+        try {
+          const stats = await wolfpackSocialService.getVideoStats(video.id, user.id);
+          setVideoStats(prev => {
+            const newMap = new Map(prev);
+            newMap.set(video.id, stats);
+            return newMap;
+          });
+        } catch (error) {
+          console.warn(`Failed to load stats for video ${video.id}:`, error);
+          // Set default stats to allow rendering
+          setVideoStats(prev => {
+            const newMap = new Map(prev);
+            newMap.set(video.id, {
+              likes_count: video.likes_count || 0,
+              comments_count: video.comments_count || 0,
+              user_liked: false
+            });
+            return newMap;
+          });
+        }
       }
     };
     
-    loadStats();
+    // Add a small delay to ensure component renders first
+    setTimeout(loadStats, 100);
   }, [loadedVideos, user]);
 
   // Set up real-time subscriptions for the current video
@@ -411,6 +419,31 @@ export default function TikTokStyleFeed({
       });
     }
   }, [currentCommentVideo]);
+
+  // Show loading state if no videos yet
+  if (!loadedVideos || loadedVideos.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-red-900/50">
+            <Play className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold mb-4 text-white">Wolf Pack Feed</h2>
+          <p className="text-gray-300 mb-6 leading-relaxed">
+            Loading the latest from the pack...
+          </p>
+          {onCreatePost && (
+            <button 
+              onClick={onCreatePost}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105"
+            >
+              🎬 Create Post
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">

@@ -67,14 +67,25 @@ export function useRealtimeFeed({
 
       const offset = (page - 1) * limit;
 
+      console.log(`Loading feed: page ${page}, offset ${offset}, limit ${limit}`);
+
       // First check if we have any data at all
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('wolfpack_videos')
         .select('*', { count: 'exact', head: true })
         .eq('is_active', true);
 
+      if (countError) {
+        console.error('Error getting video count:', countError);
+        if (page === 1) setError('Failed to connect to database');
+        return;
+      }
+
+      console.log(`Total videos available: ${count}`);
+
       // If offset is beyond available data, set hasMore to false and return empty
       if (count !== null && offset >= count) {
+        console.log(`Offset ${offset} beyond available data ${count}`);
         if (!mountedRef.current) return;
         setHasMore(false);
         if (page === 1) setVideos([]);
@@ -99,11 +110,13 @@ export function useRealtimeFeed({
 
       if (videoError) {
         console.error('Error loading videos:', videoError);
-        if (page === 1) setError('Failed to load feed');
+        if (page === 1) setError(`Failed to load feed: ${videoError.message}`);
         return;
       }
 
-      // Transform data
+      console.log(`Loaded ${videoData?.length || 0} videos from database`);
+
+      // Transform data - handle missing columns gracefully
       const transformedVideos: VideoItem[] = (videoData || []).map(video => ({
         id: video.id,
         user_id: video.user_id,
@@ -116,7 +129,7 @@ export function useRealtimeFeed({
         thumbnail_url: video.thumbnail_url,
         created_at: video.created_at,
         likes_count: video.like_count || 0,
-        comments_count: video.comments_count || 0,
+        comments_count: video.comments_count || 0, // Gracefully handle if column doesn't exist
         shares_count: 0, // shares_count not tracked in database yet
         music_name: 'Original Sound',
         hashtags: video.hashtags || [],
@@ -211,7 +224,7 @@ export function useRealtimeFeed({
               thumbnail_url: newVideoData.thumbnail_url,
               created_at: newVideoData.created_at,
               likes_count: newVideoData.like_count || 0,
-              comments_count: newVideoData.comments_count || 0,
+              comments_count: newVideoData.comments_count || 0, // Gracefully handle if column doesn't exist
               shares_count: 0, // shares_count not tracked in database yet
               music_name: 'Original Sound',
               hashtags: newVideoData.hashtags || [],
@@ -243,7 +256,7 @@ export function useRealtimeFeed({
                 ? {
                     ...video,
                     likes_count: payload.new.like_count || video.likes_count,
-                    comments_count: payload.new.comments_count || video.comments_count,
+                    comments_count: payload.new.comments_count !== undefined ? payload.new.comments_count : video.comments_count,
                     shares_count: 0, // shares_count not tracked in database yet
                     view_count: payload.new.view_count || video.view_count
                   }

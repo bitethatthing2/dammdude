@@ -7,6 +7,7 @@ import { Flame, Leaf, Star, Play } from 'lucide-react';
 import WatchItMadeModal from './WatchItMadeModal';
 import Image from 'next/image';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
+import { getFreshImageUrl } from '@/lib/utils/image-cache';
 
 import type { MenuItemWithModifiers, CartOrderData } from '@/types/features/menu';
 
@@ -289,7 +290,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                   />
                 ) : (
                   <Image
-                    src={foodImageUrl}
+                    src={getFreshImageUrl(foodImageUrl)}
                     alt={item.name}
                     fill
                     sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
@@ -429,7 +430,7 @@ export function CompactMenuItemCard({ item }: MenuItemCardProps) {
               <>
                 {foodImageUrl && foodImageUrl.startsWith('/') ? (
                   <Image
-                    src={foodImageUrl}
+                    src={getFreshImageUrl(foodImageUrl)}
                     alt={item.name}
                     width={64}
                     height={64}

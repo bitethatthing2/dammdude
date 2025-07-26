@@ -539,7 +539,7 @@ export function FoodDrinkCarousel() {
   const [itemsPerView, setItemsPerView] = useState(2);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'food' | 'drink'>('all');
-  const [selectedItem, setSelectedItem] = useState<CarouselItem | null>(null);
+  // Removed selectedItem state - no modal on click
   
   // Touch handling states
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -698,8 +698,7 @@ export function FoodDrinkCarousel() {
               style={{ width: `${100 / filteredItems.length}%` }}
             >
               <div 
-                className="group bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg hover:shadow-2xl border border-gray-700 hover:border-gray-600 transition-all duration-300 cursor-pointer overflow-hidden"
-                onClick={() => setSelectedItem(item)}
+                className="group bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg hover:shadow-2xl border border-gray-700 hover:border-gray-600 transition-all duration-300 overflow-hidden"
               >
                 {/* Professional Featured Image/Video */}
                 <div className="aspect-[4/3] relative bg-gradient-to-br from-gray-800 to-gray-900">
@@ -773,9 +772,6 @@ export function FoodDrinkCarousel() {
                       {item.type === 'food' ? 'Food' : 'Drink'}
                     </span>
                     
-                    <button className="opacity-0 group-hover:opacity-100 transition-all duration-300 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transform translate-y-1 group-hover:translate-y-0 shadow-lg">
-                      View Details
-                    </button>
                   </div>
                 </div>
               </div>
@@ -807,98 +803,6 @@ export function FoodDrinkCarousel() {
 
 
 
-      {/* Professional Item Detail Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto border border-gray-700 shadow-2xl">
-            <div className="relative">
-              {/* Hero Image Section */}
-              <div className="aspect-[16/9] relative rounded-t-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
-                {selectedItem.image.endsWith('.mp4') || selectedItem.image.endsWith('.webm') ? (
-                  <VideoPlayer
-                    src={selectedItem.image}
-                    className="w-full h-full object-cover"
-                    showControls={true}
-                    autoPlay
-                    loop
-                    muted
-                  />
-                ) : (
-                  <Image 
-                    src={selectedItem.image}
-                    alt={selectedItem.name}
-                    fill
-                    className="object-cover object-center"
-                  />
-                )}
-                
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                
-                {/* Close button */}
-                <button 
-                  onClick={() => setSelectedItem(null)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-black/70 backdrop-blur-sm hover:bg-black/90 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                >
-                  ×
-                </button>
-                
-                {/* Price badge */}
-                <div className="absolute bottom-4 right-4">
-                  <span className="bg-red-600 text-white px-4 py-2 rounded-full text-lg font-bold shadow-xl">
-                    {selectedItem.price}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Content Section */}
-              <div className="p-6">
-                <div className="mb-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold text-white">{selectedItem.name}</h2>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${
-                      selectedItem.type === 'food' 
-                        ? 'bg-orange-600 text-white' 
-                        : 'bg-blue-600 text-white'
-                    }`}>
-                      {selectedItem.type === 'food' ? <Utensils className="h-4 w-4" /> : <Wine className="h-4 w-4" />}
-                      {selectedItem.type === 'food' ? 'Food' : 'Beverage'}
-                    </span>
-                  </div>
-                  <p className="text-red-400 font-semibold text-sm uppercase tracking-wider">{selectedItem.category}</p>
-                </div>
-                
-                <p className="text-gray-300 text-base leading-relaxed mb-6">{selectedItem.description}</p>
-                
-                {selectedItem.features && (
-                  <div className="mb-6">
-                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      Features
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedItem.features.map((feature, index) => (
-                        <span key={index} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm font-medium transition-colors">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex gap-3 pt-4 border-t border-gray-700">
-                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-xl text-base font-semibold transition-all duration-200 hover:scale-105 shadow-lg">
-                    View Full Menu
-                  </button>
-                  <button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl text-base font-semibold transition-all duration-200 hover:scale-105 border border-gray-600">
-                    Order Online
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

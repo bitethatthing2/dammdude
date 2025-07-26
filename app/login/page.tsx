@@ -2,10 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -280,38 +276,49 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-background p-4 pb-20">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+    <div className="flex justify-center items-center min-h-screen bg-black p-4 pb-20 relative">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-900/5 via-black to-zinc-900/10" />
+      
+      <div className="relative w-full max-w-md bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-zinc-800 shadow-2xl shadow-black/50">
+        {/* Logo or brand icon */}
+        <div className="flex justify-center pt-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <span className="text-2xl font-bold text-white">SH</span>
+          </div>
+        </div>
+        
+        <div className="p-8 space-y-1">
+          <h1 className="text-2xl font-bold text-center text-white">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground text-center">
+          </h1>
+          <p className="text-sm text-zinc-400 text-center">
             {isSignUp 
-              ? 'Join the Wolfpack and start your journey'
+              ? 'Join the Side Hustle Bar community'
               : 'Sign in to your account to continue'
             }
           </p>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-8 pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
-                <Input 
+                <label htmlFor="displayName" className="text-sm font-medium text-zinc-300">Display Name</label>
+                <input 
                   id="displayName"
                   type="text" 
                   placeholder="Your name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required={isSignUp}
+                  className="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none transition-colors"
                 />
               </div>
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
+              <label htmlFor="email" className="text-sm font-medium text-zinc-300">Email</label>
+              <input 
                 id="email"
                 type="email" 
                 placeholder="your@email.com"
@@ -319,26 +326,25 @@ export default function UnifiedLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                className="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none transition-colors"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <label htmlFor="password" className="text-sm font-medium text-zinc-300">Password</label>
               <div className="relative">
-                <Input 
+                <input 
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete={isSignUp ? "new-password" : "current-password"}
-                  className="pr-10"
+                  className="w-full px-3 py-2 pr-10 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none transition-colors"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="absolute right-0 top-0 h-full px-3 py-2 text-zinc-400 hover:text-white transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -347,28 +353,26 @@ export default function UnifiedLoginPage() {
                   ) : (
                     <Eye className="h-4 w-4" />
                   )}
-                </Button>
+                </button>
               </div>
             </div>
 
             {isSignUp && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-300">Confirm Password</label>
                 <div className="relative">
-                  <Input 
+                  <input 
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     autoComplete="new-password"
-                    className="pr-10"
+                    className="w-full px-3 py-2 pr-10 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none transition-colors"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-zinc-400 hover:text-white transition-colors"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                   >
@@ -377,47 +381,46 @@ export default function UnifiedLoginPage() {
                     ) : (
                       <Eye className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
             
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm">
                 {error}
               </div>
             )}
             
-            <Button 
+            <button 
               type="submit" 
-              className="w-full" 
+              className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               {isLoading ? (
-                <>
+                <span className="flex items-center justify-center">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {isSignUp ? 'Creating Account...' : 'Signing In...'}
-                </>
+                </span>
               ) : (
                 isSignUp ? 'Create Account' : 'Sign In'
               )}
-            </Button>
+            </button>
           </form>
           
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-6 text-center">
+            <p className="text-sm text-zinc-400">
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-              <Button
-                variant="link"
-                className="pl-1 text-sm"
+              <button
+                className="ml-1 text-orange-400 hover:text-orange-300 font-medium transition-colors"
                 onClick={toggleMode}
               >
                 {isSignUp ? 'Sign In' : 'Sign Up'}
-              </Button>
+              </button>
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

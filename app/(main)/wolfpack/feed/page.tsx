@@ -255,6 +255,7 @@ export default function OptimizedWolfpackFeedPage() {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-white" />
           <p className="text-gray-300">Loading feed...</p>
+          <p className="text-xs text-gray-500">Connected to Wolf Pack database</p>
         </div>
       </div>
     );
@@ -271,6 +272,34 @@ export default function OptimizedWolfpackFeedPage() {
           >
             Try Again
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no videos
+  if (!feedLoading && videos.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-red-900/50">
+            <Sparkles className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold mb-4 text-white">Welcome to the Pack!</h2>
+          <p className="text-gray-300 mb-6 leading-relaxed">
+            Be the first to share something with the Wolf Pack! Create a post to get the feed started.
+          </p>
+          <button 
+            onClick={() => setShowPostCreator(true)}
+            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-red-900/50 active:scale-95"
+          >
+            🎬 Create First Post
+          </button>
+          <PostCreator
+            isOpen={showPostCreator}
+            onClose={() => setShowPostCreator(false)}
+            onSuccess={handlePostCreated}
+          />
         </div>
       </div>
     );

@@ -8,8 +8,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import React from 'react';
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // Global flags to prevent multiple operations
 let isRegistrationInProgress = false;
 let registrationPromise: Promise<string | null> | null = null;
@@ -47,7 +45,7 @@ const storeTokenInSupabase = async (tokenToStore: string): Promise<boolean> => {
     }
 
     // Call the Edge Function to store the token
-    const { data, error } = await supabase.functions.invoke('store-fcm-token', {
+    const { data, error } = await supabase.functions.invoke(' user_fcm_tokens', {
       body: { 
         token: tokenToStore,
         platform: 'web' // You can detect the actual platform here

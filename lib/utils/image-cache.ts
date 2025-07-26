@@ -2,9 +2,29 @@
  * Image cache utilities for handling browser caching issues
  */
 
+// Get stored version or use current timestamp
+const getStoredVersion = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('imageVersion') || Date.now().toString();
+  }
+  return Date.now().toString();
+};
+
 // Version timestamp that can be updated when images change
 // To force refresh all images, update this value
-const IMAGE_VERSION = '1738177200'; // Updated to force cache refresh - 2025-01-29
+const IMAGE_VERSION = getStoredVersion();
+
+/**
+ * Force refresh all cached images by updating the version
+ */
+export function forceClearImageCache() {
+  if (typeof window !== 'undefined') {
+    const newVersion = Date.now().toString();
+    localStorage.setItem('imageVersion', newVersion);
+    // Reload the page to apply new cache version
+    window.location.reload();
+  }
+}
 
 /**
  * Add cache-busting parameter to image URLs
@@ -68,4 +88,24 @@ export function getSmartCacheBustedUrl(src: string): string {
   }
   
   return src;
+}
+
+/**
+ * Clear browser cache for images (more aggressive approach)
+ */
+export async function clearBrowserImageCache() {
+  if ('caches' in window) {
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+      console.log('Browser caches cleared');
+    } catch (error) {
+      console.error('Failed to clear caches:', error);
+    }
+  }
+  
+  // Also clear the version and reload
+  forceClearImageCache();
 }
