@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase';
 import { Database } from "@/types/database.types";
 
 type WolfpackVideo = Database["public"]["Tables"]["wolfpack_videos"]["Row"] & {

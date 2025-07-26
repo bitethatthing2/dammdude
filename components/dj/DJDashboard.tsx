@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { useDJPermissions } from '@/hooks/useDJPermissions';
 import { useDJDashboard } from '@/hooks/useDJDashboard';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { EngagementScoringService } from '@/lib/services/engagement-scoring.service';
 import type { Database } from '@/types/database.types';

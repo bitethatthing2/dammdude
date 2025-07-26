@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
-import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import { createServerClient } from '@/lib/supabase/server';
+import { WolfpackBackendService, WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack';
+import { WolfpackService } from '@/lib/services/wolfpack';
 import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
@@ -260,7 +260,7 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
     throw new Error('Authentication required');
   }
 
-  const authResult = await WolfpackAuthService.verifyUser(user);
+  const authResult = await WolfpackService.auth.verifyUser(user);
   if (!authResult.isVerified) {
     throw new Error('User verification failed');
   }
@@ -273,7 +273,7 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
 // =============================================================================
 
 async function getEventDetails(eventId: string): Promise<EventData> {
-  const eventResult = await WolfpackBackendService.select(
+  const eventResult = await WolfpackService.backend.select(
     WOLFPACK_TABLES.EVENTS,
     '*',
     { id: eventId },
@@ -344,7 +344,7 @@ async function validateVote(event: EventData, voteData: VoteRequest): Promise<vo
 
 async function checkExistingVote(eventId: string, userId: string): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data, error } = await supabase
       .from('wolf_pack_votes')
       .select('id')
@@ -365,7 +365,7 @@ async function checkExistingVote(eventId: string, userId: string): Promise<boole
 }
 
 async function createVote(eventId: string, userId: string, voteData: VoteRequest): Promise<VoteData> {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   const voteRecord: Database['public']['Tables']['wolf_pack_votes']['Insert'] = {
     event_id: eventId,
@@ -445,8 +445,8 @@ async function sendConfirmationMessage(
   voteData: VoteRequest
 ): Promise<void> {
   try {
-    const supabase = await createClient();
-    const displayName = WolfpackAuthService.getUserDisplayName(user);
+    const supabase = await createServerClient();
+    const displayName = WolfpackService.auth.getUserDisplayName(user);
     
     let confirmationMessage: string;
     switch (event.event_type) {
@@ -475,7 +475,7 @@ async function sendConfirmationMessage(
       session_id: `location_${event.location_id}`,
       user_id: user.id,
       display_name: displayName,
-      avatar_url: WolfpackAuthService.getUserAvatarUrl(user),
+      avatar_url: WolfpackService.auth.getUserAvatarUrl(user),
       content: confirmationMessage,
       message_type: 'text',
       is_flagged: false,
@@ -503,7 +503,7 @@ export async function POST(
   let eventId: string | undefined;
   
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // 1. Authentication
     const user = await authenticateUser(supabase);
@@ -618,7 +618,7 @@ export async function GET(
   let eventId: string | undefined;
   
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // 1. Authentication
     const user = await authenticateUser(supabase);

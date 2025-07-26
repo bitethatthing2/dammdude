@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { CommentReactionService } from '@/lib/services/comment-reaction.service';
 
 interface CommentReactionsProps {
@@ -14,7 +14,8 @@ export const CommentReactions = ({ commentId, className = '' }: CommentReactions
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [userReactions, setUserReactions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const supabase = createClient();
+  // Using singleton instance
+// const supabase is already imported;
   const reactionService = new CommentReactionService(supabase);
 
   const reactionTypes = ['👍', '❤️', '😂', '😮', '😢', '😡'];

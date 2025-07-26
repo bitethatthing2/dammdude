@@ -1,5 +1,5 @@
 // lib/utils/user-mapping.ts
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 
 /**
  * Utility functions for handling user ID mapping between auth and database
@@ -19,7 +19,7 @@ export interface DatabaseUser {
  * Handles both direct auth_id mapping and fallback scenarios
  */
 export async function getDatabaseUserId(authUserId: string): Promise<string | null> {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   try {
     // First try to find by auth_id
@@ -56,7 +56,7 @@ export async function getDatabaseUserId(authUserId: string): Promise<string | nu
  * Get full database user info from auth user ID
  */
 export async function getDatabaseUser(authUserId: string): Promise<DatabaseUser | null> {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   try {
     // First try to find by auth_id
@@ -93,7 +93,7 @@ export async function getDatabaseUser(authUserId: string): Promise<DatabaseUser 
  * This is useful for new signups
  */
 export async function ensureUserExists(authUser: { id: string; email?: string }): Promise<string | null> {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   try {
     // Check if user already exists
@@ -134,7 +134,7 @@ export async function getAuthenticatedDatabaseUserId(): Promise<{
   userId?: string; 
   error?: string; 
 }> {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();

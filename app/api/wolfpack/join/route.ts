@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WolfpackMembershipService } from '@/lib/services/wolfpack-membership.service';
-import { WolfpackLocationService } from '@/lib/services/wolfpack-location.service';
-import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
-import { WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
+import { createServerClient } from '@/lib/supabase/server';
+import { WolfpackService } from '@/lib/services/wolfpack';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -21,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { location_id, latitude, longitude, profile_data } = body;
 
     // Verify user authentication
-    const authResult = await WolfpackAuthService.verifyUser(user);
+    const authResult = await WolfpackService.auth.verifyUser(user);
     if (!authResult.isVerified) {
       return NextResponse.json(
         { error: authResult.error || 'User verification failed', code: 'AUTH_ERROR' },
@@ -38,7 +35,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const locationResult = await WolfpackLocationService.verifyUserLocation();
+      const locationResult = await WolfpackService.location.verifyUserLocation();
       if (!locationResult.isAtLocation) {
         return NextResponse.json(
           {
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Join the pack
     const joinData = {
-      display_name: profile_data?.display_name || WolfpackAuthService.getUserDisplayName(user),
+      display_name: profile_data?.display_name || WolfpackService.auth.getUserDisplayName(user),
       emoji: profile_data?.emoji || '🐺',
       current_vibe: profile_data?.current_vibe || 'Ready to party!',
       favorite_drink: profile_data?.favorite_drink,
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
       longitude
     };
 
-    const result = await WolfpackMembershipService.joinPack(user, joinData, location_id);
+    const result = await WolfpackService.membership.joinPack(user, joinData, location_id);
 
     if (!result.success) {
       return NextResponse.json(

@@ -3,7 +3,7 @@
  * Provides controlled, optimized access to all data operations
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 // Simple error handling without external dependency
 const errorService = {
   logError: (error: Error, context: string) => {
@@ -41,7 +41,7 @@ interface CacheEntry<T> {
 
 class DataService {
   private cache = new Map<string, CacheEntry<any>>();
-  private supabase = createClient();
+  private supabase = supabase;
   private defaultTimeout = 5000;
   private defaultCacheTTL = 300000; // 5 minutes
 

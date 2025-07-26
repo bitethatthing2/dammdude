@@ -1,5 +1,5 @@
 // Authentication debugging utilities
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 export interface AuthDebugInfo {
   supabaseConnection: boolean;
   environmentVars: boolean;

@@ -1,6 +1,6 @@
 // lib/hooks/useUser.ts
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 

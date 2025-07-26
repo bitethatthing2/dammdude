@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useConsistentAuth } from '@/lib/hooks/useConsistentAuth';
 import { useConsistentWolfpackAccess } from '@/lib/hooks/useConsistentWolfpackAccess';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import TikTokStyleFeed from '@/components/wolfpack/feed/TikTokStyleFeed';
 import { PostCreator } from '@/components/wolfpack/PostCreator';
 import ShareModal from '@/components/wolfpack/ShareModal';
@@ -286,7 +286,8 @@ export default function WolfpackFeedPage() {
       if (feedType === 'following') {
         response = await fetchFollowingFeed(nextPage, 10, user.id);
       } else {
-        response = await fetchFeedItems(nextPage, 10);
+        // Pass current user ID to enable optimizations and prevent N+1 queries
+        response = await fetchFeedItems(nextPage, 10, undefined, user.id);
       }
 
       if (response.items.length > 0) {

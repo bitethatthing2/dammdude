@@ -5,7 +5,7 @@ import { errorService, ErrorSeverity, ErrorCategory } from '@/lib/services/error
 import { dataService } from '@/lib/services/data-service'
 import { authService, Permission } from '@/lib/services/auth-service'
 import { AvatarWithFallback } from '@/components/shared/ImageWithFallback'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 // Location IDs from database

@@ -9338,6 +9338,10 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
+      example_efficient_feed_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       expire_old_wolfpack_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -11063,6 +11067,40 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_wolfpack_feed_with_details: {
+        Args: {
+          p_user_id?: string
+          p_feed_type?: string
+          p_location?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          post_id: string
+          user_id: string
+          username: string
+          display_name: string
+          avatar_url: string
+          verified: boolean
+          is_vip: boolean
+          media_url: string
+          media_type: string
+          content: string
+          visibility: string
+          views_count: number
+          likes_count: number
+          comments_count: number
+          shares_count: number
+          created_at: string
+          location_name: string
+          user_has_liked: boolean
+          user_has_saved: boolean
+          is_following: boolean
+          latest_comments: Json
+          liked_by_friends: Json
+          engagement_score: number
+        }[]
+      }
       get_wolfpack_following_feed: {
         Args: { p_user_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -11073,22 +11111,23 @@ export type Database = {
           avatar_url: string
           verified: boolean
           is_vip: boolean
-          video_url: string
-          thumbnail_url: string
-          caption: string
-          duration_seconds: number
-          view_count: number
-          like_count: number
-          comment_count: number
-          share_count: number
+          media_url: string
+          media_type: string
+          content: string
+          visibility: string
+          views_count: number
+          likes_count: number
+          comments_count: number
+          shares_count: number
           created_at: string
           location_name: string
           user_has_liked: boolean
           user_has_saved: boolean
+          is_following: boolean
         }[]
       }
       get_wolfpack_for_you_feed: {
-        Args: { p_user_id?: string; p_limit?: number; p_offset?: number }
+        Args: { p_user_id: string; p_limit?: number; p_offset?: number }
         Returns: {
           post_id: string
           user_id: string
@@ -11097,14 +11136,14 @@ export type Database = {
           avatar_url: string
           verified: boolean
           is_vip: boolean
-          video_url: string
-          thumbnail_url: string
-          caption: string
-          duration_seconds: number
-          view_count: number
-          like_count: number
-          comment_count: number
-          share_count: number
+          media_url: string
+          media_type: string
+          content: string
+          visibility: string
+          views_count: number
+          likes_count: number
+          comments_count: number
+          shares_count: number
           created_at: string
           location_name: string
           user_has_liked: boolean
@@ -11119,30 +11158,32 @@ export type Database = {
       }
       get_wolfpack_location_feed: {
         Args: {
-          p_user_id: string
-          p_city: string
+          p_location: string
+          p_user_id?: string
           p_limit?: number
           p_offset?: number
         }
         Returns: {
           post_id: string
           user_id: string
-          wolfpack_location_id: string
-          video_url: string
-          thumbnail_url: string
-          caption: string
-          duration_seconds: number
-          view_count: number
-          like_count: number
-          comment_count: number
-          share_count: number
-          created_at: string
           username: string
           display_name: string
           avatar_url: string
+          verified: boolean
+          is_vip: boolean
+          media_url: string
+          media_type: string
+          content: string
+          visibility: string
+          views_count: number
+          likes_count: number
+          comments_count: number
+          shares_count: number
+          created_at: string
           location_name: string
           user_has_liked: boolean
-          engagement_score: number
+          user_has_saved: boolean
+          is_following: boolean
         }[]
       }
       get_wolfpack_members: {
@@ -11213,6 +11254,24 @@ export type Database = {
       get_wolfpack_metrics: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_wolfpack_posts_comments: {
+        Args: { p_post_ids: string[]; p_limit_per_post?: number }
+        Returns: {
+          post_id: string
+          comments: Json
+        }[]
+      }
+      get_wolfpack_posts_interactions: {
+        Args: { p_user_id: string; p_post_ids: string[] }
+        Returns: {
+          post_id: string
+          user_has_liked: boolean
+          user_has_saved: boolean
+          total_likes: number
+          total_comments: number
+          is_following_author: boolean
+        }[]
       }
       get_wolfpack_stats: {
         Args: Record<PropertyKey, never>

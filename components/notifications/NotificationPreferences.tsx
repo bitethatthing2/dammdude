@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { Bell, Check, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';

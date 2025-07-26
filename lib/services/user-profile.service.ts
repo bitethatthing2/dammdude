@@ -3,7 +3,7 @@
  * Centralizes all user profile operations with proper typing and error handling
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 // Enhanced user profile type for Wolfpack functionality
@@ -56,7 +56,7 @@ export interface UserProfileUpdate {
 }
 
 export class UserProfileService {
-  private supabase = createClient();
+  private supabase = supabase;
 
   /**
    * Get user profile by ID (internal database ID) or by auth ID

@@ -1,6 +1,6 @@
 
 // Fallback handlers for missing RPC functions after schema migration
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 const supabase = createClient();
 

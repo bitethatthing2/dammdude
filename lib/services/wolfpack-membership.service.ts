@@ -1,7 +1,7 @@
-import { WolfpackAuthService } from './wolfpack-auth.service';
+import { WolfpackService } from './wolfpack-auth.service';
 import { WolfpackLocationService, type LocationKey, SIDE_HUSTLE_LOCATIONS } from './wolfpack-location.service';
 import type { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export interface MembershipStatus {
   isActive: boolean;
@@ -89,7 +89,7 @@ export class WolfpackMembershipService {
         };
       }
 
-      const locationKey = data.location_id ? WolfpackLocationService.getLocationKeyById(data.location_id) : null;
+      const locationKey = data.location_id ? WolfpackService.location.getLocationKeyById(data.location_id) : null;
 
       return {
         isActive: true,
@@ -125,7 +125,7 @@ export class WolfpackMembershipService {
   ): Promise<JoinResult> {
     try {
       // Verify user authentication
-      const authResult = await WolfpackAuthService.verifyUser(user);
+      const authResult = await WolfpackService.auth.verifyUser(user);
       if (!authResult.isVerified) {
         return {
           success: false,
@@ -142,7 +142,7 @@ export class WolfpackMembershipService {
           targetLocationId = SIDE_HUSTLE_LOCATIONS.salem.id;
         } else {
           // Regular users need location verification
-          const locationResult = await WolfpackLocationService.verifyUserLocation();
+          const locationResult = await WolfpackService.location.verifyUserLocation();
           if (!locationResult.isAtLocation || !locationResult.locationId) {
             return {
               success: false,

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X, Link, Facebook, Twitter, MessageCircle, Mail, Download } from 'lucide-react';
 import { getZIndexClass } from '@/lib/constants/z-index';
 import { toast } from '@/components/ui/use-toast';
-import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { wolfpackSocialService } from '@/lib/services/wolfpack';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 interface ShareModalProps {

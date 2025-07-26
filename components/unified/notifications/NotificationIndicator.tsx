@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

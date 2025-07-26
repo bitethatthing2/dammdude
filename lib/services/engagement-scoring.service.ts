@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // Define the WolfpackLiveStats type if not already defined
 export interface WolfpackLiveStats {

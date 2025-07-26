@@ -14,7 +14,7 @@ import {
   Archive
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import BroadcastCleanupManager from '@/components/admin/BroadcastArchiveManager';
 

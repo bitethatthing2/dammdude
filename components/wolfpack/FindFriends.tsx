@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { wolfpackSocialService } from '@/lib/services/wolfpack';
 import { toast } from '@/components/ui/use-toast';
 
 interface WolfpackUser {

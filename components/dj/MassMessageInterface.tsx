@@ -29,7 +29,7 @@ import {
   Wand2,
   MapPin
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { 
   BroadcastType,

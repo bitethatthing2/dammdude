@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Video, Upload, RotateCcw, Clock, Zap, Send, Type } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { useAuthenticatedFeature } from '@/hooks/useFeatureFlag';

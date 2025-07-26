@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -28,7 +28,8 @@ export default function VideoPage() {
 
   const fetchPost = async () => {
     try {
-      const supabase = createClient();
+      // Using singleton instance
+// const supabase is already imported;
       
       // Fetch post data with proper video_id relationships
       const { data: postData, error } = await supabase
@@ -101,7 +102,8 @@ export default function VideoPage() {
 
   const handleLike = async () => {
     try {
-      const supabase = createClient();
+      // Using singleton instance
+// const supabase is already imported;
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {

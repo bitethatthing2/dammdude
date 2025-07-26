@@ -3,7 +3,7 @@
  * Provides complete control over user security and permissions
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { errorService, ErrorSeverity, ErrorCategory } from './error-service';
 import { dataService } from './data-service';
 
@@ -101,7 +101,7 @@ interface SignupData {
 }
 
 class AuthService {
-  private supabase = createClient();
+  private client = supabase;
   private currentUser: AuthUser | null = null;
   private authListeners: ((user: AuthUser | null) => void)[] = [];
   private permissionCache = new Map<string, Permission[]>();
@@ -177,7 +177,7 @@ class AuthService {
   async initialize(): Promise<void> {
     try {
       // Get current session
-      const { data: { session }, error } = await this.supabase.auth.getSession();
+      const { data: { session }, error } = await this.client.auth.getSession();
       
       if (error) {
         throw errorService.handleAuthError(error);
@@ -189,7 +189,7 @@ class AuthService {
       }
 
       // Listen for auth changes
-      this.supabase.auth.onAuthStateChange(async (event, session) => {
+      this.client.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           await this.loadUserProfile(session.user.id);
           this.setupSessionRefresh();
@@ -214,7 +214,7 @@ class AuthService {
     try {
       const { email, password, rememberMe = false } = credentials;
 
-      const { data, error } = await this.supabase.auth.signInWithPassword({
+      const { data, error } = await this.client.auth.signInWithPassword({
         email,
         password
       });
@@ -272,7 +272,7 @@ class AuthService {
       }
 
       // Sign up with Supabase Auth
-      const { data, error } = await this.supabase.auth.signUp({
+      const { data, error } = await this.client.auth.signUp({
         email,
         password,
         options: {
@@ -318,7 +318,7 @@ class AuthService {
    */
   async signOut(): Promise<void> {
     try {
-      const { error } = await this.supabase.auth.signOut();
+      const { error } = await this.client.auth.signOut();
       
       if (error) {
         throw errorService.handleAuthError(error, {
@@ -536,7 +536,7 @@ class AuthService {
                           'User';
       
       await dataService.executeQuery(
-        () => this.supabase
+        () => this.client
           .from('users')
           .insert({
             auth_id: authUser.id,
@@ -562,7 +562,7 @@ class AuthService {
   private async updateLoginMetadata(userId: string): Promise<void> {
     try {
       await dataService.executeQuery(
-        () => this.supabase
+        () => this.client
           .from('users')
           .update({
             last_login: new Date().toISOString()
@@ -587,7 +587,7 @@ class AuthService {
 
     // Refresh session every 30 minutes
     this.sessionRefreshTimer = setInterval(() => {
-      this.supabase.auth.refreshSession();
+      this.client.auth.refreshSession();
     }, 30 * 60 * 1000);
   }
 

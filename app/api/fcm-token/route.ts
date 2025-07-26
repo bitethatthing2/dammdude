@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { validateFcmToken, initializeFirebaseAdmin, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
 
 // Interface for the request body containing the FCM token
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Initialize Supabase client
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // Check if token already exists
     const { data: existingToken, error: checkError } = await supabase

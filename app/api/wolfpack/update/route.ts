@@ -1,12 +1,12 @@
 // app/api/wolfpack/update/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { getDatabaseUserId } from '@/lib/utils/user-mapping';
 import { sanitizeMessage, sanitizeDisplayName } from '@/lib/utils/input-sanitization';
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

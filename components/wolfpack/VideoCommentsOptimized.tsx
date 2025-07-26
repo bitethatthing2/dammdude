@@ -13,7 +13,7 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { getZIndexClass } from '@/lib/constants/z-index';
 import { toast } from '@/components/ui/use-toast';

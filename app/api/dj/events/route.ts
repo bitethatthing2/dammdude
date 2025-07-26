@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import type { User } from '@supabase/supabase-js';
 
 // =============================================================================
@@ -170,7 +170,7 @@ function generateChatAnnouncement(eventType: string, title: string): string {
 
 export async function POST(request: NextRequest): Promise<NextResponse<CreateEventResponse | ErrorResponse>> {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // 1. Authentication
     const user = await authenticateUser(supabase);

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
-import { supabase } from '@/lib/supabase/client';
+import { wolfpackSocialService } from '@/lib/services/wolfpack';
+import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { 
   ArrowLeft, 

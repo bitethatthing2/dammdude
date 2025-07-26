@@ -20,7 +20,7 @@ import {
   Sparkles,
   Activity
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface SocialFeature {
   id: string;

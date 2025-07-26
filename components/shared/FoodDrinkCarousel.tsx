@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Utensils, Wine, Star, DollarSign } from 'lucide-react';
+import { VideoPlayer } from '@/components/ui/VideoPlayer';
 
 interface CarouselItem {
   id: string;
@@ -29,16 +30,6 @@ const carouselItems: CarouselItem[] = [
   },
   { 
     id: '2', 
-    name: 'Birria Consommé', 
-    image: '/food-menu-images/birria-consume.png', 
-    type: 'food', 
-    description: 'Rich, flavorful birria broth perfect for dipping or enjoying on its own.',
-    price: '$2.00',
-    category: 'Sides',
-    features: ['Traditional Recipe', 'Perfect for Dipping']
-  },
-  { 
-    id: '3', 
     name: 'Birria Pizza', 
     image: '/food-menu-images/birria-tacos.png', 
     type: 'food', 
@@ -48,7 +39,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Unique Creation', 'Shareable']
   },
   { 
-    id: '4', 
+    id: '3', 
     name: 'Birria Flautas', 
     image: '/food-menu-images/flautas.png', 
     type: 'food', 
@@ -58,7 +49,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Crispy Corn Tortilla', 'With Consommé']
   },
   { 
-    id: '5', 
+    id: '4', 
     name: 'Birria Ramen Bowl', 
     image: '/food-menu-images/hustle-bowl.png', 
     type: 'food', 
@@ -70,7 +61,7 @@ const carouselItems: CarouselItem[] = [
 
   // Breakfast Items
   { 
-    id: '6', 
+    id: '5', 
     name: 'Chicken & Waffles', 
     image: '/food-menu-images/chicken-and-waffles.png', 
     type: 'food', 
@@ -80,7 +71,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Southern Style', 'Sweet & Savory']
   },
   { 
-    id: '7', 
+    id: '6', 
     name: 'Chilaquiles Green', 
     image: '/food-menu-images/CHILAQUILES.PNG', 
     type: 'food', 
@@ -90,7 +81,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Traditional Recipe', 'Green Salsa']
   },
   { 
-    id: '8', 
+    id: '7', 
     name: 'Chilaquiles Red', 
     image: '/food-menu-images/CHILAQUILES.PNG', 
     type: 'food', 
@@ -100,7 +91,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Traditional Recipe', 'Red Salsa']
   },
   { 
-    id: '9', 
+    id: '8', 
     name: 'Chorizo & Potato Breakfast Burrito', 
     image: '/food-menu-images/ham-and-potatoe-burrito.png', 
     type: 'food', 
@@ -110,7 +101,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Breakfast Item', 'Spicy Chorizo']
   },
   { 
-    id: '10', 
+    id: '9', 
     name: 'Ham & Potato Breakfast Burrito', 
     image: '/food-menu-images/ham-and-potatoe-burrito.png', 
     type: 'food', 
@@ -120,7 +111,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Breakfast Item', 'Hearty']
   },
   { 
-    id: '11', 
+    id: '10', 
     name: 'Monchi Pancakes', 
     image: '/food-menu-images/pancakes.jpg', 
     type: 'food', 
@@ -130,7 +121,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Fluffy', 'House Special']
   },
   { 
-    id: '12', 
+    id: '11', 
     name: 'Asada & Bacon', 
     image: '/food-menu-images/asada-burrito.png', 
     type: 'food', 
@@ -142,7 +133,7 @@ const carouselItems: CarouselItem[] = [
 
   // Main Dishes
   { 
-    id: '13', 
+    id: '12', 
     name: 'Tacos', 
     image: '/food-menu-images/tacos.png', 
     type: 'food', 
@@ -152,7 +143,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Authentic', 'Multiple Meats Available']
   },
   { 
-    id: '14', 
+    id: '13', 
     name: 'Single Queso Taco', 
     image: '/food-menu-images/queso-tacos.png', 
     type: 'food', 
@@ -162,7 +153,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Extra Cheesy', 'Grilled Crispy']
   },
   { 
-    id: '15', 
+    id: '14', 
     name: 'Mulita', 
     image: '/food-menu-images/mulitas.png', 
     type: 'food', 
@@ -172,7 +163,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Crispy & Golden', 'Comfort Food']
   },
   { 
-    id: '16', 
+    id: '15', 
     name: 'Vampiros', 
     image: '/food-menu-images/vampiros.png', 
     type: 'food', 
@@ -182,7 +173,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Street Food Style', 'Crispy Base']
   },
   { 
-    id: '17', 
+    id: '16', 
     name: 'Empanadas', 
     image: '/food-menu-images/empanadas.png', 
     type: 'food', 
@@ -192,7 +183,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Golden Pastry', 'Multiple Fillings']
   },
   { 
-    id: '18', 
+    id: '17', 
     name: 'Flautas (4)', 
     image: '/food-menu-images/flautas.png', 
     type: 'food', 
@@ -202,7 +193,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Crispy Rolled', '4 Pieces']
   },
   { 
-    id: '19', 
+    id: '18', 
     name: 'Quesadilla', 
     image: '/food-menu-images/quesadilla.png', 
     type: 'food', 
@@ -212,7 +203,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Kid Friendly', 'Customizable']
   },
   { 
-    id: '20', 
+    id: '19', 
     name: 'Torta', 
     image: '/food-menu-images/torta.png', 
     type: 'food', 
@@ -222,7 +213,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Mexican Sandwich', 'Toasted Bread']
   },
   { 
-    id: '21', 
+    id: '20', 
     name: 'Hustle Bowl', 
     image: '/food-menu-images/hustle-bowl.png', 
     type: 'food', 
@@ -232,7 +223,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Build Your Own', 'Healthy Options']
   },
   { 
-    id: '22', 
+    id: '21', 
     name: 'Taco Salad', 
     image: '/food-menu-images/taco-salad.png', 
     type: 'food', 
@@ -242,7 +233,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Fresh', 'Crispy Bowl']
   },
   { 
-    id: '23', 
+    id: '22', 
     name: 'Loaded Nachos', 
     image: '/food-menu-images/loaded-nacho.png', 
     type: 'food', 
@@ -252,7 +243,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Shareable', 'Half Order $11.00']
   },
   { 
-    id: '24', 
+    id: '23', 
     name: 'Loaded Nachos (Cheese Only)', 
     image: '/food-menu-images/loaded-nacho.png', 
     type: 'food', 
@@ -262,7 +253,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Vegetarian', 'Cheese Only']
   },
   { 
-    id: '25', 
+    id: '24', 
     name: 'Loaded Fries', 
     image: '/food-menu-images/loaded-fries.png', 
     type: 'food', 
@@ -274,7 +265,7 @@ const carouselItems: CarouselItem[] = [
 
   // Seafood
   { 
-    id: '26', 
+    id: '25', 
     name: 'Fried Fish Tacos (2)', 
     image: '/food-menu-images/fish-tacos.png', 
     type: 'food', 
@@ -284,7 +275,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Fresh Fish', '2 Tacos']
   },
   { 
-    id: '27', 
+    id: '26', 
     name: 'Fried Shrimp Tacos (2)', 
     image: '/food-menu-images/shrimp-tacos.png', 
     type: 'food', 
@@ -296,7 +287,7 @@ const carouselItems: CarouselItem[] = [
 
   // Wings
   { 
-    id: '28', 
+    id: '27', 
     name: '4 Wings', 
     image: '/food-menu-images/hot-wings.png', 
     type: 'food', 
@@ -306,7 +297,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Multiple Sauces', '4 Pieces']
   },
   { 
-    id: '29', 
+    id: '28', 
     name: '8 Wings', 
     image: '/food-menu-images/hot-wings.png', 
     type: 'food', 
@@ -316,7 +307,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Multiple Sauces', '8 Pieces']
   },
   { 
-    id: '30', 
+    id: '29', 
     name: 'Family Wing Pack (20 Wings)', 
     image: '/food-menu-images/hot-wings.png', 
     type: 'food', 
@@ -328,7 +319,7 @@ const carouselItems: CarouselItem[] = [
 
   // Keto
   { 
-    id: '31', 
+    id: '30', 
     name: 'Keto Taco', 
     image: '/food-menu-images/keto-tacos.png', 
     type: 'food', 
@@ -340,7 +331,7 @@ const carouselItems: CarouselItem[] = [
 
   // Specials
   { 
-    id: '32', 
+    id: '31', 
     name: '3 Tacos Beans and Rice', 
     image: '/food-menu-images/3-tacos-beans-rice.png', 
     type: 'food', 
@@ -350,7 +341,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Complete Meal', 'Choice of Meat']
   },
   { 
-    id: '33', 
+    id: '32', 
     name: 'Mango Ceviche', 
     image: '/food-menu-images/mango-civeche.png', 
     type: 'food', 
@@ -360,7 +351,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Fresh', 'Citrus Marinated']
   },
   { 
-    id: '34', 
+    id: '33', 
     name: 'Pork Chop Platter', 
     image: '/food-menu-images/porkchop-platter.png', 
     type: 'food', 
@@ -372,7 +363,7 @@ const carouselItems: CarouselItem[] = [
 
   // Small Bites
   { 
-    id: '35', 
+    id: '34', 
     name: 'Basket of Fries', 
     image: '/food-menu-images/basket-of-fries.png', 
     type: 'food', 
@@ -382,7 +373,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Crispy', 'Choice of Sauce']
   },
   { 
-    id: '36', 
+    id: '35', 
     name: 'Basket of Tots', 
     image: '/food-menu-images/basket-of-tots.png', 
     type: 'food', 
@@ -392,7 +383,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Crispy', 'Popular Side']
   },
   { 
-    id: '37', 
+    id: '36', 
     name: 'Chips, Guac and Salsa', 
     image: '/food-menu-images/chips-guac-salsa.png', 
     type: 'food', 
@@ -404,7 +395,7 @@ const carouselItems: CarouselItem[] = [
 
   // Sides
   { 
-    id: '38', 
+    id: '37', 
     name: 'Rice', 
     image: '/food-menu-images/rice.png', 
     type: 'food', 
@@ -414,7 +405,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Fluffy', 'Flavorful']
   },
   { 
-    id: '39', 
+    id: '38', 
     name: 'Beans', 
     image: '/food-menu-images/beans.png', 
     type: 'food', 
@@ -424,7 +415,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Seasoned', 'Traditional']
   },
   { 
-    id: '40', 
+    id: '39', 
     name: 'Beans and Rice', 
     image: '/food-menu-images/beans-and-rice.png', 
     type: 'food', 
@@ -436,7 +427,7 @@ const carouselItems: CarouselItem[] = [
 
   // DRINKS - Margaritas
   { 
-    id: '41', 
+    id: '40', 
     name: 'Hustle Margarita', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -446,7 +437,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Signature Drink', 'Premium Tequila']
   },
   { 
-    id: '42', 
+    id: '41', 
     name: 'Skinny Margarita', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -456,7 +447,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Low Calorie', 'Fresh Lime']
   },
   { 
-    id: '43', 
+    id: '42', 
     name: 'Spicy Margarita', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -468,7 +459,7 @@ const carouselItems: CarouselItem[] = [
 
   // House Favorites
   { 
-    id: '44', 
+    id: '43', 
     name: 'Paloma', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -478,7 +469,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Refreshing', 'Citrus Forward']
   },
   { 
-    id: '45', 
+    id: '44', 
     name: 'Michelada', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -488,7 +479,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Authentic Mexican', 'Savory & Spicy']
   },
   { 
-    id: '46', 
+    id: '45', 
     name: 'Bloody Mary', 
     image: '/drink-menu-images/margarita-boards.png', 
     type: 'drink', 
@@ -500,7 +491,7 @@ const carouselItems: CarouselItem[] = [
 
   // Beer
   { 
-    id: '47', 
+    id: '46', 
     name: 'Corona', 
     image: '/drink-menu-images/boards.png', 
     type: 'drink', 
@@ -510,7 +501,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Mexican Lager', 'Ice Cold']
   },
   { 
-    id: '48', 
+    id: '47', 
     name: 'Modelo', 
     image: '/drink-menu-images/boards.png', 
     type: 'drink', 
@@ -522,7 +513,7 @@ const carouselItems: CarouselItem[] = [
 
   // Boards & Towers
   { 
-    id: '49', 
+    id: '48', 
     name: 'Margarita Board', 
     image: '/drink-menu-images/boards.png', 
     type: 'drink', 
@@ -532,7 +523,7 @@ const carouselItems: CarouselItem[] = [
     features: ['Shareable', 'Multiple Flavors']
   },
   { 
-    id: '50', 
+    id: '49', 
     name: 'Hustle Margarita Tower', 
     image: '/drink-menu-images/boards.png', 
     type: 'drink', 
@@ -707,68 +698,83 @@ export function FoodDrinkCarousel() {
               style={{ width: `${100 / filteredItems.length}%` }}
             >
               <div 
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
+                className="group bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg hover:shadow-2xl border border-gray-700 hover:border-gray-600 transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={() => setSelectedItem(item)}
               >
-                {/* Compact Featured Image */}
-                <div className="aspect-[3/2] sm:aspect-[3/2] md:aspect-[5/4] relative overflow-hidden">
-                  <Image 
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                </div>
-                
-                {/* Compact Content Section */}
-                <div className="p-2 sm:p-2 md:p-3">
-                  {/* Category Label */}
-                  <div className="mb-1">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      {item.category}
-                    </span>
-                  </div>
+                {/* Professional Featured Image/Video */}
+                <div className="aspect-[4/3] relative bg-gradient-to-br from-gray-800 to-gray-900">
+                  {item.image.endsWith('.mp4') || item.image.endsWith('.webm') ? (
+                    <VideoPlayer
+                      src={item.image}
+                      className="w-full h-full object-cover"
+                      showControls={false}
+                      autoPlay
+                      loop
+                      muted
+                    />
+                  ) : (
+                    <Image 
+                      src={item.image}
+                      alt={item.name}
+                      fill
+                      className="object-cover object-center group-hover:scale-110 transition-transform duration-700"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  )}
+                  {/* Gradient overlay for better text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   
-                  {/* Item Name & Price */}
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 leading-tight">
-                      {item.name}
-                    </h3>
-                    <span className="text-xs sm:text-sm md:text-base font-bold text-red-600 ml-2">
+                  {/* Price badge */}
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
                       {item.price}
                     </span>
                   </div>
                   
-                  {/* Shortened Description - Mobile Only */}
-                  <p className="text-gray-700 text-xs leading-relaxed mb-2 line-clamp-2 sm:line-clamp-3">
-                    {item.description.length > 80 ? `${item.description.substring(0, 80)}...` : item.description}
+                  {/* Category badge */}
+                  <div className="absolute top-3 left-3">
+                    <span className="bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wider">
+                      {item.category}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Professional Content Section */}
+                <div className="p-4">
+                  {/* Item Name */}
+                  <h3 className="text-base sm:text-lg font-bold text-white leading-tight mb-2 group-hover:text-red-400 transition-colors duration-300">
+                    {item.name}
+                  </h3>
+                  
+                  {/* Description */}
+                  <p className="text-gray-300 text-sm leading-relaxed mb-3 line-clamp-2">
+                    {item.description.length > 100 ? `${item.description.substring(0, 100)}...` : item.description}
                   </p>
                   
-                  {/* Features - Hide on mobile */}
+                  {/* Features */}
                   {item.features && (
-                    <div className="hidden sm:flex flex-wrap gap-1 mb-2">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {item.features.slice(0, 2).map((feature, index) => (
-                        <span key={index} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                        <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs font-medium">
                           {feature}
                         </span>
                       ))}
                     </div>
                   )}
                   
-                  {/* Type Badge - Compact */}
+                  {/* Bottom section */}
                   <div className="flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
                       item.type === 'food' 
-                        ? 'bg-orange-100 text-orange-600' 
-                        : 'bg-blue-100 text-blue-600'
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-blue-600 text-white'
                     }`}>
                       {item.type === 'food' ? <Utensils className="h-3 w-3" /> : <Wine className="h-3 w-3" />}
                       {item.type === 'food' ? 'Food' : 'Drink'}
                     </span>
                     
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-red-600 hover:bg-red-700 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold">
-                      Details
+                    <button className="opacity-0 group-hover:opacity-100 transition-all duration-300 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transform translate-y-1 group-hover:translate-y-0 shadow-lg">
+                      View Details
                     </button>
                   </div>
                 </div>
@@ -801,54 +807,78 @@ export function FoodDrinkCarousel() {
 
 
 
-      {/* Item Detail Modal */}
+      {/* Professional Item Detail Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto border border-white/20">
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-1">{selectedItem.name}</h2>
-                  <p className="text-red-400 font-semibold">{selectedItem.category}</p>
-                </div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto border border-gray-700 shadow-2xl">
+            <div className="relative">
+              {/* Hero Image Section */}
+              <div className="aspect-[16/9] relative rounded-t-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                {selectedItem.image.endsWith('.mp4') || selectedItem.image.endsWith('.webm') ? (
+                  <VideoPlayer
+                    src={selectedItem.image}
+                    className="w-full h-full object-cover"
+                    showControls={true}
+                    autoPlay
+                    loop
+                    muted
+                  />
+                ) : (
+                  <Image 
+                    src={selectedItem.image}
+                    alt={selectedItem.name}
+                    fill
+                    className="object-cover object-center"
+                  />
+                )}
+                
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                
+                {/* Close button */}
                 <button 
                   onClick={() => setSelectedItem(null)}
-                  className="text-white/60 hover:text-white text-xl"
+                  className="absolute top-4 right-4 w-10 h-10 bg-black/70 backdrop-blur-sm hover:bg-black/90 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
                 >
                   ×
                 </button>
-              </div>
-              
-              <div className="aspect-video relative rounded-xl overflow-hidden mb-3">
-                <Image 
-                  src={selectedItem.image}
-                  alt={selectedItem.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-white">{selectedItem.price}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                    selectedItem.type === 'food' 
-                      ? 'bg-red-600 text-white' 
-                      : 'bg-blue-600 text-white'
-                  }`}>
-                    {selectedItem.type === 'food' ? <Utensils className="h-4 w-4" /> : <Wine className="h-4 w-4" />}
-                    {selectedItem.type === 'food' ? 'Food Item' : 'Beverage'}
+                
+                {/* Price badge */}
+                <div className="absolute bottom-4 right-4">
+                  <span className="bg-red-600 text-white px-4 py-2 rounded-full text-lg font-bold shadow-xl">
+                    {selectedItem.price}
                   </span>
                 </div>
+              </div>
+              
+              {/* Content Section */}
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-2xl font-bold text-white">{selectedItem.name}</h2>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${
+                      selectedItem.type === 'food' 
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-blue-600 text-white'
+                    }`}>
+                      {selectedItem.type === 'food' ? <Utensils className="h-4 w-4" /> : <Wine className="h-4 w-4" />}
+                      {selectedItem.type === 'food' ? 'Food' : 'Beverage'}
+                    </span>
+                  </div>
+                  <p className="text-red-400 font-semibold text-sm uppercase tracking-wider">{selectedItem.category}</p>
+                </div>
                 
-                <p className="text-sm text-white/90 leading-relaxed">{selectedItem.description}</p>
+                <p className="text-gray-300 text-base leading-relaxed mb-6">{selectedItem.description}</p>
                 
                 {selectedItem.features && (
-                  <div>
-                    <h4 className="text-sm text-white font-semibold mb-2">Features:</h4>
+                  <div className="mb-6">
+                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      Features
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedItem.features.map((feature, index) => (
-                        <span key={index} className="px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded-full text-xs text-white/90">
+                        <span key={index} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm font-medium transition-colors">
                           {feature}
                         </span>
                       ))}
@@ -856,11 +886,11 @@ export function FoodDrinkCarousel() {
                   </div>
                 )}
                 
-                <div className="flex gap-2 pt-3">
-                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors">
+                <div className="flex gap-3 pt-4 border-t border-gray-700">
+                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-xl text-base font-semibold transition-all duration-200 hover:scale-105 shadow-lg">
                     View Full Menu
                   </button>
-                  <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors backdrop-blur-sm border border-white/20">
+                  <button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl text-base font-semibold transition-all duration-200 hover:scale-105 border border-gray-600">
                     Order Online
                   </button>
                 </div>

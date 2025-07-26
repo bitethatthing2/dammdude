@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { cleanupAndResetAuth } from '@/lib/utils/cookie-utils';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export function AuthFixButton() {

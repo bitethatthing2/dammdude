@@ -1,6 +1,6 @@
 // hooks/useChat.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 // Import message utilities - these need to be implemented

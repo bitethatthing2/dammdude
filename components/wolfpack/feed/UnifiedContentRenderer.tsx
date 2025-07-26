@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import ContentCard from './ContentCard';
 // PackDollarSystem functionality integrated into TikTok-style Wolfpack Local Pack
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 // Export the UnifiedContentItem interface for use in other components

@@ -5,7 +5,7 @@ import { CenteredModal } from '@/components/shared/CenteredModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AvatarWithFallback } from '@/components/shared/ImageWithFallback';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useUser } from '@/hooks/useUser';
 import { useRouter } from 'next/navigation';
 import { formatJoinDate, formatLastSeen } from '@/lib/utils/date-utils';

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface BroadcastStatusUpdate {
   status: 'active' | 'completed' | 'expired';
@@ -16,14 +16,13 @@ interface CleanupStats {
 }
 
 export class BroadcastStatusService {
-  private static supabase = createClient();
 
   /**
    * Mark a broadcast as expired (will be deleted in 14 days)
    */
   static async expireBroadcast(broadcastId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('dj_broadcasts')
         .update({
           status: 'expired',
@@ -48,7 +47,7 @@ export class BroadcastStatusService {
    */
   static async completeBroadcast(broadcastId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('dj_broadcasts')
         .update({
           status: 'completed',
@@ -127,7 +126,7 @@ export class BroadcastStatusService {
    */
   static async getBroadcast(broadcastId: string): Promise<any> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('dj_broadcasts')
         .select('*')
         .eq('id', broadcastId)
@@ -194,7 +193,7 @@ export class BroadcastStatusService {
    */
   static async getCleanupStatus(): Promise<CleanupStats | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('broadcast_cleanup_status')
         .select('*')
         .single();
@@ -216,7 +215,7 @@ export class BroadcastStatusService {
    */
   static async getCleanupHistory(limit: number = 7): Promise<any[]> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('broadcast_cleanup_log')
         .select('*')
         .order('cleanup_date', { ascending: false })
@@ -239,7 +238,7 @@ export class BroadcastStatusService {
    */
   static async triggerManualCleanup(): Promise<{ success: boolean; message: string }> {
     try {
-      const { data, error } = await this.supabase.functions.invoke('broadcast-daily-cleanup');
+      const { data, error } = await supabase.functions.invoke('broadcast-daily-cleanup');
       
       if (error) {
         return { success: false, message: error.message };

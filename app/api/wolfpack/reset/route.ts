@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
+import { createServerClient } from '@/lib/supabase/server';
+import { WOLFPACK_TABLES, WolfpackErrorHandler } from '@/lib/services/wolfpack';
 
 // Types for better type safety
 interface ResetOperation {
@@ -19,7 +19,7 @@ interface Location {
 export async function POST(request: NextRequest) {
   try {
     // Initialize Supabase client early for admin verification
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // Verify admin access or cron secret
     const authHeader = request.headers.get('authorization');
@@ -222,7 +222,7 @@ export async function GET() {
     }
 
     // Get last reset info from system messages
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data: lastResetMessage } = await supabase
       .from(WOLFPACK_TABLES.WOLF_CHAT) // Using the correct property name
       .select('created_at, content')

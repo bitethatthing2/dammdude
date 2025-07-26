@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // Centralized location configuration - from scattered definitions
 export const SIDE_HUSTLE_LOCATIONS = {

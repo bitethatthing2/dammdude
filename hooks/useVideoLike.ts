@@ -2,14 +2,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { LikeService } from '@/lib/services/like.service';
 
 export const useVideoLike = (videoId: string, initialLiked = false, initialCount = 0) => {
   const [liked, setLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
+  // Using singleton instance
+// const supabase is already imported;
   const likeService = new LikeService(supabase);
 
   // Load initial like status

@@ -25,6 +25,7 @@ import MenuCategoryNav from './MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from './MenuItemCard';
 import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
+import { AppInstallSection } from './AppInstallSection';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createCartItem, ItemCustomization } from '@/types/features/wolfpack-unified';
 import type {
@@ -272,7 +273,8 @@ export default function OptimizedMenu() {
         }
 
         const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
+        // Using singleton instance
+// const supabase is already imported;
         const channel = supabase
           .channel('menu_updates_optimized')
           .on(
@@ -475,6 +477,11 @@ export default function OptimizedMenu() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
+      {/* App Install Section */}
+      <div className="mb-6">
+        <AppInstallSection />
+      </div>
+
       {/* Enhanced Header with Connection Status */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">

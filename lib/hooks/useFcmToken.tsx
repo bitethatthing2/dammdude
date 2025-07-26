@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Unsubscribe } from 'firebase/messaging';
 import { getMessagingInstance, fetchToken, requestNotificationPermission, setupForegroundMessageHandler } from '@/lib/firebase';

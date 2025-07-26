@@ -15,7 +15,7 @@ import {
   Target,
   Award
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface LiveEvent {

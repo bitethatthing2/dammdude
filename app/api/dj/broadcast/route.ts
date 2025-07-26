@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WolfpackBackendService, WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
-import { WolfpackAuthService } from '@/lib/services/wolfpack-auth.service';
+import { createServerClient } from '@/lib/supabase/server';
+import { WolfpackService } from '@/lib/services/wolfpack';
 import { BroadcastStatusService } from '@/lib/services/broadcast-status.service';
 import type { User } from '@supabase/supabase-js';
 
@@ -142,7 +141,7 @@ async function authenticateUser(supabase: Awaited<ReturnType<typeof createClient
 
 async function verifyDJPermissions(supabase: Awaited<ReturnType<typeof createClient>>, user: User): Promise<UserData> {
   // Verify user through auth service
-  const authResult = await WolfpackAuthService.verifyUser(user);
+  const authResult = await WolfpackService.auth.verifyUser(user);
   if (!authResult.isVerified) {
     throw new Error('User verification failed');
   }
@@ -242,7 +241,7 @@ class BroadcastService {
         sent_at: now.toISOString()
       };
 
-      const result = await WolfpackBackendService.insert(
+      const result = await WolfpackService.backend.insert(
         WOLFPACK_TABLES.DJ_BROADCASTS,
         broadcastData
       );
@@ -292,7 +291,7 @@ class BroadcastService {
         is_deleted: false
       };
 
-      const result = await WolfpackBackendService.insert(
+      const result = await WolfpackService.backend.insert(
         WOLFPACK_TABLES.WOLFPACK_CHAT_MESSAGES,
         chatData
       );
@@ -372,7 +371,7 @@ function recordBroadcast(userId: string): void {
 
 export async function POST(request: NextRequest): Promise<NextResponse<BroadcastResponse | ErrorResponse>> {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // 1. Authentication
     const user = await authenticateUser(supabase);
@@ -450,7 +449,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
     }
 
     // 7. Get DJ display name
-    const djDisplayName = WolfpackAuthService.getUserDisplayName(user) || 
+    const djDisplayName = WolfpackService.auth.getUserDisplayName(user) || 
                          userData.display_name || 
                          `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 
                          userData.email.split('@')[0] || 
@@ -477,7 +476,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
       message,
       broadcast_type,
       djDisplayName,
-      WolfpackAuthService.getUserAvatarUrl(user) || userData.avatar_url
+      WolfpackService.auth.getUserAvatarUrl(user) || userData.avatar_url
     );
 
     // Log chat creation issues but don't fail the broadcast
@@ -555,7 +554,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Broadcast
 
 export async function GET(request: NextRequest): Promise<NextResponse<GetBroadcastsResponse | ErrorResponse>> {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('location_id');
     const limit = parseInt(searchParams.get('limit') || '10', 10);

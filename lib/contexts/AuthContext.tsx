@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client' // Use shared instance
+import { supabase } from '@/lib/supabase' // Use shared instance
 
 // Define basic user type based on what Supabase auth returns
 interface AuthUser {

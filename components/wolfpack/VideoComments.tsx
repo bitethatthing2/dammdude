@@ -13,10 +13,10 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { getZIndexClass } from '@/lib/constants/z-index';
-import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { wolfpackSocialService } from '@/lib/services/wolfpack';
 import { toast } from '@/components/ui/use-toast';
 import { useMultipleFeatureFlags } from '@/hooks/useFeatureFlag';
 import { FEATURE_FLAGS } from '@/lib/services/feature-flags.service';

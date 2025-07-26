@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Wrapper for Supabase RPC calls that handles missing functions gracefully

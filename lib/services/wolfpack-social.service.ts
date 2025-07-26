@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase';
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { Database } from "@/types/database.types";
 // Import the new typed database functions

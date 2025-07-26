@@ -1,7 +1,7 @@
 // Complete Image Replacement System for Frontend
 // This handles profile images, chat images, and provides history tracking
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // ============================================
 // TYPES
@@ -35,7 +35,7 @@ export class ProfileImageManager {
   private supabase: any;
 
   constructor() {
-    this.supabase = createClient();
+    this.supabase = supabase;
   }
 
   /**
@@ -169,7 +169,7 @@ export class ChatImageManager {
   private supabase: any;
 
   constructor() {
-    this.supabase = createClient();
+    this.supabase = supabase;
   }
 
   /**
@@ -244,7 +244,7 @@ export class ImageHistoryManager {
   private supabase: any;
 
   constructor() {
-    this.supabase = createClient();
+    this.supabase = supabase;
   }
 
   /**

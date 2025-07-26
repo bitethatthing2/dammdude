@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import { BroadcastStatusService } from '@/lib/services/broadcast-status.service';
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
     const { id: broadcastId } = await params;
 
     // Authenticate user
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

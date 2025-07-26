@@ -1,6 +1,6 @@
 // File: hooks/useTypingIndicators.ts
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface TypingUser {
   userId: string;

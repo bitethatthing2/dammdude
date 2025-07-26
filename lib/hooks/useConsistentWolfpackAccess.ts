@@ -2,7 +2,7 @@
 // Simplified version that matches your existing interface expectations
 
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase';
 
 // =============================================================================
 // INTERFACE MATCHING YOUR CURRENT USAGE

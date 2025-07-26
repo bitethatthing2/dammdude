@@ -1,5 +1,5 @@
 import { PostgrestError } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { errorTracker } from '@/lib/utils/error-tracking';
 import { captureError } from '@/lib/utils/error-utils';
 
@@ -616,7 +616,7 @@ export class WolfpackBackendService {
       });
       
       captureError(error instanceof Error ? error : new Error(errorMessage), {
-        source: 'WolfpackBackendService.createDJBroadcast',
+        source: 'WolfpackService.backend.createDJBroadcast',
         context: { djId, locationId, message, broadcastType }
       });
 
@@ -722,7 +722,7 @@ export class WolfpackBackendService {
       });
       
       captureError(error instanceof Error ? error : new Error(errorMessage), {
-        source: 'WolfpackBackendService.createChatMessage',
+        source: 'WolfpackService.backend.createChatMessage',
         context: { sessionId, userId, displayName, content, messageType }
       });
 
@@ -788,7 +788,7 @@ export class WolfpackBackendService {
       });
       
       captureError(error instanceof Error ? error : new Error(errorMessage), {
-        source: 'WolfpackBackendService.createDJEvent',
+        source: 'WolfpackService.backend.createDJEvent',
         context: { djId, locationId, eventType, title }
       });
 
@@ -1026,7 +1026,7 @@ export class WolfpackSimpleService {
     const now = new Date();
     const voting_ends_at = new Date(now.getTime() + params.duration * 60 * 1000);
     
-    return WolfpackBackendService.createDJEvent(
+    return WolfpackService.backend.createDJEvent(
       params.dj_id,
       params.location_id,
       params.event_type,
@@ -1044,7 +1044,7 @@ export class WolfpackSimpleService {
     message: string;
     broadcast_type: string;
   }) {
-    return WolfpackBackendService.createDJBroadcast(
+    return WolfpackService.backend.createDJBroadcast(
       params.dj_id,
       params.location_id,
       params.message,
@@ -1060,7 +1060,7 @@ export class WolfpackSimpleService {
     content: string;
     message_type: string;
   }) {
-    return WolfpackBackendService.createChatMessage(
+    return WolfpackService.backend.createChatMessage(
       params.session_id,
       params.user_id, // FIXED: Use user_id
       params.display_name,
@@ -1071,7 +1071,7 @@ export class WolfpackSimpleService {
   }
 
   static async getActivePackMembers(location_id: string) {
-    const result = await WolfpackBackendService.getWolfpackMembers(location_id);
+    const result = await WolfpackService.backend.getWolfpackMembers(location_id);
     
     if (result.error || !result.data) {
       return { data: [], error: result.error };

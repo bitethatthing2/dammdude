@@ -35,7 +35,7 @@ interface BulkNotificationParams {
  */
 export class NotificationHelpers {
   private static getSupabaseClient() {
-    return createClient();
+    return supabase;
   }
 
   /**

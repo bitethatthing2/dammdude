@@ -84,7 +84,8 @@
       "Bash(ping:*)",
       "Bash(git commit:*)",
       "WebFetch(domain:www.themargaritafactory.com)",
-      "WebFetch(domain:www.margaritafactory.com)"
+      "WebFetch(domain:www.margaritafactory.com)",
+      "Bash(timeout 90s npm run build:*)"
     ]
   },
   "enableAllProjectMcpServers": false

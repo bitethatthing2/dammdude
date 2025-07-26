@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase/client'; // Use shared instance
+import { supabase } from '@/lib/supabase'; // Use shared instance
 
 /**
  * Notification interface matching your fetch_notifications function return type

@@ -5,7 +5,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { UserService } from '@/lib/services/user.service';
 import { CurrentUser } from '@/types/user.types';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface UserContextType {
   currentUser: CurrentUser | null;
@@ -24,7 +24,8 @@ const UserContext = createContext<UserContextType>({
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  // Using singleton instance
+// const supabase is already imported;
   const userService = new UserService(supabase);
 
   const loadUser = async () => {

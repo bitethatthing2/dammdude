@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import VideoComments from '@/components/wolfpack/VideoComments';
 import FindFriends from '@/components/wolfpack/FindFriends';
-import { wolfpackSocialService } from '@/lib/services/wolfpack-social.service';
+import { wolfpackSocialService } from '@/lib/services/wolfpack';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 
@@ -106,7 +106,7 @@ export default function TikTokStyleFeed({
   // Load initial stats for videos
   useEffect(() => {
     const loadStats = async () => {
-      if (!loadedVideos.length || !user) return;
+      if (!loadedVideos?.length || !user) return;
       
       const statsPromises = loadedVideos.map(video => 
         wolfpackSocialService.getVideoStats(video.id, user.id)

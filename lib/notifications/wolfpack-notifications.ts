@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export interface WolfPackNotificationData {
   type: 'chat_message' | 'order_update' | 'member_joined' | 'member_left' | 'event_announcement' | 'wink_received';

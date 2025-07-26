@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // Type definitions for upload progress callback
 type ProgressCallback = (progress: number) => void;

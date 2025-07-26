@@ -3,7 +3,7 @@
  * Centralizes feature flag checks with caching and error handling
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export interface FeatureAccessResult {
   enabled: boolean;
@@ -21,7 +21,7 @@ export interface FeatureFlag {
 }
 
 class FeatureFlagsService {
-  private supabase = createClient();
+  private supabase = supabase;
   private cache = new Map<string, { result: FeatureAccessResult; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 

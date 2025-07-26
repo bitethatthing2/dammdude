@@ -1,5 +1,5 @@
 // lib/menu-data.ts
-import { createServerClient } from './supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
 import type { Database } from './database.types';
 
 type MenuCategory = Database['public']['Tables']['food_drink_categories']['Row'];

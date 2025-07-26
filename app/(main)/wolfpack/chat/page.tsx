@@ -8,7 +8,7 @@ import { useTypingIndicators } from '@/hooks/useTypingIndicators';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Shield, ArrowLeft, Send, Loader2, Smile, Image as ImageIcon, Plus, Home } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { EmojiPicker } from '@/components/chat/EmojiPicker';
 import { getZIndexClass } from '@/lib/constants/z-index';
 import { resolveWolfpackMemberAvatar, resolveChatAvatarUrl } from '@/lib/utils/avatar-utils';

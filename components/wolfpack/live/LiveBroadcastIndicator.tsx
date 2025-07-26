@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Activity
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { BroadcastStatusService } from '@/lib/services/broadcast-status.service';
 
