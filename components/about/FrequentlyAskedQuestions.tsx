@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { FaqItem } from "@/lib/types/about";
+import { FaqItem } from "@/types/features/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";
 import {
   Accordion,
@@ -13,62 +13,62 @@ import {
 const FAQ_ITEMS: FaqItem[] = [
   {
     id: "faq1",
-    question: "Do you take reservations for game days?",
-    answer: "Yes! We highly recommend reservations for major sporting events. You can reserve a table through our app, website, or by calling us directly. Reservations for big games should be made at least 48 hours in advance.",
+    question: "What makes Side Hustle the 'UFC House'?",
+    answer: "We're known as Oregon's premier UFC destination with multiple large screens, no cover charge during fights, and an electric atmosphere that draws capacity crowds. Whether it's UFC, boxing, or major sporting events, we create an unmatched viewing experience for fight fans.",
     location_id: "both",
   },
   {
     id: "faq2",
-    question: "Can I request a specific game to be shown?",
-    answer: "Absolutely! With our multiple screens, we can accommodate requests for specific games. For less common games or during busy times like March Madness, we recommend calling ahead to ensure we can dedicate a screen to your game.",
+    question: "What's so special about your birria tacos?",
+    answer: "Our signature birria tacos have become legendary among locals! Executive Chef Rebecca Sanchez creates authentic birria with rich, slow-cooked flavors, served with house-made salsas that customers describe as 'bomb.' We also offer birria ramen and birria burritos for creative fusion options.",
     location_id: "both",
   },
   {
     id: "faq3",
-    question: "Are children allowed?",
-    answer: "Yes, we're family-friendly until 9PM. After 9PM, we transition to a 21+ environment. We have a kids' menu available during family hours.",
+    question: "Are you family-friendly during the day?",
+    answer: "Absolutely! We're a family-friendly restaurant by day, transforming into vibrant nightlife after dark. The multi-level design offers different atmospheres, from intimate lounges to high-energy main floor perfect for groups of all ages during daytime hours.",
     location_id: "both",
   },
   {
     id: "faq4",
-    question: "Do you host private events?",
-    answer: "Yes, we offer private event spaces for parties, corporate events, and special occasions. Our Portland location has a dedicated event room for up to 40 people, while our Salem location can accommodate groups of up to 25 in a semi-private area.",
+    question: "Do you host events and live music?",
+    answer: "Yes! We regularly host Game Night Live with trivia and R0CK'N Bingo, seasonal celebrations, and our Portland location features live music Thursday through Sunday evenings. We've even hosted notable concerts with artists like Trinidad James and ILOVEMAKONNEN.",
     location_id: "both",
   },
   {
     id: "faq5",
-    question: "What makes your food different from other sports bars?",
-    answer: "Unlike typical sports bars, we have a full kitchen with a dedicated chef who creates elevated sports bar classics using local ingredients. Our menu features house-made sauces, hand-formed burgers, and several unique items you won't find elsewhere.",
+    question: "What makes your Mexican cuisine authentic?",
+    answer: "Under Executive Chef Rebecca Sanchez's leadership, we've redefined expectations for bar food with extensive Mexican cuisine that rivals dedicated restaurants. Every salsa is made in-house daily with multiple varieties, and our menu spans traditional favorites to creative fusion offerings.",
     location_id: "both",
   },
   {
     id: "faq6",
-    question: "Do you offer any vegetarian or gluten-free options?",
-    answer: "Yes! We have several vegetarian, vegan, and gluten-free options clearly marked on our menu. Our kitchen staff is trained to handle food allergies and special dietary requirements.",
+    question: "What's the price range for meals?",
+    answer: "Most meals are priced between $10-20 per person, offering exceptional value for the quality. Our extensive Mexican menu features everything from traditional carnitas empanadas and street tacos to creative loaded nachos and keto-friendly options.",
     location_id: "both",
   },
   {
     id: "faq7",
-    question: "Is there a cover charge during big games?",
-    answer: "For most regular season games, there is no cover charge. For major events like championships, we may have a small cover charge that can be applied to your food and drink tab. Reserved tables for premium events may have a minimum purchase requirement.",
+    question: "Do you offer delivery and takeout?",
+    answer: "Yes! You can order for delivery through DoorDash, Uber Eats, and Seamless to extend the Side Hustle experience beyond our physical locations. Perfect for enjoying our legendary birria tacos at home.",
     location_id: "both",
   },
   {
     id: "faq8",
-    question: "What's on tap at the Portland location?",
-    answer: "Our Portland location features 24 rotating taps with a focus on local Oregon and Washington craft beers. We always have a selection of IPAs, lagers, stouts, and seasonal offerings, plus ciders and non-alcoholic options.",
-    location_id: "portland",
-  },
-  {
-    id: "faq9",
-    question: "Is there parking available at the Salem location?",
-    answer: "Yes, our Salem location has a dedicated parking lot with 40 spaces. During major events, we offer additional parking in the adjacent lot with validation.",
+    question: "What makes the Salem location special?",
+    answer: "Our flagship Salem location opened in late 2023 at 145 Liberty St NE in historic downtown. It features multi-level dining, upstairs lounges, outdoor parklet seating, and a gaming area with pool, giant Jenga, and Connect Four. We've earned a stellar 4.7-star rating across 750+ Google reviews!",
     location_id: "salem",
   },
   {
+    id: "faq9",
+    question: "What's new at the Portland location?",
+    answer: "Our Portland location at 327 SW Morrison Street features extended hours (until 3 AM on weekends!) and live music Thursday through Sunday evenings. The venue adds a new dimension to the Side Hustle experience in the heart of Portland's entertainment district.",
+    location_id: "portland",
+  },
+  {
     id: "faq10",
-    question: "Do you show international sports?",
-    answer: "Absolutely! We show a wide range of international sports including Premier League, La Liga, Champions League soccer, rugby, cricket, and Formula 1. For specific international events, we recommend calling ahead to confirm availability.",
+    question: "How can I stay connected with Side Hustle?",
+    answer: "Follow us on Instagram @sidehustle_bar where we have over 101,000 followers! We regularly share mouth-watering food photography, event announcements, and behind-the-scenes content. It's the best way to stay updated on UFC fights, live music, and special events.",
     location_id: "both",
   },
 ];
@@ -84,20 +84,20 @@ export function FrequentlyAskedQuestions() {
   return (
     <div className="py-10">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Frequently Asked Questions</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <h2 className="text-3xl font-bold mb-2 text-white">Frequently Asked Questions</h2>
+        <p className="text-white/80 max-w-2xl mx-auto">
           Everything you need to know about visiting our {location === "portland" ? "Portland" : "Salem"} location
         </p>
       </div>
       
       <div className="max-w-3xl mx-auto">
         <Accordion type="single" collapsible className="w-full">
-          {filteredFaqs.map((faq, index) => (
+          {filteredFaqs.map((faq) => (
             <AccordionItem key={faq.id} value={faq.id}>
-              <AccordionTrigger className="text-lg font-medium text-left">
+              <AccordionTrigger className="text-lg font-medium text-left text-white">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
+              <AccordionContent className="text-white/80">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Check, Clock, Coffee, AlertTriangle, Loader2, X, FileText, Search, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Check, Clock, Coffee, Loader2, X, FileText, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { useOrderManagement } from '@/lib/hooks/useOrderManagement';
-import { formatDistanceToNow } from 'date-fns';
-import { OrderStatus, Order, OrderItem } from '@/lib/types/order';
+import { useOrderManagement } from '@/lib/hooks/useUnifiedOrders';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { StatusBadge } from './ui/StatusBadge';
 import { toast } from '@/components/ui/use-toast';
+import type { OrderStatus, UnifiedOrder as Order, OrderItem } from '@/lib/hooks/useUnifiedOrders';
 
 /**
  * Unified Order Management Component
@@ -43,7 +43,7 @@ export default function OrderManagement() {
     onNewOrder: (order) => {
       toast({
         title: "New Order",
-        description: `New order from Table ${order.table_name || order.table_id}`,
+        description: `New order from Table ${order.tab_id || order.table_location || 'N/A'}`,
         variant: "default"
       });
     },
@@ -52,9 +52,17 @@ export default function OrderManagement() {
         // Play notification sound for ready orders
         try {
           const audio = new Audio('/sounds/status-change.mp3');
-          audio.play().catch(err => console.error('Error playing sound:', err));
+          audio.volume = 0.5; // Set volume to 50%
+          audio.load(); // Preload the audio
+          
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn('Audio play prevented (likely due to user interaction requirement):', err);
+            });
+          }
         } catch (err) {
-          console.error('Error with notification sound:', err);
+          console.warn('Error with notification sound:', err);
         }
       }
     }
@@ -67,7 +75,7 @@ export default function OrderManagement() {
       refreshButton.classList.add('animate-spin');
     }
     
-    await fetchOrders(true);
+    await fetchOrders();
     
     setTimeout(() => {
       if (refreshButton) {
@@ -103,8 +111,8 @@ export default function OrderManagement() {
       const lowerFilter = filterText.toLowerCase();
       return filteredOrders.filter(order =>
         order.id.toLowerCase().includes(lowerFilter) ||
-        (order.table_name?.toLowerCase() || '').includes(lowerFilter) ||
-        (order.table_id?.toLowerCase() || '').includes(lowerFilter)
+        (order.table_location?.toLowerCase() || '').includes(lowerFilter) ||
+        (order.tab_id?.toLowerCase() || '').includes(lowerFilter)
       );
     }
     
@@ -118,7 +126,7 @@ export default function OrderManagement() {
   };
   
   // Format time display
-  const formatTime = (dateString?: string) => {
+  const formatTime = (dateString?: string | null) => {
     if (!dateString) return 'Unknown time';
     
     try {
@@ -138,8 +146,11 @@ export default function OrderManagement() {
         return 'ready';
       case 'ready':
         return 'completed';
-      default:
+      case 'completed':
+      case 'cancelled':
         return currentStatus;
+      default:
+        return 'pending';
     }
   };
   
@@ -204,7 +215,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="pending" className="relative">
                   Pending
                   {pendingOrders.length > 0 && (
-                    <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-white" style={{
+                      backgroundColor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {pendingOrders.length}
                     </Badge>
                   )}
@@ -212,7 +226,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="preparing" className="relative">
                   Preparing
                   {preparingOrders.length > 0 && (
-                    <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0" style={{
+                      backgroundColor: 'hsl(var(--inactive))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {preparingOrders.length}
                     </Badge>
                   )}
@@ -220,7 +237,10 @@ export default function OrderManagement() {
                 <TabsTrigger value="ready" className="relative">
                   Ready
                   {readyOrders.length > 0 && (
-                    <Badge variant="default" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0" style={{
+                      backgroundColor: 'hsl(var(--active))',
+                      color: 'hsl(var(--primary-foreground))'
+                    }}>
                       {readyOrders.length}
                     </Badge>
                   )}
@@ -265,7 +285,7 @@ export default function OrderManagement() {
                         <div className="flex justify-between items-center">
                           <div className="flex flex-col">
                             <div className="font-medium flex items-center">
-                              Table {order.table_name || order.table_id}
+                              Table {order.tab_id || order.table_location || 'N/A'}
                               <Badge variant="outline" className="ml-2 text-xs">
                                 #{order.id.substring(0, 6)}
                               </Badge>
@@ -349,14 +369,14 @@ export default function OrderManagement() {
                   <h3 className="font-medium text-muted-foreground mb-2">Items</h3>
                   <ScrollArea className="h-[300px]">
                     <div className="space-y-3">
-                      {selectedOrderDetails.items?.map((item) => (
-                        <div key={item.id || `${selectedOrderDetails.id}-${item.name}-${Math.random()}`} className="flex justify-between pb-3 border-b last:border-0 last:pb-0">
+                      {(selectedOrderDetails.items || []).map((item: OrderItem, index: number) => (
+                        <div key={item.id || `${selectedOrderDetails.id}-${item.name}-${index}`} className="flex justify-between pb-3 border-b last:border-0 last:pb-0">
                           <div>
                             <div className="font-medium">{item.name}</div>
                             <div className="text-sm">Qty: {item.quantity}</div>
                             {item.notes && (
                               <div className="text-xs text-muted-foreground mt-1 italic">
-                                "{item.notes}"
+                                &quot;{item.notes}&quot;
                               </div>
                             )}
                           </div>
@@ -372,10 +392,10 @@ export default function OrderManagement() {
                   </ScrollArea>
                 </div>
                 
-                {selectedOrderDetails.notes && (
+                {selectedOrderDetails.customer_notes && (
                   <div className="mb-4 p-3 bg-muted rounded-md">
                     <h3 className="font-medium text-sm mb-1">Order Notes:</h3>
-                    <p className="text-sm">{selectedOrderDetails.notes}</p>
+                    <p className="text-sm">{selectedOrderDetails.customer_notes}</p>
                   </div>
                 )}
                 
@@ -394,10 +414,9 @@ export default function OrderManagement() {
                   <Button
                     className="flex-1"
                     disabled={processingOrders[selectedOrderDetails.id]}
-                    onClick={() => handleStatusUpdate(
-                      selectedOrderDetails.id, 
-                      getNextStatus(selectedOrderDetails.status)
-                    )}
+                    onClick={() => {
+                      handleStatusUpdate(selectedOrderDetails.id, getNextStatus(selectedOrderDetails.status));
+                    }}
                   >
                     {processingOrders[selectedOrderDetails.id] ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

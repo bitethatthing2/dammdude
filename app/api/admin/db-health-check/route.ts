@@ -1,7 +1,37 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import type { Database } from '@/lib/database.types';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/supabase/server';
+
+interface DiagnosticError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+interface TableDiagnostic {
+  success: boolean;
+  error: DiagnosticError | null;
+  latency: number;
+  count: number;
+}
+
+/**
+ * Safely extracts error information from various error types
+ */
+function createDiagnosticError(error: unknown): DiagnosticError {
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    return {
+      message: (err.message as string) || (err.msg as string) || String(error),
+      code: (err.code as string) || (err.status as string) || undefined,
+      details: (err.details as string) || (err.hint as string) || undefined
+    };
+  }
+  return {
+    message: String(error),
+    code: undefined,
+    details: undefined
+  };
+}
 
 /**
  * Enhanced database health check API endpoint
@@ -11,14 +41,13 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 export async function GET() {
   try {
     // Create server-side Supabase client with our custom function
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createServerClient();
     
     // Test database connection and collect diagnostics
     const diagnostics = {
-      ordersTable: { success: false, error: null, latency: 0, count: 0 },
-      tablesTable: { success: false, error: null, latency: 0, count: 0 },
-      orderItemsTable: { success: false, error: null, latency: 0, count: 0 },
+      ordersTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
+      tablesTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
+      orderItemsTable: { success: false, error: null, latency: 0, count: 0 } as TableDiagnostic,
       environment: {
         nextVersion: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'unknown',
         nodeEnv: process.env.NODE_ENV || 'unknown'
@@ -30,7 +59,7 @@ export async function GET() {
     let ordersResult;
     try {
       ordersResult = await supabase
-        .from('orders')
+        .from('bartender_orders')
         .select('count')
         .limit(1);
     } catch (err) {
@@ -41,11 +70,7 @@ export async function GET() {
     diagnostics.ordersTable.success = !ordersResult.error;
     
     if (ordersResult.error) {
-      diagnostics.ordersTable.error = {
-        message: ordersResult.error.message,
-        code: ordersResult.error.code,
-        details: ordersResult.error.details
-      };
+      diagnostics.ordersTable.error = createDiagnosticError(ordersResult.error);
     } else {
       diagnostics.ordersTable.count = ordersResult.data?.length || 0;
     }
@@ -55,7 +80,7 @@ export async function GET() {
     let tablesResult;
     try {
       tablesResult = await supabase
-        .from('tables')
+        .from('restaurant_tables')
         .select('count')
         .limit(1);
     } catch (err) {
@@ -66,11 +91,7 @@ export async function GET() {
     diagnostics.tablesTable.success = !tablesResult.error;
     
     if (tablesResult.error) {
-      diagnostics.tablesTable.error = {
-        message: tablesResult.error.message,
-        code: tablesResult.error.code,
-        details: tablesResult.error.details
-      };
+      diagnostics.tablesTable.error = createDiagnosticError(tablesResult.error);
     } else {
       diagnostics.tablesTable.count = tablesResult.data?.length || 0;
     }
@@ -91,11 +112,7 @@ export async function GET() {
     diagnostics.orderItemsTable.success = !orderItemsResult.error;
     
     if (orderItemsResult.error) {
-      diagnostics.orderItemsTable.error = {
-        message: orderItemsResult.error.message,
-        code: orderItemsResult.error.code,
-        details: orderItemsResult.error.details
-      };
+      diagnostics.orderItemsTable.error = createDiagnosticError(orderItemsResult.error);
     } else {
       diagnostics.orderItemsTable.count = orderItemsResult.data?.length || 0;
     }
@@ -122,14 +139,17 @@ export async function GET() {
       }
     }, { status });
     
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Server error during health check:', err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    
     return NextResponse.json({
       healthy: false,
-      error: err.message,
+      error: errorMessage,
       errorType: 'SERVER_ERROR',
       details: 'Unexpected server error during database health check',
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
     }, { status: 500 });
   }
 }

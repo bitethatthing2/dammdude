@@ -1,8 +1,6 @@
 "use server";
 
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { cookies } from "next/headers";
-import type { Database } from '@/lib/database.types';
+import { createServerClient } from '@/lib/supabase/server';
 
 /**
  * Updates an order status and sends notifications if needed
@@ -12,12 +10,11 @@ export async function updateOrderStatus(
   newStatus: 'pending' | 'preparing' | 'ready' | 'completed'
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createServerClient();
     
     // Update order status
     const { error: updateError } = await supabase
-      .from("orders")
+      .from("bartender_orders")
       .update({ status: newStatus })
       .eq("id", orderId);
     
@@ -28,10 +25,10 @@ export async function updateOrderStatus(
     
     // If order is marked as ready, send notification to customer
     if (newStatus === 'ready') {
-      // Get order details including table ID
+      // Get order details including table location
       const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .select("table_id")
+        .from("bartender_orders")
+        .select("table_location, customer_id")
         .eq("id", orderId)
         .single();
       
@@ -45,70 +42,26 @@ export async function updateOrderStatus(
         };
       }
       
-      // Find customer devices for this table
-      const { data: customerDevices, error: deviceError } = await supabase
-        .from("device_registrations")
-        .select("device_id")
-        .eq("type", "customer")
-        .eq("table_id", order.table_id);
-      
-      if (deviceError) {
-        console.error("Error finding customer devices:", deviceError);
-        return { 
-          success: true, 
-          orderUpdated: true, 
-          notificationSent: false, 
-          error: "Order updated but failed to find customer devices" 
-        };
-      }
-      
-      if (!customerDevices || customerDevices.length === 0) {
-        console.warn("No customer devices registered for table:", order.table_id);
-        return { 
-          success: true, 
-          orderUpdated: true, 
-          notificationSent: false, 
-          error: "Order updated but no customer devices found" 
-        };
-      }
-      
-      // Get table information
-      const { data: tableData, error: tableError } = await supabase
-        .from("tables")
-        .select("name")
-        .eq("id", order.table_id)
-        .single();
-      
-      if (tableError) {
-        console.error("Error finding table:", tableError);
-        return { 
-          success: true, 
-          orderUpdated: true, 
-          notificationSent: false, 
-          error: "Order updated but failed to find table information" 
-        };
-      }
-      
-      // Create notification for each customer device
-      const notifications = customerDevices.map((device: { device_id: string }) => ({
-        recipient_id: device.device_id,
-        message: `Your order for Table ${tableData.name} is ready for pickup!`,
-        type: "order_ready" as Database["public"]["Enums"]["notification_type"],
-        status: "unread"
-      }));
-      
-      const { error: notificationError } = await supabase
-        .from("notifications")
-        .insert(notifications);
-      
-      if (notificationError) {
-        console.error("Error creating customer notifications:", notificationError);
-        return { 
-          success: true, 
-          orderUpdated: true, 
-          notificationSent: false, 
-          error: "Order updated but failed to create notifications" 
-        };
+      // If customer_id exists, create a push notification
+      if (order.customer_id) {
+        const { error: notificationError } = await supabase
+          .from("push_notifications")
+          .insert({
+            id: order.customer_id,
+            title: "Order Ready!",
+            body: `Your order for ${order.table_location || 'your table'} is ready for pickup!`,
+            status: "pending"
+          });
+        
+        if (notificationError) {
+          console.error("Error creating customer notification:", notificationError);
+          return { 
+            success: true, 
+            orderUpdated: true, 
+            notificationSent: false, 
+            error: "Order updated but failed to create notification" 
+          };
+        }
       }
       
       return { 
@@ -133,52 +86,39 @@ export async function updateOrderStatus(
  */
 export async function notifyStaffOfNewOrder(
   orderId: string,
-  tableId: string,
+  tableLocation: string,
   orderDetails: string
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createSupabaseServerClient(cookieStore);
+    const supabase = await createServerClient();
     
-    // Find staff devices to notify (primary device first)
-    const { data: staffDevices, error: deviceError } = await supabase
-      .from("device_registrations")
-      .select("device_id")
-      .eq("type", "staff")
-      .order("is_primary", { ascending: false });
+    // Find staff users with admin or bartender roles
+    const { data: staffUsers, error: staffError } = await supabase
+      .from("users")
+      .select("id")
+      .in("role", ["admin", "bartender", "staff"])
+      .eq("status", "active");
     
-    if (deviceError) {
-      console.error("Error finding staff devices:", deviceError);
-      return { success: false, error: "Failed to find staff devices" };
+    if (staffError) {
+      console.error("Error finding staff users:", staffError);
+      return { success: false, error: "Failed to find staff users" };
     }
     
-    if (!staffDevices || staffDevices.length === 0) {
-      console.warn("No staff devices registered to receive notifications");
-      return { success: false, error: "No staff devices registered" };
+    if (!staffUsers || staffUsers.length === 0) {
+      console.warn("No staff users found to notify");
+      return { success: false, error: "No staff users found" };
     }
     
-    // Get table information
-    const { data: tableData, error: tableError } = await supabase
-      .from("tables")
-      .select("name")
-      .eq("id", tableId)
-      .single();
-    
-    if (tableError) {
-      console.error("Error finding table:", tableError);
-      return { success: false, error: "Failed to find table information" };
-    }
-    
-    // Create notification for each staff device
-    const notifications = staffDevices.map((device: { device_id: string }) => ({
-      recipient_id: device.device_id,
-      message: `New order from Table ${tableData.name}: ${orderDetails}`,
-      type: "order_new" as Database["public"]["Enums"]["notification_type"],
-      status: "unread"
+    // Create push notifications for each staff member
+    const notifications = staffUsers.map((staff: { id: string }) => ({
+      id: staff.id,
+      title: "New Order!",
+      body: `New order from ${tableLocation}: ${orderDetails}`,
+      status: "pending" as const
     }));
     
     const { error: notificationError } = await supabase
-      .from("notifications")
+      .from("push_notifications")
       .insert(notifications);
     
     if (notificationError) {

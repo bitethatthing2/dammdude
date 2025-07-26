@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import Image from "next/image";
 import { useLocationState } from "@/lib/hooks/useLocationState";
@@ -83,7 +83,7 @@ export function ExperienceHighlight() {
             <h2 className="text-3xl font-bold mb-2">The Ultimate Game Day Experience</h2>
             <Separator className="w-20 h-1 bg-primary mb-4" />
             <p className="text-muted-foreground">
-              We've meticulously crafted the perfect environment for watching any sporting event. From our 
+              We&apos;ve meticulously crafted the perfect environment for watching any sporting event. From our 
               state-of-the-art audiovisual setup to our chef-designed menu, every aspect of our {isPortland ? "Portland" : "Salem"} 
               location is designed to enhance your game day experience.
             </p>

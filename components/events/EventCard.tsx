@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import Image from "next/image";
 import { Calendar, Clock, Ticket, ExternalLink } from "lucide-react";
-import type { Event } from '@/lib/types/event';
+import type { Event } from '@/types/features/event';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface EventCardProps {

@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-
+import { supabase } from '@/lib/supabase';
 export default function EmployeeDashboardPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,10 +14,7 @@ export default function EmployeeDashboardPage() {
   
   // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = getSupabaseBrowserClient();
-      
-      try {
+    const checkAuth = async () => {      try {
         setIsLoading(true);
         
         // Check if user is logged in
@@ -49,10 +45,7 @@ export default function EmployeeDashboardPage() {
   }, [router]);
   
   // Handle sign out
-  const handleSignOut = async () => {
-    const supabase = getSupabaseBrowserClient();
-    
-    try {
+  const handleSignOut = async () => {    try {
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
@@ -84,7 +77,7 @@ export default function EmployeeDashboardPage() {
         </Button>
       </div>
       
-      <Tabs defaultValue="orders">
+      <Tabs defaultValue="bartender_orders">
         <TabsList className="mb-6">
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="menu">Menu Management</TabsTrigger>

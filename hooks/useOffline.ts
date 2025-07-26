@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
@@ -10,6 +10,27 @@ import {
   getPendingSyncItems,
   registerPeriodicSync
 } from '@/lib/utils/offlineManager';
+import type { Database } from '@/types/database.types';
+
+// Type definitions for offline data
+type OrderData = Database['public']['Tables']['bartender_orders']['Insert'];
+type ProfileData = Database['public']['Tables']['users']['Update'];
+
+interface FeedbackData {
+  rating: number;
+  comment: string;
+  category: string;
+  id?: string;
+  order_id?: string;
+  location_id?: string;
+}
+
+interface SyncItem {
+  id: string;
+  type: 'order' | 'profile' | 'feedback';
+  data: unknown;
+  timestamp: number;
+}
 
 interface UseOfflineOptions {
   autoInit?: boolean;
@@ -21,10 +42,10 @@ interface UseOfflineReturn {
   lastOnline: number | null;
   syncPending: boolean;
   syncItems: number;
-  createOrder: (orderData: any) => Promise<string>;
-  updateProfile: (profileData: any) => Promise<string>;
-  submitFeedback: (feedbackData: any) => Promise<string>;
-  getPendingItems: () => Promise<any[]>;
+  createOrder: (orderData: OrderData) => Promise<string>;
+  updateProfile: (profileData: ProfileData) => Promise<string>;
+  submitFeedback: (feedbackData: FeedbackData) => Promise<string>;
+  getPendingItems: () => Promise<SyncItem[]>;
   registerPeriodicUpdate: () => Promise<boolean>;
 }
 
@@ -93,22 +114,48 @@ export function useOffline(options: UseOfflineOptions = {}): UseOfflineReturn {
   }, [autoInit, enablePeriodicSync]);
   
   // Create an order that works offline
-  const createOrder = useCallback(async (orderData: any): Promise<string> => {
-    return createOfflineOrder(orderData);
+  const createOrder = useCallback(async (orderData: OrderData): Promise<string> => {
+    // Transform items from Json to the expected array format
+    // Handle Json type which can be null, array, or other JSON values
+    let transformedItems: Array<{ productId: string; quantity: number }> = [];
+    
+    // Note: orderData from bartender_orders table doesn't have items field
+    // Items should be handled separately in order_items table
+    // For now, initialize as empty array
+    if (Array.isArray((orderData as any).items)) {
+      transformedItems = (orderData as any).items
+        .filter((item: any) => item !== null && typeof item === 'object')
+        .map((item: any) => {
+          const itemObj = item as Record<string, unknown>;
+          return {
+            productId: (itemObj.productId as string) || (itemObj.product_id as string) || '',
+            quantity: (itemObj.quantity as number) || 1
+          };
+        });
+    }
+
+    // Add required fields that are missing from Insert type
+    const completeOrderData = {
+      id: orderData.id || crypto.randomUUID(),
+      items: transformedItems,
+      total: orderData.total_amount || 0,
+      customerId: orderData.customer_id || 'anonymous'
+    };
+    return createOfflineOrder(completeOrderData);
   }, []);
   
   // Update user profile that works offline
-  const updateProfile = useCallback(async (profileData: any): Promise<string> => {
+  const updateProfile = useCallback(async (profileData: ProfileData): Promise<string> => {
     return updateOfflineProfile(profileData);
   }, []);
   
   // Submit feedback that works offline
-  const submitFeedback = useCallback(async (feedbackData: any): Promise<string> => {
+  const submitFeedback = useCallback(async (feedbackData: FeedbackData): Promise<string> => {
     return submitOfflineFeedback(feedbackData);
   }, []);
   
   // Get pending sync items
-  const getPendingItems = useCallback(async (): Promise<any[]> => {
+  const getPendingItems = useCallback(async (): Promise<SyncItem[]> => {
     return getPendingSyncItems();
   }, []);
   

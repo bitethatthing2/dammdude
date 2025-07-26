@@ -8,7 +8,7 @@ This document provides specifications for all required icons for the PDX Sports 
 |----------|------|---------|--------|---------------------|
 | icon-192x192.png | 192x192 | Main app icon | PNG | Black & white design following app theme |
 | icon-512x512.png | 512x512 | Main app icon (large) | PNG | Black & white design following app theme |
-| android-icon-192x192.png | 192x192 | Android maskable icon | PNG | Black & white design with padding for maskable area |
+| android-icon-192x192.png | 192x192 | Android maskableicon | PNG | Black & white design with padding for maskable area |
 
 ## Notification Icons
 

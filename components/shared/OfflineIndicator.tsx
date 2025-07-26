@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useOffline } from "@/hooks/useOffline";
@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 
 interface OfflineIndicatorProps {
   className?: string;
@@ -71,9 +71,9 @@ export function OfflineIndicator({ className = "" }: OfflineIndicatorProps) {
           <div className="space-y-2">
             {!isOnline ? (
               <>
-                <h4 className="font-medium text-sm">You're offline</h4>
+                <h4 className="font-medium text-sm">You&apos;re offline</h4>
                 <p className="text-xs text-muted-foreground">
-                  Your changes will be saved locally and synced when you're back
+                  Your changes will be saved locally and synced when you&apos;re back
                   online.
                 </p>
                 {lastOnline && (

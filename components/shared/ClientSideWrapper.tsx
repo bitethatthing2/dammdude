@@ -1,19 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef, createContext, useContext } from 'react';
-import { UnifiedNotificationProvider } from '@/components/unified/notifications';
+import React, { useEffect, useState } from 'react';
+import { NotificationProvider } from '@/components/unified';
 import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 import FirebaseInitializer from '@/components/shared/FirebaseInitializer';
 import { PwaStatusToast } from '@/components/shared/PwaStatusToast';
 import { TooltipProvider } from '@/components/ui/tooltip';
-
-// This is to prevent "window is not defined" errors during server-side rendering
-// Define the event type for beforeinstallprompt as it's not standard TS yet
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed', platform: string }>;
-  prompt(): Promise<void>;
-}
+import { supabase } from '@/lib/supabase';
 
 interface ClientSideWrapperProps {
   /**
@@ -22,57 +15,86 @@ interface ClientSideWrapperProps {
   children: React.ReactNode;
 }
 
-interface PwaInstallContextProps {
-  deferredPrompt: BeforeInstallPromptEvent | null;
-  setDeferredPrompt: (deferredPrompt: BeforeInstallPromptEvent | null) => void;
+interface AuthSubscription {
+  unsubscribe: () => void;
 }
 
-const PwaInstallContext = createContext<PwaInstallContextProps>({
-  deferredPrompt: null,
-  setDeferredPrompt: () => {},
-});
-
-export const usePwaInstall = () => useContext(PwaInstallContext);
-
-export default function ClientSideWrapper({ children }: ClientSideWrapperProps) {
-  const [isMounted, setIsMounted] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+export default function ClientSideWrapper({ children }: ClientSideWrapperProps): React.ReactElement {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string | undefined>();
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
     console.log('[ClientSideWrapper] Client-side wrapper mounted');
-  }, []);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-      console.log('[ClientSideWrapper] beforeinstallprompt event captured');
+    // Get the actual user ID
+    const initializeAuth = async (): Promise<() => void> => {
+      try {        const { data: { session } }: { data: { session: { user?: { id: string } } | null } } = await supabase.auth.getSession();
+        
+        if (session?.user?.id) {
+          setUserId(session.user.id);
+        }
+        
+        // Mark auth as checked even if no user
+        setAuthChecked(true);
+        
+        // Listen for auth state changes
+        const { data: { subscription } }: { data: { subscription: AuthSubscription } } = supabase.auth.onAuthStateChange(
+          (_event: string, session: { user?: { id: string } } | null) => {
+            setUserId(session?.user?.id);
+          }
+        );
+        
+        // Store cleanup function
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('[ClientSideWrapper] Error initializing auth:', error);
+        setAuthChecked(true); // Mark as checked even on error
+        return () => {};
+      }
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // Initialize auth and store cleanup
+    const cleanup: Promise<() => void> = initializeAuth();
 
+    // Cleanup on unmount
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      cleanup.then((unsubscribe: () => void) => unsubscribe?.());
     };
   }, []);
+
 
   // During SSR and initial hydration, render only children to avoid "window is not defined" errors
-  if (!isMounted) {
+  if (!isMounted || !authChecked) {
     return <>{children}</>;
   }
 
-  return (
-    <PwaInstallContext.Provider value={{ deferredPrompt, setDeferredPrompt }}>
+  // If auth is checked but no userId, render without notification provider
+  if (!userId) {
+    return (
       <TooltipProvider>
-        <UnifiedNotificationProvider recipientId='customer' role='customer'>
-          <FirebaseInitializer>
-            {children}
-            <ServiceWorkerRegister />
-            <PwaStatusToast />
-          </FirebaseInitializer>
-        </UnifiedNotificationProvider>
+        <FirebaseInitializer>
+          {children}
+          <ServiceWorkerRegister />
+          <PwaStatusToast />
+        </FirebaseInitializer>
       </TooltipProvider>
-    </PwaInstallContext.Provider>
+    );
+  }
+
+  // User is authenticated, render with notification provider
+  return (
+    <TooltipProvider>
+      <NotificationProvider recipientId={userId}>
+        <FirebaseInitializer>
+          {children}
+          <ServiceWorkerRegister />
+          <PwaStatusToast />
+        </FirebaseInitializer>
+      </NotificationProvider>
+    </TooltipProvider>
   );
 }

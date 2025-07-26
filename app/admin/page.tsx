@@ -1,50 +1,33 @@
-"use client";
+import { redirect } from 'next/navigation';
+import { createServerClient } from '@/lib/supabase/server';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Loader2 } from 'lucide-react';
-
-export default function AdminRedirect() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+/**
+ * Admin index page - redirects to appropriate location based on auth status
+ * This is a server component that handles the redirect logic
+ */
+export default async function AdminPage() {
+  const supabase = await createServerClient();
   
-  // Use useEffect to check auth and handle the redirect after component mounts
-  useEffect(() => {
-    const checkAuthAndRedirect = async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session) {
-          // User is authenticated, redirect to dashboard
-          router.replace('/admin/dashboard');
-        } else {
-          // User is not authenticated, redirect to login
-          router.replace('/admin/login');
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        // On error, redirect to login
-        router.replace('/admin/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAuthAndRedirect();
-  }, [router]);
+  // Check if user is authenticated
+  const { data: { session } } = await supabase.auth.getSession();
   
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      {isLoading ? (
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Checking authentication...</p>
-        </div>
-      ) : (
-        <p className="text-center">Redirecting...</p>
-      )}
-    </div>
-  );
+  if (!session) {
+    // Not authenticated - redirect to login
+    redirect('/login');
+  }
+  
+  // Check if user has admin role
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  
+  if (userData?.role !== 'admin') {
+    // Not an admin - redirect to home page
+    redirect('/');
+  }
+  
+  // User is authenticated and is an admin - redirect to dashboard
+  redirect('/admin/dashboard');
 }

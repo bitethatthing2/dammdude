@@ -1,18 +1,140 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { initPwaEventListeners } from '@/lib/pwa/pwaEventHandler';
+
+// Performance metric types
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  id: string;
+  navigationType?: string;
+  entries?: PerformanceEntry[];
+  delta?: number;
+}
+
+// Performance Event Timing interface (for FID)
+interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: number;
+  startTime: number;
+}
+
+// Extend Window interface for gtag
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      eventName: string,
+      eventParameters?: Record<string, string | number | boolean>
+    ) => void;
+  }
+}
 
 // Global flag to prevent multiple registrations across page reloads
 let hasRegisteredServiceWorker = false;
 
+// Performance monitoring
+const reportWebVitals = (metric: PerformanceMetric) => {
+  // Log to console in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Performance]', metric);
+  }
+  
+  // Send to analytics in production
+  // Example: send to Google Analytics, Vercel Analytics, etc.
+  if (window.gtag) {
+    window.gtag('event', metric.name, {
+      value: Math.round(metric.value),
+      metric_id: metric.id,
+      metric_value: metric.value,
+      metric_delta: metric.delta ?? 0,
+    });
+  }
+};
+
 export default function ServiceWorkerRegister() {
-  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const registrationAttempted = useRef(false);
 
   useEffect(() => {
-    // Initialize PWA event listeners as early as possible
-    initPwaEventListeners();
+    // Initialize performance monitoring
+    if ('PerformanceObserver' in window) {
+      try {
+        // Observe Largest Contentful Paint
+        const lcpObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1];
+          reportWebVitals({
+            name: 'LCP',
+            value: lastEntry.startTime,
+            id: 'v3-' + Date.now(),
+            navigationType: 'navigate'
+          });
+        });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+
+        // Observe First Input Delay
+        const fidObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          entries.forEach((entry) => {
+            const perfEntry = entry as PerformanceEventTiming;
+            reportWebVitals({
+              name: 'FID',
+              value: perfEntry.processingStart - perfEntry.startTime,
+              id: 'v3-' + Date.now(),
+              navigationType: 'navigate'
+            });
+          });
+        });
+        fidObserver.observe({ entryTypes: ['first-input'] });
+
+        // Observe Cumulative Layout Shift
+        let clsValue = 0;
+        const clsEntries: PerformanceEntry[] = [];
+
+        // Define LayoutShift type
+        interface LayoutShift extends PerformanceEntry {
+          value: number;
+          hadRecentInput: boolean;
+        }
+
+        const clsObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          entries.forEach((entry) => {
+            const layoutShiftEntry = entry as LayoutShift;
+            if (!layoutShiftEntry.hadRecentInput) {
+              clsValue += layoutShiftEntry.value;
+              clsEntries.push(entry);
+            }
+          });
+        });
+        clsObserver.observe({ entryTypes: ['layout-shift'] });
+
+        // Report CLS when page is about to unload
+        window.addEventListener('beforeunload', () => {
+          reportWebVitals({
+            name: 'CLS',
+            value: clsValue,
+            id: 'v3-' + Date.now(),
+            entries: clsEntries,
+            navigationType: 'navigate'
+          });
+        });
+
+        // Observe Time to First Byte
+        const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navigationEntry) {
+          reportWebVitals({
+            name: 'TTFB',
+            value: navigationEntry.responseStart - navigationEntry.requestStart,
+            id: 'v3-' + Date.now(),
+            navigationType: navigationEntry.type
+          });
+        }
+
+      } catch (error) {
+        console.warn('[Performance] Error setting up performance monitoring:', error);
+      }
+    }
     
     // Skip if already registered or attempted
     if (hasRegisteredServiceWorker || registrationAttempted.current) {
@@ -38,6 +160,15 @@ export default function ServiceWorkerRegister() {
           const existingReg = await navigator.serviceWorker.ready;
           setSwRegistration(existingReg);
           hasRegisteredServiceWorker = true;
+          
+          // Preload critical menu images
+          const controller = navigator.serviceWorker.controller as ServiceWorker;
+          if (controller) {
+            controller.postMessage({
+              type: 'PRELOAD_MENU_IMAGES',
+            });
+          }
+          
           return;
         }
         
@@ -69,18 +200,34 @@ export default function ServiceWorkerRegister() {
             if (installingWorker.state === 'activated') {
               console.log('[ServiceWorker] Service Worker activated');
               setSwRegistration(registration);
+              
+              // Preload critical menu images after activation
+              const controller = navigator.serviceWorker.controller;
+              if (controller) {
+                (controller as ServiceWorker).postMessage({
+                  type: 'PRELOAD_MENU_IMAGES'
+                });
+              }
             }
           });
         } else if (registration.waiting) {
           console.log('[ServiceWorker] Service Worker waiting');
           
           // Force waiting service worker to activate
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          const waitingWorker = registration.waiting;
+          if (waitingWorker) {
+            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+          }
         } else if (registration.active) {
           console.log('[ServiceWorker] Service Worker is active');
           
-          // Don't force reload if the service worker is already active
-          // This prevents disrupting the installation flow
+          // Preload critical menu images
+          const controller = navigator.serviceWorker.controller;
+          if (controller) {
+            (controller as ServiceWorker).postMessage({
+              type: 'PRELOAD_MENU_IMAGES'
+            });
+          }
         }
         
         // Check for updates periodically
@@ -103,7 +250,7 @@ export default function ServiceWorkerRegister() {
     });
     
     // Listen for service worker messages
-    navigator.serviceWorker.addEventListener('message', (event) => {
+    navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
       if (event.data && event.data.type === 'CACHE_UPDATED') {
         console.log('[ServiceWorker] New content is available; please refresh.');
         // You could show a toast notification here if desired
@@ -120,14 +267,20 @@ export default function ServiceWorkerRegister() {
         console.log(`[ServiceWorker] App is ${event.data.isOffline ? 'offline' : 'online'}`);
         // Could update UI to show offline status
       }
+      
+      // Handle performance data from service worker
+      if (event.data && event.data.type === 'PERFORMANCE_DATA') {
+        reportWebVitals(event.data.metric);
+      }
     });
     
     // Track online/offline status
     window.addEventListener('online', () => {
       console.log('[ServiceWorker] App is online');
       // Notify service worker about online status
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
+      const controller = navigator.serviceWorker.controller;
+      if (controller) {
+        controller.postMessage({
           type: 'ONLINE_STATUS',
           isOnline: true
         });
@@ -137,8 +290,9 @@ export default function ServiceWorkerRegister() {
     window.addEventListener('offline', () => {
       console.log('[ServiceWorker] App is offline');
       // Notify service worker about offline status
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
+      const controller = navigator.serviceWorker.controller;
+      if (controller) {
+        controller.postMessage({
           type: 'ONLINE_STATUS',
           isOnline: false
         });

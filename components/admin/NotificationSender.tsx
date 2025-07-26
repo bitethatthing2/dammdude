@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { SendNotificationRequest, SendNotificationResponse } from '@/lib/types/api';
+import { SendNotificationRequest, SendNotificationResponse } from '@/types/features/api';
 import { Loader2, Send, Bell, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -51,7 +51,7 @@ export const NotificationSender = () => {
       } else {
         setCustomData({});
       }
-    } catch (e) {
+    } catch (_e) {
       // Invalid JSON, keep the previous value
       console.warn('Invalid JSON in custom data field');
     }

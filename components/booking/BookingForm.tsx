@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { Calendar as CalendarIcon, Users, Phone, Clock, Loader2 } from 'lucide-react';
 import { useLocationState } from '@/lib/hooks/useLocationState';
 import { useToast } from '@/components/ui/use-toast';
-import { BookingRequest, BookingType } from '@/lib/types/booking';
+import { BookingRequest, BookingType } from '@/types/features/booking';
 import { submitBookingRequest } from '@/lib/booking/submitBookingRequest';
 
 import { Button } from '@/components/ui/button';

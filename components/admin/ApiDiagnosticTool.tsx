@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Clock, Database, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export function ApiDiagnosticTool() {
-  const [results, setResults] = useState<Record<string, any>>({});
+interface ApiTestResult {
+  status?: number;
+  statusText?: string;
+  time?: string;
+  data?: unknown;
+  error?: string;
+}
+
+interface ApiDiagnosticToolProps {
+  compact?: boolean;
+}
+
+export function ApiDiagnosticTool({ compact = false }: ApiDiagnosticToolProps) {
+  const [results, setResults] = useState<Record<string, ApiTestResult>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [dbRelationshipStatus, setDbRelationshipStatus] = useState<'unknown' | 'checking' | 'ok' | 'error'>('unknown');
   const [relationshipDetails, setRelationshipDetails] = useState<string | null>(null);
@@ -38,12 +50,12 @@ export function ApiDiagnosticTool() {
       const elapsed = Date.now() - start;
       clearTimeout(timeoutId);
       
-      let data;
+      let data: unknown;
       try {
         const text = await response.text();
         try {
           data = JSON.parse(text);
-        } catch (e) {
+        } catch (_) {
           data = { parseError: true, text: text.substring(0, 500) + (text.length > 500 ? '...' : '') };
         }
       } catch (e) {
@@ -245,7 +257,7 @@ export function ApiDiagnosticTool() {
                       <ol className="list-decimal pl-4 space-y-1 mt-1">
                         <li>Check your database connection settings in Supabase</li>
                         <li>Verify table permissions in Supabase (missing RLS policies?)</li>
-                        <li>Check if the 'orders' and 'tables' tables exist</li>
+                        <li>Check if the &#39;bartender_orders&#39; and &#39;tables&#39; tables exist</li>
                         <li>Examine foreign key constraints between tables</li>
                         <li>Check for network or CORS issues</li>
                         <li>Verify your authentication is working properly</li>
@@ -320,7 +332,7 @@ export function ApiDiagnosticTool() {
                         Common Database Relationship Issues:
                       </h4>
                       <ol className="list-decimal pl-4 space-y-1 text-xs text-amber-700 dark:text-amber-300">
-                        <li>Missing foreign key constraints between 'orders' and 'tables'</li>
+                        <li>Missing foreign key constraints between &#39;orders&#39; and &#39;tables&#39;</li>
                         <li>Mismatched column types (e.g. UUID vs. string)</li>
                         <li>Database migrations not run properly</li>
                         <li>RLS policies preventing joins between tables</li>
@@ -345,7 +357,7 @@ FROM
     AND tc.table_schema = kcu.table_schema
   JOIN information_schema.constraint_column_usage AS ccu
     ON ccu.constraint_name = tc.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY';
+WHERE tc.constraint_type = &#39;FOREIGN KEY&#39;;
                         </pre>
                       </div>
                     </div>

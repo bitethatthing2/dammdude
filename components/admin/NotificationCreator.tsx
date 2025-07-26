@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { z } from "zod";
@@ -86,7 +86,7 @@ export function NotificationCreator() {
       <CardHeader>
         <CardTitle>Create Notification</CardTitle>
       </CardHeader>
-      <FormComponent form={form}>
+      <FormComponent {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <FormField

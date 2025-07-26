@@ -1,15 +1,16 @@
-"use client";
+'use client';
 
+import { supabase } from '@/lib/supabase';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { getToken, onMessage, Unsubscribe } from 'firebase/messaging';
+import { Unsubscribe } from 'firebase/messaging';
 import { getMessagingInstance, fetchToken, requestNotificationPermission, setupForegroundMessageHandler } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { FcmMessagePayload } from '@/lib/types/firebase';
 import React from 'react';
-
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // Global flags to prevent multiple operations
-let hasRegisteredGlobally = false;
 let isRegistrationInProgress = false;
 let registrationPromise: Promise<string | null> | null = null;
 
@@ -33,28 +34,33 @@ const FcmContext = createContext<FcmContextType>({
 // Export hook to use the FCM Context
 export const useFcmContext = () => useContext(FcmContext);
 
-// Helper to store token in database
-const storeTokenInDatabase = async (tokenToStore: string): Promise<boolean> => {
+// Helper to store token in Supabase
+const storeTokenInSupabase = async (tokenToStore: string): Promise<boolean> => {
   if (!tokenToStore) return false;
   
   try {
-    console.log(`Storing FCM token in database: ${tokenToStore.substring(0, 10)}...`);
-    const response = await fetch('/api/fcm-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: tokenToStore }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Network response was not ok: ${response.statusText}`);
+    // Get the current session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No active session');
+      return false;
     }
 
-    const data = await response.json();
-    console.log('FCM token stored in database:', data);
+    // Call the Edge Function to store the token
+    const { data, error } = await supabase.functions.invoke('store-fcm-token', {
+      body: { 
+        token: tokenToStore,
+        platform: 'web' // You can detect the actual platform here
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('FCM token stored successfully:', data);
     
-    // Now try to subscribe to the all_devices topic
+    // Now subscribe to the all_devices topic
     await subscribeToTopic(tokenToStore, 'all_devices');
     return true;
   } catch (error) {
@@ -66,21 +72,25 @@ const storeTokenInDatabase = async (tokenToStore: string): Promise<boolean> => {
 // Helper to subscribe to a topic
 const subscribeToTopic = async (tokenToSubscribe: string, topic: string): Promise<boolean> => {
   try {
-    console.log(`Subscribing token to topic '${topic}'...`);
-    const response = await fetch('/api/subscribe-to-topic', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: tokenToSubscribe, topic }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Subscription failed: ${errorData.error || 'Unknown error'}`);
+    // Get the current session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No active session for topic subscription');
+      return false;
     }
 
-    const data = await response.json();
+    // Call the Edge Function to subscribe to topic
+    const { data, error } = await supabase.functions.invoke('subscribe-to-topic', {
+      body: { 
+        token: tokenToSubscribe,
+        topic 
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+
     console.log(`Successfully subscribed to topic '${topic}':`, data);
     return true;
   } catch (error) {
@@ -93,7 +103,6 @@ const subscribeToTopic = async (tokenToSubscribe: string, topic: string): Promis
 export async function getNotificationPermissionAndToken(): Promise<string | null> {
   // If registration is already in progress, return the existing promise
   if (isRegistrationInProgress && registrationPromise) {
-    console.log('Token registration already in progress, returning existing promise');
     return registrationPromise;
   }
   
@@ -111,20 +120,13 @@ export async function getNotificationPermissionAndToken(): Promise<string | null
       }
 
       // Then get token
-      console.log('Notification permission granted, fetching token...');
       const token = await fetchToken();
       if (!token) {
-        console.log('No FCM token received.');
         return null;
       }
 
-      console.log(`FCM token received: ${token.substring(0, 10)}...`);
-      
-      // Store token in database
-      await storeTokenInDatabase(token);
-      
-      // Set global registration flag
-      hasRegisteredGlobally = true;
+      // Store token in Supabase
+      await storeTokenInSupabase(token);
       
       return token;
     } catch (error) {
@@ -155,7 +157,6 @@ export function useFcmToken() {
     const checkPermission = async () => {
       try {
         if (!('Notification' in window)) {
-          console.log('This browser does not support notifications.');
           setNotificationPermissionStatus('denied');
           return;
         }
@@ -163,7 +164,6 @@ export function useFcmToken() {
         // Get current permission state
         const permissionState = Notification.permission as NotificationPermission;
         setNotificationPermissionStatus(permissionState);
-        console.log(`Current notification permission status: ${permissionState}`);
       } catch (err) {
         console.error('Error checking notification permission:', err);
       }
@@ -186,7 +186,6 @@ export function useFcmToken() {
     // Set up foreground message handler
     const setupMessageHandler = async () => {
       try {
-        console.log('Setting up foreground message handler');
         const messaging = getMessagingInstance();
         if (!messaging) return;
         
@@ -201,9 +200,10 @@ export function useFcmToken() {
           console.log('Foreground message received:', payload);
           
           // Extract data from payload
+          const notification = payload.notification || {};
           const data = payload.data || {};
-          const title = data.title || 'New Notification';
-          const body = data.body || '';
+          const title = notification.title || data.title || 'New Notification';
+          const body = notification.body || data.body || '';
           const link = data.link || '/';
           
           // Show toast notification for foreground messages
@@ -230,7 +230,6 @@ export function useFcmToken() {
           );
         });
         
-        console.log('Foreground message handler set up successfully');
       } catch (error) {
         console.error('Error setting up foreground message handler:', error);
       }
@@ -245,8 +244,6 @@ export function useFcmToken() {
     // Cleanup on unmount
     return () => {
       if (messageHandlerRef.current) {
-        console.log('Cleaning up foreground message handler');
-        messageHandlerRef.current();
         messageHandlerRef.current = null;
       }
     };
@@ -276,7 +273,6 @@ export function useFcmToken() {
       
       if (permissionStatus !== 'granted') {
         // Permission denied
-        console.log('Notification permission denied');
         return null;
       }
       

@@ -1,26 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { FirebaseConfig, FcmMessagePayload } from '@/lib/types/firebase';
+import { firebaseConfig } from '@/config/app.config';
+import { FirebaseConfig, FcmMessagePayload } from '@/types/features/firebase';
 
-// Add fallback values to ensure Firebase works even if environment variables are missing
-const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyB0Nxf3pvW32KBc0D1o2-K6qIeKovhGWfg',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'new1-f04b3.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'new1-f04b3',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'new1-f04b3.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '802463638703',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:802463638703:web:bd0bbdaf3407d784d5205a',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-3RZEW537LN'
-  // clientId and clientSecret removed - should not be exposed in client config
-};
-
-// Log a warning if environment variables are missing
-if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-  console.warn('Firebase environment variables are missing. Using fallback values.');
-}
-
-// Use VAPID key from environment variable with fallback
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BPAbU0G8rhAKE7ay5RepQ7N3V_CsdCKvmflQm0FncBbx4CHL0IfmGvdbdYUN90Vjn50JB7T9jzj268KhYJ34ikU';
+// Use secure configuration from validated environment
+const firebaseClientConfig: FirebaseConfig = firebaseConfig;
 
 // Global initialization flag to prevent multiple attempts
 let isInitializing = false;
@@ -32,7 +16,7 @@ let initializationError: Error | null = null;
 const getFirebaseApp = () => {
   const apps = getApps();
   if (apps.length) return apps[0];
-  return initializeApp(firebaseConfig);
+  return initializeApp(firebaseClientConfig);
 };
 
 /**
@@ -70,7 +54,7 @@ export const initFirebase = async () => {
   initializationError = null;
   
   try {
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseClientConfig);
     console.log('Firebase initialized successfully');
     return app;
   } catch (error) {
@@ -227,11 +211,8 @@ export const fetchToken = async (maxRetries = 2): Promise<string | null> => {
         throw new Error('Failed to get messaging instance');
       }
       
-      // Use the VAPID key from environment variable
-      const vapidKey = VAPID_KEY;
-      if (!vapidKey) {
-        throw new Error('VAPID key is missing');
-      }
+      // Use the VAPID key from secure configuration
+      const vapidKey = firebaseConfig.vapidKey;
       
       console.log(`Attempting to get FCM token (attempt ${retryCount + 1}/${maxRetries + 1})`);
       
@@ -296,7 +277,7 @@ export const fetchToken = async (maxRetries = 2): Promise<string | null> => {
           const messaging = getMessagingInstance();
           if (!messaging) return null;
           
-          const fallbackToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+          const fallbackToken = await getToken(messaging, { vapidKey: firebaseConfig.vapidKey });
           
           if (fallbackToken) {
             console.log('FCM token received with fallback method');
@@ -377,7 +358,7 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             const link = 
               dataObject.link || 
               payload.fcmOptions?.link || 
-              (payload.notification as any)?.clickAction || 
+              (payload.notification as { clickAction?: string })?.clickAction || 
               '/';
             
             // Create notification options
@@ -391,7 +372,7 @@ export const setupForegroundMessageHandler = (messaging: Messaging, callback?: (
             
             // Add image if available (supported in modern browsers)
             if (image) {
-              // @ts-ignore - image is valid in modern browsers
+              // @ts-expect-error - image is valid in modern browsers
               options.image = image;
             }
             

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import { useRef, useEffect } from 'react';
 import { 
-  TShirt, Coffee, ShoppingBag, Hat, Watch,
+  ShoppingBag,
   ChevronLeft, ChevronRight
 } from "lucide-react";
-import type { MerchCategory } from '@/lib/types/merch';
+import type { MerchCategory } from '@/types/features/merch';
 
 // Map of category IDs to icons
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -77,7 +77,7 @@ export const MerchCategoryNav = ({
 
         <div 
           ref={scrollContainerRef} 
-          className="flex space-x-1 py-2 px-6 overflow-x-auto scrollbar-hide"
+          className="flex space-x-1 py-2 px-6 overflow-x-auto menu-scrollbar-hide"
         >
           {categories.map((category) => {
             const icon = CATEGORY_ICONS[category.id] || CATEGORY_ICONS.default;

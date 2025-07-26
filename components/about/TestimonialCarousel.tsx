@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
-import { Testimonial } from "@/lib/types/about";
+import { Testimonial } from "@/types/features/about";
 import { useLocationState } from "@/lib/hooks/useLocationState";
 import { Quote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,7 +114,7 @@ export function TestimonialCarousel() {
                 <Card className="bg-card/50 backdrop-blur-sm">
                   <CardContent className="pt-6">
                     <blockquote className="text-xl md:text-2xl italic text-foreground/90 text-center mb-6">
-                      "{testimonial.quote}"
+                      &quot;{testimonial.quote}&quot;
                     </blockquote>
                     
                     <div className="text-center">

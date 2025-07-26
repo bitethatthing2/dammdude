@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/lib/supabase/server';
 import { validateFcmToken, initializeFirebaseAdmin, isFirebaseAdminInitialized } from '@/lib/firebase/admin';
 
 // Interface for the request body containing the FCM token
@@ -60,22 +60,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Initialize Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = await createServerClient();
     
     // Check if token already exists
-    const { data: existingToken, error: checkError } = await supabaseAdmin
-      .from('fcm_tokens')
+    const { data: existingToken, error: checkError } = await supabase
+      .from('device_tokens')
       .select('token, created_at')
       .eq('token', token)
       .single();
@@ -96,10 +85,11 @@ export async function POST(request: NextRequest) {
       // Token exists, update the last active time and device info
       console.log('Token already exists, updating last active time');
       
-      const { error: updateError } = await supabaseAdmin
-        .from('fcm_tokens')
+      const { error: updateError } = await supabase
+        .from('device_tokens')
         .update({
-          device_info: deviceInfo,
+          platform: deviceInfo.platform,
+          last_used: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('token', token);
@@ -121,12 +111,14 @@ export async function POST(request: NextRequest) {
       // New token, insert it
       console.log('Inserting new token');
       
-      const { error: insertError } = await supabaseAdmin
-        .from('fcm_tokens')
+      const { error: insertError } = await supabase
+        .from('device_tokens')
         .insert([
           {
             token,
-            device_info: deviceInfo,
+            platform: deviceInfo.platform,
+            is_active: true,
+            last_used: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }

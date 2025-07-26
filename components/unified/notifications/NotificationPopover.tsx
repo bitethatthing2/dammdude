@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Popover,
   PopoverContent,
@@ -9,10 +10,26 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Bell, Check, CheckCheck, Trash2, Clock } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useNotifications } from '@/lib/contexts/unified-notification-context';
-import { NotificationIndicator } from './NotificationIndicator';
+import { Bell, Check, CheckCheck, Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+// Remove the NotificationIndicator import for now since it's causing errors
+// import { NotificationIndicator } from './NotificationIndicator';
+
+/**
+ * Notification interface matching your fetch_notifications function return type
+ */
+interface Notification {
+  id: string;
+  recipient_id: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  read: boolean;
+  data: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Unified notification popover component
@@ -21,20 +38,98 @@ import { NotificationIndicator } from './NotificationIndicator';
 export function NotificationPopover() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('unread');
-  
-  const {
-    notifications,
-    unreadCount,
-    dismissNotification,
-    dismissAllNotifications,
-    refreshNotifications,
-    isLoading
-  } = useNotifications();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Initialize Supabase client
+    // Fetch notifications directly from Supabase
+  const fetchNotifications = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('fetch_notifications', {
+        p_user_id: undefined, // null means current user
+        p_limit: 50,
+        p_offset: 0
+      });
+
+      if (error) {
+        // Handle missing notifications table gracefully
+        if (error.code === '42P01' && error.message?.includes('notifications')) {
+          console.log('Notifications table not yet created - this is expected during development');
+          setNotifications([]);
+          return;
+        }
+        console.error('Error fetching notifications:', error);
+        setNotifications([]);
+        return;
+      }
+
+      setNotifications((data as any[]) || []);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase.rpc('mark_notification_read', {
+        p_notification_id: notificationId
+      });
+
+      if (error) {
+        console.error('Failed to mark notification as read:', error);
+        return;
+      }
+
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
+
+  // Dismiss notification (mark as read)
+  const dismissNotification = async (notificationId: string) => {
+    await markAsRead(notificationId);
+  };
+
+  // Mark all as read
+  const dismissAllNotifications = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      for (const id of unreadIds) {
+        await markAsRead(id);
+      }
+      
+      // Refresh notifications
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  // Refresh notifications
+  const refreshNotifications = () => {
+    fetchNotifications();
+  };
+
+  // Load notifications on mount
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.read).length;
   
   // Get unread notifications
-  const unreadNotifications = notifications.filter(
-    notification => notification.status === 'unread'
-  );
+  const unreadNotifications = notifications.filter(n => !n.read);
   
   // Get all notifications
   const allNotifications = notifications;
@@ -43,7 +138,7 @@ export function NotificationPopover() {
   const formatDate = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (error) {
+    } catch {
       return 'Date unknown';
     }
   };
@@ -66,22 +161,33 @@ export function NotificationPopover() {
     }
   };
   
-  // Handle marking notifications as read
+  // Handle marking all notifications as read
   const handleDismissAll = async () => {
     await dismissAllNotifications();
     setActiveTab('all');
   };
   
   // Handle clicking a notification
-  const handleNotificationClick = async (id: string, link?: string) => {
-    await dismissNotification(id);
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if it's unread
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
     
-    // Navigate to link if provided
-    if (link) {
-      window.location.href = link;
+    // Navigate to link if provided in data
+    if (notification.data?.link) {
+      if (typeof window !== 'undefined') {
+        window.location.href = notification.data.link as string;
+      }
     }
     
     setOpen(false);
+  };
+  
+  // Handle individual dismiss (mark as dismissed)
+  const handleDismissNotification = async (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation();
+    await dismissNotification(notificationId);
   };
   
   // Handle refresh
@@ -92,9 +198,15 @@ export function NotificationPopover() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div>
-          <NotificationIndicator onClick={() => setOpen(!open)} />
-        </div>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+          <span className="sr-only">Notifications</span>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[350px] p-0" align="end">
         <div className="flex items-center justify-between px-4 py-2 border-b">
@@ -116,6 +228,7 @@ export function NotificationPopover() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleDismissAll}
+                title="Mark all as read"
               >
                 <CheckCheck className="h-4 w-4" />
                 <span className="sr-only">Mark all as read</span>
@@ -155,21 +268,25 @@ export function NotificationPopover() {
                     <CheckCheck className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <p className="text-sm text-muted-foreground">All caught up!</p>
+                  <p className="text-xs text-muted-foreground mt-1">No unread notifications</p>
                 </div>
               ) : (
                 <div>
                   {unreadNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="py-2 px-4 hover:bg-muted/50 cursor-pointer border-b last:border-0"
-                      onClick={() => handleNotificationClick(notification.id, notification.link)}
+                      className="py-2 px-4 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors"
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="mt-1">
                           {getNotificationIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-2">{notification.message}</p>
+                          <p className="text-sm font-medium line-clamp-2">{notification.title}</p>
+                          {notification.message !== notification.title && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{notification.message}</p>
+                          )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDate(notification.created_at)}
                           </p>
@@ -178,10 +295,8 @@ export function NotificationPopover() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 opacity-50 hover:opacity-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            dismissNotification(notification.id);
-                          }}
+                          onClick={(e) => handleDismissNotification(e, notification.id)}
+                          title="Dismiss notification"
                         >
                           <Check className="h-3 w-3" />
                           <span className="sr-only">Mark as read</span>
@@ -207,29 +322,40 @@ export function NotificationPopover() {
                     <Bell className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <p className="text-sm text-muted-foreground">No notifications</p>
+                  <p className="text-xs text-muted-foreground mt-1">You&#39;ll see notifications here when you receive them</p>
                 </div>
               ) : (
                 <div>
                   {allNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`py-2 px-4 hover:bg-muted/50 cursor-pointer border-b last:border-0 ${
-                        notification.status === 'unread' ? 'bg-muted/20' : ''
+                      className={`py-2 px-4 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors ${
+                        !notification.read ? 'bg-muted/20' : ''
                       }`}
-                      onClick={() => handleNotificationClick(notification.id, notification.link)}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="mt-1">
                           {getNotificationIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm line-clamp-2 ${notification.status === 'unread' ? 'font-medium' : ''}`}>
-                            {notification.message}
+                          <p className={`text-sm line-clamp-2 ${
+                            !notification.read ? 'font-medium' : ''
+                          }`}>
+                            {notification.title}
                           </p>
+                          {notification.message !== notification.title && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{notification.message}</p>
+                          )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDate(notification.created_at)}
                           </p>
                         </div>
+                        {!notification.read && (
+                          <div className="mt-1">
+                            <div className="h-2 w-2 bg-primary rounded-full"></div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

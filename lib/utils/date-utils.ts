@@ -1,4 +1,5 @@
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { format } from 'date-fns/format';
 
 /**
  * Formats a date string as a relative time (e.g., "5 minutes ago")
@@ -84,5 +85,55 @@ export function formatRelativeTime(date: string | Date): string {
   } catch (error) {
     console.error('Error formatting relative time:', error);
     return 'unknown time';
+  }
+}
+
+/**
+ * Formats a date for join/created date display (specific to UserProfileModal pattern)
+ * Returns format like "January 2024"
+ */
+export function formatJoinDate(dateString: string | null | undefined): string {
+  if (!dateString) return 'Unknown';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Unknown';
+    
+    return date.toLocaleDateString([], { 
+      year: 'numeric', 
+      month: 'long' 
+    });
+  } catch {
+    return 'Unknown';
+  }
+}
+
+/**
+ * Formats last seen time (specific to UserProfileModal pattern)
+ * Returns format like "2 hours ago", "3 days ago"
+ */
+export function formatLastSeen(dateString: string | null | undefined): string {
+  if (!dateString) return 'Unknown';
+  
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Unknown';
+    
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
+    } else {
+      return `${Math.floor(diffInHours / 24)} days ago`;
+    }
+  } catch {
+    return 'Unknown';
   }
 }

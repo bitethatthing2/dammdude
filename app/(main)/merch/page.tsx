@@ -5,7 +5,8 @@ import { ShoppingBag } from 'lucide-react';
 
 export default function MerchPage() {
   return (
-    <div className="container py-8">
+    <div className="main-content">
+      <div className="container py-8">
       <div className="flex items-center mb-8">
         <ShoppingBag className="h-6 w-6 mr-2 text-primary" />
         <h1 className="text-3xl font-bold">Merchandise</h1>
@@ -15,11 +16,12 @@ export default function MerchPage() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-4">Merch Store Coming Soon</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            We're currently setting up our merchandise store. Check back soon to 
+            We&apos;re currently setting up our merchandise store. Check back soon to 
             purchase Side Hustle branded apparel and accessories!
           </p>
         </div>
       </Suspense>
+      </div>
     </div>
   );
 }

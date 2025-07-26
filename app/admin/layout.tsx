@@ -1,104 +1,103 @@
-import { ReactNode } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { cookies, headers } from 'next/headers';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { Home, FileText, Users, Settings, LogOut, MenuSquare, ChefHat } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { UnifiedNotificationProvider } from '@/components/unified';
+import { NotificationProvider } from '@/components/unified';
+import { Home, ShoppingBag, Users, BarChart3, BookOpen, Table2 } from 'lucide-react';
 
-interface AdminLayoutProps {
-  children: ReactNode;
-}
-
-export default async function AdminLayout({ children }: AdminLayoutProps) {
-  // Special case for login page - don't check authentication
-  if (children.type?.name === 'AdminLoginPage') {
-    return (
-      <div className="min-h-screen flex dark:bg-background">
-        <div className="flex-1 flex flex-col">
-          <main className="flex-1 overflow-auto p-4 md:p-6">
-            {children}
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // Get the session from cookies
-  const cookieStore = cookies();
-  const supabase = await createSupabaseServerClient(cookieStore);
-  
-  // Get authenticated user
-  const { data } = await supabase.auth.getSession();
-  const session = data?.session;
-  const userId = session?.user?.id;
-  
-  // Navigation links
-  const navItems = [
-    { href: '/admin', label: 'Dashboard', icon: Home },
-    { href: '/admin/orders', label: 'Orders', icon: FileText },
-    { href: '/admin/menu', label: 'Menu', icon: MenuSquare },
-    { href: '/admin/kitchen', label: 'Kitchen', icon: ChefHat },
-    { href: '/admin/tables', label: 'Tables', icon: Users },
-    { href: '/admin/unified', label: 'Unified Admin', icon: FileText },
-    { href: '/admin/settings', label: 'Settings', icon: Settings },
-  ];
-  
+/**
+ * Main admin layout
+ * Provides navigation and notification context for all admin pages
+ */
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  // Auth will be handled client-side to avoid build errors
   return (
-    <UnifiedNotificationProvider recipientId={userId || 'admin'} role="admin">
-      <div className="min-h-screen flex dark:bg-background">
-        {/* Sidebar navigation */}
-        <aside className="hidden md:flex w-64 flex-col bg-muted/40 border-r border-border">
-          <div className="p-4 border-b border-border">
-            <h1 className="text-xl font-bold">BarTap Admin</h1>
-            <p className="text-sm text-muted-foreground">Staff Management Portal</p>
+    <NotificationProvider>
+      <div className="flex min-h-screen flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-14 items-center">
+            <div className="mr-4 flex">
+              <Link href="/admin/dashboard" className="mr-6 flex items-center space-x-2">
+                <span className="font-bold">Admin Panel</span>
+              </Link>
+              <nav className="flex items-center space-x-6 text-sm font-medium">
+                <Link
+                  href="/admin/dashboard"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <Home className="h-4 w-4 inline mr-1" />
+                  Dashboard
+                </Link>
+                <Link
+                  href="/admin/orders"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <ShoppingBag className="h-4 w-4 inline mr-1" />
+                  Orders
+                </Link>
+                <Link
+                  href="/admin/tables"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <Table2 className="h-4 w-4 inline mr-1" />
+                  Tables
+                </Link>
+                <Link
+                  href="/admin/menu"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <BookOpen className="h-4 w-4 inline mr-1" />
+                  Menu
+                </Link>
+                <Link
+                  href="/admin/users"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <Users className="h-4 w-4 inline mr-1" />
+                  Users
+                </Link>
+                <Link
+                  href="/admin/analytics"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <BarChart3 className="h-4 w-4 inline mr-1" />
+                  Analytics
+                </Link>
+              </nav>
+            </div>
+            <div className="ml-auto flex items-center space-x-4">
+              <Link
+                href="/"
+                className="text-sm transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                ← Back to Site
+              </Link>
+            </div>
           </div>
-          
-          <nav className="flex-1 pt-4">
-            <ul className="space-y-1 px-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                      <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-          
-          <div className="p-4 border-t border-border mt-auto">
-            <form action="/api/auth/signout" method="POST">
-              <Button variant="ghost" className="w-full flex items-center gap-2 justify-start" type="submit">
-                <LogOut className="h-4 w-4" />
-                <span>Sign out</span>
-              </Button>
-            </form>
-          </div>
-        </aside>
-        
-        {/* Main content */}
-        <div className="flex-1 flex flex-col">
-          {/* Mobile header */}
-          <header className="flex items-center h-16 px-4 border-b border-border md:hidden">
-            <h1 className="text-lg font-bold">BarTap Admin</h1>
-            
-            {/* Mobile menu button - would typically open a drawer */}
-            <Button variant="ghost" size="icon" className="ml-auto">
-              <MenuSquare className="h-5 w-5" />
-            </Button>
-          </header>
-          
-          {/* Page content */}
-          <main className="flex-1 overflow-auto p-4 md:p-6">
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="container py-6">
             {children}
-          </main>
-        </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t">
+          <div className="container flex h-14 items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Kitchen Display System
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Staff Access
+            </p>
+          </div>
+        </footer>
       </div>
-    </UnifiedNotificationProvider>
+    </NotificationProvider>
   );
 }

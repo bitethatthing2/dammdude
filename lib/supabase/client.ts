@@ -1,70 +1,288 @@
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '../database.types';
+import { createBrowserClient } from '@supabase/ssr'
+import { Database } from '@/types/database.types'
+import { checkAndClearCorruptedCookies } from '@/lib/utils/cookie-utils'
 
-// Fallback values (consider removing or adjusting logging if ENV vars are reliably set)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dzvvjgmnlcmgrsnyfqnw.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6dnZqZ21ubGNtZ3JzbnlmcW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MTU5OTQsImV4cCI6MjA1NDk5MTk5NH0.ECFbZk2XPcQ18Qf26i5AbDAjcmH4fHSrfLfv_ccaq-A';
-
-// Keep the warning for debugging purposes (optional)
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn('Supabase environment variables (URL or Anon Key) are missing. Check Vercel environment variables and .env.local for client-side usage. Using fallback values.');
+// Define proper error types
+interface SupabaseError {
+  message: string
+  status?: number
+  code?: string
+  details?: string
+  hint?: string
 }
 
-// Use a singleton pattern to avoid creating multiple clients
-let clientInstance: ReturnType<typeof createBrowserClient<Database>> | undefined;
+interface PostgrestError {
+  message: string
+  details: string
+  hint: string
+  code: string
+}
 
-export function getSupabaseBrowserClient() {
-  // Guard against SSR execution
-  if (typeof window === 'undefined') {
-    console.warn('getSupabaseBrowserClient was called during server rendering, which should be avoided');
-    // Return a minimal mock client for SSR that won't make actual requests
-    return {
-      auth: {
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      },
-      // Add additional stubs as needed
-    } as any;
-  }
+interface AuthError {
+  message: string
+  status?: number
+  code?: string
+  name: string
+}
 
-  if (!clientInstance) {
+// Type guard to check if error is a Supabase/Postgrest error
+function isSupabaseError(error: unknown): error is SupabaseError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as SupabaseError).message === 'string'
+  )
+}
+
+// Type guard for auth errors
+function isAuthError(error: unknown): error is AuthError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    'message' in error
+  )
+}
+
+// Retry fetch with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
     try {
-      // Use the Database type generic
-      clientInstance = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
-    } catch (err) {
-      console.error('Failed to create Supabase browser client:', err);
-      // Return a minimal mock client if creation fails
-      return {
-        auth: {
-          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-        },
-        // Add additional stubs as needed
-      } as any;
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok && response.status >= 500 && i < maxRetries - 1) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+      
+      return response
+    } catch (error) {
+      // Check if it's a connection error to local Supabase
+      if (error instanceof Error && error.message.includes('Failed to fetch') && url.includes('127.0.0.1:54321')) {
+        console.warn('Local Supabase instance not running. Please start it with: npx supabase start')
+        if (i === maxRetries - 1) {
+          throw new Error('Local Supabase instance not running. Please start it with: npx supabase start')
+        }
+      } else if (i === maxRetries - 1) {
+        throw error
+      }
+      
+      // Exponential backoff with jitter
+      const delay = Math.min(1000 * Math.pow(2, i) + Math.random() * 1000, 10000)
+      await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
-  return clientInstance;
+  
+  throw new Error('Max retries reached')
 }
 
-// Define the Supabase client type using the Database generic
-type SupabaseClient = ReturnType<typeof createBrowserClient<Database>>;
+// Create a single shared instance with proper typing
+let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
-// Export a createClient function for backward compatibility
-export const createClient = getSupabaseBrowserClient;
+export function createClient() {
+  // Return existing instance if it exists
+  if (supabaseClient) {
+    return supabaseClient
+  }
 
-// Utility for safer queries with proper error handling
-export async function safeSupabaseQuery<T>(
-  supabase: SupabaseClient,
-  queryFn: (client: SupabaseClient) => Promise<{ data: T | null; error: any }>
-): Promise<{ data: T | null; error: any }> {
+  // Check and clear corrupted cookies before creating client
+  if (typeof window !== 'undefined') {
+    try {
+      checkAndClearCorruptedCookies()
+    } catch (error) {
+      console.warn('Error checking cookies:', error)
+    }
+  }
+
+  // Use environment variables directly to avoid config layer issues
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Debug: Log configuration status in development
+  if (process.env.NODE_ENV === 'development' && (!supabaseUrl || !supabaseAnonKey)) {
+    console.error('Supabase Configuration Error:', {
+      url: supabaseUrl ? 'OK' : 'MISSING',
+      anonKey: supabaseAnonKey ? 'OK' : 'MISSING'
+    })
+  }
+
+  // Validate required configuration
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(`Missing Supabase configuration: URL=${!!supabaseUrl}, AnonKey=${!!supabaseAnonKey}`)
+  }
+
+  // Create new instance with better error handling
   try {
-    return await queryFn(supabase);
-  } catch (error: unknown) {
-    console.error('Supabase query error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return { 
-      data: null, 
-      error: { message: 'Failed to fetch data', details: errorMessage } 
-    };
+    supabaseClient = createBrowserClient<Database>(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce',
+          storageKey: 'supabase.auth.token',
+          storage: typeof window !== 'undefined' ? {
+            getItem: (key: string) => {
+              try {
+                const value = window.localStorage.getItem(key);
+                // Validate the value before returning
+                if (value && (value.includes('undefined') || value.includes('null'))) {
+                  window.localStorage.removeItem(key);
+                  return null;
+                }
+                return value;
+              } catch {
+                return null;
+              }
+            },
+            setItem: (key: string, value: string) => {
+              try {
+                window.localStorage.setItem(key, value);
+              } catch (error) {
+                console.error('Failed to save to localStorage:', error);
+              }
+            },
+            removeItem: (key: string) => {
+              try {
+                window.localStorage.removeItem(key);
+              } catch (error) {
+                console.error('Failed to remove from localStorage:', error);
+              }
+            },
+          } : undefined
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'supabase-ssr-js'
+          },
+          fetch: (url, options = {}) => {
+            return fetchWithRetry(url, options, 3)
+          }
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Error creating Supabase client:', error)
+    // Clear cookies and try again
+    if (typeof window !== 'undefined') {
+      checkAndClearCorruptedCookies()
+    }
+    
+    // Retry with minimal config
+    supabaseClient = createBrowserClient<Database>(
+      supabaseUrl,
+      supabaseAnonKey
+    )
+  }
+
+  return supabaseClient
+}
+
+// Export the shared instance directly
+export const supabase = createClient()
+
+// For backward compatibility
+export const getSupabaseBrowserClient = createClient
+
+// Utility function to handle Supabase errors with proper typing
+export function handleSupabaseError(error: unknown): {
+  message: string
+  status?: number
+  code?: string
+} {
+  // Handle null/undefined
+  if (!error) {
+    return {
+      message: 'An unknown error occurred',
+      status: 500,
+      code: 'UNKNOWN_ERROR',
+    }
+  }
+
+  // Handle Error instances
+  if (error instanceof Error) {
+    // Check for specific error types
+    if (error.message.includes('JWT')) {
+      return {
+        message: 'Authentication expired. Please sign in again.',
+        status: 401,
+        code: 'AUTH_EXPIRED',
+      }
+    }
+    
+    if (error.message.includes('fetch')) {
+      return {
+        message: 'Network error. Please check your connection.',
+        status: 0,
+        code: 'NETWORK_ERROR',
+      }
+    }
+
+    return {
+      message: error.message,
+      status: 500,
+      code: 'ERROR',
+    }
+  }
+
+  // Handle Supabase/Postgrest errors
+  if (isSupabaseError(error)) {
+    // Rate limiting
+    if (error.status === 429) {
+      return {
+        message: 'Too many requests. Please try again later.',
+        status: 429,
+        code: 'RATE_LIMITED',
+      }
+    }
+
+    return {
+      message: error.message,
+      status: error.status || 500,
+      code: error.code || 'SUPABASE_ERROR',
+    }
+  }
+
+  // Handle auth errors
+  if (isAuthError(error)) {
+    return {
+      message: error.message,
+      status: error.status || 401,
+      code: error.code || 'AUTH_ERROR',
+    }
+  }
+
+  // Handle string errors
+  if (typeof error === 'string') {
+    return {
+      message: error,
+      status: 500,
+      code: 'STRING_ERROR',
+    }
+  }
+
+  // Default fallback
+  return {
+    message: 'An unexpected error occurred',
+    status: 500,
+    code: 'UNKNOWN_ERROR',
   }
 }
+
+// Export types
+export type { SupabaseError, PostgrestError, AuthError }

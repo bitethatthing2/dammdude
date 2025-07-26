@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { ReactNode } from 'react';
 import dynamic from 'next/dynamic';
@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
  */
 interface ClientComponentWrapperProps {
   children: ReactNode;
-  fallback?: ReactNode;
 }
 
 /**
@@ -17,8 +16,7 @@ interface ClientComponentWrapperProps {
  * and only loaded on the client side
  */
 export function ClientComponentWrapper({
-  children,
-  fallback = <div>Loading...</div>
+  children
 }: ClientComponentWrapperProps) {
   return (
     <ErrorBoundary>
@@ -78,7 +76,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 /**
  * Creates a dynamically imported client component that's only loaded on the client side
  */
-export function createClientComponent<T>(
+export function createClientComponent<T extends React.JSX.IntrinsicAttributes>(
   importFunc: () => Promise<{ default: React.ComponentType<T> }>,
   displayName: string,
   loadingComponent: ReactNode = <div>Loading {displayName}...</div>
@@ -90,7 +88,7 @@ export function createClientComponent<T>(
 
   // Create a wrapper that includes the error boundary
   const WrappedComponent = (props: T) => (
-    <ClientComponentWrapper fallback={loadingComponent}>
+    <ClientComponentWrapper>
       <Component {...props} />
     </ClientComponentWrapper>
   );

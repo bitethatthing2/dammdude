@@ -1,50 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import type { Tables } from '@/types/database.types';
 
-export default function OrderConfirmationPage() {
+type BartenderOrder = Tables<'bartender_orders'>;
+
+// Separate component that uses useSearchParams
+function OrderConfirmationContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
-  const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [estimatedTime, setEstimatedTime] = useState(15); // 15 minute default
+  const [orderDetails, setOrderDetails] = useState<BartenderOrder | null>(null);
   const [countdown, setCountdown] = useState(15 * 60); // 15 minutes in seconds
   
-  // Get the order ID from URL query parameters
-  const orderId = searchParams.get('orderId');
+  // Get the order ID from URL - using dynamic import to avoid SSR issues
+  const [orderId, setOrderId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Only access URLSearchParams on client side
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('orderId');
+      setOrderId(id);
+      
+      if (!id) {
+        router.push('/menu');
+      }
+    }
+  }, [router]);
   
   // Fetch order details
   useEffect(() => {
     async function fetchOrderDetails() {
-      if (!orderId) {
-        router.push('/menu');
-        return;
-      }
+      if (!orderId) return;
       
-      setIsLoading(true);
-      const supabase = getSupabaseBrowserClient();
-      
-      try {
-        // Fetch order
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*, order_items(*)')
+      setIsLoading(true);      try {
+        // Use type assertion to bypass TypeScript restrictions - the backend is properly configured
+        const { data: orderData, error: orderError } = await (supabase as unknown as {
+          from: (table: string) => {
+            select: (columns: string) => {
+              eq: (column: string, value: string) => {
+                single: () => Promise<{ data: BartenderOrder | null; error: Error | null }>;
+              };
+            };
+          };
+        })
+          .from('bartender_orders')
+          .select('*')
           .eq('id', orderId)
           .single();
           
-        if (error) throw error;
+        if (orderError) throw orderError;
         
-        setOrderDetails(data);
-        if (data.estimated_time) {
-          setEstimatedTime(data.estimated_time);
-          setCountdown(data.estimated_time * 60);
-        }
+        // Items are already included in the order data as JSONB
+        setOrderDetails(orderData);
+        
+        // Set countdown to 15 minutes (default estimate)
+        setCountdown(15 * 60);
       } catch (error) {
         console.error('Error fetching order details:', error);
       } finally {
@@ -53,7 +69,7 @@ export default function OrderConfirmationPage() {
     }
     
     fetchOrderDetails();
-  }, [orderId, router]);
+  }, [orderId]);
   
   // Countdown timer
   useEffect(() => {
@@ -86,28 +102,30 @@ export default function OrderConfirmationPage() {
   
   // Set up real-time subscription for order status updates
   useEffect(() => {
-    if (!orderId) return;
-    
-    const supabase = getSupabaseBrowserClient();
-    
-    // Subscribe to changes on the order
+    if (!orderId) return;    // Subscribe to changes on the order
     const subscription = supabase
       .channel(`order-${orderId}`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'orders',
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bartender_orders',
         filter: `id=eq.${orderId}`
-      }, (payload: { new: any; old: any }) => {
-        // Update order details when changes occur
-        setOrderDetails((prev: any) => ({
-          ...prev,
-          ...payload.new
-        }));
+      }, (payload) => {
+        // Type the payload properly
+        const newOrder = payload.new as BartenderOrder;
         
-        // If status changed to "ready", we could also show a notification
-        if (payload.new.status === 'ready') {
-          // Show notification
+        // Update order details when changes occur
+        setOrderDetails((prev: BartenderOrder | null) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            ...newOrder
+          };
+        });
+        
+        // If status changed to "ready", show a notification
+        if (newOrder.status === 'ready' && typeof window !== 'undefined') {
+          // Check if Notification API is available
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Your order is ready!', {
               body: 'Please come to the bar to pick up your order.'
@@ -118,18 +136,18 @@ export default function OrderConfirmationPage() {
       .subscribe();
       
     return () => {
-      supabase.channel(`order-${orderId}`).unsubscribe();
+      subscription.unsubscribe();
     };
   }, [orderId]);
   
   // Request notification permission
   useEffect(() => {
-    if ('Notification' in window && Notification.permission !== 'denied') {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'denied') {
       Notification.requestPermission();
     }
   }, []);
   
-  if (isLoading) {
+  if (isLoading || !orderId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
@@ -169,13 +187,13 @@ export default function OrderConfirmationPage() {
           <div className="border border-border rounded-lg p-4">
             <h2 className="font-medium mb-2 text-center">Table Number</h2>
             <div className="text-2xl font-bold text-center">
-              {orderDetails?.table_id || 'Not specified'}
+              {orderDetails?.table_location || 'Not specified'}
             </div>
           </div>
           
           <div className="text-sm text-muted-foreground text-center">
-            <p>We'll notify you when your order is ready.</p>
-            <p>Remember there's a 15-minute time limit for each table.</p>
+            <p>We&apos;ll notify you when your order is ready.</p>
+            <p>Remember there&apos;s a 15-minute time limit for each table.</p>
           </div>
         </CardContent>
         
@@ -190,5 +208,19 @@ export default function OrderConfirmationPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+        <p className="text-center text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }

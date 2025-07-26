@@ -1,563 +1,414 @@
-/* eslint-disable */
+// sw-cache.js - Enhanced caching strategy for Side Hustle PWA
+// This integrates with your existing Firebase service worker
+
+const CACHE_VERSION = '1.0.12';
+const CACHE_PREFIX = 'side-hustle-';
+
 // Cache names
-const STATIC_CACHE_NAME = 'side-hustle-static-v1';
-const DYNAMIC_CACHE_NAME = 'side-hustle-dynamic-v1';
-const IMAGE_CACHE_NAME = 'side-hustle-images-v1';
-const API_CACHE_NAME = 'side-hustle-api-v1';
-const PAGE_CACHE_NAME = 'side-hustle-pages-v1';
+const STATIC_CACHE_NAME = `${CACHE_PREFIX}static-v${CACHE_VERSION}`;
+const DYNAMIC_CACHE_NAME = `${CACHE_PREFIX}dynamic-v${CACHE_VERSION}`;
+const IMAGE_CACHE_NAME = `${CACHE_PREFIX}images-v${CACHE_VERSION}`;
+const API_CACHE_NAME = `${CACHE_PREFIX}api-v${CACHE_VERSION}`;
+const MENU_CACHE_NAME = `${CACHE_PREFIX}menu-v${CACHE_VERSION}`;
 
-// Assets to cache immediately on install
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/icons/android-big-icon.png',
-  '/icons/android-lil-icon-white.png'
-];
-
-// Routes that should be cached for offline access
-const IMPORTANT_ROUTES = [
-  '/',
-  '/menu',
-  '/orders',
-  '/profile',
-  '/locations'
-];
-
-// Cache strategies
-const cacheStrategies = {
-  // Cache first, falling back to network
-  cacheFirst: async ({ request, fallbackUrl }) => {
-    const cache = await caches.open(STATIC_CACHE_NAME);
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    try {
-      const networkResponse = await fetch(request);
-      // Clone the response before using it
-      const responseToCache = networkResponse.clone();
-      
-      // Only cache valid responses and GET requests
-      if (responseToCache.status === 200 && request.method === 'GET') {
-        cache.put(request, responseToCache);
-      }
-      
-      return networkResponse;
-    } catch (error) {
-      // If network fails, try to return the fallback
-      if (fallbackUrl) {
-        const fallbackResponse = await cache.match(fallbackUrl);
-        if (fallbackResponse) {
-          return fallbackResponse;
-        }
-      }
-      
-      // Return a basic offline response if nothing else works
-      return new Response('Network error occurred. You are offline.', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    }
-  },
-  
-  // Network first, falling back to cache
-  networkFirst: async ({ request, cacheName = DYNAMIC_CACHE_NAME, fallbackUrl }) => {
-    // Skip caching for non-GET requests
-    if (request.method !== 'GET') {
-      return fetch(request);
-    }
-    
-    const cache = await caches.open(cacheName);
-    
-    try {
-      const networkResponse = await fetch(request);
-      // Clone the response before using it
-      const responseToCache = networkResponse.clone();
-      
-      // Only cache valid responses
-      if (responseToCache.status === 200) {
-        cache.put(request, responseToCache);
-      }
-      
-      return networkResponse;
-    } catch (error) {
-      const cachedResponse = await cache.match(request);
-      
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      
-      // If cache fails, try to return the fallback
-      if (fallbackUrl) {
-        const fallbackResponse = await cache.match(fallbackUrl);
-        if (fallbackResponse) {
-          return fallbackResponse;
-        }
-      }
-      
-      // Return a basic offline response if nothing else works
-      return new Response('Network error occurred. You are offline.', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    }
-  },
-  
-  // Stale-while-revalidate strategy
-  staleWhileRevalidate: async ({ request, fallbackUrl }) => {
-    // Skip caching for non-GET requests
-    if (request.method !== 'GET') {
-      return fetch(request);
-    }
-    
-    // Skip caching for certain URLs that might cause issues
-    const url = new URL(request.url);
-    const skipCachingPatterns = [
-      // Skip API endpoints
-      /\/api\//,
-      // Skip Supabase URLs
-      /supabase/,
-      // Skip Firebase URLs
-      /firebaseapp/,
-      /googleapis/,
-      // Skip analytics
-      /analytics/,
-      /\/gtag/,
-      /\/ga/,
-      // Skip socket connections
-      /\/socket/,
-      /\/ws/,
-      /realtime/
-    ];
-    
-    // Check if URL should be skipped for caching
-    const shouldSkipCaching = skipCachingPatterns.some(pattern => 
-      pattern.test(url.pathname) || pattern.test(url.hostname)
-    );
-    
-    if (shouldSkipCaching) {
-      try {
-        return await fetch(request.clone());
-      } catch (error) {
-        console.log('Network request failed for non-cached URL:', url.pathname);
-        return new Response('Network error', { status: 408 });
-      }
-    }
-    
-    try {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME);
-      const cachedResponse = await cache.match(request);
-      
-      // Return cached response immediately if available
-      if (cachedResponse) {
-        // Update the cache in the background without awaiting or logging errors
-        setTimeout(() => {
-          fetch(request.clone())
-            .then(networkResponse => {
-              if (networkResponse && networkResponse.ok) {
-                cache.put(request, networkResponse.clone())
-                  .catch(() => {}); // Silently handle cache put errors
-              }
-            })
-            .catch(() => {}); // Silently handle network errors
-        }, 1000);
-        
-        return cachedResponse;
-      }
-      
-      // No cached response, try network
-      try {
-        const networkResponse = await fetch(request.clone());
-        
-        // Cache valid responses
-        if (networkResponse && networkResponse.ok) {
-          cache.put(request, networkResponse.clone())
-            .catch(() => {}); // Silently handle cache put errors
-        }
-        
-        return networkResponse;
-      } catch (error) {
-        // Network failed, try to return fallback
-        if (fallbackUrl) {
-          const fallbackResponse = await cache.match(fallbackUrl);
-          if (fallbackResponse) {
-            return fallbackResponse;
-          }
-        }
-        
-        // If we get here, both network and fallback failed
-        return new Response('Network error occurred', { 
-          status: 408, 
-          statusText: 'Request Timeout',
-          headers: new Headers({
-            'Content-Type': 'text/plain'
-          })
-        });
-      }
-    } catch (error) {
-      // Last resort error handling
-      return new Response('Cache error occurred', { 
-        status: 500, 
-        statusText: 'Internal Error',
-        headers: new Headers({
-          'Content-Type': 'text/plain'
-        })
-      });
-    }
-  },
-  
-  // Network only strategy - no caching
-  networkOnly: async ({ request }) => {
-    return fetch(request);
-  },
-  
-  // Cache only strategy - no network request
-  cacheOnly: async ({ request, cacheName = STATIC_CACHE_NAME, fallbackUrl }) => {
-    const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // If not in cache, try to return the fallback
-    if (fallbackUrl) {
-      const fallbackResponse = await cache.match(fallbackUrl);
-      if (fallbackResponse) {
-        return fallbackResponse;
-      }
-    }
-    
-    // Return offline page as last resort
-    return new Response('You are offline and this content is not cached.', {
-      status: 503,
-      headers: { 'Content-Type': 'text/plain' }
-    });
-  }
+// Cache limits
+const CACHE_LIMITS = {
+  dynamic: 50,
+  images: 100,
+  api: 30,
+  menu: 200
 };
 
-// Helper function to determine which caching strategy to use based on the request
-function getStrategy(request) {
-  const url = new URL(request.url);
-  const pathname = url.pathname;
-  
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return {
-      strategy: cacheStrategies.networkOnly,
-      options: { request }
-    };
-  }
-  
-  // Handle navigation requests (HTML pages)
-  if (request.mode === 'navigate') {
-    // Check if it's a deep link that should be cached
-    if (IMPORTANT_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
-      return {
-        strategy: cacheStrategies.networkFirst,
-        options: {
-          request,
-          cacheName: PAGE_CACHE_NAME,
-          fallbackUrl: '/'
-        }
-      };
-    }
-    
-    // Default navigation behavior
-    return {
-      strategy: cacheStrategies.networkFirst,
-      options: {
-        request,
-        cacheName: DYNAMIC_CACHE_NAME,
-        fallbackUrl: '/'
-      }
-    };
-  }
-  
-  // Handle API requests
-  if (pathname.includes('/api/')) {
-    return {
-      strategy: cacheStrategies.networkFirst,
-      options: {
-        request,
-        cacheName: API_CACHE_NAME
-      }
-    };
-  }
-  
-  // Handle image requests
-  if (
-    pathname.includes('.jpg') ||
-    pathname.includes('.jpeg') ||
-    pathname.includes('.png') ||
-    pathname.includes('.gif') ||
-    pathname.includes('.webp') ||
-    pathname.includes('.svg') ||
-    pathname.includes('/images/')
-  ) {
-    return {
-      strategy: cacheStrategies.staleWhileRevalidate,
-      options: {
-        request,
-        cacheName: IMAGE_CACHE_NAME
-      }
-    };
-  }
-  
-  // Handle static assets
-  if (
-    pathname.includes('.js') ||
-    pathname.includes('.css') ||
-    pathname.includes('.woff') ||
-    pathname.includes('.woff2') ||
-    pathname.includes('.ttf') ||
-    pathname.includes('/fonts/')
-  ) {
-    return {
-      strategy: cacheStrategies.staleWhileRevalidate,
-      options: {
-        request,
-        cacheName: STATIC_CACHE_NAME
-      }
-    };
-  }
-  
-  // Default to network-first for everything else
-  return {
-    strategy: cacheStrategies.networkFirst,
-    options: {
-      request,
-      cacheName: DYNAMIC_CACHE_NAME
-    }
-  };
-}
+// Sync queue for offline requests
+let syncQueue = [];
 
-// Background sync queue for offline operations
-const syncQueue = new Map();
-
-// Function to add an item to the sync queue
-function addToSyncQueue(id, data) {
-  syncQueue.set(id, {
-    id,
-    data,
-    timestamp: Date.now()
-  });
-  
-  // Save queue to IndexedDB
-  saveQueueToIndexedDB();
-  
-  // Register a sync if possible
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    navigator.serviceWorker.ready.then(registration => {
-      registration.sync.register('sync-data');
-    });
-  }
-}
-
-// Save queue to IndexedDB
-function saveQueueToIndexedDB() {
-  try {
-    const db = openDatabase();
-    if (!db) return;
-    
-    const transaction = db.transaction(['syncQueue'], 'readwrite');
-    const store = transaction.objectStore('syncQueue');
-    
-    // Clear existing items
-    store.clear();
-    
-    // Add current items
-    syncQueue.forEach(item => {
-      store.add(item);
-    });
-    
-    console.log('Sync queue saved to IndexedDB');
-  } catch (error) {
-    console.error('Error saving sync queue to IndexedDB:', error);
-  }
-}
-
-// Load queue from IndexedDB
-async function loadQueueFromIndexedDB() {
-  try {
-    const db = await openDatabase();
-    if (!db) {
-      return;
-    }
-    
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(['syncQueue'], 'readonly');
-        const store = transaction.objectStore('syncQueue');
-        const request = store.getAll();
-        
-        request.onsuccess = event => {
-          const items = event.target.result || [];
-          
-          // Clear existing queue and add loaded items
-          syncQueue.clear();
-          if (Array.isArray(items)) {
-            items.forEach(item => {
-              if (item && item.id) {
-                syncQueue.set(item.id, item);
-              }
-            });
-          }
-          
-          console.log(`Loaded ${syncQueue.size} items from sync queue`);
-          resolve();
-        };
-        
-        request.onerror = event => {
-          console.error('Error loading sync queue from IndexedDB:', event.target.error);
-          reject(event.target.error);
-        };
-      } catch (error) {
-        console.error('Error loading sync queue from IndexedDB:', error);
-        reject(error);
-      }
-    });
-  } catch (error) {
-    console.error('Error in loadQueueFromIndexedDB:', error);
-  }
-}
-
-// Open IndexedDB database
-function openDatabase() {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!('indexedDB' in self)) {
-        console.warn('IndexedDB not supported');
-        resolve(null);
-        return;
-      }
-      
-      const request = indexedDB.open('sideHustleOfflineDB', 1);
-      
-      request.onupgradeneeded = event => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('syncQueue')) {
-          db.createObjectStore('syncQueue', { keyPath: 'id' });
-        }
-      };
-      
-      request.onsuccess = event => {
-        resolve(event.target.result);
-      };
-      
-      request.onerror = event => {
-        console.error('Error opening IndexedDB:', event.target.error);
-        resolve(null);
-      };
-    } catch (error) {
-      console.error('Error opening IndexedDB:', error);
-      resolve(null);
-    }
-  });
-}
-
-// Process the sync queue
-async function processSyncQueue() {
-  if (syncQueue.size === 0) {
-    console.log('No items in sync queue');
-    return;
-  }
-  
-  console.log(`Processing ${syncQueue.size} items in sync queue`);
-  
-  const successfulIds = [];
-  
-  for (const [id, item] of syncQueue.entries()) {
-    try {
-      // Determine the type of sync item and process accordingly
-      if (item.data.type === 'order') {
-        await syncOrder(item.data);
-        successfulIds.push(id);
-      } else if (item.data.type === 'profile') {
-        await syncProfile(item.data);
-        successfulIds.push(id);
-      } else if (item.data.type === 'feedback') {
-        await syncFeedback(item.data);
-        successfulIds.push(id);
-      } else {
-        console.warn(`Unknown sync item type: ${item.data.type}`);
-      }
-    } catch (error) {
-      console.error(`Error processing sync item ${id}:`, error);
-    }
-  }
-  
-  // Remove successful items from queue
-  successfulIds.forEach(id => syncQueue.delete(id));
-  
-  // Save updated queue
-  saveQueueToIndexedDB();
-  
-  console.log(`Processed ${successfulIds.length} items successfully, ${syncQueue.size} items remaining`);
-}
-
-// Sync functions for different data types
-async function syncOrder(data) {
-  const response = await fetch('/api/orders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to sync order: ${response.status} ${response.statusText}`);
-  }
-  
-  return response.json();
-}
-
-async function syncProfile(data) {
-  const response = await fetch('/api/profile', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to sync profile: ${response.status} ${response.statusText}`);
-  }
-  
-  return response.json();
-}
-
-async function syncFeedback(data) {
-  const response = await fetch('/api/feedback', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to sync feedback: ${response.status} ${response.statusText}`);
-  }
-  
-  return response.json();
-}
-
-// Export functions for use in the main service worker
+// Enhanced caching strategies
 self.sideHustleCache = {
   STATIC_CACHE_NAME,
   DYNAMIC_CACHE_NAME,
   IMAGE_CACHE_NAME,
   API_CACHE_NAME,
-  PAGE_CACHE_NAME,
-  STATIC_ASSETS,
-  getStrategy,
-  addToSyncQueue,
-  saveQueueToIndexedDB,
-  loadQueueFromIndexedDB,
-  processSyncQueue
+  MENU_CACHE_NAME,
+
+  // Get appropriate caching strategy based on request
+  getStrategy(request) {
+    const url = new URL(request.url);
+    
+    // Menu images - use network first if cache-busting params are present
+    if (url.pathname.includes('/food-menu-images/') || 
+        url.pathname.includes('/menu-images/')) {
+      
+      // If cache-busting parameters are present (like ?v=timestamp), bypass cache
+      const hasCacheBustingParams = url.searchParams.has('v') || 
+                                  url.searchParams.has('t') || 
+                                  url.searchParams.has('_');
+      
+      if (hasCacheBustingParams) {
+        return {
+          strategy: this.networkFirst.bind(this),
+          options: {
+            request,
+            cacheName: MENU_CACHE_NAME,
+            networkTimeoutSeconds: 3,
+            maxAge: 1, // Very short cache for cache-busted images
+            maxEntries: CACHE_LIMITS.menu
+          }
+        };
+      }
+      
+      // Normal cache-first for regular menu images
+      return {
+        strategy: this.cacheFirst.bind(this),
+        options: {
+          request,
+          cacheName: MENU_CACHE_NAME,
+          networkTimeoutSeconds: 2,
+          maxAge: 30 * 24 * 60 * 60, // 30 days
+          maxEntries: CACHE_LIMITS.menu
+        }
+      };
+    }
+    
+    // API requests - network first with cache fallback
+    if (url.pathname.includes('/api/') || 
+        url.pathname.includes('/supabase/') ||
+        url.hostname.includes('supabase')) {
+      return {
+        strategy: this.networkFirst.bind(this),
+        options: {
+          request,
+          cacheName: API_CACHE_NAME,
+          networkTimeoutSeconds: 10,
+          maxAge: 5 * 60, // 5 minutes for API responses
+          maxEntries: CACHE_LIMITS.api
+        }
+      };
+    }
+    
+    // Static assets - cache first
+    if (url.pathname.match(/\.(js|css|woff2?|ttf|otf)$/)) {
+      return {
+        strategy: this.cacheFirst.bind(this),
+        options: {
+          request,
+          cacheName: STATIC_CACHE_NAME,
+          networkTimeoutSeconds: 2,
+          maxAge: 365 * 24 * 60 * 60, // 1 year
+        }
+      };
+    }
+    
+    // Images - cache first with size limits
+    if (url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|avif)$/)) {
+      return {
+        strategy: this.cacheFirst.bind(this),
+        options: {
+          request,
+          cacheName: IMAGE_CACHE_NAME,
+          networkTimeoutSeconds: 10,
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+          maxEntries: CACHE_LIMITS.images
+        }
+      };
+    }
+    
+    // HTML pages - network first
+    if (request.mode === 'navigate' || url.pathname === '/' || 
+        url.pathname.endsWith('.html')) {
+      return {
+        strategy: this.networkFirst.bind(this),
+        options: {
+          request,
+          cacheName: DYNAMIC_CACHE_NAME,
+          networkTimeoutSeconds: 3,
+          maxAge: 24 * 60 * 60, // 1 day
+          maxEntries: CACHE_LIMITS.dynamic
+        }
+      };
+    }
+    
+    // Default - network first
+    return {
+      strategy: this.networkFirst.bind(this),
+      options: {
+        request,
+        cacheName: DYNAMIC_CACHE_NAME,
+        networkTimeoutSeconds: 2,
+        maxAge: 24 * 60 * 60, // 1 day
+        maxEntries: CACHE_LIMITS.dynamic
+      }
+    };
+  },
+
+  // Cache-first strategy with network fallback
+  async cacheFirst(options) {
+    const { request, cacheName, networkTimeoutSeconds, maxAge, maxEntries } = options;
+    
+    try {
+      // Try cache first
+      const cachedResponse = await caches.match(request);
+      
+      if (cachedResponse) {
+        // Check if cached response is still fresh
+        const cachedDate = new Date(cachedResponse.headers.get('date'));
+        const now = new Date();
+        const age = (now - cachedDate) / 1000; // age in seconds
+        
+        if (age < maxAge) {
+          // Update cache in background if older than 50% of max age
+          if (age > maxAge * 0.5) {
+            this.fetchAndCache(request, cacheName, maxEntries).catch(() => {});
+          }
+          return cachedResponse;
+        }
+      }
+      
+      // Fetch from network with timeout
+      const networkResponse = await this.fetchWithTimeout(request, networkTimeoutSeconds);
+      
+      // Cache the response
+      if (networkResponse && networkResponse.status === 200) {
+        await this.cacheResponse(request, networkResponse.clone(), cacheName, maxEntries);
+      }
+      
+      return networkResponse;
+    } catch (error) {
+      // If network fails, try cache again (even if stale)
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      
+      // Return offline page for navigation requests
+      if (request.mode === 'navigate') {
+        const offlineResponse = await caches.match('/offline.html');
+        if (offlineResponse) {
+          return offlineResponse;
+        }
+      }
+      
+      throw error;
+    }
+  },
+
+  // Network-first strategy with cache fallback
+  async networkFirst(options) {
+    const { request, cacheName, networkTimeoutSeconds, maxAge, maxEntries } = options;
+    
+    try {
+      // Try network first with timeout
+      const networkResponse = await this.fetchWithTimeout(request, networkTimeoutSeconds);
+      
+      // Cache successful responses
+      if (networkResponse && networkResponse.status === 200) {
+        await this.cacheResponse(request, networkResponse.clone(), cacheName, maxEntries);
+      }
+      
+      return networkResponse;
+    } catch (error) {
+      // Network failed, try cache
+      const cachedResponse = await caches.match(request);
+      
+      if (cachedResponse) {
+        // Check if cached response is acceptably fresh
+        const cachedDate = new Date(cachedResponse.headers.get('date'));
+        const now = new Date();
+        const age = (now - cachedDate) / 1000;
+        
+        // For API requests, only use cache if relatively fresh
+        if (request.url.includes('/api/') && age > maxAge) {
+          throw new Error('Cached API response too old');
+        }
+        
+        return cachedResponse;
+      }
+      
+      // For navigation requests, show offline page
+      if (request.mode === 'navigate') {
+        const offlineResponse = await caches.match('/offline.html');
+        if (offlineResponse) {
+          return offlineResponse;
+        }
+      }
+      
+      throw error;
+    }
+  },
+
+  // Fetch with timeout
+  async fetchWithTimeout(request, timeoutSeconds = 10) {
+    const controller = new AbortController();
+    let timeoutId;
+    
+    try {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Request timeout after ${timeoutSeconds} seconds`));
+        }, timeoutSeconds * 1000);
+      });
+      
+      // Create fetch promise
+      const fetchPromise = fetch(request.clone(), {
+        signal: controller.signal
+      });
+      
+      // Race between fetch and timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      // Clear timeout if fetch succeeds
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      return response;
+    } catch (error) {
+      // Clear timeout on any error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Re-throw the error
+      throw error;
+    }
+  },
+
+  // Fetch and cache in background
+  async fetchAndCache(request, cacheName, maxEntries) {
+    try {
+      const response = await fetch(request.clone());
+      if (response && response.status === 200) {
+        await this.cacheResponse(request, response, cacheName, maxEntries);
+      }
+    } catch (error) {
+      console.warn('[SW Cache] Background fetch failed:', error);
+    }
+  },
+
+  // Cache response with size management
+  async cacheResponse(request, response, cacheName, maxEntries) {
+    // Don't cache HEAD requests as they're not supported by Cache API
+    if (request.method === 'HEAD') {
+      console.warn('[SW Cache] Skipping cache for HEAD request:', request.url);
+      return;
+    }
+    
+    // Don't cache non-successful responses
+    if (!response.ok || response.status !== 200) {
+      return;
+    }
+    
+    const cache = await caches.open(cacheName);
+    
+    try {
+      // Add response to cache
+      await cache.put(request, response);
+      
+      // Manage cache size if maxEntries is specified
+      if (maxEntries) {
+        await this.trimCache(cacheName, maxEntries);
+      }
+    } catch (error) {
+      console.warn('[SW Cache] Failed to cache response:', error);
+    }
+  },
+
+  // Trim cache to maintain size limits
+  async trimCache(cacheName, maxEntries) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    
+    if (keys.length > maxEntries) {
+      // Delete oldest entries
+      const keysToDelete = keys.slice(0, keys.length - maxEntries);
+      await Promise.all(
+        keysToDelete.map(key => cache.delete(key))
+      );
+    }
+  },
+
+  // Process sync queue for offline requests
+  async processSyncQueue() {
+    console.log(`[SW Cache] Processing ${syncQueue.length} queued requests`);
+    
+    const failedRequests = [];
+    
+    for (const queuedRequest of syncQueue) {
+      try {
+        const response = await fetch(queuedRequest);
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        console.log('[SW Cache] Synced request:', queuedRequest.url);
+      } catch (error) {
+        console.error('[SW Cache] Failed to sync request:', error);
+        failedRequests.push(queuedRequest);
+      }
+    }
+    
+    // Update queue with failed requests
+    syncQueue = failedRequests;
+    
+    // Save to IndexedDB if any requests failed
+    if (syncQueue.length > 0) {
+      await this.saveQueueToIndexedDB();
+    }
+    
+    return syncQueue.length === 0;
+  },
+
+  // Save sync queue to IndexedDB
+  async saveQueueToIndexedDB() {
+    try {
+      // Implementation depends on your IndexedDB setup
+      console.log('[SW Cache] Saving sync queue to IndexedDB');
+    } catch (error) {
+      console.error('[SW Cache] Failed to save queue:', error);
+    }
+  },
+
+  // Load sync queue from IndexedDB
+  async loadQueueFromIndexedDB() {
+    try {
+      // Implementation depends on your IndexedDB setup
+      console.log('[SW Cache] Loading sync queue from IndexedDB');
+      return [];
+    } catch (error) {
+      console.error('[SW Cache] Failed to load queue:', error);
+      return [];
+    }
+  },
+
+  // Preload critical menu images
+  async preloadMenuImages() {
+    const criticalImages = [
+      '/food-menu-images/tacos.png',
+      '/food-menu-images/burrito.png',
+      '/food-menu-images/quesadilla.png',
+      '/food-menu-images/loaded-nacho.png',
+      '/food-menu-images/margarita.png',
+      // Add more critical images here
+    ];
+
+    const cache = await caches.open(MENU_CACHE_NAME);
+    
+    for (const imageUrl of criticalImages) {
+      try {
+        const response = await fetch(imageUrl);
+        if (response.ok) {
+          await cache.put(imageUrl, response);
+        }
+      } catch (error) {
+        console.warn(`[SW Cache] Failed to preload ${imageUrl}:`, error);
+      }
+    }
+  }
 };
+
+// Call preload on service worker activation
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    self.sideHustleCache.preloadMenuImages()
+  );
+});

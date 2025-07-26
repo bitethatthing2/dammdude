@@ -1,15 +1,13 @@
-"use client";
+'use client';
 
 import Image from "next/image";
-import { Milestone } from "@/lib/types/about";
+import { Milestone } from "@/types/features/about";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle, 
-  CardDescription 
+  CardTitle
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 // Milestone data
 const MILESTONES: Milestone[] = [

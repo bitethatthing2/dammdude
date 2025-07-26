@@ -14,17 +14,12 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
     "incremental": true,
-    "types": [
-      "@types/node",
-      "@types/react",
-      "@types/react-dom"
-    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -47,7 +42,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "lib/types/temp-fixes.d.ts"
   ],
   "exclude": [
     "node_modules",

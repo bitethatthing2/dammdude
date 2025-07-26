@@ -2,16 +2,16 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 
 // Import from unified components instead of bartap
-import { OrdersManagement } from '@/components/unified/OrdersManagement';
+import { OrderManagement } from '@/components/unified';
 
 export const metadata: Metadata = {
-  title: 'BarTap Admin - Orders',
+  title: 'Side Hustle Admin - Orders',
   description: 'Manage customer orders'
 };
 
 /**
  * Admin orders page for managing all customer orders
- * Uses the unified OrdersManagement component
+ * Uses the unified OrderManagement component
  */
 export default function OrdersPage() {
   return (
@@ -25,7 +25,7 @@ export default function OrdersPage() {
       
       {/* Add Suspense boundary for better UX */}
       <Suspense fallback={<OrdersSkeleton />}>
-        <OrdersManagement />
+        <OrderManagement />
       </Suspense>
     </div>
   );

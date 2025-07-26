@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Bell, Search, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import { 
   Sheet, 
   SheetContent, 
@@ -15,7 +15,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { NotificationPopover } from '../notifications';
+import { NotificationPopover } from '../notifications/NotificationPopover';
 import Link from 'next/link';
 
 interface NavItem {

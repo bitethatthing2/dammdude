@@ -1,9 +1,26 @@
 import admin from 'firebase-admin';
+import fs from 'fs';
+import path from 'path';
 
 interface ServiceAccount {
   projectId: string;
   clientEmail: string;
   privateKey: string;
+}
+
+// Define the full service account type that Firebase expects
+interface FirebaseServiceAccount {
+  type?: string;
+  project_id: string;
+  private_key_id?: string;
+  private_key: string;
+  client_email: string;
+  client_id?: string;
+  auth_uri?: string;
+  token_uri?: string;
+  auth_provider_x509_cert_url?: string;
+  client_x509_cert_url?: string;
+  universe_domain?: string;
 }
 
 /**
@@ -62,8 +79,6 @@ function formatPrivateKey(key: string): string {
       // Last resort: use the service key directly from the raw file if in development
       if (process.env.NODE_ENV === 'development') {
         try {
-          const fs = require('fs');
-          const path = require('path');
           const serviceKeyPath = path.join(process.cwd(), 'service_key.json');
           
           if (fs.existsSync(serviceKeyPath)) {
@@ -169,8 +184,8 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
       // Fall back to a more direct approach for Vercel
       if (process.env.NODE_ENV === 'production') {
         try {
-          // Try direct JSON initialization
-          const serviceAccountJson = {
+          // Try direct JSON initialization with proper type
+          const serviceAccountJson: FirebaseServiceAccount = {
             type: 'service_account',
             project_id: projectId,
             private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || undefined,
@@ -183,8 +198,9 @@ export function initializeFirebaseAdmin(): admin.app.App | null {
             client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
           };
           
+          // Use proper type assertion
           const app = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccountJson as any)
+            credential: admin.credential.cert(serviceAccountJson as admin.ServiceAccount)
           });
           
           console.log('[FIREBASE ADMIN] Successfully initialized with alternative method');
@@ -232,7 +248,7 @@ export function getAdminMessaging(): admin.messaging.Messaging | null {
 /**
  * Check if the error is due to an invalid token
  */
-function isInvalidTokenError(error: any): boolean {
+function isInvalidTokenError(error: unknown): boolean {
   if (!error) return false;
   
   const errorMessage = String(error);
@@ -289,7 +305,7 @@ export async function validateFcmToken(token: string): Promise<boolean> {
 }
 
 /**
- * Generate a simulated notification response for development or when Firebase fails to initialize
+ * Generate a simulated notification response for development or when Fireba?e fails to initialize
  */
 export function simulateNotificationResponse(title: string, body: string, target: string) {
   console.log(`[FIREBASE ADMIN] Simulating notification delivery to ${target} with title: "${title}"`);

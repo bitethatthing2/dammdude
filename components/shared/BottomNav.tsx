@@ -1,224 +1,225 @@
-"use client";
+'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import * as LucideIcons from 'lucide-react';
-import { QrCode, Bell, MoreHorizontal, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Info, Phone, BookOpen, LogIn } from 'lucide-react';
-import { NotificationIndicator } from '@/components/unified/notifications';
+import { usePathname } from 'next/navigation';
+import { Home, MessageCircle, Music, UtensilsCrossed, ShoppingBag, Calendar, LogIn, BookOpen, Shield, Info, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFcmContext } from '@/lib/hooks/useFcmToken';
+import { getZIndexClass } from '@/lib/constants/z-index';
+// useWolfpackAccess functionality integrated into TikTok-style Wolfpack Local Pack
+import { useDJPermissions } from '@/hooks/useDJPermissions';
+import { useAdminAccess } from '@/lib/hooks/useAdminAccess';
 import { useState, useEffect, useRef } from 'react';
-import { useNotifications } from '@/components/unified/notifications';
-import { useOnClickOutside } from '@/lib/hooks/useOnClickOutside';
-import { useBarTap } from '@/lib/contexts/bartap-context';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { DynamicLogo } from './DynamicLogo';
+// import { useComments } from '@/lib/contexts/CommentsContext';
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const router = useRouter();
-  const { notificationPermissionStatus } = useFcmContext();
+  // Wolfpack access integrated into TikTok-style Wolfpack Local Pack
+  const canCheckout = true; // Default to true as access is handled in main app
+  const { isActiveDJ } = useDJPermissions();
+  const { isAdmin } = useAdminAccess();
+  const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
-  const [fallbackUnreadCount, setFallbackUnreadCount] = useState(0);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
-  const { resetFlow } = useBarTap();
+  // const { isCommentsOpen } = useComments();
+  const isCommentsOpen = false; // Temporarily disabled until context is working
 
-  // Close more menu when clicking outside
-  useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setMoreMenuOpen(false));
-
-  // Try to use the notification context if available
-  let notificationContext;
-  try {
-    notificationContext = useNotifications();
-  } catch (error) {
-    // Context not available, will use fallback
-    notificationContext = null;
-  }
-
-  // Get unread count from context or fallback
-  const unreadCount = notificationContext?.unreadCount ?? fallbackUnreadCount;
-
-  // Set up mounted state and listen for notification updates
+  // Set up mounted state
   useEffect(() => {
     setIsMounted(true);
-
-    // Try to get unread count from localStorage as fallback
-    const storedCount = localStorage.getItem('unread-notification-count');
-    if (storedCount) {
-      setFallbackUnreadCount(parseInt(storedCount, 10));
-    }
-
-    // Listen for custom events from notification context
-    const handleNotificationUpdate = (e: CustomEvent<{ unreadCount: number }>) => {
-      if (e.detail && typeof e.detail.unreadCount === 'number') {
-        setFallbackUnreadCount(e.detail.unreadCount);
-        localStorage.setItem('unread-notification-count', e.detail.unreadCount.toString());
-      }
-    };
-
-    window.addEventListener('notification-update', handleNotificationUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('notification-update', handleNotificationUpdate as EventListener);
-    };
   }, []);
+
+  // Debug state tracking
+  const lastStateRef = useRef<string>('');
+  
+  // Debug logging (only in development and on state changes)
+  useEffect(() => {
+    if (isMounted && process.env.NODE_ENV === 'development') {
+      const debugInfo = {
+        user: !!user,
+        userEmail: user?.email,
+        isMember: canCheckout,
+        isActiveDJ,
+        isAdmin
+      };
+      
+      const currentState = JSON.stringify(debugInfo);
+      if (currentState !== lastStateRef.current) {
+        console.log('BottomNav State Change:', debugInfo);
+        lastStateRef.current = currentState;
+      }
+    }
+  }, [isMounted, user, canCheckout, isActiveDJ, isAdmin]);
+
+  // Debug pathname changes
+  useEffect(() => {
+    console.log('BottomNav pathname changed to:', pathname);
+  }, [pathname]);
 
   // Define the type for navigation items
   interface NavItem {
+    id: string;
     href: string;
-    iconName?: string;
-    icon?: React.ReactNode;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     label: string;
-    onClick?: () => void;
+    requiresWolfPack?: boolean;
+    requiresDJ?: boolean;
+    requiresAdmin?: boolean;
+    hideWhenLoggedIn?: boolean;
   }
 
-  // Handle BarTap navigation
-  const handleBarTapClick = () => {
-    // Reset the BarTap flow and navigate to table entry
-    resetFlow();
-    router.push('/table');
-    return false; // Prevent default Link behavior
+  // Define navigation items based on Wolf Pack membership and auth status
+  const getNavigationItems = (): NavItem[] => {
+    // If user is a Wolf Pack member, show the full navigation
+    if (canCheckout) {
+      const items: NavItem[] = [
+        { id: 'home', href: '/', icon: Home, label: 'Home' },
+        { id: 'menu', href: '/menu', icon: UtensilsCrossed, label: 'Menu' },
+        { id: 'wolfpack', href: '/wolfpack', icon: Shield, label: 'WOLFPACK' },
+        { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
+      ];
+
+      // Add DJ tab if user is an active DJ
+      if (isActiveDJ) {
+        items.push({ id: 'dj', href: '/dj', icon: Music, label: 'DJ', requiresDJ: true });
+      }
+
+      // Add admin dashboard if user is an admin
+      if (isAdmin) {
+        items.push({ id: 'admin', href: '/admin/dashboard', icon: Settings, label: 'Admin', requiresAdmin: true });
+      }
+
+      return items;
+    }
+
+    // Non-Wolf Pack members see limited navigation
+    const basicItems: NavItem[] = [
+      { id: 'home', href: '/', icon: Home, label: 'Home' },
+    ];
+
+    // If logged in but not Wolf Pack member, show join option
+    if (user) {
+      basicItems.push(
+        { id: 'join-pack', href: '/wolfpack', icon: Shield, label: 'Join the Pack' }
+      );
+    } else {
+      // Only show login if NOT logged in
+      basicItems.push({ id: 'login', href: '/login', icon: LogIn, label: 'Log In / Sign Up' });
+    }
+
+    // Add public features
+    basicItems.push(
+      { id: 'merch', href: '/merch', icon: ShoppingBag, label: 'Merch' },
+      { id: 'booking', href: '/book', icon: Calendar, label: 'Booking' },
+      { id: 'about', href: '/about', icon: Info, label: 'About' }
+    );
+
+    return basicItems;
   };
 
-  // Core navigation items - always visible
-  const coreNavItems: NavItem[] = [
-    { href: '/', iconName: 'Home', label: 'Home' },
-    { href: '/menu', iconName: 'UtensilsCrossed', label: 'Food Menu' },
-    { 
-      href: '/table', 
-      icon: <QrCode className="h-5 w-5" />, 
-      label: 'BarTap',
-      onClick: handleBarTapClick
-    },
-  ];
-
-  // Secondary navigation items - shown on larger screens or in a "more" menu
-  const secondaryNavItems: NavItem[] = [
-    { href: '/events', iconName: 'CalendarDays', label: 'Events' },
-    { href: '/merch', iconName: 'ShoppingBag', label: 'Merch' },
-    { href: '/about', iconName: 'Info', label: 'About' },
-    { href: '/contact', iconName: 'Phone', label: 'Contact' },
-    { href: '/book', iconName: 'BookOpen', label: 'Book' },
-  ];
-
-  // Combine for medium screens
-  const mediumScreenItems = [...coreNavItems, secondaryNavItems[0], secondaryNavItems[1]];
+  const navigationItems = getNavigationItems();
 
   // Render a navigation item
-  const renderNavItem = (item: NavItem, onClick?: () => void) => {
+  const renderNavItem = (item: NavItem) => {
     const isActive = pathname === item.href;
-    const Icon = item.iconName ? (LucideIcons as Record<string, React.ComponentType<any>>)[item.iconName] : null;
+    const Icon = item.icon;
+    const isJoinPack = item.id === 'join-pack';
+    const isAdminItem = item.id === 'admin';
+    const isWolfpackItem = item.id === 'wolfpack';
+
+    const linkClasses = cn(
+      "flex flex-col items-center justify-center p-2 rounded-md transition-all duration-200 min-w-0 flex-1 relative",
+      isWolfpackItem
+        ? "text-yellow-400 bg-gradient-to-r from-yellow-400/20 to-yellow-600/20 hover:from-yellow-400/30 hover:to-yellow-600/30 shadow-lg shadow-yellow-400/25"
+        : isJoinPack
+          ? "text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+          : isAdminItem
+            ? "text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg shadow-red-500/25"
+            : isActive 
+              ? "text-primary bg-primary/10" 
+              : "text-inactive hover:text-foreground hover:bg-primary/5"
+    );
 
     return (
       <Link
-        key={item.href}
+        key={item.id}
         href={item.href}
-        className={cn(
-          "flex flex-col items-center justify-center p-2",
-          isActive ? "text-foreground" : "text-muted-foreground"
-        )}
-        onClick={onClick || item.onClick}
+        className={linkClasses}
       >
-        {Icon ? <Icon className="h-5 w-5" /> : item.icon}
-        <span className="text-[10px] mt-1">{item.label}</span>
+        <Icon className={cn(
+          "h-5 w-5 transition-all duration-200",
+          isActive && "drop-shadow-sm",
+          isWolfpackItem && "animate-pulse drop-shadow-lg",
+          isJoinPack && "animate-pulse",
+          isAdminItem && "animate-pulse"
+        )} />
+        <span className={cn(
+          "text-[10px] mt-1 font-medium",
+          "truncate w-full text-center",
+          isWolfpackItem && "font-bold text-yellow-400",
+          (isJoinPack || isAdminItem) && "font-bold"
+        )}>
+          {item.label}
+        </span>
+        {isWolfpackItem && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+        )}
       </Link>
     );
   };
 
-  // Render notification item with badge
-  const renderNotificationItem = () => (
-    <Link
-      href="/notifications"
-      className={cn(
-        "flex flex-col items-center justify-center p-2",
-        pathname === '/notifications' ? "text-foreground" : "text-muted-foreground"
-      )}
-    >
-      <div className="relative">
-        {/* Conditionally render Bell icon or Indicator */}
-        {notificationPermissionStatus === 'granted' ? (
-          <Bell className="h-5 w-5" /> /* REMOVED explicit color, inherits from parent Link */
-        ) : isMounted ? (
-          <NotificationIndicator variant="icon" /> // Indicator for other states (default, denied, blocked, loading)
-        ) : (
-          <Bell className="h-5 w-5" />
-        )}
-        {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive text-[0.625rem] font-medium text-white">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
-      </div>
-      <span className="text-[10px] mt-1">
-        {notificationPermissionStatus === 'granted' ? 'Alerts' : 'Notifications'}
-      </span>
-    </Link>
-  );
-
-  // Render the "More" button and dropdown
-  const renderMoreMenu = () => (
-    <div className="relative" ref={moreMenuRef}>
-      <button
-        onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-        className={cn(
-          "flex flex-col items-center justify-center p-2",
-          moreMenuOpen ? "text-foreground" : "text-muted-foreground"
-        )}
-        aria-label="More options"
-      >
-        <MoreHorizontal className="h-5 w-5" />
-        <span className="text-[10px] mt-1">More</span>
-      </button>
-
-      {moreMenuOpen && (
-        <div className="absolute bottom-16 right-0 bg-background border rounded-md shadow-lg p-2 min-w-[180px] z-50">
-          <div className="grid grid-cols-1 gap-1">
-            {secondaryNavItems.map((item) => (
-              <div key={item.href} className="w-full">
-                {renderNavItem(item, () => setMoreMenuOpen(false))}
-              </div>
-            ))}
-            <div className="w-full border-t pt-1 mt-1">
-              {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' }, () => setMoreMenuOpen(false))}
-            </div>
-          </div>
+  if (!isMounted) {
+    // Return invisible placeholder with same dimensions to prevent layout shifts
+    return (
+      <nav className={`fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md ${getZIndexClass('BOTTOM_NAV')} safe-area-inset-bottom opacity-0 pointer-events-none`}>
+        <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
+          {/* Placeholder content */}
+          <div className="flex-1" />
         </div>
-      )}
-    </div>
-  );
+      </nav>
+    );
+  }
 
-  // Render the Login item separately for large screens
-  const renderLoginItem = () => (
-    <div className="w-full flex justify-center">
-      {renderNavItem({ href: '/admin/login', iconName: 'LogIn', label: 'Login' })}
-    </div>
-  );
+  // Check if we're on the DJ dashboard page or chat pages
+  const isDJDashboard = pathname === '/dj';
+  const isChatPage = pathname.startsWith('/wolfpack/chat');
+  const isWolfpackPage = pathname.startsWith('/wolfpack');
+
+  // Hide BottomNav on chat pages, feed page, main page, and when comments are open
+  const shouldHideBottomNav = pathname === '/' || 
+                             pathname.startsWith('/wolfpack/chat') || 
+                             pathname === '/wolfpack/feed' || 
+                             pathname.includes('/wolfpack/feed');
+  
+  if (shouldHideBottomNav) {
+    console.log('BottomNav hidden for pathname:', pathname);
+    return null;
+  }
+  
+  // Debug: Log current pathname
+  if (pathname.includes('wolfpack')) {
+    console.log('BottomNav showing for pathname:', pathname);
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-transparent backdrop-blur-md z-50 flex justify-around items-center px-2">
-      {/* Mobile view (3 core items + notifications + more) */}
-      <div className="flex justify-between w-full md:hidden">
-        {coreNavItems.map((item) => renderNavItem(item))}
-        {renderNotificationItem()}
-        {renderMoreMenu()}
-      </div>
-
-      {/* Medium screen view (6 items) */}
-      <div className="hidden md:flex lg:hidden justify-between w-full">
-        {mediumScreenItems.map((item) => renderNavItem(item))}
-        {renderNotificationItem()}
-        {renderMoreMenu()}
-      </div>
-
-      {/* Large screen view (all items + notifications + login) */}
-      <div className="hidden lg:grid lg:grid-cols-11 gap-2 items-center w-full max-w-7xl mx-auto">
-        {[...coreNavItems, ...secondaryNavItems].map((item) => (
-          <div key={item.href} className="flex justify-center">
-            {renderNavItem(item)}
+    <>
+      
+      {/* Bottom Navigation */}
+      <nav className={`fixed bottom-0 left-0 right-0 h-16 border-t bg-background/80 backdrop-blur-md ${getZIndexClass('BOTTOM_NAV')} safe-area-inset-bottom`}>
+        <div className="flex justify-around items-center h-full px-2 max-w-lg mx-auto safe-area-inset-left safe-area-inset-right">
+          {navigationItems.map((item) => renderNavItem(item))}
+        </div>
+        
+        {/* Wolf Pack Status Indicator */}
+        {canCheckout && (
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="h-1 w-12 rounded-full bg-gradient-to-r from-primary to-primary-light shadow-lg animate-pulse" style={{
+              backgroundColor: 'hsl(var(--primary))',
+              boxShadow: '0 0 15px hsl(var(--primary) / 0.25)'
+            }} />
           </div>
-        ))}
-        <div className="flex justify-center">{renderNotificationItem()}</div>
-        <div className="flex justify-center">{renderLoginItem()}</div>
-      </div>
-    </nav>
+        )}
+      </nav>
+    </>
   );
 };

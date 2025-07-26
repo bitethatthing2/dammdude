@@ -1,4 +1,4 @@
-import { BookingRequest } from '../types/booking';
+import { BookingRequest } from '@/types/features/booking';
 
 /**
  * Submits a booking request to the Supabase Edge Function
@@ -9,7 +9,7 @@ import { BookingRequest } from '../types/booking';
 export async function submitBookingRequest(bookingRequest: BookingRequest): Promise<{
   success: boolean;
   message: string;
-  data?: any;
+  data?: BookingRequest & { id: string; created_at: string };
   error?: string;
 }> {
   try {
@@ -18,7 +18,6 @@ export async function submitBookingRequest(bookingRequest: BookingRequest): Prom
     
     // For development, we'll use a mock response
     // Remove this in production and uncomment the above endpoint
-    const mockEndpoint = '/api/mock-submit-booking';
     
     // Simulate API call with a delay
     await new Promise(resolve => setTimeout(resolve, 1500));

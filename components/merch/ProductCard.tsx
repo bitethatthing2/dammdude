@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import Image from "next/image";
-import { ExternalLink, ShoppingBag } from "lucide-react";
-import type { MerchItem } from '@/lib/types/merch';
+import { ShoppingBag } from "lucide-react";
+import type { MerchItem } from '@/types/features/merch';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCardProps {
@@ -31,7 +31,7 @@ export const ProductCard = ({ product, onViewDetails }: ProductCardProps) => {
       <div className="relative">
         <AspectRatio ratio={1/1}>
           <Image 
-            src={product.imageUrl} 
+            src={product.image || '/images/product-placeholder.jpg'} 
             alt={product.name}
             fill
             className="object-cover transition-transform group-hover:scale-105"
@@ -65,7 +65,7 @@ export const ProductCard = ({ product, onViewDetails }: ProductCardProps) => {
         <Button 
           size="sm" 
           onClick={() => onViewDetails(product)}
-          disabled={!product.available}
+          disabled={!product.in_stock}
           className="gap-1"
         >
           <ShoppingBag className="h-4 w-4" />  
