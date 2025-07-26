@@ -2,234 +2,141 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { 
   Download, 
   Bell, 
-  Smartphone, 
-  Monitor, 
-  Chrome, 
-  Share, 
-  Plus,
-  MoreHorizontal,
-  ArrowRight,
   CheckCircle,
   Zap,
-  Wifi
+  Wifi,
+  Smartphone
 } from 'lucide-react';
 import { PwaInstallGuide } from '@/components/shared/PwaInstallGuide';
+import NotificationGuide from '@/components/shared/NotificationGuide';
 
 export function AppInstallSection() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Check if app is installed
       const standaloneMode = window.matchMedia('(display-mode: standalone)').matches;
       const iosStandalone = (window.navigator as any).standalone === true;
-      setIsInstalled(standaloneMode || iosStandalone);
+      const isWebApk = window.matchMedia('(display-mode: fullscreen)').matches;
+      setIsInstalled(standaloneMode || iosStandalone || isWebApk);
 
       // Check notification permission
       if ('Notification' in window) {
         setNotificationPermission(Notification.permission);
       }
+      
+      setIsLoading(false);
     }
   }, []);
 
-  const InstallStep = ({ number, title, description, icon: Icon }: {
-    number: number;
-    title: string;
-    description: string;
-    icon: any;
-  }) => (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-      <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-        {number}
-      </div>
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <Icon className="h-4 w-4 text-primary" />
-          <h5 className="font-semibold text-sm">{title}</h5>
-        </div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-
   return (
-    <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
-      <CardHeader className="text-center">
+    <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 dark:border-orange-800">
+      <CardHeader className="text-center pb-4">
         <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-2">
           <Download className="h-6 w-6 text-white" />
         </div>
-        <CardTitle className="text-xl font-bold text-gray-900">Get the Full Experience</CardTitle>
-        <CardDescription className="text-gray-600">
-          Install our app & enable notifications for exclusive offers
+        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Get the App Experience</CardTitle>
+        <CardDescription className="text-gray-600 dark:text-gray-300">
+          Install our app for faster access & push notifications
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* App Installation */}
-        {!isInstalled && (
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center space-y-3 p-4">
+            <div className="animate-spin h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Checking app status...</p>
+          </div>
+        ) : isInstalled ? (
+          <div className="text-center space-y-3 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-semibold">App Installed Successfully!</span>
+            </div>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              You're enjoying the full Side Hustle PWA experience with offline access and fast loading!
+            </p>
+          </div>
+        ) : (
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <h4 className="font-semibold text-lg">Install Side Hustle App</h4>
+              <h4 className="font-semibold text-lg dark:text-white">Install Side Hustle App</h4>
               <Badge variant="secondary" className="text-xs">
-                Offline access • Faster loads • Push notifications
+                PWA • Offline • Fast • Native Feel
               </Badge>
             </div>
             <PwaInstallGuide fullButton className="max-w-sm mx-auto" />
           </div>
         )}
 
-        {isInstalled && (
+        {/* Notification Setup */}
+        <div className="border-t pt-4">
           <div className="text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-semibold">App Installed Successfully!</span>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Bell className="h-5 w-5 text-orange-600" />
+              <h4 className="font-semibold text-lg dark:text-white">Enable Notifications</h4>
             </div>
-            <p className="text-sm text-muted-foreground">
-              You're all set! Enjoy the full Side Hustle experience.
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              Get notified about your orders, special offers, and live events
             </p>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Device-Specific Installation Guide */}
-        {!isInstalled && (
-          <div>
-            <h4 className="font-semibold mb-4 flex items-center justify-center gap-2">
-              <Monitor className="h-4 w-4" />
-              Installation Guide by Device
-            </h4>
-            
-            <Tabs defaultValue="android" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="android" className="text-xs">
-                  <Chrome className="h-3 w-3 mr-1" />
-                  Android
-                </TabsTrigger>
-                <TabsTrigger value="ios" className="text-xs">
-                  <Smartphone className="h-3 w-3 mr-1" />
-                  iOS
-                </TabsTrigger>
-                <TabsTrigger value="desktop" className="text-xs">
-                  <Monitor className="h-3 w-3 mr-1" />
-                  Desktop
-                </TabsTrigger>
-              </TabsList>
-
-            <TabsContent value="android" className="space-y-3 mt-4">
-              <div className="space-y-2">
-                <InstallStep
-                  number={1}
-                  title="Open Chrome Menu"
-                  description="Tap the three dots (⋮) in the upper right corner of Chrome"
-                  icon={MoreHorizontal}
-                />
-                <InstallStep
-                  number={2}
-                  title="Find Install Option"
-                  description="Look for 'Install app' or 'Add to Home screen' in the menu"
-                  icon={Plus}
-                />
-                <InstallStep
-                  number={3}
-                  title="Confirm Installation"
-                  description="Tap 'Install' when prompted to add Side Hustle to your home screen"
-                  icon={CheckCircle}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground bg-white/50 p-2 rounded">
-                💡 <strong>Tip:</strong> If you don't see the install option, try refreshing the page or visiting a few more times.
-              </div>
-            </TabsContent>
-
-            <TabsContent value="ios" className="space-y-3 mt-4">
-              <div className="space-y-2">
-                <InstallStep
-                  number={1}
-                  title="Open Safari Share Menu"
-                  description="Tap the Share button (square with arrow) at the bottom of Safari"
-                  icon={Share}
-                />
-                <InstallStep
-                  number={2}
-                  title="Add to Home Screen"
-                  description="Scroll down and tap 'Add to Home Screen' option"
-                  icon={Plus}
-                />
-                <InstallStep
-                  number={3}
-                  title="Customize & Add"
-                  description="Edit the name if desired, then tap 'Add' to install"
-                  icon={CheckCircle}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground bg-white/50 p-2 rounded">
-                💡 <strong>Note:</strong> This feature only works in Safari browser on iOS devices.
-              </div>
-            </TabsContent>
-
-            <TabsContent value="desktop" className="space-y-3 mt-4">
-              <div className="space-y-2">
-                <InstallStep
-                  number={1}
-                  title="Look for Install Icon"
-                  description="Check for an install icon in your browser's address bar"
-                  icon={Download}
-                />
-                <InstallStep
-                  number={2}
-                  title="Click Install"
-                  description="Click the install button or use the browser menu option"
-                  icon={ArrowRight}
-                />
-                <InstallStep
-                  number={3}
-                  title="Launch from Desktop"
-                  description="Find Side Hustle in your apps and launch like any other program"
-                  icon={Monitor}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground bg-white/50 p-2 rounded">
-                💡 <strong>Supported:</strong> Chrome, Edge, Opera, and other Chromium-based browsers.
-              </div>
-            </TabsContent>
-          </Tabs>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Benefits */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-          <div className="space-y-2">
-            <div className="mx-auto w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <Wifi className="h-4 w-4 text-green-600" />
-            </div>
-            <h5 className="font-medium text-sm">Offline Access</h5>
-            <p className="text-xs text-muted-foreground">Browse menu even without internet</p>
-          </div>
-          <div className="space-y-2">
-            <div className="mx-auto w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <Zap className="h-4 w-4 text-blue-600" />
-            </div>
-            <h5 className="font-medium text-sm">Faster Loading</h5>
-            <p className="text-xs text-muted-foreground">Lightning-fast app experience</p>
-          </div>
-          <div className="space-y-2">
-            <div className="mx-auto w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-              <Bell className="h-4 w-4 text-purple-600" />
-            </div>
-            <h5 className="font-medium text-sm">Push Notifications</h5>
-            <p className="text-xs text-muted-foreground">Order updates & exclusive offers</p>
+            <NotificationGuide variant="button" className="max-w-sm mx-auto" />
           </div>
         </div>
+
+        {/* PWA Benefits */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center pt-4 border-t">
+          <div className="space-y-2">
+            <div className="mx-auto w-8 h-8 bg-green-100 dark:bg-green-950/30 rounded-full flex items-center justify-center">
+              <Wifi className="h-4 w-4 text-green-600" />
+            </div>
+            <h5 className="font-medium text-sm dark:text-white">Works Offline</h5>
+            <p className="text-xs text-muted-foreground">Browse menu without internet using service worker cache</p>
+          </div>
+          <div className="space-y-2">
+            <div className="mx-auto w-8 h-8 bg-blue-100 dark:bg-blue-950/30 rounded-full flex items-center justify-center">
+              <Zap className="h-4 w-4 text-blue-600" />
+            </div>
+            <h5 className="font-medium text-sm dark:text-white">Native Performance</h5>
+            <p className="text-xs text-muted-foreground">App shell architecture for instant loading</p>
+          </div>
+          <div className="space-y-2">
+            <div className="mx-auto w-8 h-8 bg-purple-100 dark:bg-purple-950/30 rounded-full flex items-center justify-center">
+              <Bell className="h-4 w-4 text-purple-600" />
+            </div>
+            <h5 className="font-medium text-sm dark:text-white">Real-time Updates</h5>
+            <p className="text-xs text-muted-foreground">Push notifications for orders & specials</p>
+          </div>
+        </div>
+
+        {/* PWA Install Guide */}
+        {!isLoading && !isInstalled && (
+          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">PWA Installation Guide:</p>
+            <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-3 w-3" />
+                <span><strong>Mobile:</strong> Tap "Add to Home Screen" from your browser menu</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Download className="h-3 w-3" />
+                <span><strong>Desktop:</strong> Click the install button in the address bar or browser prompt</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-3 w-3" />
+                <span><strong>Benefits:</strong> Fullscreen experience, app launcher icon, background sync</span>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

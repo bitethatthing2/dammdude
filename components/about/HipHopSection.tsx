@@ -15,7 +15,7 @@ export function HipHopSection() {
   ];
 
   const residentDJs = [
-    { name: 'DJ Inferno', note: 'Rhythm & Flow co-founder' },
+    { name: 'DJ Inferno', note: 'Live Music Coordinator' },
     { name: 'Kaniel The One & Finxx Live', note: 'Portland\'s hottest' },
     { name: 'DJ Infamous', note: 'Ludacris\'s tour DJ' },
     { name: 'DJ New Era', note: 'Alabama Crimson Tide official' },
@@ -30,7 +30,7 @@ export function HipHopSection() {
             Salem&apos;s Premier Hip-Hop Venue
           </h2>
           <p className="text-xl text-white/80 max-w-4xl mx-auto mb-8">
-            Since 2023, we&apos;ve brought major touring artists to Oregon&apos;s capital through our Rhythm & Flow partnership. 
+            Since 2023, we&apos;ve brought major touring artists to Oregon&apos;s capital through our live music events. 
             From coast-to-coast headliners to the hottest DJs, Side Hustle Bar has become the Pacific Northwest&apos;s 
             destination for authentic hip-hop and R&B experiences.
           </p>

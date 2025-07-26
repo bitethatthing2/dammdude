@@ -4,7 +4,7 @@
 
 // Version timestamp that can be updated when images change
 // To force refresh all images, update this value
-const IMAGE_VERSION = '1732499226'; // Update this timestamp when you want to bust all image caches
+const IMAGE_VERSION = '1738177200'; // Updated to force cache refresh - 2025-01-29
 
 /**
  * Add cache-busting parameter to image URLs
@@ -47,7 +47,9 @@ const ALWAYS_CACHE_BUST = [
   '/icons/wolf-icon.png', 
   '/icons/sidehustle.png',
   '/icons/WOLFPACK-PAW.png',
-  '/icons/wolf-icon-light-screen.png'
+  '/icons/wolf-icon-light-screen.png',
+  '/food-menu-images/',
+  '/drink-menu-images/'
 ];
 
 /**

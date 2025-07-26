@@ -24,7 +24,7 @@ import { WolfpackFeedService } from './feed';
 
 // Temporary imports for legacy service compatibility
 import { WolfpackBackendService } from '../wolfpack-backend.service';
-import { WolfpackSocialService } from '../wolfpack-social.service';
+import { wolfpackSocialService } from '../wolfpack-social.service';
 
 /**
  * Unified Wolfpack Service - Single interface for all Wolfpack functionality
@@ -57,7 +57,7 @@ export class WolfpackService {
   static backend = WolfpackBackendService;
   
   // Legacy social service (temporary compatibility)
-  static social = WolfpackSocialService;
+  static social = wolfpackSocialService;
   // static membership = WolfpackMembershipService;
   // static location = WolfpackLocationService;
   // static events = WolfpackEventsService;
@@ -103,7 +103,7 @@ export default WolfpackService;
 export { WolfpackAuthService as LegacyWolfpackAuthService };
 export { WolfpackFeedService as LegacyWolfpackFeedService };
 export { WolfpackBackendService };
-export { WolfpackSocialService };
+export { wolfpackSocialService };
 
-// Export with lowercase for backward compatibility
-export { WolfpackSocialService as wolfpackSocialService };
+// Export with uppercase for backward compatibility
+export { wolfpackSocialService as WolfpackSocialService };

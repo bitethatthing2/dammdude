@@ -489,7 +489,7 @@ export default function Page() {
               </div>
               <h3 className="text-xl font-semibold mb-3 text-white">Live Entertainment Hub</h3>
               <p className="text-white/80">
-                Our Rhythm & Flow partnership brings major touring artists and 
+                Our booking network brings major touring artists and 
                 resident DJs to create unforgettable live music experiences.
               </p>
             </div>

@@ -152,7 +152,7 @@ export default function BlogPage() {
                       <div className="border-l-4 border-red-500 pl-4">
                         <h4 className="font-bold text-white">Adrian Marcel</h4>
                         <p className="text-gray-400 text-sm">R&B Artist</p>
-                        <p className="text-gray-300 text-sm">Rhythm & Flow partnership</p>
+                        <p className="text-gray-300 text-sm">Live music events</p>
                       </div>
                       
                       <div className="border-l-4 border-red-500 pl-4">
@@ -166,7 +166,7 @@ export default function BlogPage() {
                   <div className="mt-6 p-4 bg-red-600/10 rounded-lg border border-red-600/20">
                     <p className="text-gray-300 text-sm">
                       <strong className="text-red-400">Additional touring artists include:</strong> Cuuhraig from Los Angeles (July 19, 2024), 
-                      DoKnowsWorld (Latin and hip-hop fusion), Shawtybae (@shawtybaeofficial_), and many more through Rhythm & Flow partnerships.
+                      DoKnowsWorld (Latin and hip-hop fusion), Shawtybae (@shawtybaeofficial_), and many more through our live music events.
                     </p>
                   </div>
                   
@@ -200,7 +200,7 @@ export default function BlogPage() {
                       <div className="bg-zinc-700/50 rounded-lg p-4">
                         <h4 className="font-bold text-red-400">DJ Inferno</h4>
                         <p className="text-gray-300 text-sm">(Albert Ramon Jr)</p>
-                        <p className="text-gray-400 text-xs mt-2">Co-founder Rhythm & Flow • West Coast Hip-Hop</p>
+                        <p className="text-gray-400 text-xs mt-2">Live Music Coordinator • West Coast Hip-Hop</p>
                       </div>
                       
                       <div className="bg-zinc-700/50 rounded-lg p-4">
@@ -264,7 +264,7 @@ export default function BlogPage() {
                       
                       <div className="space-y-4">
                         <div className="border border-red-600/30 rounded-lg p-4 bg-red-600/5">
-                          <h4 className="font-bold text-red-400">Rhythm & Flow Partnership</h4>
+                          <h4 className="font-bold text-red-400">Live Music Events</h4>
                           <p className="text-gray-300 text-sm mt-2">
                             Founded March 2023 by DJ Inferno and Miguel Canchola. Mission: "infuse the Pacific Northwest with West Coast hip-hop vibes" 
                             while emphasizing minority community empowerment.
@@ -461,7 +461,7 @@ export default function BlogPage() {
               "keywords": [
                 "MARIO", "KIRKO BANGZ", "JOHN HART", "LUNIZ", "ATM Danny", "J Balvin", 
                 "Shawty Bae", "ILOVEMAKONNEN", "Trinidad James", "Casey Veggies", 
-                "DJ Inferno", "Rhythm Flow", "Salem hip-hop", "Portland hip-hop",
+                "DJ Inferno", "Live Music", "Salem hip-hop", "Portland hip-hop",
                 "Oregon music venue", "Pacific Northwest hip-hop", "I Got 5 on It",
                 "R&B venue Salem", "hip-hop nightclub Portland"
               ],

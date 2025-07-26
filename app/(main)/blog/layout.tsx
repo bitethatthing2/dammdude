@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Kirko Bangz',
     'Casey Veggies tour',
     'DJ Inferno',
-    'Rhythm Flow events',
+    'Live music events',
     'Oregon live music shows',
     'Salem nightlife',
     'Pacific Northwest entertainment',

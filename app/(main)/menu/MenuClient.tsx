@@ -10,13 +10,15 @@ import {
   AlertCircle, 
   RefreshCw,
   ArrowLeft,
-  ShoppingCart
+  ShoppingCart,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
 import MenuCategoryNav from '@/components/menu/MenuCategoryNav';
 import MenuItemCard, { CompactMenuItemCard } from '@/components/menu/MenuItemCard';
+import MenuSearch from '@/components/menu/MenuSearch';
 import Cart from '@/components/cart/Cart';
 import { useCart } from '@/components/cart/CartContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -58,11 +60,14 @@ export default function MenuClient({
   const [activeTab, setActiveTab] = useState<'food' | 'drink'>('food');
   const [categories] = useState<MenuCategoryWithCount[]>(initialCategories);
   const [items, setItems] = useState<MenuItemWithModifiers[]>([]);
+  const [filteredItems, setFilteredItems] = useState<MenuItemWithModifiers[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useCompactView, setUseCompactView] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Cart management
   const { cartCount, addToCart } = useCart();
@@ -127,12 +132,29 @@ export default function MenuClient({
     }
   }, []);
 
+  // Handle filtered items from search
+  const handleFilteredItemsChange = useCallback((newFilteredItems: MenuItemWithModifiers[]) => {
+    setFilteredItems(newFilteredItems);
+  }, []);
+
+  // Handle search state change
+  const handleSearchStateChange = useCallback((searching: boolean) => {
+    setIsSearching(searching);
+  }, []);
+
   // Update items when active category changes
   useEffect(() => {
     if (activeCategory) {
       fetchMenuItems(activeCategory);
     }
   }, [activeCategory, fetchMenuItems]);
+
+  // Update filtered items when items change and not searching
+  useEffect(() => {
+    if (!isSearching) {
+      setFilteredItems(items);
+    }
+  }, [items, isSearching]);
 
   // Update active category when tab changes
   useEffect(() => {
@@ -236,9 +258,6 @@ export default function MenuClient({
   const foodCategories = initialFoodCategories;
   const drinkCategories = initialDrinkCategories;
 
-  // Filter items by active category
-  const activeItems = items;
-
   // Error state
   if (error) {
     return (
@@ -283,8 +302,19 @@ export default function MenuClient({
           </Button>
           <h1 className="text-xl font-bold text-white">Menu</h1>
           
-          {/* Cart Button or Login CTA */}
-          {user ? (
+          <div className="flex items-center gap-2">
+            {/* Search Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              className={`h-10 w-10 ${showSearch ? 'text-blue-400' : ''}`}
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            
+            {/* Cart Button or Login CTA */}
+            {user ? (
             <Button
               variant="ghost"
               size="icon"
@@ -315,7 +345,20 @@ export default function MenuClient({
               Login
             </Button>
           )}
+          </div>
         </div>
+
+        {/* Search Component */}
+        {showSearch && (
+          <div className="px-4 pb-4">
+            <MenuSearch
+              items={items}
+              categories={categories.filter(cat => cat.type === activeTab)}
+              onFilteredItemsChange={handleFilteredItemsChange}
+              onSearchStateChange={handleSearchStateChange}
+            />
+          </div>
+        )}
       </header>
 
       {/* Main Tabs - Full width on mobile */}
@@ -375,25 +418,23 @@ export default function MenuClient({
           <div className="p-4">
             <LoadingSkeleton />
           </div>
-        ) : activeItems.length > 0 ? (
+        ) : filteredItems.length > 0 ? (
           <div className="menu-container">
             <div className={
               useCompactView 
                 ? "space-y-2 p-4" 
                 : "menu-grid"
             }>
-              {activeItems.map(item => (
+              {filteredItems.map(item => (
                 useCompactView ? (
                   <CompactMenuItemCard
                     key={item.id}
                     item={item}
-                    onAddToCart={handleAddToCart}
                   />
                 ) : (
                   <MenuItemCard
                     key={item.id}
                     item={item}
-                    onAddToCart={handleAddToCart}
                   />
                 )
               ))}
@@ -401,13 +442,23 @@ export default function MenuClient({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            {activeTab === 'food' ? (
-              <UtensilsCrossed className="w-16 h-16 text-muted-foreground mb-4" />
+            {isSearching ? (
+              <>
+                <Search className="w-16 h-16 text-muted-foreground mb-4" />
+                <p className="text-lg text-muted-foreground">No items match your search</p>
+                <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or search terms</p>
+              </>
             ) : (
-              <Wine className="w-16 h-16 text-muted-foreground mb-4" />
+              <>
+                {activeTab === 'food' ? (
+                  <UtensilsCrossed className="w-16 h-16 text-muted-foreground mb-4" />
+                ) : (
+                  <Wine className="w-16 h-16 text-muted-foreground mb-4" />
+                )}
+                <p className="text-lg text-muted-foreground">No items in this category</p>
+                <p className="text-sm text-muted-foreground mt-1">Check back later!</p>
+              </>
             )}
-            <p className="text-lg text-muted-foreground">No items in this category</p>
-            <p className="text-sm text-muted-foreground mt-1">Check back later!</p>
           </div>
         )}
       </main>
