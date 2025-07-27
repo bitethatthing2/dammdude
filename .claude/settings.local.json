@@ -86,7 +86,9 @@
       "WebFetch(domain:www.themargaritafactory.com)",
       "WebFetch(domain:www.margaritafactory.com)",
       "Bash(timeout 90s npm run build:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ],
     "deny": []
   },

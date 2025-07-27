@@ -1,10 +1,11 @@
+/* All @import rules must be at the top */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import '../styles/consolidated-menu.css';
+
 /* Tailwind CSS base directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import consolidated menu styles */
-@import '../styles/consolidated-menu.css';
 
 /* Remove default margins and ensure full coverage */
 html, body {
@@ -98,8 +99,7 @@ html {
   animation: slide-up 0.3s ease-out;
 }
 
-/* Import consolidated menu styles - single source of truth */
-@import '../styles/consolidated-menu.css';
+/* Removed duplicate @import - now at top of file */
 
 /* Content container for proper framing */
 .content-container {
@@ -129,8 +129,7 @@ nav[class*="fixed top-0"],
 
 /* REMOVED: @import '../styles/wolfpack.css'; - File was deleted */
 
-/* Import Google Fonts for elegant typography */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Removed duplicate @import - now at top of file */
 
 /* Typography System */
 @layer base {

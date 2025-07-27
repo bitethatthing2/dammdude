@@ -61,7 +61,6 @@ const getWatchItMadeVideo = (itemName: string, itemDescription: string): string 
       return videoUrl;
     }
   }
-  
   return null;
 };
 

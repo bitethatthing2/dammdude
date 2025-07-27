@@ -34,37 +34,83 @@ export default async function MenuServer() {
     const foodCategories: FoodDrinkCategoryRow[] = foodCategoriesResult;
     const drinkCategories: FoodDrinkCategoryRow[] = drinkCategoriesResult;
     
-    // --- Step 2: Augment categories with dummy item_count for initial display ---
-    // Since actual item counts come from client-side fetches, we can initialize with 0
-    // or a placeholder if the backend doesn't provide a count per category.
-    // Assuming getCategoriesByTypePublic returns a simple array of FoodDrinkCategoryRow.
-    const foodCategoriesWithCount: MenuCategoryWithCount[] = foodCategories
-      .filter(cat => cat.is_active) // Filter only active categories, if `is_active` is available
-      .map((cat): MenuCategoryWithCount => ({
-        id: cat.id,
-        name: cat.name,
-        type: cat.type as 'food' | 'drink',
-        display_order: cat.display_order || 0,
-        is_active: cat.is_active || false,
-        icon: cat.icon,
-        description: cat.description,
-        color: cat.color,
-        item_count: 0 // Initialize item_count to 0, as true count is dynamic client-side
-      }));
+    // --- Step 2: Augment categories with item_count from backend ---
+    // We'll fetch item counts from the backend to show accurate counts
+    // Import the public menu items function to get counts
+    const { getMenuItemsByCategoryPublic } = await import('@/lib/menu-data-public-fixed');
+    
+    // Get item counts for each category
+    const foodCategoriesWithCount: MenuCategoryWithCount[] = await Promise.all(
+      foodCategories
+        .filter(cat => cat.is_active)
+        .map(async (cat): Promise<MenuCategoryWithCount> => {
+          try {
+            const items = await getMenuItemsByCategoryPublic(cat.id);
+            const availableItemCount = Array.isArray(items) ? items.length : 0;
+            
+            return {
+              id: cat.id,
+              name: cat.name,
+              type: cat.type as 'food' | 'drink',
+              display_order: cat.display_order || 0,
+              is_active: cat.is_active || false,
+              icon: cat.icon,
+              description: cat.description,
+              color: cat.color,
+              item_count: availableItemCount
+            };
+          } catch (error) {
+            console.error(`Failed to get item count for food category ${cat.id}:`, error);
+            return {
+              id: cat.id,
+              name: cat.name,
+              type: cat.type as 'food' | 'drink',
+              display_order: cat.display_order || 0,
+              is_active: cat.is_active || false,
+              icon: cat.icon,
+              description: cat.description,
+              color: cat.color,
+              item_count: 0
+            };
+          }
+        })
+    );
 
-    const drinkCategoriesWithCount: MenuCategoryWithCount[] = drinkCategories
-      .filter(cat => cat.is_active)
-      .map((cat): MenuCategoryWithCount => ({
-        id: cat.id,
-        name: cat.name,
-        type: cat.type as 'food' | 'drink',
-        display_order: cat.display_order || 0,
-        is_active: cat.is_active || false,
-        icon: cat.icon,
-        description: cat.description,
-        color: cat.color,
-        item_count: 0 // Initialize item_count to 0
-      }));
+    const drinkCategoriesWithCount: MenuCategoryWithCount[] = await Promise.all(
+      drinkCategories
+        .filter(cat => cat.is_active)
+        .map(async (cat): Promise<MenuCategoryWithCount> => {
+          try {
+            const items = await getMenuItemsByCategoryPublic(cat.id);
+            const availableItemCount = Array.isArray(items) ? items.length : 0;
+            
+            return {
+              id: cat.id,
+              name: cat.name,
+              type: cat.type as 'food' | 'drink',
+              display_order: cat.display_order || 0,
+              is_active: cat.is_active || false,
+              icon: cat.icon,
+              description: cat.description,
+              color: cat.color,
+              item_count: availableItemCount
+            };
+          } catch (error) {
+            console.error(`Failed to get item count for drink category ${cat.id}:`, error);
+            return {
+              id: cat.id,
+              name: cat.name,
+              type: cat.type as 'food' | 'drink',
+              display_order: cat.display_order || 0,
+              is_active: cat.is_active || false,
+              icon: cat.icon,
+              description: cat.description,
+              color: cat.color,
+              item_count: 0
+            };
+          }
+        })
+    );
 
     const allCategories = [...foodCategoriesWithCount, ...drinkCategoriesWithCount];
 

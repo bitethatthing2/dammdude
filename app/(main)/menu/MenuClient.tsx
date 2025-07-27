@@ -254,9 +254,13 @@ export default function MenuClient({
     </div>
   );
 
-  // Filter categories by type
+  // Filter categories by type and calculate totals
   const foodCategories = initialFoodCategories;
   const drinkCategories = initialDrinkCategories;
+  
+  // Calculate total items for each tab
+  const totalFoodItems = foodCategories.reduce((sum, cat) => sum + (cat.item_count || 0), 0);
+  const totalDrinkItems = drinkCategories.reduce((sum, cat) => sum + (cat.item_count || 0), 0);
 
   // Error state
   if (error) {
@@ -374,14 +378,14 @@ export default function MenuClient({
               className="menu-main-tab-food flex items-center gap-2 text-base"
             >
               <UtensilsCrossed className="w-5 h-5" />
-              <span>Food ({foodCategories.length})</span>
+              <span>FOOD ({totalFoodItems})</span>
             </TabsTrigger>
             <TabsTrigger 
               value="drink" 
               className="menu-main-tab-drinks flex items-center gap-2 text-base"
             >
               <Wine className="w-5 h-5" />
-              <span>Drinks ({drinkCategories.length})</span>
+              <span>DRINKS ({totalDrinkItems})</span>
             </TabsTrigger>
           </TabsList>
 

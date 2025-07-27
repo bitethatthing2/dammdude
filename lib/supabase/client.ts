@@ -116,6 +116,14 @@ export function createClient() {
 
   // Validate required configuration
   if (!supabaseUrl || !supabaseAnonKey) {
+    // During build time, return a dummy client to prevent errors
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn('Supabase client created without credentials during build time')
+      return createBrowserClient<Database>(
+        'https://placeholder.supabase.co',
+        'placeholder-anon-key'
+      )
+    }
     throw new Error(`Missing Supabase configuration: URL=${!!supabaseUrl}, AnonKey=${!!supabaseAnonKey}`)
   }
 

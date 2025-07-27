@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { WolfpackService } from '@/lib/services/wolfpack';
+import { WolfpackErrorHandler } from '@/lib/services/wolfpack-backend.service';
 
 export async function POST(request: NextRequest) {
   try {

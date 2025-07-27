@@ -6,12 +6,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-com
 
 // Initialize Firebase
 firebase.initializeApp({
-  apiKey: "AIzaSyAUWCAf5xHLMitmAgI5gfy8d2o48pnjXeo",
-  authDomain: "sidehustle-22a6a.firebaseapp.com",
-  projectId: "sidehustle-22a6a",
-  storageBucket: "sidehustle-22a6a.firebasestorage.app",
-  messagingSenderId: "993911155207",
-  appId: "1:993911155207:web:610f19ac354d69540bd8a2"
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
 });
 
 // Get messaging instance

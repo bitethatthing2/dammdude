@@ -186,7 +186,7 @@ export default function MenuCategoryNav({
               )}
             >
               <span>{category.name}</span>
-              {category.item_count !== undefined && category.item_count > 0 && (
+              {category.item_count !== undefined && (
                 <Badge 
                   variant="secondary" 
                   className={cn(
@@ -256,7 +256,7 @@ export function PillsCategoryNav({
             )}
           >
             <span>{category.name}</span>
-            {category.item_count !== undefined && category.item_count > 0 && (
+            {category.item_count !== undefined && (
               <span className={cn(
                 "text-xs",
                 isActive ? "opacity-80" : "opacity-60"
