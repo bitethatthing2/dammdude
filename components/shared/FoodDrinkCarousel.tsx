@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Utensils, Wine, Star, DollarSign } from 'lucide-react';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
+import { getFreshImageUrl } from '@/lib/utils/image-cache';
 
 interface CarouselItem {
   id: string;
@@ -704,7 +705,7 @@ export function FoodDrinkCarousel() {
                 <div className="aspect-[4/3] relative bg-gradient-to-br from-gray-800 to-gray-900">
                   {item.image.endsWith('.mp4') || item.image.endsWith('.webm') ? (
                     <VideoPlayer
-                      src={item.image}
+                      src={getFreshImageUrl(item.image)}
                       className="w-full h-full object-cover"
                       showControls={false}
                       autoPlay
@@ -713,7 +714,7 @@ export function FoodDrinkCarousel() {
                     />
                   ) : (
                     <Image 
-                      src={item.image}
+                      src={getFreshImageUrl(item.image)}
                       alt={item.name}
                       fill
                       className="object-cover object-center group-hover:scale-110 transition-transform duration-700"

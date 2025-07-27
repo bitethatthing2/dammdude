@@ -15,7 +15,7 @@ interface OptimisticState {
 }
 
 interface UseOptimisticActionsProps {
-  userId?: string;
+  userId?: string; // This should be the public user ID (database ID), not auth ID
   onUpdateVideoStats?: (videoId: string, updates: { likes_count?: number; comments_count?: number }) => void;
 }
 
@@ -34,8 +34,8 @@ export function useOptimisticActions({
   const handleLike = useCallback(async (videoId: string, currentLikeCount: number, isCurrentlyLiked: boolean) => {
     if (!userId) {
       toast({
-        title: "Authentication required",
-        description: "Please sign in to like posts",
+        title: "Account linking required",
+        description: "Please link your account to like posts. Check the signup form below.",
         variant: "destructive"
       });
       return;
@@ -56,21 +56,8 @@ export function useOptimisticActions({
     onUpdateVideoStats?.(videoId, { likes_count: newCount });
 
     try {
-      // Try to get database user ID for new users
-      let userDbId = userId;
-      
-      // Check if userId looks like an auth ID (not database ID)
-      if (userId.length > 30) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_id', userId)
-          .single();
-        
-        if (userProfile) {
-          userDbId = userProfile.id;
-        }
-      }
+      // userId should already be the database user ID (public user ID)
+      const userDbId = userId;
 
       if (newIsLiked) {
         // Add like
@@ -137,8 +124,8 @@ export function useOptimisticActions({
   const handleFollow = useCallback(async (targetUserId: string, isCurrentlyFollowed: boolean) => {
     if (!userId) {
       toast({
-        title: "Authentication required",
-        description: "Please sign in to follow users",
+        title: "Account linking required", 
+        description: "Please link your account to follow users. Check the signup form below.",
         variant: "destructive"
       });
       return;
@@ -153,20 +140,8 @@ export function useOptimisticActions({
     }));
 
     try {
-      // Get database user ID for new users
-      let userDbId = userId;
-      
-      if (userId.length > 30) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_id', userId)
-          .single();
-        
-        if (userProfile) {
-          userDbId = userProfile.id;
-        }
-      }
+      // userId should already be the database user ID (public user ID)
+      const userDbId = userId;
 
       if (newIsFollowed) {
         // Add follow
@@ -220,8 +195,8 @@ export function useOptimisticActions({
   ) => {
     if (!userId) {
       toast({
-        title: "Authentication required",
-        description: "Please sign in to comment",
+        title: "Account linking required",
+        description: "Please link your account to comment. Check the signup form below.",
         variant: "destructive"
       });
       return null;
@@ -241,20 +216,8 @@ export function useOptimisticActions({
     onUpdateVideoStats?.(videoId, { comments_count: newCount });
 
     try {
-      // Get database user ID
-      let userDbId = userId;
-      
-      if (userId.length > 30) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_id', userId)
-          .single();
-        
-        if (userProfile) {
-          userDbId = userProfile.id;
-        }
-      }
+      // userId should already be the database user ID (public user ID)
+      const userDbId = userId;
 
       // Create comment
       const { data: comment, error } = await supabase

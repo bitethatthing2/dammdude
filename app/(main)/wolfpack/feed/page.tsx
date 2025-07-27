@@ -9,6 +9,7 @@ import { useOptimisticActions } from '@/lib/hooks/useOptimisticActions';
 import TikTokStyleFeed from '@/components/wolfpack/feed/TikTokStyleFeed';
 import { PostCreator } from '@/components/wolfpack/PostCreator';
 import ShareModal from '@/components/wolfpack/ShareModal';
+import { AuthLinkHelper } from '@/components/auth/AuthLinkHelper';
 import { Loader2, Shield, Sparkles, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { deletePost } from '@/lib/database/posts';
@@ -329,6 +330,13 @@ export default function OptimizedWolfpackFeedPage() {
         hasMore={hasMore}
         isLoading={isLoadingMore}
       />
+      
+      {/* Show auth helper if user can't interact */}
+      {user && !user.id && (
+        <div className="fixed bottom-4 left-4 right-4 z-50">
+          <AuthLinkHelper userEmail={user.email} />
+        </div>
+      )}
       
       <PostCreator
         isOpen={showPostCreator}
