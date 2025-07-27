@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from '@/lib/supabase/server';
-import { WolfpackFeedService } from '@/lib/services/wolfpack';
+import { WolfpackService } from '@/lib/services/wolfpack';
 
 export interface FeedItem {
   id: string;

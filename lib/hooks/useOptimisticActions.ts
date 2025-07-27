@@ -75,7 +75,7 @@ export function useOptimisticActions({
       if (newIsLiked) {
         // Add like
         const { error } = await supabase
-          .from('wolfpack_likes')
+          .from('wolfpack_post_likes')
           .insert({
             user_id: userDbId,
             video_id: videoId
@@ -94,7 +94,7 @@ export function useOptimisticActions({
       } else {
         // Remove like
         const { error } = await supabase
-          .from('wolfpack_likes')
+          .from('wolfpack_post_likes')
           .delete()
           .eq('user_id', userDbId)
           .eq('video_id', videoId);

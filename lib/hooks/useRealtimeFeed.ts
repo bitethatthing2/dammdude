@@ -62,12 +62,14 @@ export function useRealtimeFeed({
   // Load initial feed data
   const loadFeed = useCallback(async (page = 1, limit = 20, append = false) => {
     try {
+      console.log(`[FEED DEBUG] Starting loadFeed: page ${page}, append ${append}`);
+      
       if (page === 1) setLoading(true);
       else setIsLoadingMore(true);
 
       const offset = (page - 1) * limit;
 
-      console.log(`Loading feed: page ${page}, offset ${offset}, limit ${limit}`);
+      console.log(`[FEED DEBUG] Loading feed: page ${page}, offset ${offset}, limit ${limit}`);
 
       // First check if we have any data at all
       const { count, error: countError } = await supabase
@@ -76,12 +78,12 @@ export function useRealtimeFeed({
         .eq('is_active', true);
 
       if (countError) {
-        console.error('Error getting video count:', countError);
+        console.error('[FEED DEBUG] Error getting video count:', countError);
         if (page === 1) setError('Failed to connect to database');
         return;
       }
 
-      console.log(`Total videos available: ${count}`);
+      console.log(`[FEED DEBUG] Total videos available: ${count}`);
 
       // If offset is beyond available data, set hasMore to false and return empty
       if (count !== null && offset >= count) {
@@ -92,11 +94,23 @@ export function useRealtimeFeed({
         return;
       }
 
-      // Query videos with user data
+      // Query videos with user data - handle missing columns gracefully
       const { data: videoData, error: videoError } = await supabase
         .from('wolfpack_videos')
         .select(`
-          *,
+          id,
+          user_id,
+          title,
+          description,
+          video_url,
+          thumbnail_url,
+          created_at,
+          is_active,
+          like_count,
+          comments_count,
+          hashtags,
+          duration,
+          view_count,
           users:user_id (
             first_name,
             last_name,
@@ -110,11 +124,19 @@ export function useRealtimeFeed({
 
       if (videoError) {
         console.error('Error loading videos:', videoError);
-        if (page === 1) setError(`Failed to load feed: ${videoError.message}`);
+        if (page === 1) {
+          // For critical feed loading errors, provide more context
+          const errorMsg = videoError.code === 'PGRST301' 
+            ? 'Database connection error. Please try refreshing the page.'
+            : videoError.message?.includes('column') 
+            ? 'Database schema mismatch. Please contact support.'
+            : `Failed to load feed: ${videoError.message}`;
+          setError(errorMsg);
+        }
         return;
       }
 
-      console.log(`Loaded ${videoData?.length || 0} videos from database`);
+      console.log(`[FEED DEBUG] Loaded ${videoData?.length || 0} videos from database`);
 
       // Transform data - handle missing columns gracefully
       const transformedVideos: VideoItem[] = (videoData || []).map(video => ({
@@ -142,6 +164,8 @@ export function useRealtimeFeed({
 
       if (!mountedRef.current) return;
 
+      console.log(`[FEED DEBUG] Setting videos: ${transformedVideos.length} items, append: ${append}`);
+
       if (append) {
         setVideos(prev => [...prev, ...transformedVideos]);
       } else {
@@ -159,6 +183,7 @@ export function useRealtimeFeed({
       if (page === 1) setError(err.message || 'Failed to load feed');
     } finally {
       if (mountedRef.current) {
+        console.log(`[FEED DEBUG] Setting loading to false`);
         setLoading(false);
         setIsLoadingMore(false);
       }
@@ -182,7 +207,16 @@ export function useRealtimeFeed({
     setCurrentPage(1);
     setHasMore(true);
 
-    // Create channel for real-time updates
+    // Load initial data first, then set up real-time if possible
+    loadFeed(1).catch(err => {
+      console.error('Failed to load initial feed:', err);
+      if (mountedRef.current) {
+        setError('Failed to load feed');
+        setLoading(false);
+      }
+    });
+
+    // Create channel for real-time updates (optional)
     const channel = supabase
       .channel(`wolfpack_feed_updates_${Date.now()}`) // Unique channel name to prevent conflicts
       .on(
@@ -200,7 +234,19 @@ export function useRealtimeFeed({
           const { data: newVideoData, error } = await supabase
             .from('wolfpack_videos')
             .select(`
-              *,
+              id,
+              user_id,
+              title,
+              description,
+              video_url,
+              thumbnail_url,
+              created_at,
+              is_active,
+              like_count,
+              comments_count,
+              hashtags,
+              duration,
+              view_count,
               users:user_id (
                 first_name,
                 last_name,
@@ -280,18 +326,14 @@ export function useRealtimeFeed({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.warn('Realtime subscription failed, continuing without real-time updates');
+        }
+      });
 
     channelRef.current = channel;
-
-    // Load initial data immediately
-    loadFeed(1).catch(err => {
-      console.error('Failed to load initial feed:', err);
-      if (mountedRef.current) {
-        setError('Failed to load feed');
-        setLoading(false);
-      }
-    });
 
     return () => {
       if (channelRef.current) {
