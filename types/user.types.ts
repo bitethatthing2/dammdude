@@ -1,20 +1,18 @@
-// types/user.types.ts - Centralized user types
+// Re-export user types from the context for use throughout the app
+export type { CurrentUser } from '@/contexts/UserContext';
 
 /**
- * Auth User - From Supabase Auth (auth.users table)
+ * Legacy types - kept for backward compatibility
+ * @deprecated Use CurrentUser from UserContext instead
  */
 export interface AuthUser {
-  id: string; // This is the auth.users.id (auth_id in public.users)
+  id: string;
   email: string;
-  // ... other auth fields
 }
 
-/**
- * Public User Profile - From public.users table
- */
 export interface PublicUser {
-  id: string; // This is the public.users.id (used in all foreign keys)
-  auth_id: string; // References auth.users.id
+  id: string;
+  auth_id: string;
   email: string;
   first_name?: string;
   last_name?: string;
@@ -26,13 +24,4 @@ export interface PublicUser {
   wolf_emoji?: string;
   created_at?: string;
   updated_at?: string;
-  // ... other profile fields
-}
-
-/**
- * Current User Context - Combines both for easy access
- */
-export interface CurrentUser {
-  authUser: AuthUser;
-  publicUser: PublicUser;
 }

@@ -22,7 +22,7 @@ import { WolfpackAuthService } from './auth';
 
 export class WolfpackFeedService {
   /**
-   * Fetch general feed items (client-side) - OPTIMIZED to prevent N+1 queries
+   * Fetch general feed items (client-side) - Using optimized database function
    */
   static fetchFeedItems = withErrorHandling(async (
     options: PaginationOptions & { userId?: string; currentUserId?: string } = {}
@@ -30,26 +30,11 @@ export class WolfpackFeedService {
     const { page, limit } = validatePagination(options.page, options.limit);
     const offset = (page - 1) * limit;
 
-    // OPTIMIZED: Single query with all needed data to prevent N+1 queries
-    let query = supabase
+    // Fallback to table query until migrations are applied
+    const { data, error, count } = await supabase
       .from(WOLFPACK_TABLES.VIDEOS)
       .select(`
-        id,
-        user_id,
-        title,
-        description,
-        caption,
-        video_url,
-        thumbnail_url,
-        duration,
-        view_count,
-        like_count,
-        comments_count,
-        shares_count,
-        music_name,
-        hashtags,
-        created_at,
-        is_active,
+        *,
         user:users!user_id(
           id,
           username,
@@ -65,49 +50,15 @@ export class WolfpackFeedService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // Add user filter if provided
-    if (options.userId) {
-      validateUUID(options.userId, 'User ID');
-      query = query.eq('user_id', options.userId);
-    }
-
-    const { data, error, count } = await query;
     if (error) throw error;
-
-    // OPTIMIZED: Batch fetch likes and comments data if current user provided
-    let userLikes: string[] = [];
-    let followingUsers: string[] = [];
-    
-    if (options.currentUserId && data && data.length > 0) {
-      const videoIds = data.map(post => post.id);
-      const userIds = [...new Set(data.map(post => post.user_id))];
-
-      // Batch fetch user's likes for these posts
-      const { data: likeData } = await supabase
-        .from(WOLFPACK_TABLES.LIKES)
-        .select('video_id')
-        .eq('user_id', options.currentUserId)
-        .in('video_id', videoIds);
-      
-      userLikes = likeData?.map(like => like.video_id) || [];
-
-      // Batch fetch user's following relationships
-      const { data: followData } = await supabase
-        .from(WOLFPACK_TABLES.FOLLOWS)
-        .select('following_id')
-        .eq('follower_id', options.currentUserId)
-        .in('following_id', userIds);
-      
-      followingUsers = followData?.map(follow => follow.following_id) || [];
-    }
 
     // Transform the data to match FeedItem interface
     const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.display_name || post.user?.username || 
-               `${post.user?.first_name || ''} ${post.user?.last_name || ''}`.trim() || "Unknown",
-      avatar_url: post.user?.profile_image_url || post.user?.avatar_url,
+      username: post.display_name || post.username || 
+               `${post.first_name || ''} ${post.last_name || ''}`.trim() || "Unknown",
+      avatar_url: post.profile_image_url || post.avatar_url,
       caption: post.caption || post.description || post.title || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url,
@@ -118,14 +69,31 @@ export class WolfpackFeedService {
       hashtags: post.hashtags || [],
       created_at: post.created_at,
       user: {
-        ...post.user,
-        // Add computed fields to prevent additional queries
-        user_liked: userLikes.includes(post.id),
-        user_following: followingUsers.includes(post.user_id)
+        id: post.user_id,
+        username: post.username,
+        display_name: post.display_name,
+        first_name: post.first_name,
+        last_name: post.last_name,
+        avatar_url: post.avatar_url,
+        profile_image_url: post.profile_image_url,
+        wolf_emoji: post.wolf_emoji,
+        // These are already computed by the database function
+        user_liked: post.user_liked,
+        user_following: post.user_following
       },
     }));
 
-    const totalItems = count || 0;
+    // For user-specific feeds, filter after fetching if needed
+    if (options.userId && options.userId !== options.currentUserId) {
+      const filteredItems = items.filter(item => item.user_id === options.userId);
+      return {
+        items: filteredItems,
+        totalItems: filteredItems.length,
+        hasMore: false, // Simple implementation for now
+      };
+    }
+
+    const totalItems = count || data?.length || 0;
     const hasMore = offset + limit < totalItems;
 
     return {
@@ -144,49 +112,16 @@ export class WolfpackFeedService {
   ): Promise<FetchFeedResponse> => {
     validateUUID(currentUserId, 'Current User ID');
     const { page, limit } = validatePagination(options.page, options.limit);
-
-    // Use client-side supabase for now - server actions should handle server client
-    const client = supabase;
-
-    // First get the users that the current user follows
-    const { data: following } = await client
-      .from(WOLFPACK_TABLES.FOLLOWS)
-      .select('following_id')
-      .eq('follower_id', currentUserId);
-
-    if (!following || following.length === 0) {
-      return {
-        items: [],
-        totalItems: 0,
-        hasMore: false,
-      };
-    }
-
-    const followingIds = following.map((f) => f.following_id);
     const offset = (page - 1) * limit;
 
-    // Get posts from followed users
-    const { data, error, count } = await client
-      .from(WOLFPACK_TABLES.VIDEOS)
-      .select(`
-        *,
-        user:users!user_id(
-          id,
-          username,
-          display_name,
-          first_name,
-          last_name,
-          avatar_url,
-          profile_image_url,
-          wolf_emoji
-        ),
-        likes:wolfpack_post_likes(count),
-        comments:wolfpack_comments(count)
-      `, { count: 'exact' })
-      .in('user_id', followingIds)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Use the optimized RPC function with following_only flag
+    const { data, error, count } = await supabase
+      .rpc('get_wolfpack_feed_optimized', {
+        p_user_id: currentUserId,
+        p_limit: limit,
+        p_offset: offset,
+        p_following_only: true
+      }, { count: 'exact' });
 
     if (error) throw error;
 
@@ -194,22 +129,33 @@ export class WolfpackFeedService {
     const items: FeedItem[] = (data || []).map((post) => ({
       id: post.id,
       user_id: post.user_id,
-      username: post.user?.display_name || post.user?.username || 
-               `${post.user?.first_name || ''} ${post.user?.last_name || ''}`.trim() || "Unknown",
-      avatar_url: post.user?.profile_image_url || post.user?.avatar_url,
+      username: post.display_name || post.username || 
+               `${post.first_name || ''} ${post.last_name || ''}`.trim() || "Unknown",
+      avatar_url: post.profile_image_url || post.avatar_url,
       caption: post.caption || post.description || post.title || "",
       video_url: post.video_url,
       thumbnail_url: post.thumbnail_url,
-      likes_count: post.like_count || post.likes?.[0]?.count || 0,
-      comments_count: post.comments_count || post.comments?.[0]?.count || 0,
+      likes_count: post.like_count || 0,
+      comments_count: post.comments_count || 0,
       shares_count: post.shares_count || 0,
       music_name: post.music_name || 'Original Sound',
       hashtags: post.hashtags || [],
       created_at: post.created_at,
-      user: post.user,
+      user: {
+        id: post.user_id,
+        username: post.username,
+        display_name: post.display_name,
+        first_name: post.first_name,
+        last_name: post.last_name,
+        avatar_url: post.avatar_url,
+        profile_image_url: post.profile_image_url,
+        wolf_emoji: post.wolf_emoji,
+        user_liked: post.user_liked,
+        user_following: true // Always true for following feed
+      },
     }));
 
-    const totalItems = count || 0;
+    const totalItems = count || data?.length || 0;
     const hasMore = offset + limit < totalItems;
 
     return {
@@ -218,6 +164,96 @@ export class WolfpackFeedService {
       hasMore,
     };
   }, 'WolfpackFeedService.fetchFollowingFeed');
+
+  /**
+   * Fetch feed using cursor-based pagination (more efficient for large datasets)
+   */
+  static fetchFeedWithCursor = withErrorHandling(async (
+    options: { cursor?: string; limit?: number; currentUserId?: string; followingOnly?: boolean } = {}
+  ): Promise<FetchFeedResponse> => {
+    const { limit = 20, currentUserId, followingOnly = false } = options;
+    
+    let cursorTimestamp = null;
+    let cursorId = null;
+    
+    // Parse cursor if provided (simple base64 decode for timestamp:id format)
+    if (options.cursor) {
+      try {
+        const decoded = atob(options.cursor);
+        const [timestamp, id] = decoded.split(':');
+        cursorTimestamp = timestamp;
+        cursorId = id;
+      } catch (error) {
+        console.warn('Invalid cursor provided, starting from beginning:', error);
+      }
+    }
+
+    // Use the cursor-based RPC function
+    const { data, error } = await supabase
+      .rpc('get_wolfpack_feed_cursor', {
+        p_user_id: currentUserId || null,
+        p_limit: limit,
+        p_cursor: cursorTimestamp,
+        p_cursor_id: cursorId,
+        p_following_only: followingOnly
+      });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return {
+        items: [],
+        totalItems: 0,
+        hasMore: false,
+      };
+    }
+
+    // Transform the data to match FeedItem interface
+    const items: FeedItem[] = data.map((post) => ({
+      id: post.id,
+      user_id: post.user_id,
+      username: post.display_name || post.username || 
+               `${post.first_name || ''} ${post.last_name || ''}`.trim() || "Unknown",
+      avatar_url: post.profile_image_url || post.avatar_url,
+      caption: post.caption || post.description || post.title || "",
+      video_url: post.video_url,
+      thumbnail_url: post.thumbnail_url,
+      likes_count: post.like_count || 0,
+      comments_count: post.comments_count || 0,
+      shares_count: post.shares_count || 0,
+      music_name: post.music_name || 'Original Sound',
+      hashtags: post.hashtags || [],
+      created_at: post.created_at,
+      user: {
+        id: post.user_id,
+        username: post.username,
+        display_name: post.display_name,
+        first_name: post.first_name,
+        last_name: post.last_name,
+        avatar_url: post.avatar_url,
+        profile_image_url: post.profile_image_url,
+        wolf_emoji: post.wolf_emoji,
+        user_liked: post.user_liked,
+        user_following: post.user_following
+      },
+    }));
+
+    // Check if there's a next page and encode cursor
+    const hasMore = data.length > 0 && data[0].next_cursor !== null;
+    let nextCursor: string | undefined;
+    
+    if (hasMore && data[0].next_cursor && data[0].next_cursor_id) {
+      // Simple base64 encode for timestamp:id format
+      nextCursor = btoa(`${data[0].next_cursor}:${data[0].next_cursor_id}`);
+    }
+
+    return {
+      items,
+      totalItems: items.length, // Cursor pagination doesn't provide total count efficiently
+      hasMore,
+      nextCursor,
+    };
+  }, 'WolfpackFeedService.fetchFeedWithCursor');
 
   /**
    * Get single video post with enriched data

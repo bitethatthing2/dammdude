@@ -71,51 +71,20 @@ export function useRealtimeFeed({
 
       console.log(`[FEED DEBUG] Loading feed: page ${page}, offset ${offset}, limit ${limit}`);
 
-      // First check if we have any data at all
-      const { count, error: countError } = await supabase
-        .from('wolfpack_videos')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      if (countError) {
-        console.error('[FEED DEBUG] Error getting video count:', countError);
-        if (page === 1) setError('Failed to connect to database');
-        return;
-      }
-
-      console.log(`[FEED DEBUG] Total videos available: ${count}`);
-
-      // If offset is beyond available data, set hasMore to false and return empty
-      if (count !== null && offset >= count) {
-        console.log(`Offset ${offset} beyond available data ${count}`);
-        if (!mountedRef.current) return;
-        setHasMore(false);
-        if (page === 1) setVideos([]);
-        return;
-      }
-
-      // Query videos with user data - handle missing columns gracefully
+      // Fallback to table query until migrations are applied
       const { data: videoData, error: videoError } = await supabase
         .from('wolfpack_videos')
         .select(`
-          id,
-          user_id,
-          title,
-          description,
-          video_url,
-          thumbnail_url,
-          created_at,
-          is_active,
-          like_count,
-          comments_count,
-          hashtags,
-          duration,
-          view_count,
-          users:user_id (
+          *,
+          user:users!user_id(
+            id,
+            username,
+            display_name,
             first_name,
             last_name,
             avatar_url,
-            display_name
+            profile_image_url,
+            wolf_emoji
           )
         `)
         .eq('is_active', true)
@@ -125,41 +94,42 @@ export function useRealtimeFeed({
       if (videoError) {
         console.error('Error loading videos:', videoError);
         if (page === 1) {
-          // For critical feed loading errors, provide more context
-          const errorMsg = videoError.code === 'PGRST301' 
-            ? 'Database connection error. Please try refreshing the page.'
-            : videoError.message?.includes('column') 
-            ? 'Database schema mismatch. Please contact support.'
-            : `Failed to load feed: ${videoError.message}`;
-          setError(errorMsg);
+          // Follow guide's error handling patterns
+          if (videoError.code === 'PGRST301') {
+            setError('User not authenticated');
+          } else if (videoError.message?.includes('wolfpack_status')) {
+            setError('User not an active wolfpack member');
+          } else {
+            setError(`Failed to load feed: ${videoError.message}`);
+          }
         }
         return;
       }
 
       console.log(`[FEED DEBUG] Loaded ${videoData?.length || 0} videos from database`);
 
-      // Transform data - handle missing columns gracefully
-      const transformedVideos: VideoItem[] = (videoData || []).map(video => ({
-        id: video.id,
-        user_id: video.user_id,
-        username: video.users?.display_name || 
-                  `${video.users?.first_name || ''} ${video.users?.last_name || ''}`.trim() || 
+      // Transform data to match VideoItem interface
+      const transformedVideos: VideoItem[] = (videoData || []).map(post => ({
+        id: post.id,
+        user_id: post.user_id,
+        username: post.user?.display_name || post.user?.username || 
+                  `${post.user?.first_name || ''} ${post.user?.last_name || ''}`.trim() || 
                   'Anonymous',
-        avatar_url: video.users?.avatar_url,
-        caption: video.description || video.title || '',
-        video_url: video.video_url,
-        thumbnail_url: video.thumbnail_url,
-        created_at: video.created_at,
-        likes_count: video.like_count || 0,
-        comments_count: video.comments_count || 0, // Gracefully handle if column doesn't exist
-        shares_count: 0, // shares_count not tracked in database yet
+        avatar_url: post.user?.profile_image_url || post.user?.avatar_url,
+        caption: post.caption || post.description || post.title || '',
+        video_url: post.video_url,
+        thumbnail_url: post.thumbnail_url,
+        created_at: post.created_at,
+        likes_count: post.like_count || 0,
+        comments_count: post.comments_count || 0,
+        shares_count: 0, // Not available in simple query
         music_name: 'Original Sound',
-        hashtags: video.hashtags || [],
-        title: video.title,
-        description: video.description,
-        duration: video.duration,
-        view_count: video.view_count,
-        like_count: video.like_count
+        hashtags: post.hashtags || [],
+        title: post.title,
+        description: post.description,
+        duration: post.duration,
+        view_count: post.view_count,
+        like_count: post.like_count
       }));
 
       if (!mountedRef.current) return;
@@ -172,9 +142,8 @@ export function useRealtimeFeed({
         setVideos(transformedVideos);
       }
 
-      // Update hasMore based on whether we got a full page and there's more data
-      const totalFetched = page === 1 ? transformedVideos.length : offset + transformedVideos.length;
-      setHasMore(transformedVideos.length === limit && (count === null || totalFetched < count));
+      // Update hasMore based on whether we got a full page
+      setHasMore(transformedVideos.length === limit);
       setCurrentPage(page);
       setError(null);
 
@@ -230,48 +199,41 @@ export function useRealtimeFeed({
         async (payload) => {
           console.log('New video inserted:', payload);
           
-          // Fetch full video data with user info
+          // Fetch full post data from table
           const { data: newVideoData, error } = await supabase
             .from('wolfpack_videos')
             .select(`
-              id,
-              user_id,
-              title,
-              description,
-              video_url,
-              thumbnail_url,
-              created_at,
-              is_active,
-              like_count,
-              comments_count,
-              hashtags,
-              duration,
-              view_count,
-              users:user_id (
+              *,
+              user:users!user_id(
+                id,
+                username,
+                display_name,
                 first_name,
                 last_name,
                 avatar_url,
-                display_name
+                profile_image_url,
+                wolf_emoji
               )
             `)
             .eq('id', payload.new.id)
+            .eq('is_active', true)
             .single();
 
           if (!error && newVideoData && mountedRef.current) {
             const transformedVideo: VideoItem = {
               id: newVideoData.id,
               user_id: newVideoData.user_id,
-              username: newVideoData.users?.display_name || 
-                        `${newVideoData.users?.first_name || ''} ${newVideoData.users?.last_name || ''}`.trim() || 
+              username: newVideoData.user?.display_name || newVideoData.user?.username || 
+                        `${newVideoData.user?.first_name || ''} ${newVideoData.user?.last_name || ''}`.trim() || 
                         'Anonymous',
-              avatar_url: newVideoData.users?.avatar_url,
-              caption: newVideoData.description || newVideoData.title || '',
+              avatar_url: newVideoData.user?.profile_image_url || newVideoData.user?.avatar_url,
+              caption: newVideoData.caption || newVideoData.description || newVideoData.title || '',
               video_url: newVideoData.video_url,
               thumbnail_url: newVideoData.thumbnail_url,
               created_at: newVideoData.created_at,
               likes_count: newVideoData.like_count || 0,
-              comments_count: newVideoData.comments_count || 0, // Gracefully handle if column doesn't exist
-              shares_count: 0, // shares_count not tracked in database yet
+              comments_count: newVideoData.comments_count || 0,
+              shares_count: 0, // Not available in simple query
               music_name: 'Original Sound',
               hashtags: newVideoData.hashtags || [],
               title: newVideoData.title,

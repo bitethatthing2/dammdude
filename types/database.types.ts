@@ -95,194 +95,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bartender_orders: {
-        Row: {
-          accepted_at: string | null
-          bartender_id: string | null
-          bartender_notes: string | null
-          completed_at: string | null
-          created_at: string | null
-          customer_gender: string | null
-          customer_id: string | null
-          customer_notes: string | null
-          id: string
-          location_id: string | null
-          modification_notes: string | null
-          notification_sent: boolean | null
-          order_number: number
-          order_type: string | null
-          paid_at: string | null
-          ready_at: string | null
-          ready_notification_sent: boolean | null
-          seating_location: string | null
-          status: string | null
-          table_location: string | null
-          total_amount: number
-          updated_at: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          bartender_id?: string | null
-          bartender_notes?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          customer_gender?: string | null
-          customer_id?: string | null
-          customer_notes?: string | null
-          id?: string
-          location_id?: string | null
-          modification_notes?: string | null
-          notification_sent?: boolean | null
-          order_number?: number
-          order_type?: string | null
-          paid_at?: string | null
-          ready_at?: string | null
-          ready_notification_sent?: boolean | null
-          seating_location?: string | null
-          status?: string | null
-          table_location?: string | null
-          total_amount: number
-          updated_at?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          bartender_id?: string | null
-          bartender_notes?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          customer_gender?: string | null
-          customer_id?: string | null
-          customer_notes?: string | null
-          id?: string
-          location_id?: string | null
-          modification_notes?: string | null
-          notification_sent?: boolean | null
-          order_number?: number
-          order_type?: string | null
-          paid_at?: string | null
-          ready_at?: string | null
-          ready_notification_sent?: boolean | null
-          seating_location?: string | null
-          status?: string | null
-          table_location?: string | null
-          total_amount?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "current_user_profile"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_bartender_id_fkey"
-            columns: ["bartender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "current_user_profile"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "bartender_orders_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dj_broadcast_responses: {
         Row: {
           broadcast_id: string | null
@@ -362,13 +174,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcast_responses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -511,13 +316,6 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -548,13 +346,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
           },
           {
             foreignKeyName: "dj_broadcasts_location_id_fkey"
@@ -638,13 +429,6 @@ export type Database = {
             foreignKeyName: "dj_dashboard_state_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: true
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_dashboard_state_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: true
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -716,13 +500,6 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_event_participants_participant_id_fkey"
-            columns: ["participant_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -832,13 +609,6 @@ export type Database = {
             foreignKeyName: "dj_events_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_events_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -874,13 +644,6 @@ export type Database = {
             foreignKeyName: "dj_events_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "dj_events_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -889,13 +652,6 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_events_winner_id_fkey"
-            columns: ["winner_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -984,13 +740,6 @@ export type Database = {
             columns: ["dj_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_quick_actions_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -1191,13 +940,6 @@ export type Database = {
             foreignKeyName: "food_drink_categories_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_categories_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -1287,13 +1029,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -1395,13 +1130,6 @@ export type Database = {
             foreignKeyName: "images_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "images_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -1462,57 +1190,6 @@ export type Database = {
         }
         Relationships: []
       }
-      item_modifier_groups: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          group_name: string | null
-          id: string
-          is_required: boolean | null
-          item_id: string | null
-          max_selections: number | null
-          min_selections: number | null
-          modifier_type: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          group_name?: string | null
-          id?: string
-          is_required?: boolean | null
-          item_id?: string | null
-          max_selections?: number | null
-          min_selections?: number | null
-          modifier_type: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          group_name?: string | null
-          id?: string
-          is_required?: boolean | null
-          item_id?: string | null
-          max_selections?: number | null
-          min_selections?: number | null
-          modifier_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "item_modifier_groups_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       location_verifications: {
         Row: {
           created_at: string | null
@@ -1555,13 +1232,6 @@ export type Database = {
             foreignKeyName: "location_verifications_nearest_location_id_fkey"
             columns: ["nearest_location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "location_verifications_nearest_location_id_fkey"
-            columns: ["nearest_location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -1570,13 +1240,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "location_verifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -1623,8 +1286,6 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           email: string | null
-          geofence: unknown | null
-          geom: unknown | null
           hours: Json | null
           id: string
           is_active: boolean | null
@@ -1649,8 +1310,6 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
-          geofence?: unknown | null
-          geom?: unknown | null
           hours?: Json | null
           id?: string
           is_active?: boolean | null
@@ -1675,8 +1334,6 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
-          geofence?: unknown | null
-          geom?: unknown | null
           hours?: Json | null
           id?: string
           is_active?: boolean | null
@@ -1696,41 +1353,6 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
-      }
-      modifier_group_items: {
-        Row: {
-          created_at: string | null
-          display_order: number | null
-          group_id: string
-          id: string
-          is_default: boolean | null
-          modifier_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          display_order?: number | null
-          group_id: string
-          id?: string
-          is_default?: boolean | null
-          modifier_id: string
-        }
-        Update: {
-          created_at?: string | null
-          display_order?: number | null
-          group_id?: string
-          id?: string
-          is_default?: boolean | null
-          modifier_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "modifier_group_items_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "item_modifier_groups"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       notification_topics: {
         Row: {
@@ -1764,80 +1386,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      order_items: {
-        Row: {
-          created_at: string | null
-          id: string
-          item_name: string | null
-          menu_item_id: string | null
-          modifier_data: Json | null
-          modifiers: Json | null
-          order_id: string | null
-          quantity: number
-          special_instructions: string | null
-          subtotal: number | null
-          unit_price: number
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          item_name?: string | null
-          menu_item_id?: string | null
-          modifier_data?: Json | null
-          modifiers?: Json | null
-          order_id?: string | null
-          quantity: number
-          special_instructions?: string | null
-          subtotal?: number | null
-          unit_price: number
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          item_name?: string | null
-          menu_item_id?: string | null
-          modifier_data?: Json | null
-          modifiers?: Json | null
-          order_id?: string | null
-          quantity?: number
-          special_instructions?: string | null
-          subtotal?: number | null
-          unit_price?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items_with_working_modifiers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_order_display"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_orders"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       rate_limit_config: {
         Row: {
@@ -1929,30 +1477,6 @@ export type Database = {
         }
         Relationships: []
       }
-      spatial_ref_sys: {
-        Row: {
-          auth_name: string | null
-          auth_srid: number | null
-          proj4text: string | null
-          srid: number
-          srtext: string | null
-        }
-        Insert: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid: number
-          srtext?: string | null
-        }
-        Update: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid?: number
-          srtext?: string | null
-        }
-        Relationships: []
-      }
       storage_paths: {
         Row: {
           allowed_mime_types: string[] | null
@@ -2014,13 +1538,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "system_config_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2220,13 +1737,6 @@ export type Database = {
             foreignKeyName: "upload_performance_metrics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "upload_performance_metrics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -2300,13 +1810,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_fcm_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2416,13 +1919,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_storage_quotas_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2769,13 +2265,6 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_users_blocked_by"
-            columns: ["blocked_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -2826,13 +2315,6 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2933,13 +2415,6 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -2976,13 +2451,6 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
-            columns: ["related_user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3056,13 +2524,6 @@ export type Database = {
             foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
             columns: ["blocked_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_blocked_users_blocked_id_fkey"
-            columns: ["blocked_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3099,13 +2560,6 @@ export type Database = {
             columns: ["blocker_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_blocked_users_blocker_id_fkey"
-            columns: ["blocker_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3220,13 +2674,6 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_chat_messages_user"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3277,13 +2724,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3371,13 +2811,6 @@ export type Database = {
             foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_chat_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3444,13 +2877,6 @@ export type Database = {
             foreignKeyName: "wolfpack_chat_sessions_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "wolfpack_chat_sessions_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -3491,13 +2917,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3593,13 +3012,6 @@ export type Database = {
             foreignKeyName: "wolfpack_comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3636,6 +3048,13 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_comments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
             referencedColumns: ["id"]
           },
           {
@@ -3735,13 +3154,6 @@ export type Database = {
             foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_direct_messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3785,13 +3197,6 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_direct_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -3889,13 +3294,6 @@ export type Database = {
             foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
             columns: ["user1_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_dm_conversations_user1_id_fkey"
-            columns: ["user1_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -3932,13 +3330,6 @@ export type Database = {
             columns: ["user2_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_dm_conversations_user2_id_fkey"
-            columns: ["user2_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4009,13 +3400,6 @@ export type Database = {
             foreignKeyName: "wolfpack_follows_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_follows_follower_id_fkey"
-            columns: ["follower_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -4052,13 +3436,6 @@ export type Database = {
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_follows_following_id_fkey"
-            columns: ["following_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4153,13 +3530,6 @@ export type Database = {
             foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
             columns: ["suggested_user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_friend_suggestions_suggested_user_id_fkey"
-            columns: ["suggested_user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -4196,13 +3566,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_friend_suggestions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4437,13 +3800,6 @@ export type Database = {
             foreignKeyName: "wolf_pack_interactions_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "wolf_pack_interactions_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -4452,13 +3808,6 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolf_pack_interactions_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4501,13 +3850,6 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolf_pack_interactions_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4585,6 +3927,13 @@ export type Database = {
             foreignKeyName: "wolfpack_post_hashtags_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_post_hashtags_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -4628,6 +3977,13 @@ export type Database = {
             foreignKeyName: "wolfpack_post_likes_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_post_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -4643,13 +3999,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -4720,13 +4069,6 @@ export type Database = {
             foreignKeyName: "wolfpack_saved_posts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_saved_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -4763,6 +4105,13 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_saved_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
             referencedColumns: ["id"]
           },
           {
@@ -4824,13 +4173,6 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
-            columns: ["shared_by_user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -4873,13 +4215,6 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
             columns: ["shared_to_user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
-            columns: ["shared_to_user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -4916,6 +4251,13 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "my_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
             referencedColumns: ["id"]
           },
           {
@@ -5040,13 +4382,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_user_settings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -5188,13 +4523,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_video_uploads_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -5388,13 +4716,6 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "wolfpack_videos_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -5403,13 +4724,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_videos_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -5557,13 +4871,6 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -5594,13 +4901,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
           },
           {
             foreignKeyName: "dj_broadcasts_location_id_fkey"
@@ -5657,13 +4957,6 @@ export type Database = {
             foreignKeyName: "dj_broadcasts_dj_id_fkey"
             columns: ["dj_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_dj_id_fkey"
-            columns: ["dj_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -5694,13 +4987,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dj_broadcasts_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
           },
           {
             foreignKeyName: "dj_broadcasts_location_id_fkey"
@@ -6015,13 +5301,6 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_users_blocked_by"
-            columns: ["blocked_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -6078,13 +5357,6 @@ export type Database = {
             foreignKeyName: "users_verified_by_fkey"
             columns: ["verified_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -6117,38 +5389,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      bartender_locations: {
-        Row: {
-          first_name: string | null
-          id: string | null
-          last_name: string | null
-          location_id: string | null
-          location_name: string | null
-        }
-        Relationships: []
-      }
-      bartender_order_display: {
-        Row: {
-          accepted_at: string | null
-          bartender_first_name: string | null
-          bartender_last_name: string | null
-          completed_at: string | null
-          created_at: string | null
-          customer_display_name: string | null
-          customer_first_name: string | null
-          customer_last_name: string | null
-          customer_notes: string | null
-          id: string | null
-          location_name: string | null
-          order_number: number | null
-          order_type: string | null
-          ready_at: string | null
-          status: string | null
-          table_location: string | null
-          total_amount: number | null
-        }
-        Relationships: []
       }
       core_table_stats: {
         Row: {
@@ -6469,13 +5709,6 @@ export type Database = {
             foreignKeyName: "fk_users_blocked_by"
             columns: ["blocked_by"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_users_blocked_by"
-            columns: ["blocked_by"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -6526,13 +5759,6 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -6617,136 +5843,6 @@ export type Database = {
         }
         Relationships: []
       }
-      geography_columns: {
-        Row: {
-          coord_dimension: number | null
-          f_geography_column: unknown | null
-          f_table_catalog: unknown | null
-          f_table_name: unknown | null
-          f_table_schema: unknown | null
-          srid: number | null
-          type: string | null
-        }
-        Relationships: []
-      }
-      geometry_columns: {
-        Row: {
-          coord_dimension: number | null
-          f_geometry_column: unknown | null
-          f_table_catalog: string | null
-          f_table_name: unknown | null
-          f_table_schema: unknown | null
-          srid: number | null
-          type: string | null
-        }
-        Insert: {
-          coord_dimension?: number | null
-          f_geometry_column?: unknown | null
-          f_table_catalog?: string | null
-          f_table_name?: unknown | null
-          f_table_schema?: unknown | null
-          srid?: number | null
-          type?: string | null
-        }
-        Update: {
-          coord_dimension?: number | null
-          f_geometry_column?: unknown | null
-          f_table_catalog?: string | null
-          f_table_name?: unknown | null
-          f_table_schema?: unknown | null
-          srid?: number | null
-          type?: string | null
-        }
-        Relationships: []
-      }
-      menu_items_with_working_modifiers: {
-        Row: {
-          category_color: string | null
-          category_display_order: number | null
-          category_icon: string | null
-          category_id: string | null
-          category_name: string | null
-          category_type: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          display_order: number | null
-          id: string | null
-          image_id: string | null
-          image_url: string | null
-          is_active: boolean | null
-          is_available: boolean | null
-          modifier_groups: Json | null
-          name: string | null
-          price: number | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "food_drink_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "food_drink_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "current_user_profile"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "user_interaction_permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "user_storage_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "food_drink_items_image_id_fkey"
-            columns: ["image_id"]
-            isOneToOne: false
-            referencedRelation: "images"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       my_comment_reactions: {
         Row: {
           comment_id: string | null
@@ -6768,13 +5864,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_comment_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -6891,13 +5980,6 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "wolfpack_videos_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
@@ -6906,13 +5988,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_videos_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -7007,13 +6082,6 @@ export type Database = {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -7050,13 +6118,6 @@ export type Database = {
             columns: ["related_user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_activity_notifications_related_user_id_fkey"
-            columns: ["related_user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -7198,30 +6259,6 @@ export type Database = {
         }
         Relationships: []
       }
-      spatial_references: {
-        Row: {
-          auth_name: string | null
-          auth_srid: number | null
-          proj4text: string | null
-          srid: number | null
-          srtext: string | null
-        }
-        Insert: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid?: number | null
-          srtext?: string | null
-        }
-        Update: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid?: number | null
-          srtext?: string | null
-        }
-        Relationships: []
-      }
       user_interaction_permissions: {
         Row: {
           allow_messages: boolean | null
@@ -7271,13 +6308,6 @@ export type Database = {
           name: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "wolfpack_chat_sessions_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["location_id"]
-          },
           {
             foreignKeyName: "wolfpack_chat_sessions_location_id_fkey"
             columns: ["location_id"]
@@ -7356,13 +6386,6 @@ export type Database = {
             foreignKeyName: "fk_chat_messages_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_chat_messages_user"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -7399,13 +6422,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_chat_messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -7458,6 +6474,77 @@ export type Database = {
             columns: ["comment_id"]
             isOneToOne: false
             referencedRelation: "wolfpack_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wolfpack_feed_cache: {
+        Row: {
+          avatar_url: string | null
+          comments_count: number | null
+          content: string | null
+          created_at: string | null
+          first_name: string | null
+          hashtags: string[] | null
+          id: string | null
+          images: string[] | null
+          is_featured: boolean | null
+          last_name: string | null
+          likes_count: number | null
+          media_type: string | null
+          media_url: string | null
+          shares_count: number | null
+          updated_at: string | null
+          user_id: string | null
+          username: string | null
+          verified: boolean | null
+          video_url: string | null
+          views_count: number | null
+          visibility: string | null
+          wolf_emoji: string | null
+          wolfpack_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "active_wolfpack_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "current_user_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_interaction_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_storage_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wolfpack_videos_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -7529,13 +6616,6 @@ export type Database = {
             foreignKeyName: "wolfpack_videos_user_id_fkey1"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_videos_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -7601,6 +6681,13 @@ export type Database = {
             foreignKeyName: "wolfpack_post_likes_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_post_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -7616,13 +6703,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_video_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -7705,13 +6785,6 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
-            referencedRelation: "bartender_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_shares_shared_by_user_id_fkey"
-            columns: ["shared_by_user_id"]
-            isOneToOne: false
             referencedRelation: "current_user_profile"
             referencedColumns: ["id"]
           },
@@ -7748,13 +6821,6 @@ export type Database = {
             columns: ["shared_to_user_id"]
             isOneToOne: false
             referencedRelation: "active_wolfpack_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wolfpack_shares_shared_to_user_id_fkey"
-            columns: ["shared_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "bartender_locations"
             referencedColumns: ["id"]
           },
           {
@@ -7803,6 +6869,13 @@ export type Database = {
             foreignKeyName: "wolfpack_shares_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
+            referencedRelation: "wolfpack_feed_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wolfpack_shares_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
             referencedRelation: "wolfpack_posts"
             referencedColumns: ["id"]
           },
@@ -7817,120 +6890,6 @@ export type Database = {
       }
     }
     Functions: {
-      _postgis_deprecate: {
-        Args: { oldname: string; newname: string; version: string }
-        Returns: undefined
-      }
-      _postgis_index_extent: {
-        Args: { tbl: unknown; col: string }
-        Returns: unknown
-      }
-      _postgis_pgsql_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      _postgis_scripts_pgsql_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      _postgis_selectivity: {
-        Args: { tbl: unknown; att_name: string; geom: unknown; mode?: string }
-        Returns: number
-      }
-      _st_3dintersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_bestsrid: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      _st_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_containsproperly: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_coveredby: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_covers: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_crosses: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_dwithin: {
-        Args: {
-          geog1: unknown
-          geog2: unknown
-          tolerance: number
-          use_spheroid?: boolean
-        }
-        Returns: boolean
-      }
-      _st_equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_intersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_linecrossingdirection: {
-        Args: { line1: unknown; line2: unknown }
-        Returns: number
-      }
-      _st_longestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      _st_maxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      _st_orderingequals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_pointoutside: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      _st_sortablehash: {
-        Args: { geom: unknown }
-        Returns: number
-      }
-      _st_touches: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_voronoi: {
-        Args: {
-          g1: unknown
-          clip?: unknown
-          tolerance?: number
-          return_polygons?: boolean
-        }
-        Returns: unknown
-      }
-      _st_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
       add_chat_reaction: {
         Args: { p_message_id: string; p_emoji: string }
         Returns: string
@@ -7979,41 +6938,6 @@ export type Database = {
           p_parent_comment_id?: string
         }
         Returns: Json
-      }
-      addauth: {
-        Args: { "": string }
-        Returns: boolean
-      }
-      addgeometrycolumn: {
-        Args:
-          | {
-              catalog_name: string
-              schema_name: string
-              table_name: string
-              column_name: string
-              new_srid_in: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-          | {
-              schema_name: string
-              table_name: string
-              column_name: string
-              new_srid: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-          | {
-              table_name: string
-              column_name: string
-              new_srid: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-        Returns: string
       }
       admin_add_item_modifiers: {
         Args: {
@@ -8492,53 +7416,9 @@ export type Database = {
         Args: { p_video_id: string; p_boost_factor?: number }
         Returns: undefined
       }
-      box: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box2d: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box2d_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2d_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2df_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2df_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3d: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box3d_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3d_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3dtobox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
       broadcast_pack_movement: {
         Args: { p_position_x: number; p_position_y: number }
         Returns: Json
-      }
-      bytea: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
       }
       calculate_crowd_energy: {
         Args: { p_location_id: string }
@@ -9253,10 +8133,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      disablelongtransactions: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       discover_local_events: {
         Args: {
           p_location_id: string
@@ -9291,25 +8167,6 @@ export type Database = {
         }
         Returns: Json
       }
-      dropgeometrycolumn: {
-        Args:
-          | {
-              catalog_name: string
-              schema_name: string
-              table_name: string
-              column_name: string
-            }
-          | { schema_name: string; table_name: string; column_name: string }
-          | { table_name: string; column_name: string }
-        Returns: string
-      }
-      dropgeometrytable: {
-        Args:
-          | { catalog_name: string; schema_name: string; table_name: string }
-          | { schema_name: string; table_name: string }
-          | { table_name: string }
-        Returns: string
-      }
       edit_chat_message: {
         Args: { p_message_id: string; p_new_content: string }
         Returns: boolean
@@ -9317,10 +8174,6 @@ export type Database = {
       enable_rls_after_admin_work: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      enablelongtransactions: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
       ensure_user_exists: {
         Args: { p_user_id: string }
@@ -9333,10 +8186,6 @@ export type Database = {
       ensure_whitelisted_users_in_wolfpack: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
       }
       example_efficient_feed_usage: {
         Args: Record<PropertyKey, never>
@@ -9504,230 +8353,6 @@ export type Database = {
       generate_video_upload_path: {
         Args: Record<PropertyKey, never>
         Returns: string
-      }
-      geography: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
-      geography_analyze: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      geography_gist_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_gist_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      geography_spgist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      geography_typmod_out: {
-        Args: { "": number }
-        Returns: unknown
-      }
-      geometry: {
-        Args:
-          | { "": string }
-          | { "": string }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-        Returns: unknown
-      }
-      geometry_above: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_analyze: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      geometry_below: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_cmp: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_contained_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_contains_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_distance_box: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_distance_centroid: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_eq: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_ge: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_gist_compress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_decompress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_decompress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_sortsupport_2d: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      geometry_gt: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_hash: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      geometry_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_le: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_left: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_lt: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_overabove: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overbelow: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overlaps_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overleft: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overright: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_recv: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_right: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_same: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_same_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      geometry_sortsupport: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      geometry_spgist_compress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_spgist_compress_3d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_spgist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      geometry_typmod_out: {
-        Args: { "": number }
-        Returns: unknown
-      }
-      geometry_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometrytype: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      geomfromewkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      geomfromewkt: {
-        Args: { "": string }
-        Returns: unknown
       }
       get_active_menu_items: {
         Args: Record<PropertyKey, never>
@@ -10586,10 +9211,6 @@ export type Database = {
           is_read: boolean
         }[]
       }
-      get_proj4_from_srid: {
-        Args: { "": number }
-        Returns: string
-      }
       get_project_health_report: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -11067,6 +9688,171 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_wolfpack_feed: {
+        Args: {
+          user_auth_id: string
+          limit_count?: number
+          offset_count?: number
+        }
+        Returns: {
+          id: string
+          user_id: string
+          content: string
+          media_url: string
+          media_type: string
+          visibility: string
+          location: string
+          created_at: string
+          updated_at: string
+          likes_count: number
+          comments_count: number
+          shares_count: number
+          views_count: number
+          is_featured: boolean
+          hashtags: string[]
+          mentions: string[]
+          username: string
+          first_name: string
+          last_name: string
+          avatar_url: string
+          wolf_emoji: string
+          verified: boolean
+          user_has_liked: boolean
+        }[]
+      }
+      get_wolfpack_feed_cursor: {
+        Args: {
+          p_user_id?: string
+          p_limit?: number
+          p_cursor?: string
+          p_cursor_id?: string
+          p_following_only?: boolean
+        }
+        Returns: {
+          id: string
+          user_id: string
+          content: string
+          media_url: string
+          media_type: string
+          video_url: string
+          thumbnail_url: string
+          duration: number
+          view_count: number
+          like_count: number
+          comments_count: number
+          shares_count: number
+          hashtags: string[]
+          created_at: string
+          username: string
+          display_name: string
+          first_name: string
+          last_name: string
+          avatar_url: string
+          profile_image_url: string
+          wolf_emoji: string
+          verified: boolean
+          user_liked: boolean
+          user_following: boolean
+          next_cursor: string
+          next_cursor_id: string
+        }[]
+      }
+      get_wolfpack_feed_from_cache: {
+        Args: { p_user_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          user_id: string
+          content: string
+          media_url: string
+          media_type: string
+          video_url: string
+          created_at: string
+          username: string
+          first_name: string
+          last_name: string
+          avatar_url: string
+          wolf_emoji: string
+          verified: boolean
+          likes_count: number
+          comments_count: number
+          shares_count: number
+          views_count: number
+        }[]
+      }
+      get_wolfpack_feed_integrated: {
+        Args:
+          | {
+              p_user_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_following_only?: boolean
+            }
+          | {
+              p_user_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_following_only?: boolean
+              p_location_filter?: string
+            }
+        Returns: {
+          id: string
+          user_id: string
+          content: string
+          media_url: string
+          media_type: string
+          video_url: string
+          thumbnail_url: string
+          duration: number
+          view_count: number
+          like_count: number
+          comments_count: number
+          shares_count: number
+          hashtags: string[]
+          created_at: string
+          username: string
+          display_name: string
+          first_name: string
+          last_name: string
+          avatar_url: string
+          profile_image_url: string
+          wolf_emoji: string
+          verified: boolean
+          user_liked: boolean
+          user_following: boolean
+          location_tag: string
+        }[]
+      }
+      get_wolfpack_feed_optimized: {
+        Args: {
+          user_auth_id: string
+          limit_count?: number
+          offset_count?: number
+        }
+        Returns: {
+          id: string
+          user_id: string
+          content: string
+          media_url: string
+          media_type: string
+          visibility: string
+          location_tag: string
+          created_at: string
+          updated_at: string
+          likes_count: number
+          comments_count: number
+          shares_count: number
+          views_count: number
+          is_featured: boolean
+          hashtags: string[]
+          username: string
+          first_name: string
+          last_name: string
+          avatar_url: string
+          wolf_emoji: string
+          verified: boolean
+          user_has_liked: boolean
+        }[]
+      }
       get_wolfpack_feed_with_details: {
         Args: {
           p_user_id?: string
@@ -11083,9 +9869,9 @@ export type Database = {
           avatar_url: string
           verified: boolean
           is_vip: boolean
-          media_url: string
-          media_type: string
-          content: string
+          video_url: string
+          thumbnail_url: string
+          caption: string
           visibility: string
           views_count: number
           likes_count: number
@@ -11099,92 +9885,15 @@ export type Database = {
           latest_comments: Json
           liked_by_friends: Json
           engagement_score: number
-        }[]
-      }
-      get_wolfpack_following_feed: {
-        Args: { p_user_id: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          post_id: string
-          user_id: string
-          username: string
-          display_name: string
-          avatar_url: string
-          verified: boolean
-          is_vip: boolean
-          media_url: string
-          media_type: string
-          content: string
-          visibility: string
-          views_count: number
-          likes_count: number
-          comments_count: number
-          shares_count: number
-          created_at: string
-          location_name: string
-          user_has_liked: boolean
-          user_has_saved: boolean
-          is_following: boolean
-        }[]
-      }
-      get_wolfpack_for_you_feed: {
-        Args: { p_user_id: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          post_id: string
-          user_id: string
-          username: string
-          display_name: string
-          avatar_url: string
-          verified: boolean
-          is_vip: boolean
-          media_url: string
-          media_type: string
-          content: string
-          visibility: string
-          views_count: number
-          likes_count: number
-          comments_count: number
-          shares_count: number
-          created_at: string
-          location_name: string
-          user_has_liked: boolean
-          user_has_saved: boolean
-          is_following: boolean
-          engagement_score: number
+          trending_score: number
+          post_type: string
+          duration: number
+          hashtags: string[]
         }[]
       }
       get_wolfpack_live_stats: {
         Args: { p_location_id: string }
         Returns: Json
-      }
-      get_wolfpack_location_feed: {
-        Args: {
-          p_location: string
-          p_user_id?: string
-          p_limit?: number
-          p_offset?: number
-        }
-        Returns: {
-          post_id: string
-          user_id: string
-          username: string
-          display_name: string
-          avatar_url: string
-          verified: boolean
-          is_vip: boolean
-          media_url: string
-          media_type: string
-          content: string
-          visibility: string
-          views_count: number
-          likes_count: number
-          comments_count: number
-          shares_count: number
-          created_at: string
-          location_name: string
-          user_has_liked: boolean
-          user_has_saved: boolean
-          is_following: boolean
-        }[]
       }
       get_wolfpack_members: {
         Args: { p_session_id?: string }
@@ -11289,18 +9998,6 @@ export type Database = {
       get_wolfpack_status: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      gettransactionid: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      gidx_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gidx_out: {
-        Args: { "": unknown }
-        Returns: unknown
       }
       give_pack_love: {
         Args:
@@ -11581,14 +10278,6 @@ export type Database = {
         Args: { p_location_id?: string; p_table_location?: string }
         Returns: Json
       }
-      json: {
-        Args: { "": unknown }
-        Returns: Json
-      }
-      jsonb: {
-        Args: { "": unknown }
-        Returns: Json
-      }
       kick_all_from_wolf_pack: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -11669,10 +10358,6 @@ export type Database = {
           p_table_names?: string[]
         }
         Returns: undefined
-      }
-      longtransactionsenabled: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
       }
       maintain_wolfpack_whitelist: {
         Args: Record<PropertyKey, never>
@@ -11789,10 +10474,6 @@ export type Database = {
         Args: { bucket: string; file_path: string }
         Returns: Json
       }
-      path: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
       perform_routine_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -11800,50 +10481,6 @@ export type Database = {
       perform_table_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      pgis_asflatgeobuf_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asgeobuf_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asmvt_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asmvt_serialfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_geometry_clusterintersecting_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown[]
-      }
-      pgis_geometry_clusterwithin_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown[]
-      }
-      pgis_geometry_collect_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_makeline_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_polygonize_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_union_parallel_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_union_parallel_serialfn: {
-        Args: { "": unknown }
-        Returns: string
       }
       ping: {
         Args: Record<PropertyKey, never>
@@ -11871,151 +10508,9 @@ export type Database = {
         }
         Returns: string
       }
-      point: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      polygon: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      populate_geometry_columns: {
-        Args:
-          | { tbl_oid: unknown; use_typmod?: boolean }
-          | { use_typmod?: boolean }
-        Returns: number
-      }
       post_ai_event_to_feed: {
         Args: { p_ai_event_id: string; p_target_pack_id?: string }
         Returns: Json
-      }
-      postgis_addbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_constraint_dims: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: number
-      }
-      postgis_constraint_srid: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: number
-      }
-      postgis_constraint_type: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: string
-      }
-      postgis_dropbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_extensions_upgrade: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_full_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_geos_noop: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_geos_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_getbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_hasbbox: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      postgis_index_supportfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_lib_build_date: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_lib_revision: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_lib_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libjson_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_liblwgeom_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libprotobuf_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libxml_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_noop: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_proj_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_build_date: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_installed: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_released: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_svn_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_type_name: {
-        Args: {
-          geomname: string
-          coord_dimension: number
-          use_new_name?: boolean
-        }
-        Returns: string
-      }
-      postgis_typmod_dims: {
-        Args: { "": number }
-        Returns: number
-      }
-      postgis_typmod_srid: {
-        Args: { "": number }
-        Returns: number
-      }
-      postgis_typmod_type: {
-        Args: { "": number }
-        Returns: string
-      }
-      postgis_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_wagyu_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
       process_ai_events: {
         Args: Record<PropertyKey, never>
@@ -12105,6 +10600,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_wolfpack_feed_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -12541,1075 +11040,6 @@ export type Database = {
         Args: { video_id: string }
         Returns: Json
       }
-      spheroid_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      spheroid_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_3dclosestpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3ddistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_3dintersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_3dlength: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_3dlongestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3dmakebox: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3dmaxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_3dperimeter: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_3dshortestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_addpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_angle: {
-        Args:
-          | { line1: unknown; line2: unknown }
-          | { pt1: unknown; pt2: unknown; pt3: unknown; pt4?: unknown }
-        Returns: number
-      }
-      st_area: {
-        Args:
-          | { "": string }
-          | { "": unknown }
-          | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_area2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_asbinary: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_asencodedpolyline: {
-        Args: { geom: unknown; nprecision?: number }
-        Returns: string
-      }
-      st_asewkb: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_asewkt: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_asgeojson: {
-        Args:
-          | { "": string }
-          | { geog: unknown; maxdecimaldigits?: number; options?: number }
-          | { geom: unknown; maxdecimaldigits?: number; options?: number }
-          | {
-              r: Record<string, unknown>
-              geom_column?: string
-              maxdecimaldigits?: number
-              pretty_bool?: boolean
-            }
-        Returns: string
-      }
-      st_asgml: {
-        Args:
-          | { "": string }
-          | {
-              geog: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-          | { geom: unknown; maxdecimaldigits?: number; options?: number }
-          | {
-              version: number
-              geog: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-          | {
-              version: number
-              geom: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-        Returns: string
-      }
-      st_ashexewkb: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_askml: {
-        Args:
-          | { "": string }
-          | { geog: unknown; maxdecimaldigits?: number; nprefix?: string }
-          | { geom: unknown; maxdecimaldigits?: number; nprefix?: string }
-        Returns: string
-      }
-      st_aslatlontext: {
-        Args: { geom: unknown; tmpl?: string }
-        Returns: string
-      }
-      st_asmarc21: {
-        Args: { geom: unknown; format?: string }
-        Returns: string
-      }
-      st_asmvtgeom: {
-        Args: {
-          geom: unknown
-          bounds: unknown
-          extent?: number
-          buffer?: number
-          clip_geom?: boolean
-        }
-        Returns: unknown
-      }
-      st_assvg: {
-        Args:
-          | { "": string }
-          | { geog: unknown; rel?: number; maxdecimaldigits?: number }
-          | { geom: unknown; rel?: number; maxdecimaldigits?: number }
-        Returns: string
-      }
-      st_astext: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_astwkb: {
-        Args:
-          | {
-              geom: unknown[]
-              ids: number[]
-              prec?: number
-              prec_z?: number
-              prec_m?: number
-              with_sizes?: boolean
-              with_boxes?: boolean
-            }
-          | {
-              geom: unknown
-              prec?: number
-              prec_z?: number
-              prec_m?: number
-              with_sizes?: boolean
-              with_boxes?: boolean
-            }
-        Returns: string
-      }
-      st_asx3d: {
-        Args: { geom: unknown; maxdecimaldigits?: number; options?: number }
-        Returns: string
-      }
-      st_azimuth: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_boundary: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_boundingdiagonal: {
-        Args: { geom: unknown; fits?: boolean }
-        Returns: unknown
-      }
-      st_buffer: {
-        Args:
-          | { geom: unknown; radius: number; options?: string }
-          | { geom: unknown; radius: number; quadsegs: number }
-        Returns: unknown
-      }
-      st_buildarea: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_centroid: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
-      st_cleangeometry: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_clipbybox2d: {
-        Args: { geom: unknown; box: unknown }
-        Returns: unknown
-      }
-      st_closestpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_clusterintersecting: {
-        Args: { "": unknown[] }
-        Returns: unknown[]
-      }
-      st_collect: {
-        Args: { "": unknown[] } | { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_collectionextract: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_collectionhomogenize: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_concavehull: {
-        Args: {
-          param_geom: unknown
-          param_pctconvex: number
-          param_allow_holes?: boolean
-        }
-        Returns: unknown
-      }
-      st_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_containsproperly: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_convexhull: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_coorddim: {
-        Args: { geometry: unknown }
-        Returns: number
-      }
-      st_coveredby: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_covers: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_crosses: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_curvetoline: {
-        Args: { geom: unknown; tol?: number; toltype?: number; flags?: number }
-        Returns: unknown
-      }
-      st_delaunaytriangles: {
-        Args: { g1: unknown; tolerance?: number; flags?: number }
-        Returns: unknown
-      }
-      st_difference: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_dimension: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_disjoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_distance: {
-        Args:
-          | { geog1: unknown; geog2: unknown; use_spheroid?: boolean }
-          | { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_distancesphere: {
-        Args:
-          | { geom1: unknown; geom2: unknown }
-          | { geom1: unknown; geom2: unknown; radius: number }
-        Returns: number
-      }
-      st_distancespheroid: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_dump: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumppoints: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumprings: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumpsegments: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dwithin: {
-        Args: {
-          geog1: unknown
-          geog2: unknown
-          tolerance: number
-          use_spheroid?: boolean
-        }
-        Returns: boolean
-      }
-      st_endpoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_envelope: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_expand: {
-        Args:
-          | { box: unknown; dx: number; dy: number }
-          | { box: unknown; dx: number; dy: number; dz?: number }
-          | { geom: unknown; dx: number; dy: number; dz?: number; dm?: number }
-        Returns: unknown
-      }
-      st_exteriorring: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_flipcoordinates: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_force2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_force3d: {
-        Args: { geom: unknown; zvalue?: number }
-        Returns: unknown
-      }
-      st_force3dm: {
-        Args: { geom: unknown; mvalue?: number }
-        Returns: unknown
-      }
-      st_force3dz: {
-        Args: { geom: unknown; zvalue?: number }
-        Returns: unknown
-      }
-      st_force4d: {
-        Args: { geom: unknown; zvalue?: number; mvalue?: number }
-        Returns: unknown
-      }
-      st_forcecollection: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcecurve: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcepolygonccw: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcepolygoncw: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcerhr: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcesfs: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_generatepoints: {
-        Args:
-          | { area: unknown; npoints: number }
-          | { area: unknown; npoints: number; seed: number }
-        Returns: unknown
-      }
-      st_geogfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geogfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geographyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geohash: {
-        Args:
-          | { geog: unknown; maxchars?: number }
-          | { geom: unknown; maxchars?: number }
-        Returns: string
-      }
-      st_geomcollfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomcollfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geometricmedian: {
-        Args: {
-          g: unknown
-          tolerance?: number
-          max_iter?: number
-          fail_if_not_converged?: boolean
-        }
-        Returns: unknown
-      }
-      st_geometryfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geometrytype: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_geomfromewkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromewkt: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromgeojson: {
-        Args: { "": Json } | { "": Json } | { "": string }
-        Returns: unknown
-      }
-      st_geomfromgml: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromkml: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfrommarc21: {
-        Args: { marc21xml: string }
-        Returns: unknown
-      }
-      st_geomfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromtwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_gmltosql: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_hasarc: {
-        Args: { geometry: unknown }
-        Returns: boolean
-      }
-      st_hausdorffdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_hexagon: {
-        Args: { size: number; cell_i: number; cell_j: number; origin?: unknown }
-        Returns: unknown
-      }
-      st_hexagongrid: {
-        Args: { size: number; bounds: unknown }
-        Returns: Record<string, unknown>[]
-      }
-      st_interpolatepoint: {
-        Args: { line: unknown; point: unknown }
-        Returns: number
-      }
-      st_intersection: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_intersects: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_isclosed: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_iscollection: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isempty: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_ispolygonccw: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_ispolygoncw: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isring: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_issimple: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isvalid: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isvaliddetail: {
-        Args: { geom: unknown; flags?: number }
-        Returns: Database["public"]["CompositeTypes"]["valid_detail"]
-      }
-      st_isvalidreason: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_isvalidtrajectory: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_length: {
-        Args:
-          | { "": string }
-          | { "": unknown }
-          | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_length2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_letters: {
-        Args: { letters: string; font?: Json }
-        Returns: unknown
-      }
-      st_linecrossingdirection: {
-        Args: { line1: unknown; line2: unknown }
-        Returns: number
-      }
-      st_linefromencodedpolyline: {
-        Args: { txtin: string; nprecision?: number }
-        Returns: unknown
-      }
-      st_linefrommultipoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_linefromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linelocatepoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_linemerge: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_linestringfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linetocurve: {
-        Args: { geometry: unknown }
-        Returns: unknown
-      }
-      st_locatealong: {
-        Args: { geometry: unknown; measure: number; leftrightoffset?: number }
-        Returns: unknown
-      }
-      st_locatebetween: {
-        Args: {
-          geometry: unknown
-          frommeasure: number
-          tomeasure: number
-          leftrightoffset?: number
-        }
-        Returns: unknown
-      }
-      st_locatebetweenelevations: {
-        Args: { geometry: unknown; fromelevation: number; toelevation: number }
-        Returns: unknown
-      }
-      st_longestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_m: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_makebox2d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_makeline: {
-        Args: { "": unknown[] } | { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_makepolygon: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_makevalid: {
-        Args: { "": unknown } | { geom: unknown; params: string }
-        Returns: unknown
-      }
-      st_maxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_maximuminscribedcircle: {
-        Args: { "": unknown }
-        Returns: Record<string, unknown>
-      }
-      st_memsize: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_minimumboundingcircle: {
-        Args: { inputgeom: unknown; segs_per_quarter?: number }
-        Returns: unknown
-      }
-      st_minimumboundingradius: {
-        Args: { "": unknown }
-        Returns: Record<string, unknown>
-      }
-      st_minimumclearance: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_minimumclearanceline: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_mlinefromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mlinefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpolyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpolyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multi: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_multilinefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multilinestringfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipolyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipolygonfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_ndims: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_node: {
-        Args: { g: unknown }
-        Returns: unknown
-      }
-      st_normalize: {
-        Args: { geom: unknown }
-        Returns: unknown
-      }
-      st_npoints: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_nrings: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numgeometries: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numinteriorring: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numinteriorrings: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numpatches: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numpoints: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_offsetcurve: {
-        Args: { line: unknown; distance: number; params?: string }
-        Returns: unknown
-      }
-      st_orderingequals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_orientedenvelope: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_perimeter: {
-        Args: { "": unknown } | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_perimeter2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_pointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_pointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_pointm: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          mcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_pointonsurface: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_points: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_pointz: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          zcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_pointzm: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          zcoordinate: number
-          mcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_polyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonize: {
-        Args: { "": unknown[] }
-        Returns: unknown
-      }
-      st_project: {
-        Args: { geog: unknown; distance: number; azimuth: number }
-        Returns: unknown
-      }
-      st_quantizecoordinates: {
-        Args: {
-          g: unknown
-          prec_x: number
-          prec_y?: number
-          prec_z?: number
-          prec_m?: number
-        }
-        Returns: unknown
-      }
-      st_reduceprecision: {
-        Args: { geom: unknown; gridsize: number }
-        Returns: unknown
-      }
-      st_relate: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: string
-      }
-      st_removerepeatedpoints: {
-        Args: { geom: unknown; tolerance?: number }
-        Returns: unknown
-      }
-      st_reverse: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_segmentize: {
-        Args: { geog: unknown; max_segment_length: number }
-        Returns: unknown
-      }
-      st_setsrid: {
-        Args: { geog: unknown; srid: number } | { geom: unknown; srid: number }
-        Returns: unknown
-      }
-      st_sharedpaths: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_shiftlongitude: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_shortestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_simplifypolygonhull: {
-        Args: { geom: unknown; vertex_fraction: number; is_outer?: boolean }
-        Returns: unknown
-      }
-      st_split: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_square: {
-        Args: { size: number; cell_i: number; cell_j: number; origin?: unknown }
-        Returns: unknown
-      }
-      st_squaregrid: {
-        Args: { size: number; bounds: unknown }
-        Returns: Record<string, unknown>[]
-      }
-      st_srid: {
-        Args: { geog: unknown } | { geom: unknown }
-        Returns: number
-      }
-      st_startpoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_subdivide: {
-        Args: { geom: unknown; maxvertices?: number; gridsize?: number }
-        Returns: unknown[]
-      }
-      st_summary: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_swapordinates: {
-        Args: { geom: unknown; ords: unknown }
-        Returns: unknown
-      }
-      st_symdifference: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_symmetricdifference: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_tileenvelope: {
-        Args: {
-          zoom: number
-          x: number
-          y: number
-          bounds?: unknown
-          margin?: number
-        }
-        Returns: unknown
-      }
-      st_touches: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_transform: {
-        Args:
-          | { geom: unknown; from_proj: string; to_proj: string }
-          | { geom: unknown; from_proj: string; to_srid: number }
-          | { geom: unknown; to_proj: string }
-        Returns: unknown
-      }
-      st_triangulatepolygon: {
-        Args: { g1: unknown }
-        Returns: unknown
-      }
-      st_union: {
-        Args:
-          | { "": unknown[] }
-          | { geom1: unknown; geom2: unknown }
-          | { geom1: unknown; geom2: unknown; gridsize: number }
-        Returns: unknown
-      }
-      st_voronoilines: {
-        Args: { g1: unknown; tolerance?: number; extend_to?: unknown }
-        Returns: unknown
-      }
-      st_voronoipolygons: {
-        Args: { g1: unknown; tolerance?: number; extend_to?: unknown }
-        Returns: unknown
-      }
-      st_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_wkbtosql: {
-        Args: { wkb: string }
-        Returns: unknown
-      }
-      st_wkttosql: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_wrapx: {
-        Args: { geom: unknown; wrap: number; move: number }
-        Returns: unknown
-      }
-      st_x: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_xmax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_xmin: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_y: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_ymax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_ymin: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_z: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmflag: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmin: {
-        Args: { "": unknown }
-        Returns: number
-      }
       start_event_round: {
         Args: {
           p_event_id: string
@@ -13671,10 +11101,6 @@ export type Database = {
       test_location_verification: {
         Args: { p_lat?: number; p_lng?: number }
         Returns: Json
-      }
-      text: {
-        Args: { "": unknown }
-        Returns: string
       }
       toggle_block_user: {
         Args: { p_user_id: string }
@@ -13750,10 +11176,6 @@ export type Database = {
       trigger_wolfpack_onboarding: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      unlockrows: {
-        Args: { "": string }
-        Returns: number
       }
       update_contestant_details: {
         Args: {
@@ -13883,16 +11305,6 @@ export type Database = {
           p_wolf_emoji?: string
         }
         Returns: Json
-      }
-      updategeometrysrid: {
-        Args: {
-          catalogn_name: string
-          schema_name: string
-          table_name: string
-          column_name: string
-          new_srid_in: number
-        }
-        Returns: string
       }
       upload_video: {
         Args: {
@@ -14136,15 +11548,7 @@ export type Database = {
       reaction_type_enum: "will_attend" | "fire" | "lame" | "like" | "heart"
     }
     CompositeTypes: {
-      geometry_dump: {
-        path: number[] | null
-        geom: unknown | null
-      }
-      valid_detail: {
-        valid: boolean | null
-        reason: string | null
-        location: unknown | null
-      }
+      [_ in never]: never
     }
   }
 }

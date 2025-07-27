@@ -33,10 +33,18 @@ class ErrorTracker {
   }
 
   private handleGlobalError(event: ErrorEvent) {
+    // Skip generic "Script error." which happens with cross-origin scripts
+    if (event.message === 'Script error.' && !event.error) {
+      return;
+    }
+    
     this.logError(event.error || new Error(event.message), {
       feature: 'global',
       action: 'unhandled_error',
-      component: 'window'
+      component: 'window',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
     }, 'error');
   }
 

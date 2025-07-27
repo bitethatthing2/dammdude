@@ -77,6 +77,7 @@ export interface FetchFeedResponse {
   items: FeedItem[];
   totalItems: number;
   hasMore: boolean;
+  nextCursor?: string; // For cursor-based pagination
 }
 
 // Location types
@@ -123,6 +124,7 @@ export interface PaginationOptions {
   page?: number;
   limit?: number;
   offset?: number;
+  cursor?: string; // For cursor-based pagination
 }
 
 export interface SortOptions {

@@ -6,6 +6,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Playfair_Display, Inter } from 'next/font/google';
 import { NotificationProvider } from '@/lib/contexts/unified-notification-context';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { UserProvider } from '@/contexts/UserContext';
 import { UnifiedNotificationInit } from '@/components/notifications/UnifiedNotificationInit';
 import { CartProvider } from '@/components/cart/CartContext';
 // import { CommentsProvider } from '@/lib/contexts/CommentsContext';
@@ -296,22 +297,24 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body className={`${inter.variable} ${playfair.variable} min-h-screen font-sans antialiased bg-black m-0 p-0`}>
         <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              {/* <CommentsProvider> */}
-                <NotificationProvider>
-                  <NuqsAdapter>
-                    <LogoPreloader />
-                    <PwaInitializer />
-                    <UnifiedNotificationInit />
-                    <main>
-                      {children}
-                    </main>
-                  </NuqsAdapter>
-                </NotificationProvider>
-              {/* </CommentsProvider> */}
-            </CartProvider>
-          </LocationProvider>
+          <UserProvider>
+            <LocationProvider>
+              <CartProvider>
+                {/* <CommentsProvider> */}
+                  <NotificationProvider>
+                    <NuqsAdapter>
+                      <LogoPreloader />
+                      <PwaInitializer />
+                      <UnifiedNotificationInit />
+                      <main>
+                        {children}
+                      </main>
+                    </NuqsAdapter>
+                  </NotificationProvider>
+                {/* </CommentsProvider> */}
+              </CartProvider>
+            </LocationProvider>
+          </UserProvider>
         </AuthProvider>
         
         {/* Service Worker Registration */}
