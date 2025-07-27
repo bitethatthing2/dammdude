@@ -88,7 +88,8 @@
       "Bash(timeout 90s npm run build:*)",
       "Bash(git remote set-url:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(gh auth:*)"
     ],
     "deny": []
   },
