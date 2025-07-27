@@ -1,13 +1,18 @@
 // Unified Wolfpack Types - Central source of truth
 import type { Database } from '@/types/database.types';
 
-// Base Wolfpack types from database
-export type BartenderOrderRow = Database['public']['Tables']['bartender_orders']['Row'];
-export type OrderInsert = Database['public']['Tables']['bartender_orders']['Insert'];
-export type OrderUpdate = Database['public']['Tables']['bartender_orders']['Update'];
-
 // Core Wolfpack Order Types
-export interface WolfPackOrder extends BartenderOrderRow {
+export interface WolfPackOrder {
+  id: string;
+  customer_id?: string;
+  location_id: string;
+  order_number: number;
+  total_amount: number;
+  status: 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled';
+  payment_status: 'pending' | 'paid' | 'refunded';
+  customer_notes?: string;
+  created_at: string;
+  updated_at: string;
   items?: WolfPackOrderItem[];
   customer?: {
     id: string;
@@ -96,7 +101,6 @@ export interface WolfPackVideo {
 }
 
 // Export aliases for backward compatibility
-export type { WolfPackOrder as BartenderOrder };
 export type { WolfPackOrderItem as OrderItem };
 export type { WolfPackOrder as OrderWithDetails };
 export type { WolfPackOrderSummary as OrderSummary };

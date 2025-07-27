@@ -80,30 +80,18 @@ export async function loadWolfpackMembers(
   
   const sanitizedLocationId = sanitizeLocationId(locationId);
   
-  // Build base query
+  // Build base query - wolfpack membership is now tracked in users table
   let query = supabase
-    .from("wolf_pack_members")
-    .select(
-      includeProfiles 
-        ? `
-          *,
-          user:users (
-            *,
-            wolf_profile:wolf_profiles (*)
-          )
-        `
-        : `
-          *,
-          user:users (*)
-        `
-    )
-    .eq('status', 'active');
+    .from("users")
+    .select('*')
+    .eq('is_wolfpack_member', true)
+    .eq('wolfpack_status', 'active');
 
   // Apply location filter correctly
   query = applyLocationFilter(query, sanitizedLocationId);
 
   // Order by join date
-  query = query.order('joined_at', { ascending: false });
+  query = query.order('wolfpack_joined_at', { ascending: false });
 
   const { data, error } = await query;
 
@@ -119,25 +107,30 @@ export async function loadWolfpackMembers(
     return { data: null, error };
   }
 
-  // Transform data if we're not including profiles
-  if (!includeProfiles && data) {
-    const transformedData = data.map((member: Record<string, unknown>) => ({
-      ...member,
-      user: member.user ? {
-        ...member.user,
+  // Transform data - users table directly contains wolfpack member info
+  if (data) {
+    const transformedData = data.map((user: Record<string, unknown>) => ({
+      id: user.id,
+      user_id: user.id,
+      location_id: user.location_id,
+      status: user.wolfpack_status,
+      tier: user.wolfpack_tier,
+      joined_at: user.wolfpack_joined_at,
+      user: {
+        ...user,
         wolf_profile: {
-          display_name: 'Anonymous Wolf',
-          wolf_emoji: '🐺',
-          wolfpack_status: 'Just joined',
-          favorite_drink: null,
-          instagram_handle: null,
-          looking_for: null,
-          bio: null,
-          is_profile_visible: true,
-          profile_image_url: null,
-          allow_messages: true
+          display_name: user.display_name || 'Anonymous Wolf',
+          wolf_emoji: user.wolf_emoji || '🐺',
+          wolfpack_status: user.wolfpack_status || 'Just joined',
+          favorite_drink: user.favorite_drink || null,
+          instagram_handle: user.instagram_handle || null,
+          looking_for: user.looking_for || null,
+          bio: user.bio || null,
+          is_profile_visible: user.is_profile_visible ?? true,
+          profile_image_url: user.profile_image_url || null,
+          allow_messages: user.allow_messages ?? true
         }
-      } : undefined
+      }
     }));
     
     return { data: transformedData, error: null };
@@ -162,11 +155,12 @@ export async function countWolfpackMembers(
   const sanitizedLocationId = sanitizeLocationId(locationId);
   
   let query = supabase
-    .from("wolf_pack_members")
-    .select('id', { count: 'exact', head: true });
+    .from("users")
+    .select('id', { count: 'exact', head: true })
+    .eq('is_wolfpack_member', true);
 
   if (activeOnly) {
-    query = query.eq('status', 'active');
+    query = query.eq('wolfpack_status', 'active');
   }
 
   // Apply location filter correctly

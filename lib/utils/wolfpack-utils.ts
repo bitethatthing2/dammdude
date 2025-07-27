@@ -2,13 +2,36 @@
 // Consolidated utility functions for wolfpack operations
 
 import { supabase, createClient } from '@/lib/supabase/client';
-import { 
-  AuthUser, 
-  SupabaseError, 
-  WolfpackMembership, 
-  DebugResult, 
-  createDefaultWolfProfile 
-} from '@/types/features/wolfpack-interfaces';
+import type { User as AuthUser } from '@supabase/supabase-js';
+
+interface SupabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+interface WolfpackMembership {
+  id: string;
+  user_id: string;
+  location_id: string;
+  status: string;
+  tier: string;
+  created_at: string;
+}
+
+interface DebugResult {
+  authWorking?: boolean;
+  tableAccessible?: boolean;
+  totalMemberships?: number;
+  userMemberships?: number;
+  errors?: {
+    authError?: SupabaseError;
+    tableError?: SupabaseError;
+    countError?: SupabaseError;
+    userError?: SupabaseError;
+  };
+  error?: any;
+}
 
 // Special VIP users who should always be wolfpack members
 const VIP_USERS = ['mkahler599@gmail.com'];

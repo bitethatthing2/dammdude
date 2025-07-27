@@ -46,7 +46,6 @@ export interface Database {
           role: "user" | "admin" | "dj" | "bartender";
           status: "active" | "inactive" | "blocked";
           is_approved: boolean;
-          wolfpack_tier: boolean;
           permanent_member_since: string | null;
           permanent_member_benefits: Json | null;
           permanent_member_notes: string | null;
@@ -103,7 +102,6 @@ export interface Database {
           role?: "user" | "admin" | "dj" | "bartender";
           status?: "active" | "inactive" | "blocked";
           is_approved?: boolean;
-          wolfpack_tier?: boolean;
           permanent_member_since?: string | null;
           permanent_member_benefits?: Json | null;
           permanent_member_notes?: string | null;
@@ -160,7 +158,6 @@ export interface Database {
           role?: "user" | "admin" | "dj" | "bartender";
           status?: "active" | "inactive" | "blocked";
           is_approved?: boolean;
-          wolfpack_tier?: boolean;
           permanent_member_since?: string | null;
           permanent_member_benefits?: Json | null;
           permanent_member_notes?: string | null;
